@@ -107,7 +107,10 @@ is_codespace(){ [[ -n "${CODESPACE_NAME-}" ]]; }
 # REPO KONTEXT
 # ─────────────────────────────────────────────────────────────────────────────
 is_git_repo(){ git rev-parse --is-inside-work-tree >/dev/null 2>&1; }
-require_repo(){ is_git_repo || die "Nicht im Git-Repo (wgx benötigt ein Git-Repository)."; }
+require_repo(){
+  has git || die "git nicht installiert."
+  is_git_repo || die "Nicht im Git-Repo (wgx benötigt ein Git-Repository)."
+}
 
 # Portables readlink -f
 _root_resolve(){
@@ -179,7 +182,16 @@ file_size_bytes(){ # Linux/macOS/Busybox
 
 git_supports_magic(){ git -C "$1" ls-files -z -- ':(exclude)node_modules/**' >/dev/null 2>&1; }
 
-mktemp_portable(){ local p="${1:-wgx}"; local f="${TMPDIR:-/tmp}/${p}.$(date +%s).$$"; : > "$f" && printf "%s" "$f"; }
+mktemp_portable(){
+  local p="${1:-wgx}"
+  if has mktemp; then
+    mktemp -t "${p}.XXXXXX" 2>/dev/null || { local f="${TMPDIR:-/tmp}/${p}.$$.tmp"; : > "$f" && printf "%s" "$f"; }
+  else
+    local f="${TMPDIR:-/tmp}/${p}.$(date +%s).$$"
+    : > "$f" || die "Konnte temporäre Datei nicht erstellen: $f"
+    printf "%s" "$f"
+  fi
+}
 now_ts(){ date +"%Y-%m-%d %H:%M"; }
 
 # Validierung & Flag-Ermittlung für Commit-Signing
@@ -205,8 +217,7 @@ with_timeout(){
 # ─────────────────────────────────────────────────────────────────────────────
 git_branch(){ git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "HEAD"; }
 git_in_progress(){
-  git rebase --show-current-patch >/dev/null 2>&1 \
-  || git merge HEAD 2>/dev/null | grep -q .
+  [[ -d .git/rebase-merge || -d .git/rebase-apply || -f .git/MERGE_HEAD ]]
 }
 
 # OFFLINE-freundlich, mit sichtbarer Warnung bei Fehler
@@ -222,9 +233,24 @@ remote_host_path(){
   local u; u="$(git remote get-url origin 2>/dev/null || true)"
   [[ -z "$u" ]] && { echo ""; return; }
   case "$u" in
-    http*://*/*) echo "${u#*://}" ;;
-    git@*:*/*)   echo "${u#git@}" | sed 's/:/ /; s/  */ /g' | awk '{print $1" "$2}' ;;
-    *)           echo "$u" ;;
+    http*://*/*)
+      local rest="${u#*://}"
+      local host="${rest%%/*}"
+      local path="${rest#*/}"
+      echo "$host $path"
+      ;;
+    ssh://git@*/*)
+      local rest="${u#ssh://git@}"
+      local host="${rest%%/*}"
+      local path="${rest#*/}"
+      echo "$host $path"
+      ;;
+    git@*:*/*)
+      local host="${u#git@}"; host="${host%%:*}"
+      local path="${u#*:}"
+      echo "$host $path"
+      ;;
+    *) echo "";;
   esac
 }
 host_kind(){ # erkannt: github, gitlab, codeberg, gitea (catch-all: gitea für fremde Hosts)
@@ -235,7 +261,7 @@ host_kind(){ # erkannt: github, gitlab, codeberg, gitea (catch-all: gitea für f
     codeberg.org) echo codeberg ;;
     *)
       # Heuristik: beliebige eigene Gitea-Instanzen (host enthält gitea|forgejo?) → gitea
-      if [[ "$host" == *gitea* || "$host" == *forgejo* ]]; then echo gitea; else echo gitea; fi
+      if [[ "$host" == *gitea* || "$host" == *forgejo* ]]; then echo gitea; else echo unknown; fi
       ;;
   esac
 }
@@ -272,7 +298,7 @@ run_with_files_xargs0(){
   else
     local buf=() f
     while IFS= read -r -d '' f; do buf+=("$f"); done
-    (("$#">0)) && "$@" "${buf[@]}"
+    [[ $# -gt 0 ]] && "$@" "${buf[@]}"
   fi
 }
 
@@ -606,13 +632,13 @@ lint_cmd(){
             sh -c 'cd "$1"; shift; npx --yes prettier -c -- "$@"' _ "$wd" \
         || rc_total=$RC_WARN
       else
-        find "$wd" $begin:math:text$ -path "$wd/node_modules" -o -path "$wd/dist" -o -path "$wd/build" $end:math:text$ -prune -o \
-             -type f $begin:math:text$ -name '*.js' -o -name '*.ts' -o -name '*.tsx' -o -name '*.jsx' -o -name '*.json' -o -name '*.css' -o -name '*.scss' -o -name '*.md' -o -name '*.svelte' $end:math:text$ -print0 \
+        find "$wd" \( -path "$wd/node_modules" -o -path "$wd/dist" -o -path "$wd/build" \) -prune -o \
+             -type f \( -name '*.js' -o -name '*.ts' -o -name '*.tsx' -o -name '*.jsx' -o -name '*.json' -o -name '*.css' -o -name '*.scss' -o -name '*.md' -o -name '*.svelte' \) -print0 \
         | while IFS= read -r -d '' f; do rel="${f#$wd/}"; printf '%s\0' "$rel"; done \
         | run_with_files_xargs0 "Prettier Check" \
             sh -c 'cd "$1"; shift; '"$prettier_cmd"' -c -- "$@"' _ "$wd" \
-        || run_with_files_xargs0 "Prettier Check (fallback npx)" \
-            sh -c 'cd "$1"; shift; npx --yes prettier -c -- "$@"' _ "$wd" \
+        || { (( OFFLINE )) || run_with_files_xargs0 "Prettier Check (fallback npx)" \
+               sh -c 'cd "$1"; shift; npx --yes prettier -c -- "$@"' _ "$wd"; } \
         || rc_total=$RC_WARN
       fi
     fi
@@ -745,7 +771,15 @@ if ! type -t changed_files_cached >/dev/null 2>&1; then
 fi
 if ! type -t changed_files_all >/dev/null 2>&1; then
   changed_files_all(){
-    git status --porcelain -z 2>/dev/null | awk -v RS='\0' 'NR%2==1{p=substr($0,4)} NR%2==0{if (substr($0,1,1)=="R") p=$0} END{print p}' | sed '/^$/d'
+    git status --porcelain -z 2>/dev/null \
+    | awk -v RS='\0' '
+        {
+          s = substr($0,1,2);
+          p = substr($0,4);
+          if (s ~ /^R/) { getline n; print n; }
+          else if (p != "") { print p; }
+        }' \
+    | sed '/^$/d'
   }
 fi
 
@@ -807,7 +841,9 @@ _codeowners_reviewers(){ # liest \n-separierte Pfade von stdin
   local files=() f; while IFS= read -r f; do [[ -n "$f" ]] && files+=("$f"); done
 
   # globstar temporär aktivieren (CODEOWNERS '**')
-  local had_globstar=0; shopt -qo globstar && had_globstar=1; shopt -s globstar
+  local had_globstar=0
+  if shopt -q globstar; then had_globstar=1; fi
+  shopt -s globstar
 
   local seen="," i p matchOwners o
   for f in "${files[@]}"; do
@@ -826,7 +862,7 @@ _codeowners_reviewers(){ # liest \n-separierte Pfade von stdin
     done
   done
 
-  (( had_globstar )) || shopt -u globstar
+  if (( ! had_globstar )); then shopt -u globstar; fi
 }
 
 derive_labels(){
@@ -1243,7 +1279,10 @@ doctor_cmd(){
     web="$(detect_web_dir || true)"
     api="$(detect_api_dir || true)"
     local _ab
-    if ! _ab="$(git_ahead_behind "$br" 2>&1)"; then
+    if (( OFFLINE )); then
+      warn "Offline-Modus: Upstream-Abstand übersprungen."
+      behind=0; ahead=0
+    elif ! _ab="$(git_ahead_behind "$br" 2>&1)"; then
       warn "git_ahead_behind fehlgeschlagen: $_ab"
       behind=0; ahead=0
     else
@@ -1409,14 +1448,15 @@ _pkg_json_set_ver(){
       rm -f "$pj.tmp"; return 1
     fi
   else
-    # Ersetze NUR den ersten Wert der ersten "version"-Property im File
-    local v_esc="${ver//\\/\\\\}"; v_esc="${v_esc//&/\\&}"; v_esc="${v_esc//|/\\|}"
-    if sed -E -i.bak '0,/^([[:space:]]*"version"[[:space:]]*:[[:space:]]*")([^"]*)(")/s//\1'"$v_esc"'\3/' "$pj" \
-       && rm -f "$pj.bak"; then
-      return 0
-    else
-      return 1
-    fi
+    has awk || die "awk nicht verfügbar – benötigt für Version-Update ohne jq."
+    local tmp="${pj}.tmp"
+    awk -v ver="$ver" '
+      BEGIN{done=0}
+      !done && /"version"[[:space:]]*:/ {
+        sub(/"version"[[:space:]]*:[[:space:]]*"[^"]*"/, "\"version\": \"" ver "\""); done=1
+      }
+      { print }
+    ' "$pj" > "$tmp" && mv "$tmp" "$pj"
   fi
 }
 
@@ -1521,6 +1561,7 @@ release_cmd(){
 version_cmd(){
   require_repo
   local sub="${1-}"; [[ $# -gt 0 ]] && shift
+  local do_commit=0; for a in "$@"; do [[ "$a" == "--commit" ]] && do_commit=1; done
 
   case "$sub" in
     bump)
@@ -1539,7 +1580,6 @@ version_cmd(){
         _cargo_set_ver "$api" "$nv" || die "Version konnte in $api/Cargo.toml nicht gesetzt werden."
       fi
 
-      local do_commit=0; for a in "$@"; do [[ "$a" == "--commit" ]] && do_commit=1; done
       (( do_commit )) && { git add -A && git commit -m "chore(version): bump to v$nv"; }
       ok "Version bump → v$nv"
       ;;
@@ -1557,7 +1597,6 @@ version_cmd(){
         _cargo_set_ver "$api" "$v" || die "Version konnte in $api/Cargo.toml nicht gesetzt werden."
       fi
 
-      local do_commit=0; for a in "$@"; do [[ "$a" == "--commit" ]] && do_commit=1; done
       (( do_commit )) && { git add -A && git commit -m "chore(version): set v$v"; }
       ok "Version gesetzt → v$v"
       ;;
@@ -1621,11 +1660,16 @@ env_doctor_termux(){
 }
 
 env_fix_termux(){
-  local ans
+  local ans rc=0
   if [[ ! -d "$HOME/storage" ]]; then
     read_prompt ans "Storage fehlt. Jetzt 'termux-setup-storage' ausführen? [Y/n]" "y"
     if [[ "$(to_lower "$ans")" != "n" ]]; then
-      if has termux-setup-storage; then termux-setup-storage || true; else warn "termux-setup-storage nicht verfügbar."; fi
+      if has termux-setup-storage; then
+        termux-setup-storage || { warn "termux-setup-storage fehlgeschlagen."; rc=1; }
+      else
+        warn "termux-setup-storage nicht verfügbar."
+        rc=1
+      fi
       echo "Termux ggf. neu starten."
     fi
   fi
@@ -1637,18 +1681,19 @@ env_fix_termux(){
   if ((${#need[@]})); then
     read_prompt ans "Fehlende Basis-Pakete installieren (${need[*]})? [Y/n]" "y"
     if [[ "$(to_lower "$ans")" != "n" ]]; then
-      pkg install -y "${need[@]}" || warn "Installation einiger Pakete fehlgeschlagen."
+      pkg install -y "${need[@]}" || { warn "Installation einiger Pakete fehlgeschlagen."; rc=1; }
     fi
   fi
 
   if ! git config --get core.filemode >/dev/null 2>&1; then
     read_prompt ans "git core.filemode=false setzen (empfohlen auf Android)? [Y/n]" "y"
     if [[ "$(to_lower "$ans")" != "n" ]]; then
-      git config core.filemode false || warn "Konnte core.filemode nicht setzen."
+      git config core.filemode false || { warn "Konnte core.filemode nicht setzen."; rc=1; }
     fi
   fi
 
-  ok "Termux-Fixes angewendet (sofern bestätigt)."
+  (( rc==0 )) && ok "Termux-Fixes angewendet (sofern bestätigt)." || warn "Einige Fixes fehlgeschlagen (rc=$rc)."
+  return $rc
 }
 
 env_doctor_generic(){
