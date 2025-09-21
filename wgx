@@ -780,7 +780,14 @@ if ! type -t changed_files_all >/dev/null 2>&1; then
         {
           s = substr($0,1,2);
           p = substr($0,4);
-          if (s ~ /^R/) { getline n; print n; }
+          if (s ~ /^R/) {
+            if (getline n > 0) {
+              print n;
+            } else {
+              print "WARNING: Missing new file name for rename entry: " p > "/dev/stderr";
+              # Optionally, print the old name or skip
+            }
+          }
           else if (p != "") { print p; }
         }' \
     | sed '/^$/d'
