@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+IFS=$'\n\t'; umask 077; shopt -s extglob nullglob
+printf 'wgx v2.1.0 (Termux) – funktioniert!\n'
