@@ -637,8 +637,12 @@ lint_cmd(){
         | while IFS= read -r -d '' f; do rel="${f#$wd/}"; printf '%s\0' "$rel"; done \
         | run_with_files_xargs0 "Prettier Check" \
             sh -c 'cd "$1"; shift; '"$prettier_cmd"' -c -- "$@"' _ "$wd" \
-        || { (( OFFLINE )) || run_with_files_xargs0 "Prettier Check (fallback npx)" \
-               sh -c 'cd "$1"; shift; npx --yes prettier -c -- "$@"' _ "$wd"; } \
+        || { 
+             if (( ! OFFLINE )); then
+               run_with_files_xargs0 "Prettier Check (fallback npx)" \
+                 sh -c 'cd "$1"; shift; npx --yes prettier -c -- "$@"' _ "$wd"
+             fi
+           } \
         || rc_total=$RC_WARN
       fi
     fi
