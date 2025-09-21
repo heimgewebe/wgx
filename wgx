@@ -1862,7 +1862,10 @@ selftest_cmd(){
     rc=$RC_WARN
   fi
 
-  if ! wgx_selftest_check_bins "Erforderlich" 1 git jq; then
+  local bins_check_rc
+  wgx_selftest_check_bins "Erforderlich" 1 git jq
+  bins_check_rc=$?
+  if (( bins_check_rc != 0 )); then
     rc=$RC_WARN
   fi
   wgx_selftest_check_bins "Optional" 0 gh glab node pnpm || true
