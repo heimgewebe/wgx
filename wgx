@@ -206,13 +206,14 @@ with_timeout(){
 # ─────────────────────────────────────────────────────────────────────────────
 git_branch(){ git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "HEAD"; }
 git_in_progress(){
-  git rev-parse --git-dir >/dev/null 2>&1 || return 1
+  local gitdir
+  gitdir="$(git rev-parse --git-dir 2>/dev/null)" || return 1
   local merge_head rebase_merge rebase_apply cherry_head revert_head
-  merge_head="$(git rev-parse --git-path MERGE_HEAD)"
-  rebase_merge="$(git rev-parse --git-path rebase-merge)"
-  rebase_apply="$(git rev-parse --git-path rebase-apply)"
-  cherry_head="$(git rev-parse --git-path CHERRY_PICK_HEAD)"
-  revert_head="$(git rev-parse --git-path REVERT_HEAD)"
+  merge_head="$gitdir/MERGE_HEAD"
+  rebase_merge="$gitdir/rebase-merge"
+  rebase_apply="$gitdir/rebase-apply"
+  cherry_head="$gitdir/CHERRY_PICK_HEAD"
+  revert_head="$gitdir/REVERT_HEAD"
   [[ -f "$merge_head" || -d "$rebase_merge" || -d "$rebase_apply" || -f "$cherry_head" || -f "$revert_head" ]]
 }
 
