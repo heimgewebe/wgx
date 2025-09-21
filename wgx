@@ -30,6 +30,7 @@ trap 'ec=$?; cmd=$BASH_COMMAND; line=${BASH_LINENO[0]}; fn=${FUNCNAME[1]:-MAIN};
 
 WGX_VERSION="2.0.0"
 RC_OK=0; RC_WARN=1; RC_BLOCK=2
+WGX_LAST_GUARD_RC=$RC_OK
 
 # Früh-Exit für Versionsabfrage (auch ohne Git-Repo nutzbar)
 if [[ "${1-}" == "--version" || "${1-}" == "-V" ]]; then
@@ -205,8 +206,14 @@ with_timeout(){
 # ─────────────────────────────────────────────────────────────────────────────
 git_branch(){ git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "HEAD"; }
 git_in_progress(){
-  git rebase --show-current-patch >/dev/null 2>&1 \
-  || git merge HEAD 2>/dev/null | grep -q .
+  git rev-parse --git-dir >/dev/null 2>&1 || return 1
+  local merge_head rebase_merge rebase_apply cherry_head revert_head
+  merge_head="$(git rev-parse --git-path MERGE_HEAD)"
+  rebase_merge="$(git rev-parse --git-path rebase-merge)"
+  rebase_apply="$(git rev-parse --git-path rebase-apply)"
+  cherry_head="$(git rev-parse --git-path CHERRY_PICK_HEAD)"
+  revert_head="$(git rev-parse --git-path REVERT_HEAD)"
+  [[ -f "$merge_head" || -d "$rebase_merge" || -d "$rebase_apply" || -f "$cherry_head" || -f "$revert_head" ]]
 }
 
 # OFFLINE-freundlich, mit sichtbarer Warnung bei Fehler
@@ -505,6 +512,7 @@ guard_run(){
     1) warn "Preflight mit Warnungen.";;
     2) die "Preflight BLOCKER → bitte Hinweise beachten.";;
   esac
+  WGX_LAST_GUARD_RC="$rc"
   printf "%s\n" "$rc"
 }
 
@@ -1009,7 +1017,8 @@ send_cmd(){
     git diff --quiet "origin/$WGX_BASE"...HEAD && die "send: Kein Diff zu origin/$WGX_BASE → Nichts zu senden."
   fi
 
-  guard_run; local rc=$?
+  guard_run
+  local rc="${WGX_LAST_GUARD_RC:-$RC_OK}"
   (( rc==1 && (ASSUME_YES || ${WGX_DRAFT_ON_WARN:-0}) )) && DRAFT=1
   (( SYNC_FIRST )) && sync_cmd ${SIGN:+--sign} --scope "${SCOPE}" --base "$WGX_BASE" || { warn "Sync fehlgeschlagen → PR abgebrochen."; return 1; }
 
@@ -1696,7 +1705,8 @@ quick_cmd(){
 
   echo "=== wgx quick ==="
   local rc=0
-  guard_run --lint --test || rc=$?
+  guard_run --lint --test
+  rc="${WGX_LAST_GUARD_RC:-$RC_OK}"
   local draft=()
   (( rc==1 )) && draft+=(--draft)
 
