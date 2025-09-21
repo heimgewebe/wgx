@@ -315,7 +315,7 @@ while [[ $# -gt 0 ]]; do
     --base) shift; WGX_BASE="${1-}" ;;
     --offline) OFFLINE=1 ;;
     --no-color) : ;; # wir nutzen Emojis → no-op
-    send|sync|guard|heal|reload|clean|doctor|init|setup|lint|start|release|hooks|version|env|quick|config|test|help|-h|--help|status)
+    send|sync|guard|heal|reload|clean|doctor|init|setup|lint|start|release|hooks|version|env|quick|config|test|selftest|help|-h|--help|status)
       break ;;
     *) warn "Unbekanntes globales Argument ignoriert: $1" ;;
   esac
@@ -1815,11 +1815,74 @@ Kurz:
   wgx version bump patch|minor|major [--commit] | set vX.Y.Z [--commit]
   wgx hooks install
   wgx env doctor [--fix]    # Umgebungscheck (Termux-Fixes)
+  wgx selftest              # Basisfunktionsprüfung (Version/Tools)
   wgx config show|set K=V
   wgx clean / lint / doctor / setup / init / reload / heal / test
 Global:
   --yes  --dry-run  --timeout <s>  --no-timeout  --verbose  --base <branch>  --no-color  --offline  --version
 EOF
+}
+
+wgx_selftest_check_bins(){
+  local label="$1"; shift || true
+  local critical="$1"; shift || true
+  local -a bins=("$@")
+  local miss=0 bin
+  for bin in "${bins[@]}"; do
+    if has "$bin"; then
+      ok "$label: $bin gefunden"
+    else
+      if (( critical )); then
+        warn "$label: $bin fehlt"
+        miss=1
+      else
+        warn "$label: $bin fehlt (optional)"
+      fi
+    fi
+  done
+  return "$miss"
+}
+
+selftest_cmd(){
+  echo "=== wgx selftest ==="
+
+  local rc=$RC_OK
+
+  if [[ -x "$0" ]]; then
+    ok "wgx ausführbar (${0})"
+  else
+    warn "wgx nicht ausführbar (${0})"
+    rc=$RC_WARN
+  fi
+
+  if "$0" --version >/dev/null 2>&1; then
+    ok "Version abrufbar"
+  else
+    warn "Version nicht abrufbar"
+    rc=$RC_WARN
+  fi
+
+  local bins_check_rc
+  wgx_selftest_check_bins "Erforderlich" 1 git jq
+  bins_check_rc=$?
+  if (( bins_check_rc != 0 )); then
+    rc=$RC_WARN
+  fi
+  wgx_selftest_check_bins "Optional" 0 gh glab node pnpm || true
+
+  if is_git_repo; then
+    ok "Git-Repository erkannt ($(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo '?'))"
+  else
+    info "Hinweis: Selbsttest außerhalb eines Git-Repos – einige Kommandos erfordern eins."
+  fi
+
+  if (( rc==RC_OK )); then
+    ok "Selftest abgeschlossen."
+    return 0
+  fi
+
+  warn "Selftest mit Hinweisen abgeschlossen (rc=$rc)."
+  return 1
 }
 
 case "${SUB}" in
@@ -1842,6 +1905,7 @@ case "${SUB}" in
   quick)    quick_cmd "$@";;
   config)   config_cmd "$@";;
   test)     test_cmd "$@";;
+  selftest) selftest_cmd "$@";;
   help|-h|--help|"") usage;;
   *) die "Unbekanntes Kommando: $SUB";;
 esac
