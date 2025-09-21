@@ -1,0 +1,25 @@
+// .devcontainer/devcontainer.json
+{
+  "name": "wgx-dev",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+  "features": {
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "20"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-azuretools.vscode-docker",
+        "github.copilot",
+        "eamodio.gitlens",
+        "timonwong.shellcheck",
+        "streetsidesoftware.code-spell-checker"
+      ]
+    }
+  },
+ "postCreateCommand": "bash ./.devcontainer/setup.sh || true",
+"postStartCommand": "bash ./.devcontainer/maintenance.sh || true"
+}
