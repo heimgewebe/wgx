@@ -1463,8 +1463,8 @@ _pkg_json_set_ver(){
     local tmp="${pj}.tmp"
     awk -v ver="$ver" '
       BEGIN{done=0}
-      !done && /"version"[[:space:]]*:/ {
-        sub(/"version"[[:space:]]*:[[:space:]]*"[^"]*"/, "\"version\": \"" ver "\""); done=1
+      !done && /^[[:space:]]*"version"[[:space:]]*:/ {
+        sub(/^[[:space:]]*"version"[[:space:]]*:[[:space:]]*"[^"]*"/, "\"version\": \"" ver "\""); done=1
       }
       { print }
     ' "$pj" > "$tmp" && mv "$tmp" "$pj"
