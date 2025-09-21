@@ -1019,7 +1019,10 @@ send_cmd(){
   fi
 
   guard_run
-  local rc="${WGX_LAST_GUARD_RC:-$RC_OK}"
+  if [[ -z "${WGX_LAST_GUARD_RC+x}" ]]; then
+    die "INTERNAL ERROR: WGX_LAST_GUARD_RC was not set by guard_run"
+  fi
+  local rc="$WGX_LAST_GUARD_RC"
   (( rc==1 && (ASSUME_YES || ${WGX_DRAFT_ON_WARN:-0}) )) && DRAFT=1
   (( SYNC_FIRST )) && sync_cmd ${SIGN:+--sign} --scope "${SCOPE}" --base "$WGX_BASE" || { warn "Sync fehlgeschlagen → PR abgebrochen."; return 1; }
 
