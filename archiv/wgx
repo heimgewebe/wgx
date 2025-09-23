@@ -1,0 +1,1911 @@
+#!/usr/bin/env bash
+# wgx – Weltgewebe CLI · Termux/WSL/macOS/Linux · origin-first
+# Version: v2.0.0
+# Lizenz: MIT (projektintern); Autorenteam: weltweberei.org
+#
+# RC-Codes:
+#   0 = OK, 1 = WARN (fortsetzbar), 2 = BLOCKER (Abbruch)
+#
+# OFFLINE:  deaktiviert Netzwerkaktionen bestmöglich (fetch, npx pulls etc.)
+# DRYRUN :  zeigt Kommandos an, führt sie aber nicht aus (wo sinnvoll)
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SAFETY / SHELL MODE
+# ─────────────────────────────────────────────────────────────────────────────
+set -Eeuo pipefail
+IFS=$'\n\t'
+umask 077
+shopt -s extglob nullglob
+
+# stabile Locale für Parser/Sort/Grep
+export LC_ALL=C LANG=C
+
+# optionaler Schreibschutz gegen versehentliches '>'
+# (bewusst: wer überschreiben will, nutzt >|)
+set -o noclobber
+
+trap 'ec=$?; cmd=$BASH_COMMAND; line=${BASH_LINENO[0]}; fn=${FUNCNAME[1]:-MAIN}; \
+      ((ec)) && printf "❌ wgx: Fehler in %s (Zeile %s): %s (exit=%s)\n" \
+      "$fn" "$line" "$cmd" "$ec" >&2' ERR
+
+WGX_VERSION="2.0.0"
+RC_OK=0; RC_WARN=1; RC_BLOCK=2
+
+# Früh-Exit für Versionsabfrage (auch ohne Git-Repo nutzbar)
+if [[ "${1-}" == "--version" || "${1-}" == "-V" ]]; then
+  printf "wgx v%s\n" "$WGX_VERSION"
+  exit 0
+fi
+
+# ─────────────────────────────────────────────────────────────────────────────
+# LOG / UI HELPERS
+# ─────────────────────────────────────────────────────────────────────────────
+_ok()   { printf "✅ %s\n" "$*"; }
+_warn() { printf "⚠️  %s\n" "$*" >&2; }
+_err()  { printf "❌ %s\n" "$*" >&2; }
+info()  { printf "• %s\n"  "$*"; }
+die()   { _err "$*"; exit 1; }
+ok()    { _ok "$@"; }
+warn()  { _warn "$@"; }
+logv()  { ((VERBOSE)) && printf "… %s\n" "$*"; }
+has()   { command -v "$1" >/dev/null 2>&1; }
+
+trim()     { local s="$*"; s="${s#"${s%%[![:space:]]*}"}"; printf "%s" "${s%"${s##*[![:space:]]}"}"; }
+to_lower() { tr '[:upper:]' '[:lower:]'; }
+
+# Prompt liest vorzugsweise aus TTY (robust in Pipes/CI)
+read_prompt(){ # read_prompt var "Frage?" "default"
+  local __v="$1"; shift
+  local q="${1-}"; shift || true
+  local d="${1-}"
+  local ans
+  if [[ -t 0 && -r /dev/tty ]]; then
+    printf "%s " "$q"
+    IFS= read -r ans < /dev/tty || ans="$d"
+  else
+    ans="$d"
+  fi
+  [[ -z "$ans" ]] && ans="$d"
+  printf -v "$__v" "%s" "$ans"
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# GLOBAL DEFAULTS
+# ─────────────────────────────────────────────────────────────────────────────
+: "${ASSUME_YES:=0}"
+: "${DRYRUN:=0}"
+: "${TIMEOUT:=0}"      # 0 = kein Timeout
+: "${NOTIMEOUT:=0}"    # 1 = Timeout unterdrücken
+: "${VERBOSE:=0}"
+: "${OFFLINE:=0}"
+
+: "${WGX_BASE:=main}"
+: "${WGX_SIGNING:=auto}"          # auto|ssh|gpg|off
+: "${WGX_PREVIEW_DIFF_LINES:=120}"
+: "${WGX_PR_LABELS:=}"
+: "${WGX_CI_WORKFLOW:=CI}"
+: "${WGX_AUTO_BRANCH:=0}"
+: "${WGX_PM:=}"                   # pnpm|npm|yarn (leer = auto)
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PLATFORM / ENV
+# ─────────────────────────────────────────────────────────────────────────────
+PLATFORM="linux"
+case "$(uname -s 2>/dev/null || echo x)" in
+  Darwin) PLATFORM="darwin" ;;
+  *)      PLATFORM="linux"  ;;
+esac
+is_wsl(){ uname -r 2>/dev/null | grep -qiE 'microsoft|wsl2?'; }
+is_termux(){
+  [[ "${PREFIX-}" == *"/com.termux/"* ]] && return 0
+  command -v termux-setup-storage >/dev/null 2>&1 && return 0
+  return 1
+}
+is_codespace(){ [[ -n "${CODESPACE_NAME-}" ]]; }
+
+# ─────────────────────────────────────────────────────────────────────────────
+# REPO KONTEXT
+# ─────────────────────────────────────────────────────────────────────────────
+is_git_repo(){ git rev-parse --is-inside-work-tree >/dev/null 2>&1; }
+require_repo(){
+  has git || die "git nicht installiert."
+  is_git_repo || die "Nicht im Git-Repo (wgx benötigt ein Git-Repository)."
+}
+
+# Portables readlink -f
+_root_resolve(){
+  local here="$1"
+  if command -v greadlink >/dev/null 2>&1; then greadlink -f "$here"
+  elif command -v readlink >/dev/null 2>&1 && readlink -f / >/dev/null 2>&1; then readlink -f "$here"
+  else
+    local target="$here" link base
+    while link="$(readlink "$target" 2>/dev/null)"; do
+      case "$link" in
+        /*) target="$link" ;;
+        *)  base="$(cd "$(dirname "$target")" && pwd -P)"; target="$base/$link" ;;
+      esac
+    done
+    printf "%s" "$target"
+  fi
+}
+
+ROOT(){
+  local here; here="$(_root_resolve "${BASH_SOURCE[0]}")"
+  local fallback; fallback="$(cd "$(dirname "$here")/.." && pwd -P)"
+  local r; r="$(git -C "${PWD}" rev-parse --show-toplevel 2>/dev/null || true)"
+  [[ -n "$r" ]] && printf "%s" "$r" || printf "%s" "$fallback"
+}
+
+# Repo-Root heuristisch (wgx liegt i.d.R. als cli/wgx/wgx)
+if r="$(git rev-parse --show-toplevel 2>/dev/null)"; then
+  ROOT_DIR="$r"
+else
+  here="${BASH_SOURCE[0]}"
+  base="$(cd "$(dirname "$here")" && pwd -P)"
+  if [[ "$(basename "$base")" == "wgx" && "$(basename "$(dirname "$base")")" == "cli" ]]; then
+    ROOT_DIR="$(cd "$base/../.." && pwd -P)"
+  else
+    ROOT_DIR="$(cd "$base/.." && pwd -P)"
+  fi
+fi
+
+# ─────────────────────────────────────────────────────────────────────────────
+# CONFIG (.wgx.conf) EINLESEN – eval-frei & strikt
+# ─────────────────────────────────────────────────────────────────────────────
+# Erlaubte Schlüssel: nur A–Z, 0–9 und _
+# Werte: CR abschneiden, keine Command-Substitution/Backticks/Nullbytes
+if [[ -f "$ROOT_DIR/.wgx.conf" ]]; then
+  while IFS='=' read -r k v; do
+    k="$(trim "$k")"
+    [[ -z "$k" || "$k" =~ ^# ]] && continue
+    if [[ "$k" =~ ^[A-Z0-9_]+$ ]]; then
+      v="${v%$'\r'}"
+      [[ "$v" == *'$('* || "$v" == *'`'* || "$v" == *$'\0'* ]] && { warn ".wgx.conf: unsicherer Wert für $k ignoriert"; continue; }
+      printf -v _sanitized "%s" "$v"
+      declare -x "$k=$_sanitized"
+    else
+      warn ".wgx.conf: ungültiger Schlüssel '%s' ignoriert" "$k"
+    fi
+  done < "$ROOT_DIR/.wgx.conf"
+fi
+
+# ─────────────────────────────────────────────────────────────────────────────
+# KLEINE PORTABILITÄTS-HELFER
+# ─────────────────────────────────────────────────────────────────────────────
+file_size_bytes(){ # Linux/macOS/Busybox
+  local f="$1" sz=0
+  if   stat -c %s "$f" >/dev/null 2>&1; then sz=$(stat -c %s "$f")
+  elif stat -f%z "$f" >/dev/null 2>&1;      then sz=$(stat -f%z "$f")
+  else sz=$(wc -c < "$f" 2>/dev/null || echo 0); fi
+  printf "%s" "$sz"
+}
+
+git_supports_magic(){ git -C "$1" ls-files -z -- ':(exclude)node_modules/**' >/dev/null 2>&1; }
+
+mktemp_portable(){
+  local p="${1:-wgx}"
+  if has mktemp; then
+    mktemp -t "${p}.XXXXXX" 2>/dev/null || { local f="${TMPDIR:-/tmp}/${p}.$$.tmp"; : > "$f" && printf "%s" "$f"; }
+  else
+    local f="${TMPDIR:-/tmp}/${p}.$(date +%s).$$"
+    : > "$f" || die "Konnte temporäre Datei nicht erstellen: $f"
+    printf "%s" "$f"
+  fi
+}
+now_ts(){ date +"%Y-%m-%d %H:%M"; }
+
+# Validierung & Flag-Ermittlung für Commit-Signing
+maybe_sign_flag(){
+  case "${WGX_SIGNING}" in
+    off)  return 1 ;;
+    ssh)  has git && git config --get gpg.format 2>/dev/null | grep -qi 'ssh' && echo "-S" || return 1 ;;
+    gpg)  has gpg && echo "-S" || return 1 ;;
+    auto) git config --get user.signingkey >/dev/null 2>&1 && echo "-S" || return 1 ;;
+    *)    return 1 ;;
+  esac
+}
+
+# Optionaler Timeout-Wrapper
+with_timeout(){
+  local t="${TIMEOUT:-0}"
+  (( NOTIMEOUT )) && exec "$@"
+  (( t>0 )) && command -v timeout >/dev/null 2>&1 && timeout "$t" "$@" || exec "$@"
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# GIT HELPERS
+# ─────────────────────────────────────────────────────────────────────────────
+git_branch(){ git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "HEAD"; }
+git_in_progress(){
+  [[ -d .git/rebase-merge || -d .git/rebase-apply || -f .git/MERGE_HEAD ]]
+}
+
+# OFFLINE-freundlich, mit sichtbarer Warnung bei Fehler
+_fetch_guard(){
+  ((OFFLINE)) && { logv "offline: skip fetch"; return 0; }
+  if ! git fetch -q origin 2>/dev/null; then
+    warn "git fetch origin fehlgeschlagen (Netz/Origin?)."
+    return 1
+  fi
+}
+
+remote_host_path(){
+  local u; u="$(git remote get-url origin 2>/dev/null || true)"
+  [[ -z "$u" ]] && { echo ""; return; }
+  case "$u" in
+    http*://*/*)
+      local rest="${u#*://}"
+      local host="${rest%%/*}"
+      local path="${rest#*/}"
+      echo "$host $path"
+      ;;
+    ssh://git@*/*)
+      local rest="${u#ssh://git@}"
+      local host="${rest%%/*}"
+      local path="${rest#*/}"
+      echo "$host $path"
+      ;;
+    git@*:*/*)
+      local host="${u#git@}"; host="${host%%:*}"
+      local path="${u#*:}"
+      echo "$host $path"
+      ;;
+    *) echo "";;
+  esac
+}
+host_kind(){ # erkannt: github, gitlab, codeberg, gitea (catch-all: gitea für fremde Hosts)
+  local hp host; hp="$(remote_host_path || true)"; host="${hp%% *}"
+  case "$host" in
+    github.com) echo github ;;
+    gitlab.com) echo gitlab ;;
+    codeberg.org) echo codeberg ;;
+    *)
+      # Heuristik: beliebige eigene Gitea-Instanzen (host enthält gitea|forgejo?) → gitea
+      if [[ "$host" == *gitea* || "$host" == *forgejo* ]]; then echo gitea; else echo unknown; fi
+      ;;
+  esac
+}
+compare_url(){ # triple-dot base...branch (für github/gitlab/codeberg/gitea)
+  local hp host path; hp="$(remote_host_path || true)"; [[ -z "$hp" ]] && { echo ""; return; }
+  host="${hp%% *}"; path="${hp#* }"; path="${path%.git}"
+  case "$(host_kind)" in
+    github)   echo "https://$host/$path/compare/${WGX_BASE}...$(git_branch)";;
+    gitlab)   echo "https://$host/$path/-/compare/${WGX_BASE}...$(git_branch)";;
+    codeberg) echo "https://$host/$path/compare/${WGX_BASE}...$(git_branch)";;
+    gitea)    echo "https://$host/$path/compare/${WGX_BASE}...$(git_branch)";;
+    *)        echo "";;
+  esac
+}
+
+git_ahead_behind(){
+  local b="${1:-$(git_branch)}"
+  ((OFFLINE)) || git fetch -q origin "$b" 2>/dev/null || true
+  local ab; ab="$(git rev-list --left-right --count "origin/$b...$b" 2>/dev/null || echo "0 0")"
+  local behind=0 ahead=0 IFS=' '
+  read -r behind ahead <<<"$ab" || true
+  printf "%s %s\n" "${behind:-0}" "${ahead:-0}"
+}
+ab_read(){ local ref="$1" ab; ab="$(git_ahead_behind "$ref" 2>/dev/null || echo "0 0")"; set -- $ab; echo "${1:-0} ${2:-0}"; }
+
+detect_web_dir(){ for d in apps/web web; do [[ -d "$d" ]] && { echo "$d"; return; }; done; echo ""; }
+detect_api_dir(){ for d in apps/api api crates; do [[ -f "$d/Cargo.toml" ]] && { echo "$d"; return; }; done; echo ""; }
+
+run_with_files_xargs0(){
+  local title="$1"; shift
+  if [[ -t 1 ]]; then info "$title"; fi
+  if command -v xargs >/dev/null 2>&1; then
+    xargs -0 "$@" || return $?
+  else
+    local buf=() f
+    while IFS= read -r -d '' f; do buf+=("$f"); done
+    [[ $# -gt 0 ]] && "$@" "${buf[@]}"
+  fi
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# GLOBAL FLAG PARSER (bis SUB-Kommando)
+# ─────────────────────────────────────────────────────────────────────────────
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --yes) ASSUME_YES=1 ;;
+    --dry-run) DRYRUN=1 ;;
+    --timeout) shift; [[ "${1-}" =~ ^[0-9]+$ ]] || die "--timeout braucht Zahl"; TIMEOUT="$1" ;;
+    --no-timeout) NOTIMEOUT=1 ;;
+    --verbose) VERBOSE=1 ;;
+    --base) shift; WGX_BASE="${1-}" ;;
+    --offline) OFFLINE=1 ;;
+    --no-color) : ;; # wir nutzen Emojis → no-op
+    send|sync|guard|heal|reload|clean|doctor|init|setup|lint|start|release|hooks|version|env|quick|config|test|selftest|help|-h|--help|status)
+      break ;;
+    *) warn "Unbekanntes globales Argument ignoriert: $1" ;;
+  esac
+  shift || true
+done
+SUB="${1-}"; shift || true
+
+# ─────────────────────────────────────────────────────────────────────────────
+# STATUS (kompakt)
+# ─────────────────────────────────────────────────────────────────────────────
+status_cmd(){
+  if ! is_git_repo; then
+    echo "=== wgx status ==="
+    echo "root : $ROOT_DIR"
+    echo "repo : (kein Git-Repo)"
+    ok "Status OK"
+    return $RC_OK
+  fi
+  local br web api behind=0 ahead=0
+  br="$(git_branch)"; web="$(detect_web_dir || true)"; api="$(detect_api_dir || true)"
+  local IFS=' '; read -r behind ahead < <(git_ahead_behind "$br") || true
+  echo "=== wgx status ==="
+  echo "root : $ROOT_DIR"
+  echo "branch: $br (ahead:$ahead behind:$behind)  base:$WGX_BASE"
+  echo "web  : ${web:-nicht gefunden}"
+  echo "api  : ${api:-nicht gefunden}"
+  (( OFFLINE )) && echo "mode : offline"
+  ok "Status OK"
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# VALE / SPRACHE (optional)
+# ─────────────────────────────────────────────────────────────────────────────
+vale_maybe(){
+  [[ -f ".vale.ini" ]] || return 0
+  has vale || { warn "Vale nicht installiert – Sprach-Checks übersprungen."; return 0; }
+  local staged=0; [[ "${1-}" == "--staged" ]] && staged=1
+  if (( staged )); then
+    if ! git diff --cached --name-only -z -- '*.md' 2>/dev/null | { IFS= read -r -d '' _; }; then
+      return 0
+    fi
+    git diff --cached --name-only -z -- '*.md' 2>/dev/null \
+      | run_with_files_xargs0 "Vale (staged)" vale
+    return $?
+  else
+    if [[ -z "$(git ls-files -z -- '*.md' 2>/dev/null | head -c1)" ]]; then
+      return 0
+    fi
+    git ls-files -z -- '*.md' 2>/dev/null \
+      | run_with_files_xargs0 "Vale (alle .md)" vale
+    return $?
+  fi
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PREFLIGHT / GUARD (inkl. Secrets, Conflicts, Big Files)
+# ─────────────────────────────────────────────────────────────────────────────
+changed_files_cached(){ require_repo; git diff --cached --name-only -z | tr '\0' '\n' | sed '/^$/d'; }
+
+# NUL-sicher inkl. Renames
+changed_files_all(){
+  require_repo
+  local rec status path
+  git status --porcelain -z \
+  | while IFS= read -r -d '' rec; do
+      status="${rec:0:2}"
+      path="${rec:3}"
+      if [[ "$status" =~ ^R ]]; then
+        IFS= read -r -d '' path || true
+      fi
+      [[ -n "$path" ]] && printf '%s\n' "$path"
+    done
+}
+
+auto_scope(){
+  local files="$1" major="repo" m_web=0 m_api=0 m_docs=0 m_infra=0 m_devx=0 total=0
+  while IFS= read -r f; do
+    [[ -z "$f" ]] && continue
+    ((++total))
+    case "$f" in
+      apps/web/*) ((++m_web));;
+      apps/api/*|crates/*) ((++m_api));;
+      infra/*|deploy/*) ((++m_infra));;
+      scripts/*|wgx|.wgx.conf) ((++m_devx));;
+      docs/*|*.md|styles/*|.vale.ini) ((++m_docs));;
+    esac
+  done <<< "$files"
+  (( total==0 )) && { echo "repo"; return; }
+  local max=$m_docs; major="docs"
+  (( m_web>max ))  && { max=$m_web;  major="web"; }
+  (( m_api>max ))  && { max=$m_api;  major="api"; }
+  (( m_infra>max ))&& { max=$m_infra; major="infra"; }
+  (( m_devx>max )) && { max=$m_devx; major="devx"; }
+  (( max * 100 >= 70 * total )) && echo "$major" || echo "meta"
+}
+
+# Basis-Branch verifizieren (nicht-blockierend, aber warnend)
+validate_base_branch(){
+  ((OFFLINE)) && return 0
+  git rev-parse --verify "refs/remotes/origin/$WGX_BASE" >/dev/null 2>&1 || {
+    warn "Basis-Branch origin/%s fehlt oder ist nicht erreichbar." "$WGX_BASE"
+    return 1
+  }
+}
+
+guard_run(){
+  require_repo
+  local FIX=0 LINT_OPT=0 TEST_OPT=0 DEEP_SCAN=0
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --fix) FIX=1;;
+      --lint) LINT_OPT=1;;
+      --test) TEST_OPT=1;;
+      --deep-scan) DEEP_SCAN=1;;
+      *) ;;
+    esac
+    shift || true
+  done
+
+  local rc=$RC_OK br; br="$(git_branch)"
+  echo "=== Preflight (branch: $br, base: $WGX_BASE) ==="
+
+  _fetch_guard || (( rc=rc<RC_WARN ? RC_WARN : rc ))
+  validate_base_branch || (( rc=rc<RC_WARN ? RC_WARN : rc ))
+
+  if git_in_progress; then
+    echo "[BLOCKER] rebase/merge läuft → wgx heal --continue | --abort"
+    rc=$RC_BLOCK
+  fi
+  [[ "$br" == "HEAD" ]] && { echo "[WARN] Detached HEAD – Branch anlegen."; (( rc==RC_OK )) && rc=$RC_WARN; }
+
+  local behind=0 ahead=0 IFS=' '
+  read -r behind ahead < <(git_ahead_behind "$br") || true
+  if (( behind>0 )); then
+    echo "[WARN] Branch $behind hinter origin/$br → rebase auf origin/$WGX_BASE"
+    if (( FIX )); then
+      git fetch -q origin "$WGX_BASE" 2>/dev/null || true
+      git rebase "origin/$WGX_BASE" || rc=$RC_BLOCK
+    fi
+    (( rc==RC_OK )) && rc=$RC_WARN
+  fi
+
+  # Konfliktmarker in modifizierten Dateien
+  local with_markers=""
+  while IFS= read -r -d '' f; do
+    [[ -z "$f" ]] && continue
+    grep -Eq '<<<<<<<|=======|>>>>>>>' -- "$f" 2>/dev/null && with_markers+="$f"$'\n'
+  done < <(git ls-files -m -z)
+  if [[ -n "$with_markers" ]]; then
+    echo "[BLOCKER] Konfliktmarker:"
+    printf '%s' "$with_markers" | sed 's/^/  - /'
+    rc=$RC_BLOCK
+  fi
+
+  # Secret-/Größen-Checks auf staged
+  local staged; staged="$(changed_files_cached || true)"
+  if [[ -n "$staged" ]]; then
+    local secrets
+    secrets="$(printf "%s\n" "$staged" | grep -Ei '\.env(\.|$)|(^|/)(id_rsa|id_ed25519)(\.|$)|\.pem$|\.p12$|\.keystore$' || true)"
+    if [[ -n "$secrets" ]]; then
+      echo "[BLOCKER] mögliche Secrets im Commit (Dateinamen-Match):"
+      printf "%s\n" "$secrets" | sed 's/^/  - /'
+      if (( FIX )); then
+        while IFS= read -r s; do
+          [[ -n "$s" ]] && git restore --staged -- "$s" 2>/dev/null || true
+        done <<< "$secrets"
+        echo "→ Secrets aus dem Index entfernt (Dateien bleiben lokal)."
+      fi
+      rc=$RC_BLOCK
+    fi
+
+    if (( DEEP_SCAN )); then
+      local leaked
+      leaked="$(git diff --cached -U0 \
+        | grep -Ei 'BEGIN (RSA|EC|OPENSSH) PRIVATE KEY|AKIA[A-Z0-9]{16}|ghp_[A-Za-z0-9]{36}|glpat-[A-Za-z0-9_-]{20,}|AWS_ACCESS_KEY_ID|SECRET(_KEY)?|TOKEN|AUTHORIZATION:|PASSWORD' \
+        || true)"
+      if [[ -n "$leaked" ]]; then
+        echo "[BLOCKER] möglicher Secret-Inhalt im Diff:"
+        echo "$leaked" | sed 's/^/  > /'
+        rc=$RC_BLOCK
+      fi
+    fi
+
+    # Big Files > 10MB (portabel)
+    local big=0; while IFS= read -r f; do
+      [[ -f "$f" ]] || continue
+      sz="$(file_size_bytes "$f")"
+      if (( sz>10485760 )); then
+        ((big++))
+        printf '  - %s (%s B)\n' "$f" "$sz"
+      fi
+    done <<< "$staged"
+    if (( big>0 )); then
+      echo "[WARN] >10MB im Commit (siehe Liste oben)."
+      (( rc==RC_OK )) && rc=$RC_WARN
+    fi
+  fi
+
+  # Lockfile-Mix
+  if git ls-files --error-unmatch pnpm-lock.yaml >/dev/null 2>&1 \
+     && git ls-files --error-unmatch package-lock.json >/dev/null 2>&1; then
+    echo "[WARN] pnpm-lock.yaml UND package-lock.json im Repo – Policy klären."
+    (( rc==RC_OK )) && rc=$RC_WARN
+  fi
+
+  # Vale (nur Rückgabecode bewerten)
+  if [[ -f ".vale.ini" ]]; then
+    vale_maybe --staged || (( rc==RC_OK )) && rc=$RC_WARN
+  fi
+
+  case "$rc" in
+    0) ok "Preflight sauber.";;
+    1) warn "Preflight mit Warnungen.";;
+    2) die "Preflight BLOCKER → bitte Hinweise beachten.";;
+  esac
+  printf "%s\n" "$rc"
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SNAPSHOT (git stash)
+# ─────────────────────────────────────────────────────────────────────────────
+snapshot_make(){
+  require_repo
+  if [[ -z "$(git status --porcelain -z 2>/dev/null | head -c1)" ]]; then
+    info "Kein Snapshot nötig (Arbeitsbaum sauber)."
+    return 0
+  fi
+  local msg="snapshot@$(date +%s) $(git_branch)"
+  git stash push -u -m "$msg" >/dev/null 2>&1 || true
+  info "Snapshot erstellt (git stash list)."
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# LINT / TEST
+# ─────────────────────────────────────────────────────────────────────────────
+pm_detect(){
+  local wd="$1"
+  if [[ -n "${WGX_PM-}" ]]; then
+    if has "$WGX_PM"; then echo "$WGX_PM"; return 0
+    else warn "WGX_PM=$WGX_PM nicht gefunden, Auto-Detect aktiv."; fi
+  fi
+  if   [[ -f "$wd/pnpm-lock.yaml" ]] && has pnpm; then echo "pnpm"
+  elif [[ -f "$wd/package-lock.json" ]] && has npm;  then echo "npm"
+  elif [[ -f "$wd/yarn.lock"      ]] && has yarn; then echo "yarn"
+  elif [[ -f "$wd/package.json"   ]]; then
+    has pnpm && echo "pnpm" || has npm && echo "npm" || has yarn && echo "yarn" || echo ""
+  else
+    echo ""
+  fi
+}
+
+run_soft(){
+  local title="$1"; shift || true
+  local rc=0
+  if (( DRYRUN )); then
+    if [[ $# -gt 0 ]]; then
+      printf "DRY: %s → %q" "$title" "$1"; shift || true
+      while [[ $# -gt 0 ]]; do printf " %q" "$1"; shift || true; done
+      echo
+    else
+      printf "DRY: %s (kein Befehl übergeben)\n" "$title"
+    fi
+    return 0
+  fi
+  info "$title"
+  if "$@"; then ok "$title ✓"; rc=0; else warn "$title ✗"; rc=1; fi
+  printf "%s\n" "$rc"; return 0
+}
+
+lint_cmd(){
+  require_repo
+  local rc_total=$RC_OK
+
+  # Vale
+  vale_maybe || rc_total=$RC_WARN
+
+  # Markdownlint (wenn vorhanden)
+  if has markdownlint; then
+    if [[ -n "$(git ls-files -z -- '*.md' 2>/dev/null | head -c1)" ]]; then
+      git ls-files -z -- '*.md' 2>/dev/null \
+        | run_with_files_xargs0 "markdownlint" markdownlint || rc_total=$RC_WARN
+    fi
+  fi
+
+  # Web (Prettier/ESLint)
+  local wd; wd="$(detect_web_dir || true)"
+  if [[ -n "$wd" ]]; then
+    local pm; pm="$(pm_detect "$wd")"
+    local prettier_cmd="" eslint_cmd=""
+    case "$pm" in
+      pnpm) prettier_cmd="pnpm -s exec prettier"; eslint_cmd="pnpm -s exec eslint" ;;
+      yarn) prettier_cmd="yarn -s prettier";     eslint_cmd="yarn -s eslint" ;;
+      npm|"") prettier_cmd="npx --yes prettier"; eslint_cmd="npx --yes eslint" ;;
+    esac
+
+    if (( OFFLINE )); then
+      [[ "$pm" == "npm" || "$pm" == "" ]] && warn "Offline: npx evtl. nicht verfügbar → Prettier/ESLint ggf. übersprungen."
+    fi
+
+    local has_gnu_find=0
+    if find --version >/dev/null 2>&1; then
+      find --version 2>/dev/null | grep -q GNU && has_gnu_find=1
+    fi
+
+    # Prettier Check (große Dateimengen effizient, node_modules/dist/build ausgeschlossen)
+    if (( ! OFFLINE )); then
+      if git_supports_magic "$wd" && (( has_gnu_find )); then
+        git -C "$wd" ls-files -z \
+          -- ':(exclude)node_modules/**' ':(exclude)dist/**' ':(exclude)build/**' \
+             '*.js' '*.ts' '*.tsx' '*.jsx' '*.json' '*.css' '*.scss' '*.md' '*.svelte' 2>/dev/null \
+        | run_with_files_xargs0 "Prettier Check" \
+            sh -c 'cd "$1"; shift; '"$prettier_cmd"' -c -- "$@"' _ "$wd" \
+        || run_with_files_xargs0 "Prettier Check (fallback npx)" \
+            sh -c 'cd "$1"; shift; npx --yes prettier -c -- "$@"' _ "$wd" \
+        || rc_total=$RC_WARN
+      else
+        find "$wd" \( -path "$wd/node_modules" -o -path "$wd/dist" -o -path "$wd/build" \) -prune -o \
+             -type f \( -name '*.js' -o -name '*.ts' -o -name '*.tsx' -o -name '*.jsx' -o -name '*.json' -o -name '*.css' -o -name '*.scss' -o -name '*.md' -o -name '*.svelte' \) -print0 \
+        | while IFS= read -r -d '' f; do rel="${f#$wd/}"; printf '%s\0' "$rel"; done \
+        | run_with_files_xargs0 "Prettier Check" \
+            sh -c 'cd "$1"; shift; '"$prettier_cmd"' -c -- "$@"' _ "$wd" \
+        || { 
+             if (( ! OFFLINE )); then
+               run_with_files_xargs0 "Prettier Check (fallback npx)" \
+                 sh -c 'cd "$1"; shift; npx --yes prettier -c -- "$@"' _ "$wd"
+             fi
+           } \
+        || rc_total=$RC_WARN
+      fi
+    fi
+
+    # ESLint (nur wenn Konfig vorhanden)
+    local has_eslint_cfg=0
+    [[ -f "$wd/.eslintrc" || -f "$wd/.eslintrc.js" || -f "$wd/.eslintrc.cjs" || -f "$wd/.eslintrc.json" \
+       || -f "$wd/eslint.config.js" || -f "$wd/eslint.config.mjs" || -f "$wd/eslint.config.cjs" ]] && has_eslint_cfg=1
+    if (( has_eslint_cfg )); then
+      run_soft "ESLint" bash -c "cd '$wd' && $eslint_cmd -v >/dev/null 2>&1 && $eslint_cmd . --ext .js,.cjs,.mjs,.ts,.tsx,.svelte" \
+      || { if (( OFFLINE )); then warn "ESLint übersprungen (offline)"; false; \
+           else run_soft "ESLint (fallback npx)" \
+                  bash -c "cd '$wd' && npx --yes eslint . --ext .js,.cjs,.mjs,.ts,.tsx,.svelte"; fi; } \
+      || rc_total=$RC_WARN
+    fi
+  fi
+
+  # Rust (fmt + clippy, falls vorhanden)
+  local ad; ad="$(detect_api_dir || true)"
+  if [[ -n "$ad" && -f "$ad/Cargo.toml" ]] && has cargo; then
+    run_soft "cargo fmt --check" bash -lc "cd '$ad' && cargo fmt --all -- --check" || rc_total=$RC_WARN
+    if rustup component list 2>/dev/null | grep -q 'clippy.*(installed)'; then
+      run_soft "cargo clippy (Hinweise)" bash -lc "cd '$ad' && cargo clippy --all-targets --all-features -q" || rc_total=$RC_WARN
+    else
+      warn "clippy nicht installiert – übersprungen."
+    fi
+  fi
+
+  # Shell / Dockerfiles / Workflows
+  if has shellcheck; then
+    if [[ -n "$(git ls-files -z -- '*.sh' 2>/dev/null | head -c1)" || -f "./wgx" || -d "./scripts" ]]; then
+      { git ls-files -z -- '*.sh' 2>/dev/null; git ls-files -z -- 'wgx' 'scripts/*' 2>/dev/null; } \
+        | run_with_files_xargs0 "shellcheck" shellcheck || rc_total=$RC_WARN
+    fi
+  fi
+  if has hadolint; then
+    if [[ -n "$(git ls-files -z -- '*Dockerfile*' 2>/dev/null | head -c1)" ]]; then
+      git ls-files -z -- '*Dockerfile*' 2>/dev/null \
+        | run_with_files_xargs0 "hadolint" hadolint || rc_total=$RC_WARN
+    fi
+  fi
+  if has actionlint && [[ -d ".github/workflows" ]]; then run_soft "actionlint" actionlint || rc_total=$RC_WARN; fi
+
+  (( rc_total==RC_OK )) && ok "Lint OK" || warn "Lint mit Hinweisen (rc=$rc_total)."
+  printf "%s\n" "$rc_total"; return 0
+}
+
+pm_test(){
+  local wd="$1"; local pm; pm="$(pm_detect "$wd")"
+  case "$pm" in
+    pnpm) (cd "$wd" && pnpm -s test -s) ;;
+    npm)  (cd "$wd" && npm test -s) ;;
+    yarn) (cd "$wd" && yarn -s test) ;;
+    *)    return 0 ;;
+  esac
+}
+
+test_cmd(){
+  require_repo
+  local rc_web=0 rc_api=0 wd ad pid_web= pid_api=
+  trap '[[ -n "${pid_web-}" ]] && kill "$pid_web" 2>/dev/null || true; [[ -n "${pid_api-}" ]] && kill "$pid_api" 2>/dev/null || true' INT
+  wd="$(detect_web_dir || true)"; ad="$(detect_api_dir || true)"
+  if [[ -n "$wd" && -f "$wd/package.json" ]]; then
+    info "Web-Tests…"; ( pm_test "$wd" ) & pid_web=$!
+  fi
+  if [[ -n "$ad" && -f "$ad/Cargo.toml" ]] && has cargo; then
+    info "Rust-Tests…"; ( cd "$ad" && cargo test --all --quiet ) & pid_api=$!
+  fi
+  if [[ -n "${pid_web-}" ]]; then wait "$pid_web" || rc_web=1; fi
+  if [[ -n "${pid_api-}" ]]; then wait "$pid_api" || rc_api=1; fi
+  (( rc_web==0 && rc_api==0 )) && ok "Tests OK" || {
+    [[ $rc_web -ne 0 ]] && warn "Web-Tests fehlgeschlagen."
+    [[ $rc_api -ne 0 ]] && warn "Rust-Tests fehlgeschlagen."
+    return 1
+  }
+}
+# ─────────────────────────────────────────────────────────────────────────────
+# Block 2 – Sicherheitsshims & Defaults (nur wirksam, wenn upstream fehlt)
+# ─────────────────────────────────────────────────────────────────────────────
+: "${WGX_BASE:=main}"
+: "${WGX_PREVIEW_DIFF_LINES:=120}"
+: "${WGX_CI_WORKFLOW:=CI}"
+: "${OFFLINE:=0}"
+: "${ASSUME_YES:=0}"
+: "${DRYRUN:=0}"
+
+# Mini-Logger & Guards
+if ! type -t has >/dev/null 2>&1;  then has(){ command -v "$1" >/dev/null 2>&1; }; fi
+if ! type -t info >/dev/null 2>&1; then info(){ printf '• %s\n' "$*"; }; fi
+if ! type -t ok >/dev/null 2>&1;   then ok(){ printf '✅ %s\n' "$*"; }; fi
+if ! type -t warn >/dev/null 2>&1; then warn(){ printf '⚠️  %s\n' "$*" >&2; }; fi
+if ! type -t die >/dev/null 2>&1;  then die(){ printf '❌ %s\n' "$*" >&2; exit 1; }; fi
+
+# Utils
+if ! type -t trim >/dev/null 2>&1; then
+  trim(){ local s="$*"; s="${s#"${s%%[![:space:]]*}"}"; printf "%s" "${s%"${s##*[![:space:]]}"}"; }
+fi
+if ! type -t to_lower >/dev/null 2>&1; then
+  to_lower(){ printf '%s' "$*" | tr '[:upper:]' '[:lower:]'; }
+fi
+
+# Git-Hilfen
+if ! type -t git_branch >/dev/null 2>&1; then
+  git_branch(){ git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "HEAD"; }
+fi
+if ! type -t git_ahead_behind >/dev/null 2>&1; then
+  git_ahead_behind(){
+    local b="${1:-$(git_branch)}"
+    git rev-list --left-right --count "origin/$b...$b" 2>/dev/null | awk '{print ($1?$1:0), ($2?$2:0)}'
+  }
+fi
+if ! type -t compare_url >/dev/null 2>&1; then compare_url(){ echo ""; }; fi
+if ! type -t host_kind   >/dev/null 2>&1; then host_kind(){ echo ""; }; fi
+
+# Repo-Guards
+if ! type -t require_repo >/dev/null 2>&1; then
+  require_repo(){ git rev-parse --is-inside-work-tree >/dev/null 2>&1 || die "Nicht im Git-Repo."; }
+fi
+if ! type -t _fetch_guard >/dev/null 2>&1; then
+  _fetch_guard(){ ((OFFLINE)) && return 0; git fetch -q origin 2>/dev/null || true; }
+fi
+
+# Vale & Signatur (weich)
+if ! type -t vale_maybe >/dev/null 2>&1; then vale_maybe(){ return 0; }; fi
+if ! type -t maybe_sign_flag >/dev/null 2>&1; then maybe_sign_flag(){ return 1; }; fi
+
+# Diff-Hilfen
+if ! type -t changed_files_cached >/dev/null 2>&1; then
+  changed_files_cached(){ git diff --cached --name-only -z 2>/dev/null | tr '\0' '\n' | sed '/^$/d'; }
+fi
+if ! type -t changed_files_all >/dev/null 2>&1; then
+  changed_files_all(){
+    git status --porcelain -z 2>/dev/null \
+    | awk -v RS='\0' '
+        {
+          s = substr($0,1,2);
+          p = substr($0,4);
+          if (s ~ /^R/) {
+            if (getline n > 0) {
+              print n;
+            } else {
+              print "WARNING: Missing new file name for rename entry: " p > "/dev/stderr";
+              # Optionally, print the old name or skip
+            }
+          }
+          else if (p != "") { print p; }
+        }' \
+    | sed '/^$/d'
+  }
+fi
+
+# Scope/Guard/Test (weich)
+if ! type -t auto_scope  >/dev/null 2>&1; then auto_scope(){ echo "repo"; }; fi
+if ! type -t guard_run   >/dev/null 2>&1; then guard_run(){ return 0; }; fi
+if ! type -t snapshot_make >/dev/null 2>&1; then
+  snapshot_make(){
+    git status --porcelain 1>/dev/null 2>&1 || return 0
+    [[ -z "$(git status --porcelain 2>/dev/null)" ]] && { info "Kein Snapshot nötig."; return 0; }
+    git stash push -u -m "snapshot@$(date +%s) $(git_branch)" >/dev/null 2>&1 || true
+    info "Snapshot erstellt (git stash)."
+  }
+fi
+
+# ROOT_DIR nur falls nicht gesetzt
+: "${ROOT_DIR:=$(git rev-parse --show-toplevel 2>/dev/null || pwd -P)}"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# CODEOWNERS / Reviewer / Labels
+# ─────────────────────────────────────────────────────────────────────────────
+_codeowners_file(){
+  if [[ -f ".github/CODEOWNERS" ]]; then echo ".github/CODEOWNERS"
+  elif [[ -f "CODEOWNERS" ]]; then echo "CODEOWNERS"
+  else echo ""; fi
+}
+declare -a CODEOWNERS_PATTERNS=(); declare -a CODEOWNERS_OWNERS=()
+
+_sanitize_csv(){
+  local csv="$1" IFS=, parts=(); read -ra parts <<<"$csv"
+  local out=() seen="" p
+  for p in "${parts[@]}"; do
+    p="$(trim "$p")"; [[ -z "$p" ]] && continue
+    [[ ",$seen," == *",$p,"* ]] && continue
+    seen="${seen},$p"; out+=("$p")
+  done
+  local IFS=,; printf "%s" "${out[*]}"
+}
+
+_codeowners_reviewers(){ # liest \n-separierte Pfade von stdin
+  CODEOWNERS_PATTERNS=(); CODEOWNERS_OWNERS=()
+  local cof; cof="$(_codeowners_file)"; [[ -z "$cof" ]] && return 0
+  local default_owners=() line
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    line="$(trim "$line")"
+    [[ -z "$line" || "$line" =~ ^# ]] && continue
+    line="${line%%#*}"; line="$(trim "$line")"; [[ -z "$line" ]] && continue
+    local pat rest; pat="${line%%[[:space:]]*}"; rest="${line#"$pat"}"; rest="$(trim "$rest")"
+    [[ -z "$pat" || -z "$rest" ]] && continue
+    local -a arr; read -r -a arr <<<"$rest"
+    if [[ "$pat" == "*" ]]; then
+      default_owners=("${arr[@]}")
+    else
+      CODEOWNERS_PATTERNS+=("$pat")
+      CODEOWNERS_OWNERS+=("$(printf "%s " "${arr[@]}")")
+    fi
+  done < "$cof"
+
+  local files=() f; while IFS= read -r f; do [[ -n "$f" ]] && files+=("$f"); done
+
+  # globstar temporär aktivieren (CODEOWNERS '**')
+  local had_globstar=0
+  if shopt -q globstar; then had_globstar=1; fi
+  shopt -s globstar
+
+  local seen="," i p matchOwners o
+  for f in "${files[@]}"; do
+    matchOwners=""
+    for (( i=0; i<${#CODEOWNERS_PATTERNS[@]}; i++ )); do
+      p="${CODEOWNERS_PATTERNS[$i]}"; [[ "$p" == /* ]] && p="${p:1}"
+      case "$f" in $p) matchOwners="${CODEOWNERS_OWNERS[$i]}";; esac
+    done
+    [[ -z "$matchOwners" && ${#default_owners[@]} -gt 0 ]] && matchOwners="$(printf "%s " "${default_owners[@]}")"
+    for o in $matchOwners; do
+      [[ "$o" == @* ]] && o="${o#@}"
+      [[ -z "$o" || "$o" == */* ]] && continue   # Teams (org/team) absichtlich ausgelassen
+      [[ ",$seen," == *,"$o",* ]] && continue
+      seen="${seen}${o},"
+      printf "%s\n" "$o"
+    done
+  done
+
+  if (( ! had_globstar )); then shopt -u globstar; fi
+}
+
+derive_labels(){
+  local branch scope="$1"
+  branch="$(git_branch)"
+  local pref="${branch%%/*}"
+  local L=()
+  case "$pref" in
+    feat)       L+=("feature");;
+    fix|hotfix) L+=("bug");;
+    docs)       L+=("docs");;
+    refactor)   L+=("refactor");;
+    test|tests) L+=("test");;
+    ci)         L+=("ci");;
+    perf)       L+=("performance");;
+    chore)      L+=("chore");;
+    build)      L+=("build");;
+  esac
+  local subj; subj="$(git log -1 --pretty=%s 2>/dev/null || true)"
+  case "$subj" in
+    feat:*)     L+=("feature");;
+    fix:*)      L+=("bug");;
+    docs:*)     L+=("docs");;
+    refactor:*) L+=("refactor");;
+    test:*)     L+=("test");;
+    ci:*)       L+=("ci");;
+    perf:*)     L+=("performance");;
+    chore:*)    L+=("chore");;
+    build:*)    L+=("build");;
+    style:*)    L+=("style");;
+  esac
+  [[ -n "$scope" ]] && L+=("scope:$scope")
+  local joined
+  local IFS=,
+  joined="${L[*]}"
+  printf '%s\n' "$(_sanitize_csv "$joined")"
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Commit / Sync
+# ─────────────────────────────────────────────────────────────────────────────
+sync_cmd(){
+  require_repo
+  local STAGED_ONLY=0 WIP=0 AMEND=0 SCOPE="auto" BASE="" signflag="" had_upstream=0
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --staged-only) STAGED_ONLY=1;;
+      --wip)         WIP=1;;
+      --amend)       AMEND=1;;
+      --scope)       shift; SCOPE="${1-}";;
+      --base)        shift; BASE="${1-}";;
+      --sign)        signflag="-S";;
+      *) ;;
+    esac; shift || true
+  done
+  [[ -n "$BASE" ]] && WGX_BASE="$BASE"
+  [[ "$(git_branch)" == "HEAD" ]] && die "Detached HEAD – bitte Branch anlegen."
+
+  (( STAGED_ONLY==0 )) && git add -A
+  [[ -f ".vale.ini" ]] && vale_maybe --staged || true
+
+  local staged list scope n msg nf="files"
+  staged="$(changed_files_cached || echo "")"
+  list="${staged:-$(changed_files_all || echo "")}"
+  scope="$([[ "$SCOPE" == "auto" ]] && (auto_scope "$list" || echo "repo") || echo "$SCOPE")"
+  n=0; [[ -n "$list" ]] && n=$(printf "%s\n" "$list" | wc -l | tr -d ' ')
+  (( n==1 )) && nf="file"
+  msg="feat(${scope}): sync @ $(date +"%Y-%m-%d %H:%M") [+${n} ${nf}]"
+  (( WIP )) && msg="wip: ${msg}"
+
+  if [[ -n "$staged" ]]; then
+    local sf="${signflag:-$(maybe_sign_flag || true)}"
+    if [[ -n "${sf-}" ]]; then
+      git commit ${AMEND:+--amend} "$sf" -m "$msg" || die "Commit/Sign fehlgeschlagen."
+    else
+      git commit ${AMEND:+--amend} -m "$msg" || die "Commit fehlgeschlagen."
+    fi
+  else
+    info "Nichts zu committen."
+  fi
+
+  if (( OFFLINE )); then
+    warn "Offline: rebase/push übersprungen. (wgx heal rebase nachholen)"
+  else
+    _fetch_guard
+    local base_ref="origin/$WGX_BASE"
+    git rev-parse --verify -q "$base_ref" >/dev/null || base_ref="$WGX_BASE"
+    git rev-parse --verify -q "$base_ref" >/dev/null || die "Basisbranch $WGX_BASE nicht gefunden (weder lokal noch origin/)."
+    git rebase "$base_ref" || { warn "Rebase-Konflikt → wgx heal rebase"; return 2; }
+
+    if git rev-parse --abbrev-ref --symbolic-full-name '@{u}' >/dev/null 2>&1; then had_upstream=1; else had_upstream=0; fi
+    if (( had_upstream )); then
+      git push || die "Push fehlgeschlagen. Prüfe Zugriffsrechte/Netzwerk."
+    else
+      if git remote | grep -qx "origin"; then
+        git push --set-upstream origin "$(git_branch)" || die "Push/Upstream fehlgeschlagen. Remote/ACL?"
+      else
+        warn "Kein 'origin' Remote → Push übersprungen."
+      fi
+    fi
+  fi
+
+  ok "Sync erledigt."
+  local behind=0 ahead=0 IFS=' '
+  read -r behind ahead < <(git_ahead_behind "$(git_branch)") || true
+  info "Upstream: ahead=$ahead behind=$behind"
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PR/MR Send
+# ─────────────────────────────────────────────────────────────────────────────
+render_pr_body(){
+  local TITLE="$1" SUMMARY="$2" WHY="$3" TESTS="$4" ISSUES="$5" NOTES="$6"
+  local tpl="" CHANGES=""
+  if [[ -f ".wgx/pr_template.md" ]]; then
+    tpl="$(cat .wgx/pr_template.md)"
+  elif [[ -f ".github/pull_request_template.md" ]]; then
+    tpl="$(cat .github/pull_request_template.md)"
+  else
+    tpl=$'*Zweck*\n{{SUMMARY}}\n\n*Änderungen*\n{{CHANGES}}\n\n*Warum*\n{{WHY}}\n\n*Tests*\n{{TESTS}}\n\n*Issues*\n{{ISSUES}}\n\n*Notizen*\n{{NOTES}}\n'
+  fi
+
+  if git rev-parse --verify -q "origin/$WGX_BASE" >/dev/null; then
+    CHANGES="$(git diff --name-status "origin/$WGX_BASE"...HEAD 2>/dev/null | head -n "${WGX_PREVIEW_DIFF_LINES:-120}")" \
+      || CHANGES="(Änderungen konnten nicht ermittelt werden)"
+  else
+    CHANGES="(Basisbranch origin/$WGX_BASE nicht verfügbar)"
+  fi
+
+  tpl="${tpl//'{{SUMMARY}}'/$SUMMARY}"
+  tpl="${tpl//'{{CHANGES}}'/$CHANGES}"
+  tpl="${tpl//'{{WHY}}'/$WHY}"
+  tpl="${tpl//'{{TESTS}}'/$TESTS}"
+  tpl="${tpl//'{{ISSUES}}'/$ISSUES}"
+  tpl="${tpl//'{{NOTES}}'/$NOTES}"
+  printf "%s" "$tpl"
+}
+
+send_cmd(){
+  require_repo
+  local DRAFT=0 TITLE="" WHY="" TESTS="" NOTES="" SCOPE="auto" LABELS="${WGX_PR_LABELS-}" ISSUE="" BASE="" SYNC_FIRST=1 SIGN=0 INTERACTIVE=0 REVIEWERS="" TRIGGER_CI=0 OPEN_PR=0 AUTO_BRANCH=0
+  while [[ $# -gt 0 ]]; do case "$1" in
+    --draft) DRAFT=1;;
+    -i|--interactive) INTERACTIVE=1;;
+    --title) shift; TITLE="${1-}";;
+    --why) shift; WHY="${1-}";;
+    --tests) shift; TESTS="${1-}";;
+    --notes) shift; NOTES="${1-}";;
+    --label) shift; LABELS="${LABELS:+$LABELS,}${1-}";;
+    --issue|--issues) shift; ISSUE="${1-}";;
+    --reviewers) shift; REVIEWERS="${1-}";;
+    --scope) shift; SCOPE="${1-}";;
+    --no-sync-first) SYNC_FIRST=0;;
+    --sign) SIGN=1;;
+    --base) shift; BASE="${1-}";;
+    --ci) TRIGGER_CI=1;;
+    --open) OPEN_PR=1;;
+    --auto-branch) AUTO_BRANCH=1;;
+    *) ;;
+  esac; shift || true; done
+  [[ -n "$BASE" ]] && WGX_BASE="$BASE"
+
+  (( OFFLINE )) && die "send: Offline – PR/MR kann nicht erstellt werden."
+
+  # Schutz: nicht direkt von Base & kein leeres Diff
+  local current; current="$(git_branch)"
+  local AUTO_BRANCH_FLAG=$(( AUTO_BRANCH || ${WGX_AUTO_BRANCH:-0} ))
+  if [[ "$current" == "$WGX_BASE" ]]; then
+    if (( AUTO_BRANCH_FLAG )); then
+      local slug="auto-pr-$(date +%Y%m%d-%H%M%S)"
+      info "Base-Branch ($WGX_BASE) erkannt → auto Branch: $slug"
+      start_cmd "$slug" || die "auto-branch fehlgeschlagen"
+    else
+      die "send: Du stehst auf Base ($WGX_BASE). Erst 'wgx start <slug>' – oder 'wgx send --auto-branch'."
+    fi
+  fi
+
+  git fetch -q origin "$WGX_BASE" >/dev/null 2>&1 || true
+  if git rev-parse --verify -q "origin/$WGX_BASE" >/dev/null; then
+    git diff --quiet "origin/$WGX_BASE"...HEAD && die "send: Kein Diff zu origin/$WGX_BASE → Nichts zu senden."
+  fi
+
+  guard_run; local rc=$?
+  (( rc==1 && (ASSUME_YES || ${WGX_DRAFT_ON_WARN:-0}) )) && DRAFT=1
+  (( SYNC_FIRST )) && sync_cmd ${SIGN:+--sign} --scope "${SCOPE}" --base "$WGX_BASE" || { warn "Sync fehlgeschlagen → PR abgebrochen."; return 1; }
+
+  local files scope short
+  files="$(git diff --name-only "origin/$WGX_BASE"...HEAD 2>/dev/null || true)"
+  scope="$([[ "$SCOPE" == "auto" ]] && (auto_scope "$files" || echo "repo") || echo "$SCOPE")"
+  local last_subject; last_subject="$(git log -1 --pretty=%s 2>/dev/null || true)"
+  short="${TITLE:-${last_subject:-"Änderungen an ${scope}"}}"
+  local TITLE2="[${scope}] ${short}"
+
+  local body; body="$(render_pr_body "$TITLE2" "$short" "${WHY:-"—"}" "${TESTS:-"—"}" "${ISSUE:-""}" "${NOTES:-""}")"
+  if (( INTERACTIVE )); then
+    local tmpf; tmpf="$(mktemp -t wgx-pr.XXXXXX)"
+    printf "%s" "$body" > "$tmpf"
+    bash -lc "${WGX_EDITOR:-${EDITOR:-nano}} $(printf '%q' "$tmpf")"
+    body="$(cat "$tmpf")"; rm -f "$tmpf"
+  fi
+  [[ -z "$(printf '%s' "$body" | tr -d '[:space:]')" ]] && die "PR-Body ist leer oder nur Whitespace – abgebrochen."
+
+  local autoL; autoL="$(derive_labels "$scope")"
+  [[ -n "$autoL" ]] && LABELS="${LABELS:+$LABELS,}$autoL"
+  LABELS="$(_sanitize_csv "$LABELS")"
+
+  case "$(host_kind)" in
+    gitlab)
+      if has glab; then
+        glab auth status >/dev/null 2>&1 || warn "glab nicht eingeloggt (glab auth login) – MR könnte scheitern."
+        local args=(mr create --title "$TITLE2" --description "$body" --source-branch "$(git_branch)" --target-branch "$WGX_BASE")
+        (( DRAFT )) && args+=(--draft)
+        [[ -n "$ISSUE" ]] && args+=(--issue "$ISSUE")
+        if [[ -n "$LABELS" ]]; then IFS=, read -r -a _labels <<<"$LABELS"; local _l; for _l in "${_labels[@]}"; do _l="$(trim "$_l")"; [[ -n "$_l" ]] && args+=(--label "$_l"); done; fi
+        if [[ "$REVIEWERS" == "auto" ]]; then
+          local rlist="" r; rlist="$(printf "%s\n" "$files" | _codeowners_reviewers || true)"
+          [[ -n "$rlist" ]] && { while IFS= read -r r; do [[ -n "$r" ]] && args+=(--reviewer "$r"); done <<< "$rlist"; info "Reviewer (auto): $(printf '%s' "$rlist" | tr '\n' ' ')"; }
+        elif [[ -n "$REVIEWERS" ]] ; then IFS=, read -r -a rv <<<"$REVIEWERS"; local r; for r in "${rv[@]}"; do r="$(trim "$r")"; [[ -n "$r" ]] && args+=(--reviewer "$r"); done; fi
+        glab "${args[@]}" || die "glab mr create fehlgeschlagen."
+        ok "Merge Request erstellt."
+        (( OPEN_PR )) && glab mr view --web >/dev/null 2>&1 || true
+      else
+        warn "glab CLI nicht gefunden. MR manuell im GitLab anlegen."
+        local url; url="$(compare_url)"; [[ -n "$url" ]] && echo "Vergleich: $url"
+      fi
+      ;;
+    github|*)
+      if has gh; then
+        gh auth status >/dev/null 2>&1 || warn "gh nicht eingeloggt (gh auth login) – PR könnte scheitern."
+        local args=(pr create --title "$TITLE2" --body "$body" --base "$WGX_BASE")
+        (( DRAFT )) && args+=(--draft)
+        if [[ -n "$LABELS" ]]; then IFS=, read -r -a L <<<"$LABELS"; local l; for l in "${L[@]}"; do l="$(trim "$l")"; [[ -n "$l" ]] && args+=(--label "$l"); done; fi
+        [[ -n "$ISSUE" ]] && args+=(--issue "$ISSUE")
+        if [[ "$REVIEWERS" == "auto" ]]; then
+          local rlist="" r2; rlist="$(printf "%s\n" "$files" | _codeowners_reviewers || true)"
+          if [[ -n "$rlist" ]]; then while IFS= read -r r2; do [[ -n "$r2" ]] && args+=(--reviewer "$r2"); done <<< "$rlist"; info "Reviewer (auto): $(printf '%s' "$rlist" | tr '\n' ' ')"; else warn "CODEOWNERS ohne User-Reviewer."; fi
+        elif [[ -n "$REVIEWERS" ]]; then IFS=, read -r -a rvw2 <<<"$REVIEWERS"; local r3; for r3 in "${rvw2[@]}"; do r3="$(trim "$r3")"; [[ -n "$r3" ]] && args+=(--reviewer "$r3"); done; fi
+        gh "${args[@]}" || die "gh pr create fehlgeschlagen."
+        local pr_url; pr_url="$(gh pr view --json url -q .url 2>/dev/null || true)"; [[ -n "$pr_url" ]] && info "PR: $pr_url"
+        ok "PR erstellt."
+        (( TRIGGER_CI )) && [[ -n "${WGX_CI_WORKFLOW-}" ]] && gh workflow run "$WGX_CI_WORKFLOW" >/dev/null 2>&1 || true
+        (( OPEN_PR )) && gh pr view -w >/dev/null 2>&1 || true
+      else
+        local url; url="$(compare_url)"; echo "gh CLI nicht gefunden. PR manuell anlegen."; [[ -n "$url" ]] && echo "URL: $url"
+        echo "Labels: $LABELS"; echo "--- PR Text ---"; echo "$body"
+      fi
+      ;;
+  esac
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Heal / Reload / Clean
+# ─────────────────────────────────────────────────────────────────────────────
+heal_cmd(){
+  require_repo
+  local MODE="${1-}"; shift || true
+  local STASH=0 CONT=0 ABORT=0 BASE=""
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --stash)    STASH=1;;
+      --continue) CONT=1;;
+      --abort)    ABORT=1;;
+      --base)     shift; BASE="${1-}";;
+      *) ;;
+    esac; shift || true
+  done
+  [[ -n "$BASE" ]] && WGX_BASE="$BASE"
+
+  if (( ABORT )); then
+    if git rebase --abort 2>/dev/null || git merge --abort 2>/dev/null; then
+      ok "Abgebrochen."
+      return 0
+    else
+      warn "Kein Rebase/Merge zum Abbrechen gefunden."
+      return 1
+    fi
+  fi
+
+  (( CONT ))  && { git add -A; git rebase --continue || die "continue fehlgeschlagen."; ok "Rebase fortgesetzt."; return 0; }
+  (( STASH )) && snapshot_make
+
+  _fetch_guard
+  case "$MODE" in
+    ""|rebase)
+      local base_ref="origin/$WGX_BASE"
+      git rev-parse --verify -q "$base_ref" >/dev/null || base_ref="$WGX_BASE"
+      git rev-parse --verify -q "$base_ref" >/dev/null || die "Basisbranch $WGX_BASE nicht gefunden."
+      git rebase "$base_ref" || { warn "Konflikte. Löse sie, dann: wgx heal --continue | --abort"; return 2; }
+      ;;
+    ours)    git merge -X ours   "origin/$WGX_BASE" || { warn "Konflikte. manuell lösen + commit"; return 2; } ;;
+    theirs)  git merge -X theirs "origin/$WGX_BASE" || { warn "Konflikte. manuell lösen + commit"; return 2; } ;;
+    ff-only) git merge --ff-only "origin/$WGX_BASE" || { warn "Fast-Forward nicht möglich."; return 2; } ;;
+    *) die "Unbekannter heal-Modus: $MODE";;
+  esac
+  ok "Heal erfolgreich."
+}
+
+reload_cmd(){
+  local MODE="${1-}"; shift || true
+  local TMUX=0; [[ "${1-}" == "--tmux" ]] && { TMUX=1; shift || true; }
+  case "$MODE" in
+    here|"") exec "$SHELL" -l;;
+    root)    cd "$ROOT_DIR" && exec "$SHELL" -l;;
+    new)
+      if (( TMUX )) && has tmux && tmux has-session 2>/dev/null; then
+        tmux new-window -c "$ROOT_DIR"
+      else
+        if has setsid; then
+          setsid "$SHELL" -l >/dev/null 2>&1 < /dev/null &
+        else
+          nohup "$SHELL" -l >/dev/null 2>&1 < /dev/null &
+          info "nohup verwendet (setsid fehlt)."
+        fi
+      fi
+      ok "Neue Shell gestartet."
+      ;;
+    *) die "reload: here|root|new [--tmux]";;
+  esac
+}
+
+clean_cmd(){
+  require_repo
+  local SAFE=0 BUILD=0 GIT=0 DEEP=0
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --safe)  SAFE=1;;
+      --build) BUILD=1;;
+      --git)   GIT=1;;
+      --deep)  DEEP=1;;
+      *) ;;
+    esac; shift || true
+  done
+  (( SAFE || BUILD || GIT || DEEP )) || SAFE=1
+
+  if (( DEEP && ASSUME_YES==0 )); then
+    local ans ans2
+    read -r -p "⚠ Tiefenreinigung (git clean -xfd). Sicher? [y/N] " ans
+    [[ "$(to_lower "${ans:-n}")" == "y" ]] || { warn "abgebrochen."; return 1; }
+    read -r -p "Snapshot vorher erstellen? [Y/n] " ans2
+    [[ "$(to_lower "${ans2:-y}")" == "n" ]] || snapshot_make
+  fi
+
+  do_rm(){  if (( DRYRUN )); then printf 'DRY: rm -rf -- %q\n' "$@"; else rm -rf "$@"; fi }
+  do_git(){ if (( DRYRUN )); then printf 'DRY: git %s\n' "$*"; else git "$@"; fi }
+
+  if (( SAFE || BUILD )); then
+    do_rm ./coverage ./dist ./node_modules/.cache ./target
+    if (( DRYRUN )); then
+      echo "DRY: find \"${TMPDIR:-/tmp}\" -maxdepth 1 -type f -name 'wgx-*.log' -mtime +1 -exec rm -f -- {} +"
+    else
+      find "${TMPDIR:-/tmp}" -maxdepth 1 -type f -name 'wgx-*.log' -mtime +1 -exec rm -f -- {} +
+    fi
+  fi
+
+  if (( GIT )); then
+    if (( DRYRUN )); then
+      git branch --merged \
+      | grep -Ev '^\*|[[:space:]](main|master|dev)$' \
+      | sed 's/^[*[:space:]]*//' \
+      | while IFS= read -r b; do [[ -n "$b" ]] && printf 'DRY: git branch -d -- %q\n' "$b"; done
+    else
+      git branch --merged \
+      | grep -Ev '^\*|[[:space:]](main|master|dev)$' \
+      | sed 's/^[*[:space:]]*//' \
+      | while IFS= read -r b; do [[ -n "$b" ]] && git branch -d "$b" 2>/dev/null || true; done
+    fi
+    git remote | grep -qx "origin" && do_git remote prune origin >/dev/null 2>&1 || true
+  fi
+
+  (( DEEP )) && do_git clean -xfd
+  ok "Clean $( ((DRYRUN)) && echo '(Preview) ' )fertig."
+}
+# ─────────────────────────────────────────────────────────────────────────────
+# Block 3/3 – High-level Commands, Env, Router
+#
+# Bash-Voraussetzung: via /usr/bin/env bash
+# Abhängigkeiten (in Block 1/2 definiert):
+#   die ok warn info has is_git_repo require_repo read_prompt to_lower
+#   detect_web_dir detect_api_dir git_branch git_ahead_behind host_kind
+#   mktemp_portable guard_run send_cmd sync_cmd heal_cmd reload_cmd
+#   clean_cmd lint_cmd test_cmd status_cmd is_codespace
+#
+# WGX_* Variablen (typisch aus Init/Block 1):
+#   WGX_BASE WGX_SIGNING WGX_PREVIEW_DIFF_LINES WGX_PR_LABELS WGX_CI_WORKFLOW
+#   WGX_ASSUME_YES WGX_DRAFT_ON_WARN WGX_OFFLINE (alias: OFFLINE) WGX_PM
+#   PLATFORM
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Doctor / Init / Setup / Start
+# ─────────────────────────────────────────────────────────────────────────────
+
+doctor_cmd(){
+  local in_repo=1; is_git_repo || in_repo=0
+  local sub="${1-}"; [[ $# -gt 0 ]] && shift
+
+  case "$sub" in
+    clean)
+      ((in_repo)) || die "Nicht im Git-Repo."
+      DRYRUN=1; clean_cmd --safe --build --git
+      local a=""; read_prompt a "Scharf ausführen? [y/N]" "n"
+      [[ "$(to_lower "$a")" == "y" ]] && { DRYRUN=0; clean_cmd --safe --build --git; }
+      return 0
+      ;;
+    heal)
+      ((in_repo)) || die "Nicht im Git-Repo."
+      heal_cmd rebase; return $?
+      ;;
+  esac
+
+  local br="" web="" api="" ahead=0 behind=0
+  if ((in_repo)); then
+    br="$(git_branch)"
+    web="$(detect_web_dir || true)"
+    api="$(detect_api_dir || true)"
+    local _ab
+    if (( OFFLINE )); then
+      warn "Offline-Modus: Upstream-Abstand übersprungen."
+      behind=0; ahead=0
+    elif ! _ab="$(git_ahead_behind "$br" 2>&1)"; then
+      warn "git_ahead_behind fehlgeschlagen: $_ab"
+      behind=0; ahead=0
+    else
+      read -r behind ahead <<<"$_ab"
+      [[ "$behind" =~ ^[0-9]+$ ]] || behind=0
+      [[ "$ahead"  =~ ^[0-9]+$ ]] || ahead=0
+    fi
+  fi
+
+  echo "=== wgx doctor ==="
+  echo "root : $ROOT_DIR"
+  if ((in_repo)); then
+    echo "branch: $br (ahead:$ahead behind:$behind), base:$WGX_BASE"
+    echo "web  : ${web:-nicht gefunden}"
+    echo "api  : ${api:-nicht gefunden}"
+  else
+    echo "branch: (kein Repo)"
+  fi
+  echo "vale : $([[ -f ".vale.ini" ]] && echo present || echo missing)"
+  echo "gh   : $(gh --version 2>/dev/null | head -n1 || echo missing)"
+  echo "glab : $(glab --version 2>/dev/null | head -n1 || echo missing)"
+  echo "node : $(node -v 2>/dev/null || echo missing)"
+  echo "cargo: $(cargo -V 2>/dev/null || echo missing)"
+  echo "env  : $PLATFORM codespaces=$(is_codespace && echo yes || echo no)"
+  (( OFFLINE )) && echo "mode : offline (fetch/pull werden übersprungen; Upstream-Infos evtl. veraltet)"
+  ok "Doctor OK"
+}
+
+init_cmd(){
+  if [[ -f ".wgx.conf" ]]; then
+    warn ".wgx.conf existiert bereits."
+  else
+    cat > .wgx.conf <<EOF
+# wgx config (lokal)
+WGX_BASE=${WGX_BASE}
+WGX_SIGNING=${WGX_SIGNING}
+WGX_PREVIEW_DIFF_LINES=${WGX_PREVIEW_DIFF_LINES}
+WGX_PR_LABELS=${WGX_PR_LABELS}
+WGX_CI_WORKFLOW=${WGX_CI_WORKFLOW}
+# Komfort:
+WGX_ASSUME_YES=0
+WGX_DRAFT_ON_WARN=0
+WGX_OFFLINE=0
+# Optional: WGX_WEB_DIR=apps/web
+# Optional: WGX_API_DIR=apps/api
+# Optional: WGX_PM=pnpm|npm|yarn
+EOF
+    ok ".wgx.conf angelegt."
+  fi
+
+  [[ -d ".wgx" ]] || { mkdir -p .wgx; ok ".wgx/ angelegt."; }
+
+  if [[ ! -f ".wgx/pr_template.md" ]]; then
+    cat > .wgx/pr_template.md <<'EOF'
+## Zweck
+{{SUMMARY}}
+
+## Änderungen
+{{CHANGES}}
+
+## Warum
+{{WHY}}
+
+## Tests
+{{TESTS}}
+
+## Issues
+{{ISSUES}}
+
+## Notizen
+{{NOTES}}
+EOF
+    ok ".wgx/pr_template.md erstellt."
+  fi
+}
+
+setup_cmd(){
+  if is_termux; then
+    info "Termux-Setup (Basis-Tools)…"
+    pkg update -y && pkg upgrade -y
+    pkg install -y git gh glab curl wget unzip zsh || true
+    has jq   || warn "jq nicht verfügbar – JSON-Version-Update fällt auf sed-Fallback zurück."
+    has vale || warn "Vale nicht via pkg? → Binary Release installieren; sonst wird der Check übersprungen."
+    has gh   || warn "GitHub CLI (gh) nicht verfügbar – PR/Release-Funktionen eingeschränkt."
+    has glab || warn "GitLab CLI (glab) nicht verfügbar – MR/Release-Funktionen eingeschränkt."
+    ok "Termux-Setup abgeschlossen."
+  else
+    info "Setup ist plattformabhängig. Stelle sicher: git, gh, (optional) glab, zsh, vale, jq."
+  fi
+}
+
+start_cmd(){
+  require_repo
+  has git || die "git nicht installiert."
+
+  local slug="" issue=""
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --issue) shift; issue="${1-}";;
+      *) slug="${1-}";;
+    esac; shift || true
+  done
+  [[ -z "$slug" ]] && die "Usage: wgx start [--issue <ID>] <slug>"
+
+  if (( OFFLINE )); then
+    info "OFFLINE=1: Überspringe fetch."
+  else
+    git fetch origin "$WGX_BASE" 2>/dev/null || warn "git fetch für '$WGX_BASE' fehlgeschlagen (arbeite mit lokaler Referenz)."
+  fi
+
+  local base_ref="origin/$WGX_BASE"
+  git rev-parse --verify -q "$base_ref" >/dev/null || base_ref="$WGX_BASE"
+  git rev-parse --verify -q "$base_ref" >/dev/null || die "Basisbranch $WGX_BASE nicht gefunden (weder lokal noch origin/)."
+
+  # extglob sicher setzen/zurücksetzen
+  local extglob_prev_on=0; shopt -q extglob && extglob_prev_on=1; shopt -s extglob
+
+  slug="${slug//[^a-zA-Z0-9._-]/-}"
+  slug="${slug//../.}"
+  slug="${slug##+(-)}"; slug="${slug%%+(-)}"
+
+  [[ -z "$slug" ]] && { ((extglob_prev_on)) || shopt -u extglob; die "leerer Branch-Name."; }
+
+  local name="$slug"
+  [[ -n "$issue" ]] && name="feat-${issue}-${slug}"
+  name="${name//+(-)/-}"
+  name="${name//@\{/-}"
+  [[ "$name" == *.lock ]] && name="${name%.lock}-lock"
+
+  ((extglob_prev_on)) || shopt -u extglob
+
+  git check-ref-format --branch "$name" || die "Ungültiger Branch-Name: $name"
+  git checkout -b "$name" "$base_ref"   || die "Branch konnte nicht erstellt werden."
+  ok "Branch '$name' von $base_ref erstellt und ausgecheckt."
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Release / Version
+# ─────────────────────────────────────────────────────────────────────────────
+
+_semver_bump(){
+  local lt="$1" kind="$2" vM vN vP
+  [[ "$lt" =~ ^v?([0-9]+)\.([0-9]+)\.([0-9]+) ]] || { echo "v0.0.1"; return 1; }
+  vM="${BASH_REMATCH[1]}"; vN="${BASH_REMATCH[2]}"; vP="${BASH_REMATCH[3]}"
+  case "$kind" in
+    patch) vP=$((vP+1));;
+    minor) vN=$((vN+1)); vP=0;;
+    major) vM=$((vM+1)); vN=0; vP=0;;
+    *) echo "v${vM}.${vN}.${vP}"; return 1;;
+  esac
+  echo "v${vM}.${vN}.${vP}"; return 0
+}
+
+_last_semver_tag(){ git tag --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | head -n1 || true; }
+_last_tag(){ _last_semver_tag || git describe --tags --abbrev=0 2>/dev/null || git describe --tags --always 2>/dev/null || echo "v0.0.0"; }
+
+_pkg_json_set_ver(){
+  local pj="$1" ver="$2"
+  if has jq; then
+    if jq --arg v "$ver" '.version=$v' "$pj" > "$pj.tmp" && mv "$pj.tmp" "$pj"; then
+      return 0
+    else
+      rm -f "$pj.tmp"; return 1
+    fi
+  else
+    has awk || die "awk nicht verfügbar – benötigt für Version-Update ohne jq."
+    local tmp="${pj}.tmp"
+    awk -v ver="$ver" '
+      BEGIN{done=0}
+      !done && /^[[:space:]]*"version"[[:space:]]*:/ {
+        sub(/^[[:space:]]*"version"[[:space:]]*:[[:space:]]*"[^"]*"/, "\"version\": \"" ver "\""); done=1
+      }
+      { print }
+    ' "$pj" > "$tmp" && mv "$tmp" "$pj"
+  fi
+}
+
+_cargo_set_ver(){
+  local dir="$1" ver="$2"
+  if has cargo && cargo set-version -V >/dev/null 2>&1; then
+    (cd "$dir" && cargo set-version "$ver") || return 1
+  else
+    sed -E -i.bak 's/^(version[[:space:]]*=[[:space:]]*)"[^"]*"/\1"'"$ver"'"/' "$dir/Cargo.toml" && rm -f "$dir/Cargo.toml.bak" || return 1
+  fi
+  return 0
+}
+
+release_cmd(){
+  require_repo
+  has git || die "git nicht installiert."
+
+  local VERSION="" PUSH=0 SIGN_TAG=0 NOTES="auto" FROM="origin/$WGX_BASE" TO="HEAD" AUTO_KIND="" LATEST=0 ALLOW_PRE=0
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --version)           shift; VERSION="${1-}";;
+      --auto-version)      shift; AUTO_KIND="${1-}";;
+      --push)              PUSH=1;;
+      --sign-tag)          SIGN_TAG=1;;
+      --latest)            LATEST=1;;
+      --notes)             shift; NOTES="${1-}";;
+      --from)              shift; FROM="${1-}";;
+      --to)                shift; TO="${1-}";;
+      --allow-prerelease)  ALLOW_PRE=1;;
+      *) die "Unbekannte Option: $1";;
+    esac; shift || true
+  done
+
+  if [[ -z "$VERSION" && -n "$AUTO_KIND" ]]; then
+    if ! VERSION="$(_semver_bump "$(_last_semver_tag || echo v0.0.0)" "$AUTO_KIND")"; then
+      die "Automatischer SemVer-Bump fehlgeschlagen."
+    fi
+  fi
+  [[ -z "$VERSION" ]] && die "release: --version vX.Y.Z oder --auto-version patch|minor|major erforderlich."
+
+  if (( ALLOW_PRE )); then
+    [[ "$VERSION" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.+-]+)?$ ]] || die "Ungültige Version (SemVer+Prerelease erlaubt): $VERSION"
+  else
+    [[ "$VERSION" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+$ ]] || die "Ungültige Version (erwarte vX.Y.Z): $VERSION"
+  fi
+  [[ "$VERSION" != v* ]] && VERSION="v$VERSION"
+
+  local notes_text="" notes_file="" _cleanup_notes=0
+  _release_cleanup(){ (( _cleanup_notes )) && [[ -n "$notes_file" && -f "$notes_file" ]] && rm -f "$notes_file"; }
+  trap '_release_cleanup' EXIT
+
+  if [[ "$NOTES" == "auto" ]]; then
+    notes_text="## $VERSION ($(LC_ALL=C date +%Y-%m-%d))"$'\n\n'"### Changes"$'\n'
+    notes_text+="$(git log --pretty='- %s (%h)' "$FROM..$TO" || true)"
+    notes_file="$(mktemp_portable wgx-notes 2>/dev/null || mktemp 2>/dev/null)" || die "Konnte temporäre Datei nicht erstellen."
+    printf "%s\n" "$notes_text" > "$notes_file" || die "Schreiben der Release-Notizen fehlgeschlagen."
+    _cleanup_notes=1
+  else
+    [[ -f "$NOTES" ]] || die "--notes Datei nicht gefunden: $NOTES"
+    notes_file="$NOTES"; _cleanup_notes=0
+  fi
+
+  git rev-parse -q --verify "refs/tags/$VERSION" >/dev/null && die "Tag $VERSION existiert bereits."
+  if (( SIGN_TAG )); then git tag -s "$VERSION" -m "$VERSION" || die "Signiertes Tag fehlgeschlagen."
+  else                    git tag -a "$VERSION" -m "$VERSION" || die "Tagging fehlgeschlagen."
+  fi
+  ok "Git-Tag $VERSION erstellt."
+
+  if (( PUSH )); then
+    (( OFFLINE )) && die "Push nicht möglich im OFFLINE-Modus."
+    git push origin "$VERSION" || die "Tag Push fehlgeschlagen."
+    ok "Tag gepusht."
+  fi
+
+  if (( OFFLINE )); then
+    warn "OFFLINE=1: Releases bei GitHub/GitLab werden übersprungen."
+    return 0
+  fi
+
+  case "$(host_kind)" in
+    gitlab)
+      if has glab && glab auth status >/dev/null 2>&1; then
+        glab release create "$VERSION" --notes-file "$notes_file" || die "glab release create fehlgeschlagen."
+        (( LATEST )) && glab release edit "$VERSION" --latest >/dev/null 2>&1 || true
+        ok "GitLab Release erstellt: $VERSION"
+      else
+        warn "glab fehlt/unauthenticated – Release nur lokal getaggt."
+      fi
+      ;;
+    github|*)
+      if has gh && gh auth status >/dev/null 2>&1; then
+        local latest_flag=(); (( LATEST )) && latest_flag+=(--latest)
+        gh release create "$VERSION" "${latest_flag[@]}" --notes-file "$notes_file" || die "gh release create fehlgeschlagen."
+        ok "GitHub Release erstellt: $VERSION"
+      else
+        warn "gh fehlt/unauthenticated – Release nur lokal getaggt."
+      fi
+      ;;
+  esac
+}
+
+version_cmd(){
+  require_repo
+  local sub="${1-}"; [[ $# -gt 0 ]] && shift
+  local do_commit=0; for a in "$@"; do [[ "$a" == "--commit" ]] && do_commit=1; done
+
+  case "$sub" in
+    bump)
+      local kind="${1-}"; [[ $# -gt 0 ]] && shift
+      [[ "$kind" =~ ^(patch|minor|major)$ ]] || die "version bump: erwartet patch|minor|major"
+
+      local lt nv; lt="$(_last_semver_tag || echo v0.0.0)"
+      if ! nv="$(_semver_bump "$lt" "$kind")"; then die "SemVer-Bump fehlgeschlagen."; fi
+      nv="${nv#v}"
+
+      local web api; web="$(detect_web_dir || true)"; api="$(detect_api_dir || true)"
+      if [[ -n "$web" && -f "$web/package.json" ]]; then
+        _pkg_json_set_ver "$web/package.json" "$nv" || die "Version konnte in $web/package.json nicht gesetzt werden."
+      fi
+      if [[ -n "$api" && -f "$api/Cargo.toml" ]]; then
+        _cargo_set_ver "$api" "$nv" || die "Version konnte in $api/Cargo.toml nicht gesetzt werden."
+      fi
+
+      (( do_commit )) && { git add -A && git commit -m "chore(version): bump to v$nv"; }
+      ok "Version bump → v$nv"
+      ;;
+    set)
+      local v="${1-}"; [[ $# -gt 0 ]] && shift
+      [[ -n "$v" ]] || die "version set vX.Y.Z"
+      [[ "$v" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+$ ]] || die "Ungültige Version (erwarte vX.Y.Z): $v"
+      v="${v#v}"
+
+      local web api; web="$(detect_web_dir || true)"; api="$(detect_api_dir || true)"
+      if [[ -n "$web" && -f "$web/package.json" ]]; then
+        _pkg_json_set_ver "$web/package.json" "$v" || die "Version konnte in $web/package.json nicht gesetzt werden."
+      fi
+      if [[ -n "$api" && -f "$api/Cargo.toml" ]]; then
+        _cargo_set_ver "$api" "$v" || die "Version konnte in $api/Cargo.toml nicht gesetzt werden."
+      fi
+
+      (( do_commit )) && { git add -A && git commit -m "chore(version): set v$v"; }
+      ok "Version gesetzt → v$v"
+      ;;
+    *)
+      die "Usage: wgx version bump [patch|minor|major] [--commit] | wgx version set vX.Y.Z [--commit]"
+      ;;
+  esac
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Hooks / Env / Quick / Config
+# ─────────────────────────────────────────────────────────────────────────────
+
+hooks_cmd(){
+  require_repo
+  local sub="${1-}"; [[ $# -gt 0 ]] && shift
+  case "$sub" in
+    install)
+      local root; root="$(git rev-parse --show-toplevel 2>/dev/null || pwd -P)"
+      if [[ -x "$root/cli/wgx/install.sh" ]]; then
+        bash "$root/cli/wgx/install.sh" || die "wgx install.sh fehlgeschlagen"
+      else
+        die "hooks install: Installer fehlt (cli/wgx/install.sh)"
+      fi
+      ;;
+    *) die "Usage: wgx hooks install";;
+  esac
+}
+
+env_doctor_termux(){
+  echo "=== wgx env doctor (Termux) ==="
+  echo "PREFIX : ${PREFIX-}"
+  echo "storage: $([[ -d "$HOME/storage" ]] && echo present || echo missing)"
+  [[ ! -d "$HOME/storage" ]] && echo "Hinweis: termux-setup-storage ausführen, dann Termux neu starten."
+
+  for p in git gh glab jq curl wget unzip zsh; do
+    if has "$p"; then echo "pkg:$p OK"; else echo "pkg:$p fehlt → pkg install $p"; fi
+  done
+
+  local node_ok=0
+  for p in node nodejs nodejs-lts; do
+    if has "$p"; then echo "node OK ($(node -v 2>/dev/null))"; node_ok=1; break; fi
+  done
+  (( node_ok )) || echo "node fehlt → pkg install nodejs-lts (empfohlen)"
+
+  if has rustc; then echo "rust OK ($(rustc -V 2>/dev/null))"; else echo "rust fehlt → pkg install rust"; fi
+  if has cargo;  then echo "cargo OK ($(cargo -V 2>/dev/null))"; fi
+
+  if has psql;            then echo "postgresql OK"; else echo "postgresql fehlt → pkg install postgresql"; fi
+  if has nats-server;     then echo "nats-server OK"; else echo "nats-server fehlt → pkg install nats-server"; fi
+  if has redis-server || has redis-cli; then echo "redis OK"; else echo "redis fehlt → pkg install redis"; fi
+  if has caddy;           then echo "caddy OK"; else echo "caddy fehlt → pkg install caddy"; fi
+  if has termux-wake-lock; then echo "wake-lock: verfügbar (tip: termux-wake-lock)"; else echo "wake-lock: Kommando fehlt"; fi
+
+  if ! git config --get core.filemode >/dev/null 2>&1; then
+    echo "git: core.filemode nicht gesetzt → Empfehlung: git config core.filemode false"
+  fi
+
+  (( OFFLINE )) && echo "mode   : offline"
+  ok "Termux-Check beendet."
+}
+
+env_fix_termux(){
+  local ans rc=0
+  if [[ ! -d "$HOME/storage" ]]; then
+    read_prompt ans "Storage fehlt. Jetzt 'termux-setup-storage' ausführen? [Y/n]" "y"
+    if [[ "$(to_lower "$ans")" != "n" ]]; then
+      if has termux-setup-storage; then
+        termux-setup-storage || { warn "termux-setup-storage fehlgeschlagen."; rc=1; }
+      else
+        warn "termux-setup-storage nicht verfügbar."
+        rc=1
+      fi
+      echo "Termux ggf. neu starten."
+    fi
+  fi
+
+  local need=()
+  for p in git gh glab jq curl wget unzip zsh; do
+    if ! has "$p"; then need+=("$p"); fi
+  done
+  if ((${#need[@]})); then
+    read_prompt ans "Fehlende Basis-Pakete installieren (${need[*]})? [Y/n]" "y"
+    if [[ "$(to_lower "$ans")" != "n" ]]; then
+      pkg install -y "${need[@]}" || { warn "Installation einiger Pakete fehlgeschlagen."; rc=1; }
+    fi
+  fi
+
+  if ! git config --get core.filemode >/dev/null 2>&1; then
+    read_prompt ans "git core.filemode=false setzen (empfohlen auf Android)? [Y/n]" "y"
+    if [[ "$(to_lower "$ans")" != "n" ]]; then
+      git config core.filemode false || { warn "Konnte core.filemode nicht setzen."; rc=1; }
+    fi
+  fi
+
+  (( rc==0 )) && ok "Termux-Fixes angewendet (sofern bestätigt)." || warn "Einige Fixes fehlgeschlagen (rc=$rc)."
+  return $rc
+}
+
+env_doctor_generic(){
+  echo "=== wgx env doctor ($PLATFORM) ==="
+  if has git;   then echo "git OK ($(git --version 2>/dev/null))"; else echo "git fehlt"; fi
+  if has gh;    then echo "gh OK ($(gh --version 2>/dev/null | head -n1))"; else echo "gh fehlt"; fi
+  if has glab;  then echo "glab OK ($(glab --version 2>/dev/null | head -n1))"; else echo "glab fehlt"; fi
+  if has node;  then echo "node OK ($(node -v 2>/dev/null))"; else echo "node fehlt"; fi
+  if has cargo; then echo "cargo OK ($(cargo -V 2>/dev/null))"; else echo "cargo fehlt"; fi
+  if has docker; then echo "docker OK"; else echo "docker fehlt (optional)"; fi
+  (( OFFLINE )) && echo "mode : offline"
+  ok "Umgebungscheck beendet."
+}
+
+env_cmd(){
+  local sub="doctor" fix=0
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      doctor) sub="doctor";;
+      --fix)  fix=1;;
+      *) die "Usage: wgx env doctor [--fix]";;
+    esac; shift || true
+  done
+
+  case "$sub" in
+    doctor)
+      if is_termux; then
+        env_doctor_termux
+        (( fix )) && env_fix_termux
+      else
+        env_doctor_generic
+        (( fix )) && warn "--fix ist für Termux optimiert; auf $PLATFORM ohne Wirkung."
+      fi
+      ;;
+    *) die "Usage: wgx env doctor [--fix]";;
+  esac
+}
+
+quick_cmd(){
+  require_repo
+  local INTERACTIVE=0
+  if [[ "${1-}" == "-i" || "${1-}" == "--interactive" ]]; then
+    INTERACTIVE=1; shift || true
+  fi
+
+  echo "=== wgx quick ==="
+  local rc=0
+  guard_run --lint --test || rc=$?
+  local draft=()
+  (( rc==1 )) && draft+=(--draft)
+
+  if (( INTERACTIVE )); then
+    send_cmd "${draft[@]}" --ci --open -i
+  else
+    send_cmd "${draft[@]}" --ci --open
+  fi
+}
+
+config_cmd(){
+  local sub="${1-}"; [[ $# -gt 0 ]] && shift
+  case "$sub" in
+    show|"")
+      echo "=== wgx config (effektiv) ==="
+      echo "WGX_BASE=${WGX_BASE-}"
+      echo "WGX_SIGNING=${WGX_SIGNING-}"
+      echo "WGX_PREVIEW_DIFF_LINES=${WGX_PREVIEW_DIFF_LINES-}"
+      echo "WGX_PR_LABELS=${WGX_PR_LABELS-}"
+      echo "WGX_CI_WORKFLOW=${WGX_CI_WORKFLOW-}"
+      echo "WGX_ASSUME_YES=${WGX_ASSUME_YES-0}"
+      echo "WGX_DRAFT_ON_WARN=${WGX_DRAFT_ON_WARN-0}"
+      echo "WGX_OFFLINE=${OFFLINE-0}"
+      echo "WGX_PM=${WGX_PM-}"
+      ;;
+    set)
+      local kv="${1-}"
+      [[ -z "$kv" || "$kv" != *=* ]] && die "Usage: wgx config set KEY=VALUE"
+      local k="${kv%%=*}" v="${kv#*=}"
+      [[ -f ".wgx.conf" ]] || touch ".wgx.conf"
+      local k_re; k_re="$(printf '%s' "$k" | sed 's/[][().^$*+?{}|\\]/\\&/g')"
+      local v_esc="${v//&/\\&}"; v_esc="${v_esc//\//\\/}"
+      if grep -q -E "^${k_re}=" ".wgx.conf"; then
+        sed -i.bak "s|^${k_re}=.*|${k}=${v_esc}|" ".wgx.conf" && rm -f ".wgx.conf.bak"
+      else
+        printf "%s=%s\n" "$k" "$v_esc" >> ".wgx.conf"
+      fi
+      ok "gesetzt: ${k}=${v}"
+      ;;
+    *)
+      die "Usage: wgx config [show] | set KEY=VALUE"
+      ;;
+  esac
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Hilfe / Router
+# ─────────────────────────────────────────────────────────────────────────────
+
+usage(){
+cat <<EOF
+wgx – v${WGX_VERSION}
+Kurz:
+  wgx status                # kompakter Status (ahead/behind, base, dirs)
+  wgx quick [-i]            # Guard → Lint/Test → Sync → PR/MR (Warnungen → Draft) → CI + Browser
+  wgx send [--ci] [--open]  # Preflight → Sync → PR/MR (+ --reviewers auto|user1,user2, -i für Editor)
+  wgx guard --lint --test   # Preflight + Lint + Tests  [--deep-scan]  [--fix]
+  wgx start [--issue N] slug
+  wgx release --version vX.Y.Z | --auto-version patch|minor|major [--push] [--sign-tag] [--latest] [--allow-prerelease]
+  wgx version bump patch|minor|major [--commit] | set vX.Y.Z [--commit]
+  wgx hooks install
+  wgx env doctor [--fix]    # Umgebungscheck (Termux-Fixes)
+  wgx selftest              # Basisfunktionsprüfung (Version/Tools)
+  wgx config show|set K=V
+  wgx clean / lint / doctor / setup / init / reload / heal / test
+Global:
+  --yes  --dry-run  --timeout <s>  --no-timeout  --verbose  --base <branch>  --no-color  --offline  --version
+EOF
+}
+
+wgx_selftest_check_bins(){
+  local label="$1"; shift || true
+  local critical="$1"; shift || true
+  local -a bins=("$@")
+  local miss=0 bin
+  for bin in "${bins[@]}"; do
+    if has "$bin"; then
+      ok "$label: $bin gefunden"
+    else
+      if (( critical )); then
+        warn "$label: $bin fehlt"
+        miss=1
+      else
+        warn "$label: $bin fehlt (optional)"
+      fi
+    fi
+  done
+  return "$miss"
+}
+
+selftest_cmd(){
+  echo "=== wgx selftest ==="
+
+  local rc=$RC_OK
+
+  if [[ -x "$0" ]]; then
+    ok "wgx ausführbar (${0})"
+  else
+    warn "wgx nicht ausführbar (${0})"
+    rc=$RC_WARN
+  fi
+
+  if "$0" --version >/dev/null 2>&1; then
+    ok "Version abrufbar"
+  else
+    warn "Version nicht abrufbar"
+    rc=$RC_WARN
+  fi
+
+  local bins_check_rc
+  wgx_selftest_check_bins "Erforderlich" 1 git jq
+  bins_check_rc=$?
+  if (( bins_check_rc != 0 )); then
+    rc=$RC_WARN
+  fi
+  wgx_selftest_check_bins "Optional" 0 gh glab node pnpm || true
+
+  if is_git_repo; then
+    ok "Git-Repository erkannt ($(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo '?'))"
+  else
+    info "Hinweis: Selbsttest außerhalb eines Git-Repos – einige Kommandos erfordern eins."
+  fi
+
+  if (( rc==RC_OK )); then
+    ok "Selftest abgeschlossen."
+    return 0
+  fi
+
+  warn "Selftest mit Hinweisen abgeschlossen (rc=$rc)."
+  return 1
+}
+
+case "${SUB}" in
+  status)   status_cmd "$@";;
+  send)     send_cmd "$@";;
+  sync)     sync_cmd "$@";;
+  guard)    guard_run "$@";;
+  heal)     heal_cmd "$@";;
+  reload)   reload_cmd "$@";;
+  clean)    clean_cmd "$@";;
+  doctor)   doctor_cmd "$@";;
+  init)     init_cmd "$@";;
+  setup)    setup_cmd "$@";;
+  lint)     lint_cmd "$@";;
+  start)    start_cmd "$@";;
+  release)  release_cmd "$@";;
+  hooks)    hooks_cmd "$@";;
+  version)  version_cmd "$@";;
+  env)      env_cmd "$@";;
+  quick)    quick_cmd "$@";;
+  config)   config_cmd "$@";;
+  test)     test_cmd "$@";;
+  selftest) selftest_cmd "$@";;
+  help|-h|--help|"") usage;;
+  *) die "Unbekanntes Kommando: $SUB";;
+esac
