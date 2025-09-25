@@ -77,7 +77,7 @@ Usage:
   wgx <command> [args]
 
 Commands:
-$(wgx_print_command_list)
+"$(wgx_print_command_list)"
 
 Env:
   WGX_BASE       Basis-Branch für reload (default: main)
