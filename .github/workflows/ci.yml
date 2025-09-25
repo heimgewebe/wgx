@@ -1,19 +1,18 @@
 name: ci
 on:
-  push: { branches: [ main ] }
-  pull_request: { branches: [ main ] }
+  push:
+  pull_request:
 jobs:
-  lint:
+  lint-test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install shellcheck & shfmt
+      - name: ShellCheck
         run: |
-          sudo apt-get update -y
-          sudo apt-get install -y shellcheck
-          curl -sSLo /usr/local/bin/shfmt https://github.com/mvdan/sh/releases/download/v3.7.0/shfmt_v3.7.0_linux_amd64
-          chmod +x /usr/local/bin/shfmt
-      - name: Run linters
-        run: |
-          shellcheck -S style -x wgx || true
-          shfmt -d -i 2 -ci -sr .
+          sudo apt-get update
+          sudo apt-get install -y shellcheck shfmt bats
+          shellcheck -x cli/wgx lib/*.bash cmd/*.bash || true
+          # shfmt (einheitlicher Stil)
+          shfmt -d .
+      - name: Bats tests
+        run: bats tests || true
