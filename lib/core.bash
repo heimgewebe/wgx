@@ -301,6 +301,10 @@ run_with_files_xargs0(){
 # ─────────────────────────────────────────────────────────────────────────────
 wgx_resolve_subcommand_file(){
   local sub="$1"
+  if [[ -z "${WGX_DIR:-}" ]]; then
+    # WGX_DIR is not set; cannot resolve subcommand file
+    return 1
+  fi
   local file="$WGX_DIR/cmd/${sub}.bash"
   [[ -f "$file" ]] && printf "%s" "$file"
 }
