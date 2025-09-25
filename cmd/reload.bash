@@ -10,8 +10,8 @@ cmd_reload() {
     esac
   done
 
-  if ! git_is_repo_root; then
-    die "Bitte im Repo-Root ausführen (kein Git-Root erkannt)."
+  if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    die "Bitte innerhalb eines Git-Repositories ausführen (kein Git-Repository erkannt)."
   fi
 
   [ "$do_snapshot" -eq 1 ] && snapshot_make
