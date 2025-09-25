@@ -26,7 +26,7 @@ git_hard_reload() {
   log_info "Fetch von origin…"
   git fetch --prune origin || die "git fetch fehlgeschlagen"
 
-  log_info "Hard Reset auf origin/${base}… (lokale Änderungen gehen verloren)"
+  log_info "Kompletter Reset auf origin/${base}… (alle lokalen Änderungen gehen verloren)"
   git reset --hard "origin/${base}" || die "git reset --hard fehlgeschlagen"
 
   log_info "Untracked/ignored aufräumen (clean -fdx)…"
