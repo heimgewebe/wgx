@@ -18,13 +18,13 @@ selftest_check_bins(){
   local miss=0 bin
   for bin in "$@"; do
     if command -v "$bin" >/dev/null 2>&1; then
-      selftest_ok "$label: $bin gefunden"
+      selftest_ok "$label: $bin found"
     else
       if (( critical )); then
-        selftest_warn "$label: $bin fehlt"
+        selftest_warn "$label: $bin missing"
         miss=1
       else
-        selftest_warn "$label: $bin fehlt (optional)"
+        selftest_warn "$label: $bin missing (optional)"
       fi
     fi
   done
