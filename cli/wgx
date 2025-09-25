@@ -7,7 +7,13 @@ export WGX_DIR
 # libs laden (alphabetisch hält Ordnung)
 if [ -d "$WGX_DIR/lib" ]; then
   for f in "$WGX_DIR/lib/"*.bash; do
-    [ -r "$f" ] && source "$f"
+    if [ -r "$f" ]; then
+      echo "Loading library: $f"
+      if ! source "$f"; then
+        echo "Error: Failed to source library file: $f" >&2
+        exit 1
+      fi
+    fi
   done
 fi
 
