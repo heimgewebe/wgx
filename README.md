@@ -32,6 +32,13 @@ Falls ein Befehl unbekannt ist, kannst du die verfügbaren Subcommands auflisten
 wgx --list 2>/dev/null || wgx commands 2>/dev/null || ls -1 cmd/
 ```
 
+## Commands
+
+### reload
+Destruktiv: setzt den Workspace hart auf `origin/$WGX_BASE` zurück (`git reset --hard` + `git clean -fdx`).
+
+**Alias**: `sync-remote`.
+
 ## Repository-Layout
 
 ```
@@ -56,3 +63,7 @@ Standardwerte liegen unter `etc/config.example`. Beim ersten Lauf von `wgx init`
 ## Tests
 
 Automatisierte Tests werden über `tests/` organisiert (z. B. mit [Bats](https://bats-core.readthedocs.io/)). Ergänzende Checks kannst du via `wgx selftest` starten.
+
+## Architecture Note — Modular Only
+Seit 2025-09-25 ist die modulare Struktur verbindlich (`cli/`, `cmd/`, `lib/`, `etc/`, `modules/`).
+Der alte Monolith wurde archiviert: `docs/archive/wgx_monolith_*.md`.
