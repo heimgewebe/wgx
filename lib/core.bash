@@ -42,6 +42,33 @@ snapshot_make() {
 }
 
 # ---------- Router ----------
+wgx_command_files() {
+  [ -d "$WGX_DIR/cmd" ] || return 0
+  for f in "$WGX_DIR/cmd"/*.bash; do
+    [ -r "$f" ] || continue
+    printf '%s\n' "$f"
+  done
+}
+
+wgx_available_commands() {
+  local -a cmds
+  cmds=(help)
+  local file name
+  while IFS= read -r file; do
+    name=$(basename "$file")
+    name=${name%.bash}
+    cmds+=("$name")
+  done < <(wgx_command_files)
+
+  printf '%s\n' "${cmds[@]}" | sort -u
+}
+
+wgx_print_command_list() {
+  while IFS= read -r cmd; do
+    printf '  %s\n' "$cmd"
+  done < <(wgx_available_commands)
+}
+
 wgx_usage() {
   cat <<USAGE
 wgx — Workspace Helper
@@ -50,15 +77,13 @@ Usage:
   wgx <command> [args]
 
 Commands:
-  help           Diese Hilfe
-  reload         Remote gewinnt: git fetch + reset --hard origin/\$WGX_BASE + clean -fdx
-  doctor         Basis-Checks (git/remote/branch)
-  version        Versionsinfo (falls vorhanden)
-  sync-remote    Alias für reload
-  # weitere Subcommands via cmd/*.bash
+"$(wgx_print_command_list)"
 
 Env:
   WGX_BASE       Basis-Branch für reload (default: main)
+
+More:
+  wgx --list     Nur verfügbare Befehle anzeigen
 
 USAGE
 }
@@ -67,6 +92,7 @@ wgx_dispatch() {
   local cmd="${1:-help}"; shift || true
   case "$cmd" in
     help|-h|--help) wgx_usage ;;
+    --list|commands) wgx_available_commands ;;
     *)
       # plug-in Subcommands:
       local f="$WGX_DIR/cmd/${cmd}.bash"
