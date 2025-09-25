@@ -20,6 +20,10 @@ export PATH="$HOME/.local/bin:$PATH"
 wgx --help
 wgx doctor
 
+# Optionale Tool-Installation (shellcheck, shfmt, bats ohne sudo)
+wgx tools install
+# (Offline/Proxy: Releases manuell nach .wgx/tools/cache/ legen und erneut ausführen)
+
 # Erstlauf
 wgx init
 wgx clean

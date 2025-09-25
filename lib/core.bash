@@ -142,6 +142,10 @@ else
     ROOT_DIR="$(cd "$base/.." && pwd -P)"
   fi
 fi
+: "${WGX_DIR:=$ROOT_DIR}"
+WGX_TOOLS_DIR="${WGX_DIR}/.wgx/tools"
+WGX_TOOLS_BIN="${WGX_TOOLS_DIR}/bin"
+WGX_TOOLS_CACHE="${WGX_TOOLS_DIR}/cache"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # CONFIG (.wgx.conf) EINLESEN – eval-frei & strikt
@@ -184,6 +188,20 @@ mktemp_portable(){
     local f="${TMPDIR:-/tmp}/${p}.$(date +%s).$$"
     : > "$f" || die "Konnte temporäre Datei nicht erstellen: $f"
     printf "%s" "$f"
+  fi
+}
+mktemp_dir_portable(){
+  local p="${1:-wgx}"
+  if command -v mktemp >/dev/null 2>&1; then
+    mktemp -d -t "${p}.XXXXXX" 2>/dev/null || {
+      local d="${TMPDIR:-/tmp}/${p}.$$.tmp"
+      mkdir -p "$d" || die "Konnte temporäres Verzeichnis nicht erstellen: $d"
+      printf "%s" "$d"
+    }
+  else
+    local d="${TMPDIR:-/tmp}/${p}.$(date +%s).$$"
+    mkdir -p "$d" || die "Konnte temporäres Verzeichnis nicht erstellen: $d"
+    printf "%s" "$d"
   fi
 }
 now_ts(){ date +"%Y-%m-%d %H:%M"; }
@@ -355,7 +373,7 @@ wgx_main(){
         ;;
       --offline) OFFLINE=1 ;;
       --no-color) : ;; # Emojis statt Farbe
-      send|sync|guard|heal|reload|clean|doctor|init|setup|lint|start|release|hooks|version|env|quick|config|test|selftest|help|-h|--help|status)
+      send|sync|guard|heal|reload|clean|doctor|init|setup|tools|lint|start|release|hooks|version|env|quick|config|test|selftest|help|-h|--help|status)
         break
         ;;
       *)
@@ -1420,6 +1438,255 @@ EOF
   fi
 }
 
+tools_http_get(){
+  local url="$1" dest="$2"
+  if has curl; then
+    curl -fsSL "$url" -o "$dest"
+  elif has wget; then
+    wget -qO "$dest" "$url"
+  else
+    warn "Download fehlgeschlagen: weder curl noch wget verfügbar (für $url)."
+    return 1
+  fi
+}
+
+tools_detect_os(){
+  case "$(uname -s 2>/dev/null || echo x)" in
+    Linux) echo linux ;;
+    Darwin) echo darwin ;;
+    *) warn "Plattform $(uname -s 2>/dev/null) nicht unterstützt."; return 1 ;;
+  esac
+}
+
+tools_detect_arch_shellcheck(){
+  case "$(uname -m 2>/dev/null || echo x)" in
+    x86_64|amd64) echo x86_64 ;;
+    aarch64|arm64) echo aarch64 ;;
+    *) warn "shellcheck: Architektur $(uname -m 2>/dev/null) nicht unterstützt."; return 1 ;;
+  esac
+}
+
+tools_detect_arch_shfmt(){
+  case "$(uname -m 2>/dev/null || echo x)" in
+    x86_64|amd64) echo amd64 ;;
+    aarch64|arm64) echo arm64 ;;
+    *) warn "shfmt: Architektur $(uname -m 2>/dev/null) nicht unterstützt."; return 1 ;;
+  esac
+}
+
+tools_install_shellcheck(){
+  local version="v0.9.0" dest="$WGX_TOOLS_BIN/shellcheck"
+  if [[ -x "$dest" ]]; then
+    local current
+    current="$("$dest" --version 2>/dev/null | awk -F': ' '/^version:/ {print $2; exit}')"
+    if [[ "$current" == "${version#v}" ]]; then
+      ok "shellcheck ${current} bereits installiert ($dest)."
+      return 0
+    fi
+  fi
+
+  local os arch tmpdir archive src url cache
+  os="$(tools_detect_os)" || return 1
+  arch="$(tools_detect_arch_shellcheck)" || return 1
+  url="https://github.com/koalaman/shellcheck/releases/download/${version}/shellcheck-${version}.${os}.${arch}.tar.xz"
+  tmpdir="$(mktemp_dir_portable "wgx-shellcheck")"
+  mkdir -p "$WGX_TOOLS_CACHE"
+  cache="$WGX_TOOLS_CACHE/shellcheck-${version}.${os}.${arch}.tar.xz"
+  if [[ -f "$cache" ]]; then
+    info "shellcheck ${version}: verwende lokalen Cache ($cache)."
+  else
+    local tmp_dl="$cache.part"
+    if ! tools_http_get "$url" "$tmp_dl"; then
+      rm -f "$tmp_dl"
+      rm -rf "$tmpdir"
+      warn "shellcheck ${version}: Download fehlgeschlagen (HTTP)."
+      warn "Lade die Datei manuell herunter und lege sie unter $cache ab."
+      return 1
+    fi
+    mv "$tmp_dl" "$cache"
+  fi
+  archive="$cache"
+  if ! tar -C "$tmpdir" -xf "$archive"; then
+    rm -rf "$tmpdir"
+    warn "shellcheck ${version}: Entpacken fehlgeschlagen."
+    return 1
+  fi
+  src="$tmpdir/shellcheck-${version}/shellcheck"
+  if [[ ! -x "$src" ]]; then
+    rm -rf "$tmpdir"
+    warn "shellcheck ${version}: Binärdatei nicht gefunden."
+    return 1
+  fi
+  mkdir -p "$WGX_TOOLS_BIN" || { rm -rf "$tmpdir"; warn "shellcheck: konnte $WGX_TOOLS_BIN nicht erstellen."; return 1; }
+  if ! install -m 0755 "$src" "$dest" 2>/dev/null; then
+    if ! cp "$src" "$dest"; then
+      rm -rf "$tmpdir"
+      warn "shellcheck ${version}: Kopieren fehlgeschlagen."
+      return 1
+    fi
+    chmod 0755 "$dest" || true
+  fi
+  rm -rf "$tmpdir"
+  ok "shellcheck ${version} installiert ($dest)."
+}
+
+tools_install_shfmt(){
+  local version="v3.7.0" dest="$WGX_TOOLS_BIN/shfmt"
+  if [[ -x "$dest" ]]; then
+    local current
+    current="$("$dest" --version 2>/dev/null | head -n1)"
+    if [[ "$current" == "$version" ]]; then
+      ok "shfmt ${version} bereits installiert ($dest)."
+      return 0
+    fi
+  fi
+
+  local os arch tmpdir binary url cache
+  os="$(tools_detect_os)" || return 1
+  arch="$(tools_detect_arch_shfmt)" || return 1
+  url="https://github.com/mvdan/sh/releases/download/${version}/shfmt_${version}_${os}_${arch}"
+  tmpdir="$(mktemp_dir_portable "wgx-shfmt")"
+  mkdir -p "$WGX_TOOLS_CACHE"
+  cache="$WGX_TOOLS_CACHE/shfmt_${version}_${os}_${arch}"
+  if [[ -f "$cache" ]]; then
+    info "shfmt ${version}: verwende lokalen Cache ($cache)."
+  else
+    local tmp_dl="$cache.part"
+    if ! tools_http_get "$url" "$tmp_dl"; then
+      rm -f "$tmp_dl"
+      rm -rf "$tmpdir"
+      warn "shfmt ${version}: Download fehlgeschlagen (HTTP)."
+      warn "Lade die Datei manuell herunter und lege sie unter $cache ab."
+      return 1
+    fi
+    mv "$tmp_dl" "$cache"
+  fi
+  binary="$tmpdir/shfmt"
+  cp "$cache" "$binary" || { rm -rf "$tmpdir"; warn "shfmt ${version}: Kopieren aus Cache fehlgeschlagen."; return 1; }
+  chmod +x "$binary" || { rm -rf "$tmpdir"; warn "shfmt ${version}: chmod fehlgeschlagen."; return 1; }
+  mkdir -p "$WGX_TOOLS_BIN" || { rm -rf "$tmpdir"; warn "shfmt: konnte $WGX_TOOLS_BIN nicht erstellen."; return 1; }
+  if ! install -m 0755 "$binary" "$dest" 2>/dev/null; then
+    if ! cp "$binary" "$dest"; then
+      rm -rf "$tmpdir"
+      warn "shfmt ${version}: Kopieren fehlgeschlagen."
+      return 1
+    fi
+    chmod 0755 "$dest" || true
+  fi
+  rm -rf "$tmpdir"
+  ok "shfmt ${version} installiert ($dest)."
+}
+
+tools_install_bats(){
+  local version="v1.11.0" dest="$WGX_TOOLS_BIN/bats"
+  if [[ -x "$dest" ]]; then
+    local current
+    current="$("$dest" --version 2>/dev/null | awk '{print $2; exit}')"
+    if [[ "$current" == "${version#v}" ]]; then
+      ok "bats ${current} bereits installiert ($dest)."
+      return 0
+    fi
+  fi
+
+  local url tmpdir archive src cache
+  url="https://github.com/bats-core/bats-core/releases/download/${version}/bats-core-${version}.tar.gz"
+  tmpdir="$(mktemp_dir_portable "wgx-bats")"
+  mkdir -p "$WGX_TOOLS_CACHE"
+  cache="$WGX_TOOLS_CACHE/bats-core-${version}.tar.gz"
+  if [[ -f "$cache" ]]; then
+    info "bats ${version}: verwende lokalen Cache ($cache)."
+  else
+    local tmp_dl="$cache.part"
+    if ! tools_http_get "$url" "$tmp_dl"; then
+      rm -f "$tmp_dl"
+      rm -rf "$tmpdir"
+      warn "bats ${version}: Download fehlgeschlagen (HTTP)."
+      warn "Lade die Datei manuell herunter und lege sie unter $cache ab."
+      return 1
+    fi
+    mv "$tmp_dl" "$cache"
+  fi
+  archive="$cache"
+  if ! tar -C "$tmpdir" -xf "$archive"; then
+    rm -rf "$tmpdir"
+    warn "bats ${version}: Entpacken fehlgeschlagen."
+    return 1
+  fi
+  src="$tmpdir/bats-core-${version}"
+  if [[ ! -d "$src" ]]; then
+    rm -rf "$tmpdir"
+    warn "bats ${version}: Quelle nicht gefunden."
+    return 1
+  fi
+  mkdir -p "$WGX_TOOLS_DIR" || { rm -rf "$tmpdir"; warn "bats: konnte $WGX_TOOLS_DIR nicht erstellen."; return 1; }
+  if ! (cd "$src" && bash install.sh "$WGX_TOOLS_DIR"); then
+    rm -rf "$tmpdir"
+    warn "bats ${version}: Installation fehlgeschlagen."
+    return 1
+  fi
+  rm -rf "$tmpdir"
+  if [[ -x "$dest" ]]; then
+    ok "bats ${version} installiert ($dest)."
+    return 0
+  fi
+  warn "bats ${version}: Binärdatei fehlt nach Installation."
+  return 1
+}
+
+tools_install_one(){
+  local name="${1,,}"
+  case "$name" in
+    shellcheck) tools_install_shellcheck ;;
+    shfmt)      tools_install_shfmt ;;
+    bats)       tools_install_bats ;;
+    *) warn "Unbekanntes Tool: $1"; return 1 ;;
+  esac
+}
+
+tools_cmd(){
+  local action="install"
+  if [[ $# -gt 0 ]]; then
+    action="$1"; shift || true
+  fi
+
+  case "$action" in
+    install|ensure)
+      if (( OFFLINE )); then
+        warn "OFFLINE=1: Downloads deaktiviert."
+        return 1
+      fi
+      local targets=("$@")
+      if (( ${#targets[@]} == 0 )); then
+        targets=(shellcheck shfmt bats)
+      fi
+      local rc=0 tool
+      for tool in "${targets[@]}"; do
+        tools_install_one "$tool" || rc=1
+      done
+      if (( rc == 0 )); then
+        ok "Tool-Installation abgeschlossen."
+      else
+        warn "Einige Tools konnten nicht installiert werden."
+      fi
+      return $rc
+      ;;
+    clean)
+      if [[ -d "$WGX_TOOLS_DIR" ]]; then
+        rm -rf "$WGX_TOOLS_DIR" || { warn "Konnte $WGX_TOOLS_DIR nicht entfernen."; return 1; }
+        ok "Tool-Verzeichnis entfernt ($WGX_TOOLS_DIR)."
+      else
+        info "Tool-Verzeichnis bereits entfernt ($WGX_TOOLS_DIR)."
+      fi
+      ;;
+    path)
+      printf "%s\n" "$WGX_TOOLS_BIN"
+      ;;
+    *)
+      die "Usage: wgx tools [install|ensure|clean|path] [tool...]"
+      ;;
+  esac
+}
+
 setup_cmd(){
   if is_termux; then
     info "Termux-Setup (Basis-Tools)…"
@@ -1865,6 +2132,7 @@ Kurz:
   wgx version bump patch|minor|major [--commit] | set vX.Y.Z [--commit]
   wgx hooks install
   wgx env doctor [--fix]    # Umgebungscheck (Termux-Fixes)
+  wgx tools install [tool]  # Lädt shellcheck, shfmt, bats ohne Paketmanager
   wgx selftest              # Basisfunktionsprüfung (Version/Tools)
   wgx config show|set K=V
   wgx clean / lint / doctor / setup / init / reload / heal / test

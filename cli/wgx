@@ -6,6 +6,9 @@ shopt -s extglob nullglob
 
 WGX_DIR="${WGX_DIR:-"$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"}"
 export WGX_DIR
+if [[ -d "$WGX_DIR/.wgx/tools/bin" ]]; then
+  PATH="$WGX_DIR/.wgx/tools/bin:$PATH"
+fi
 PATH="$WGX_DIR/cli:$PATH"
 
 # Shell completions may live under cli/completions later.
