@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+IFS=$'\n\t'
+umask 077
+shopt -s extglob nullglob
+
+WGX_DIR="${WGX_DIR:-"$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"}"
+export WGX_DIR
+PATH="$WGX_DIR/cli:$PATH"
+
+# Shell completions may live under cli/completions later.
+
+if [[ -d "$WGX_DIR/lib" ]]; then
+  for lib_file in "$WGX_DIR"/lib/*.bash; do
+    [[ -r "$lib_file" ]] || continue
+    # shellcheck disable=SC1090
+    source "$lib_file"
+  done
+fi
+
+wgx_main "$@"
