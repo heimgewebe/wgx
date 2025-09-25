@@ -15,7 +15,7 @@ setup() {
   mkdir -p ../remote && (cd ../remote && git init --bare >/dev/null)
   git remote add origin ../remote
   git push -u origin main >/dev/null
-  # rebase WGX_DIR auf Projekt-Root (eine Ebene höher annehmen)
+  # WGX_DIR auf Projekt-Root setzen (eine Ebene höher annehmen)
   export WGX_DIR="$(cd .. && pwd)"
   export PATH="$WGX_DIR:$PATH"
 }
