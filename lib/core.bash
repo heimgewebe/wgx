@@ -365,7 +365,7 @@ wgx_main(){
     shift || true
   done
 
-  SUB="${1-:-help}"
+  SUB="${1:-help}"
   if [[ $# -gt 0 ]]; then
     shift
   fi
