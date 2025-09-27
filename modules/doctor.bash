@@ -12,7 +12,7 @@ doctor_cmd() {
     return 1
   fi
 
-  if ! git remote -v | grep -q '^origin' >/dev/null 2>&1; then
+  if ! git remote -v | grep -q '^origin'; then
     echo "⚠️ Kein origin-Remote." >&2
   fi
 
