@@ -9,10 +9,19 @@ die()       { log_error "$*"; exit 1; }
 # ---------- Env / Defaults ----------
 : "${WGX_BASE:=main}"
 
-# Alle Module laden
-for f in "$WGX_DIR/modules/"*.bash; do
-  [ -r "$f" ] && source "$f"
-done
+# ── Module autoload ─────────────────────────────────────────────────────────
+_load_modules() {
+  local base="${WGX_DIR:-}" 
+  if [ -z "$base" ]; then
+    base="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+  fi
+  local d="${base}/modules"
+  if [ -d "$d" ]; then
+    for f in "$d"/*.bash; do
+      [ -r "$f" ] && source "$f"
+    done
+  fi
+}
 
 # ---------- Git helpers ----------
 git_current_branch() { git rev-parse --abbrev-ref HEAD 2>/dev/null || echo ""; }
@@ -93,29 +102,36 @@ More:
 USAGE
 }
 
-wgx_dispatch() {
-  local cmd="${1:-help}"; shift || true
-  case "$cmd" in
-    help|-h|--help) wgx_usage ;;
-    --list|commands) wgx_available_commands ;;
-    *)
-      # plug-in Subcommands:
-      local f="$WGX_DIR/cmd/${cmd}.bash"
-      if [ -r "$f" ]; then
-        source "$f"
-        local func="cmd_${cmd//-/_}"
-        if command -v "$func" >/dev/null 2>&1; then
-          "$func" "$@"
-        elif command -v wgx_command_main >/dev/null 2>&1; then
-          wgx_command_main "$@"
-          unset -f wgx_command_main
-        else
-          die "Subcommand-Datei ${cmd}.bash geladen, aber Funktion $func fehlt."
-        fi
-      else die "Unbekannter Befehl: $cmd"
-      fi
-      ;;
-  esac
-}
+# ── Command dispatcher ──────────────────────────────────────────────────────
+wgx_main() {
+  local sub="${1:-help}"; shift || true
 
-wgx_main() { wgx_dispatch "$@"; }
+  case "$sub" in
+    help|-h|--help) wgx_usage; return ;;
+    --list|commands) wgx_available_commands; return ;;
+  esac
+
+  _load_modules
+
+  # 1) Direkter Funktionsaufruf: cmd_<sub>
+  if declare -F "cmd_${sub}" >/dev/null 2>&1; then
+    "cmd_${sub}" "$@"
+    return
+  fi
+
+  # 2) Datei sourcen und erneut versuchen
+  local f="${WGX_DIR}/cmd/${sub}.bash"
+  if [ -r "$f" ]; then
+    source "$f"
+    if   declare -F "cmd_${sub}" >/dev/null 2>&1; then "cmd_${sub}" "$@"
+    elif declare -F "wgx_command_main" >/dev/null 2>&1; then wgx_command_main "$@"
+    else
+      echo "❌ Befehl '${sub}': weder cmd_${sub} noch wgx_command_main definiert." >&2
+      return 127
+    fi
+    return
+  fi
+
+  echo "❌ Unbekannter Befehl: ${sub}" >&2
+  return 127
+}
