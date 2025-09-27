@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
-wgx_command_main(){
+cmd_guard() {
   guard_run "$@"
 }
