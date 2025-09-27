@@ -7,7 +7,7 @@ _err() {
 }
 
 _ok() {
-  printf '✅ %s\n' "$*"
+  printf '✅ %s\n' "$*" >&2
 }
 
 _warn() {
