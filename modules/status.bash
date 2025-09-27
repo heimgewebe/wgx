@@ -8,8 +8,8 @@ status_cmd() {
   # Ahead/Behind
   if git rev-parse --abbrev-ref HEAD >/dev/null 2>&1; then
     local ahead behind
-    ahead=$(git rev-list --left-only --count @{u}...HEAD 2>/dev/null || echo 0)
-    behind=$(git rev-list --right-only --count @{u}...HEAD 2>/dev/null || echo 0)
+    ahead=$(git rev-list --right-only --count @{u}...HEAD 2>/dev/null || echo 0)
+    behind=$(git rev-list --left-only --count @{u}...HEAD 2>/dev/null || echo 0)
     echo "▶ Ahead: $ahead | Behind: $behind"
   fi
 
