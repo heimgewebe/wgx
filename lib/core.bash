@@ -14,9 +14,11 @@ _warn() {
   printf '⚠️  %s\n' "$*" >&2
 }
 
-info() {
-  printf '• %s\n' "$*"
-}
+if ! type -t info >/dev/null 2>&1; then
+  info() {
+    printf '• %s\n' "$*"
+  }
+fi
 
 if ! type -t ok >/dev/null 2>&1; then
   ok() {
