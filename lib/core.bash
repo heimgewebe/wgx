@@ -9,6 +9,11 @@ die()       { log_error "$*"; exit 1; }
 # ---------- Env / Defaults ----------
 : "${WGX_BASE:=main}"
 
+# Alle Module laden
+for f in "$WGX_DIR/modules/"*.bash; do
+  [ -r "$f" ] && source "$f"
+done
+
 # ---------- Git helpers ----------
 git_current_branch() { git rev-parse --abbrev-ref HEAD 2>/dev/null || echo ""; }
 git_is_repo_root() {
