@@ -11,7 +11,7 @@ die()       { log_error "$*"; exit 1; }
 
 # ── Module autoload ─────────────────────────────────────────────────────────
 _load_modules() {
-  local base="${WGX_DIR:-}" 
+  local base="${WGX_DIR:-}"
   if [ -z "$base" ]; then
     base="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
   fi
