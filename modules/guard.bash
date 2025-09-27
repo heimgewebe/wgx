@@ -34,7 +34,7 @@ guard_run() {
 
   # 3. Bigfiles checken
   echo "▶ Checking for oversized files..."
-  if git ls-files -s | awk '{print $4}' | xargs -r du -sh 2>/dev/null | grep -E '^[1-9][0-9]{2,}[KMG]'; then
+  if git ls-files -z | xargs -0 du -sh 2>/dev/null | grep -E '^[1-9][0-9]{2,}[KMG]'; then
     echo "❌ Zu große Dateien im Repo!" >&2
     return 1
   fi
