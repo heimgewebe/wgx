@@ -1576,7 +1576,7 @@ release_cmd() {
   [[ "$VERSION" != v* ]] && VERSION="v$VERSION"
 
   local notes_text="" notes_file="" _cleanup_notes=0
-  _release_cleanup() { (( _cleanup_notes )) && [[ -n "$notes_file" && -f "$notes_file" ]] && rm -f "$notes_file"; }
+  _release_cleanup() { ((_cleanup_notes)) && [[ -n "$notes_file" && -f "$notes_file" ]] && rm -f "$notes_file"; }
   trap '_release_cleanup' EXIT
 
   if [[ "$NOTES" == "auto" ]]; then
