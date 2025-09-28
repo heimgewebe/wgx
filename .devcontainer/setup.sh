@@ -8,7 +8,7 @@ sudo apt-get install -y shellcheck shfmt bats
 # QoL
 sudo apt-get install -y jq moreutils
 
-# Node-based CLIs optional lokal (nicht zwingend global)
+# Node-based CLIs optional local (not necessarily global)
 if command -v npm >/dev/null 2>&1; then
   npm install -g markdownlint-cli2 || true
 fi
