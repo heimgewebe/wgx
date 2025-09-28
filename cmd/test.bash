@@ -50,7 +50,7 @@ cmd_test() {
   else
     local default_suite="${project_dir}/tests"
     if [ ! -d "$default_suite" ]; then
-      log_warn "Kein tests/-Verzeichnis gefunden – nichts zu testen."
+      log_warn "No tests/ directory found – nothing to test."
       return 0
     fi
     bats_args=("$default_suite")
