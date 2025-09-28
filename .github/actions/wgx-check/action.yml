@@ -1,0 +1,52 @@
+name: wgx-check
+description: "Prüft ein Ziel-Repo gegen angegebene wgx-Version"
+inputs:
+  repo:
+    description: "Repository, das getestet werden soll"
+    required: true
+  ref:
+    description: "Ref im Ziel-Repo"
+    required: false
+    default: "main"
+runs:
+  using: "composite"
+  steps:
+    - name: Checkout target repo
+      uses: actions/checkout@v4
+      with:
+        repository: ${{ inputs.repo }}
+        ref: ${{ inputs.ref }}
+
+    - name: Checkout wgx (self)
+      uses: actions/checkout@v4
+      with:
+        path: wgx
+
+    - name: Install basics
+      shell: bash
+      run: |
+        sudo apt-get update -y
+        sudo apt-get install -y bash coreutils git curl jq
+        sudo apt-get install -y build-essential pkg-config || true
+        curl https://sh.rustup.rs -sSf | sh -s -- -y >/dev/null 2>&1 || true
+        echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+    - name: Link wgx
+      shell: bash
+      run: |
+        chmod +x wgx/wgx
+        echo "${PWD}/wgx" >> $GITHUB_PATH
+
+    - name: Sanity
+      shell: bash
+      run: |
+        ./wgx/wgx version || true
+        [[ -f ".wgx/profile.yml" ]] || { echo "profile.yml fehlt"; exit 1; }
+
+    - name: Tasks (doctor/test falls vorhanden)
+      shell: bash
+      run: |
+        set -e
+        if ./wgx/wgx tasks | grep -qx "doctor"; then ./wgx/wgx task doctor || true; fi
+        if ./wgx/wgx tasks | grep -qx "test"; then ./wgx/wgx task test; fi
+
