@@ -6,14 +6,14 @@ cmd_task() {
   fi
 
   if ! profile::ensure_loaded; then
-    die ".wgx/profile.yml nicht gefunden."
+    die ".wgx/profile.yml not found."
   fi
 
   local name="$1"
   shift || true
 
   if ! profile::task_command "$name" >/dev/null; then
-    die "Task nicht definiert: $name"
+    die "Task not defined: $name"
   fi
 
   if ! profile::run_task "$name" "$@"; then
