@@ -85,7 +85,7 @@ test_cmd() {
     return 127
   fi
 
-  info "Starte Bats-Tests…"
+  info "Starting Bats tests..."
   bats "${bats_args[@]}" "${test_files[@]}"
 }
 
