@@ -68,7 +68,7 @@ test_cmd() {
   done < <(_test_collect_files "$tests_dir") || true
 
   if [ ${#test_files[@]} -eq 0 ]; then
-    warn "Keine Bats-Tests unter ${tests_dir} gefunden."
+    warn "No Bats tests found under ${tests_dir}."
     return 0
   fi
 
