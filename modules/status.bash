@@ -49,9 +49,21 @@ status_cmd() {
     done
   fi
   if (( ! info_present )); then
-    [[ -d web ]] && echo "▶ Web-Verzeichnis: web"
-    [[ -d api ]] && echo "▶ API-Verzeichnis: api"
-    [[ -d crates ]] && echo "▶ crates vorhanden"
+    local fallback_present=0
+    if [[ -d web ]]; then
+      echo "▶ Web-Verzeichnis: web"
+      fallback_present=1
+    fi
+    if [[ -d api ]]; then
+      echo "▶ API-Verzeichnis: api"
+      fallback_present=1
+    fi
+    if [[ -d crates ]]; then
+      echo "▶ crates vorhanden"
+      fallback_present=1
+    fi
+
+    (( fallback_present )) && info_present=1
   fi
 
   # OFFLINE?
