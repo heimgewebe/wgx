@@ -5,9 +5,12 @@ guard_run() {
   local run_lint=0 run_test=0
   while [[ $# -gt 0 ]]; do
     case "$1" in
-      --lint) run_lint=1 ;;
-      --test) run_test=1 ;;
-      *) echo "Unknown option: $1" >&2; return 1 ;;
+    --lint) run_lint=1 ;;
+    --test) run_test=1 ;;
+    *)
+      echo "Unknown option: $1" >&2
+      return 1
+      ;;
     esac
     shift
   done

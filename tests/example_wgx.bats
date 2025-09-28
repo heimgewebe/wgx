@@ -3,7 +3,7 @@
 setup() {
   load 'test_helper/bats-support/load'
   load 'test_helper/bats-assert/load'
-  export PATH="$PWD/cmd:$PATH"
+  export PATH="$PWD/cli:$PATH"
 }
 
 @test "wgx shows help with -h" {

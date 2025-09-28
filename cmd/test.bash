@@ -39,24 +39,24 @@ test_cmd() {
 
   while [ $# -gt 0 ]; do
     case "$1" in
-      -h|--help)
-        _test_usage
-        return 0
-        ;;
-      --list)
-        show_list=1
-        ;;
-      --)
-        shift
-        while [ $# -gt 0 ]; do
-          bats_args+=("$1")
-          shift
-        done
-        break
-        ;;
-      *)
+    -h | --help)
+      _test_usage
+      return 0
+      ;;
+    --list)
+      show_list=1
+      ;;
+    --)
+      shift
+      while [ $# -gt 0 ]; do
         bats_args+=("$1")
-        ;;
+        shift
+      done
+      break
+      ;;
+    *)
+      bats_args+=("$1")
+      ;;
     esac
     shift || true
   done
@@ -75,7 +75,7 @@ test_cmd() {
   if [ "$show_list" -eq 1 ]; then
     local f
     for f in "${test_files[@]}"; do
-      printf '%s\n' "${f#${tests_dir}/}"
+      printf '%s\n' "${f#"${tests_dir}"/}"
     done
     return 0
   fi
@@ -89,6 +89,6 @@ test_cmd() {
   bats "${bats_args[@]}" "${test_files[@]}"
 }
 
-wgx_command_main(){
+wgx_command_main() {
   test_cmd "$@"
 }
