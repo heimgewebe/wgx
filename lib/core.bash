@@ -1,10 +1,55 @@
 #!/usr/bin/env bash
 
 # ---------- Logging ----------
-log_info()  { printf '[INFO] %s\n' "$*" >&2; }
-log_warn()  { printf '[WARN] %s\n' "$*" >&2; }
-log_error() { printf '[ERROR] %s\n' "$*" >&2; }
-die()       { log_error "$*"; exit 1; }
+
+_err() {
+  printf '❌ %s\n' "$*" >&2
+}
+
+_ok() {
+  printf '✅ %s\n' "$*" >&2
+}
+
+_warn() {
+  printf '⚠️  %s\n' "$*" >&2
+}
+
+if ! type -t info >/dev/null 2>&1; then
+  info() {
+    printf '• %s\n' "$*"
+  }
+fi
+
+if ! type -t ok >/dev/null 2>&1; then
+  ok() {
+    _ok "$@"
+  }
+fi
+
+if ! type -t warn >/dev/null 2>&1; then
+  warn() {
+    _warn "$@"
+  }
+fi
+
+if ! type -t die >/dev/null 2>&1; then
+  die() {
+    _err "$@"
+    exit 1
+  }
+fi
+
+log_info() {
+  printf '[INFO] %s\n' "$*" >&2
+}
+
+log_warn() {
+  printf '[WARN] %s\n' "$*" >&2
+}
+
+log_error() {
+  printf '[ERROR] %s\n' "$*" >&2
+}
 
 # ---------- Env / Defaults ----------
 : "${WGX_BASE:=main}"
