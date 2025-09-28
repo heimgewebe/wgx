@@ -2,17 +2,27 @@
 # Status-Modul: Projektstatus anzeigen
 
 status_cmd() {
+  profile::ensure_loaded || true
+
   echo "▶ Repo-Root: $(git rev-parse --show-toplevel 2>/dev/null || echo 'N/A')"
   echo "▶ Branch: $(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo 'N/A')"
 
   if [[ -n ${WGX_REPO_KIND:-} ]]; then
     echo "▶ Repo-Kind: ${WGX_REPO_KIND}"
   fi
-  if [[ -n ${WGX_PROFILE_API_VERSION:-} ]]; then
-    echo "▶ Manifest-Version: ${WGX_PROFILE_API_VERSION}"
+  if [[ -n ${PROFILE_VERSION:-} ]]; then
+    echo "▶ Manifest-Version: ${PROFILE_VERSION}"
   fi
-  if [[ -n ${WGX_REQUIRED:-} ]]; then
-    echo "▶ requiredWgx: ${WGX_REQUIRED}"
+  local required=""
+  if [[ -n ${WGX_REQUIRED_RANGE:-} ]]; then
+    required+="range=${WGX_REQUIRED_RANGE}"
+  fi
+  if [[ -n ${WGX_REQUIRED_MIN:-} ]]; then
+    [[ -n $required ]] && required+=" "
+    required+="min=${WGX_REQUIRED_MIN}"
+  fi
+  if [[ -n $required ]]; then
+    echo "▶ requiredWgx: ${required}"
   fi
 
   # Ahead/Behind
@@ -24,34 +34,24 @@ status_cmd() {
   fi
 
   # Erkannte Projektteile
-  if [[ -n ${WGX_DIR_WEB+x} ]]; then
-    if [[ -n ${WGX_DIR_WEB} ]]; then
-      echo "▶ Web-Verzeichnis: ${WGX_DIR_WEB}"
-    else
-      echo "▶ Web-Verzeichnis: (nicht vorhanden)"
-    fi
-  elif [[ -d web ]]; then
-    echo "▶ Web-Teil vorhanden"
+  local info_present=0
+  if [[ -n ${WGX_DIR_WEB:-}${WGX_DIR_API:-}${WGX_DIR_DATA:-} ]]; then
+    info_present=1
+    for entry in WEB:"${WGX_DIR_WEB}" API:"${WGX_DIR_API}" DATA:"${WGX_DIR_DATA}"; do
+      local label="${entry%%:*}"
+      local path="${entry#*:}"
+      [[ -n $path ]] || continue
+      if [[ -d $path ]]; then
+        echo "▶ ${label}: ${path} (ok)"
+      else
+        echo "▶ ${label}: ${path} (missing)"
+      fi
+    done
   fi
-
-  if [[ -n ${WGX_DIR_API+x} ]]; then
-    if [[ -n ${WGX_DIR_API} ]]; then
-      echo "▶ API-Verzeichnis: ${WGX_DIR_API}"
-    else
-      echo "▶ API-Verzeichnis: (nicht vorhanden)"
-    fi
-  elif [[ -d api ]]; then
-    echo "▶ API-Teil vorhanden"
-  fi
-
-  if [[ -n ${WGX_DIR_DATA+x} ]]; then
-    if [[ -n ${WGX_DIR_DATA} ]]; then
-      echo "▶ Data-Verzeichnis: ${WGX_DIR_DATA}"
-    else
-      echo "▶ Data-Verzeichnis: (nicht vorhanden)"
-    fi
-  elif [[ -d crates ]]; then
-    echo "▶ Rust crates vorhanden"
+  if (( ! info_present )); then
+    [[ -d web ]] && echo "▶ Web-Verzeichnis: web"
+    [[ -d api ]] && echo "▶ API-Verzeichnis: api"
+    [[ -d crates ]] && echo "▶ crates vorhanden"
   fi
 
   # OFFLINE?

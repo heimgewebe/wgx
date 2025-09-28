@@ -12,7 +12,13 @@ cmd_task() {
   local name="$1"
   shift || true
 
-  if ! profile::task_command "$name" >/dev/null; then
+  if [[ ${1:-} == -- ]]; then
+    shift
+  fi
+
+  local key="$(profile::_normalize_task_name "$name")"
+  local spec="$(profile::_task_spec "$key")"
+  if [[ -z $spec ]]; then
     die "Task not defined: $name"
   fi
 
