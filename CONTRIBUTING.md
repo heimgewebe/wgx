@@ -34,7 +34,7 @@ MinAlertLevel = warning
 [*.{sh,bash,rs,ts,js,py}]
 BasedOnStyles = wgxlint
 
-# Markdown, Obsidian, Notes nicht prüfen
+# Do not check Markdown, Obsidian, Notes
 [*.md]
 BasedOnStyles =
 
