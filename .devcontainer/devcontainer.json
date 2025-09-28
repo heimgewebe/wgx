@@ -13,15 +13,18 @@
         "github.copilot",
         "eamodio.gitlens",
         "timonwong.shellcheck",
+        "foxundermoon.shell-format",
+        "jetmartin.bats",
         "streetsidesoftware.code-spell-checker"
-      ]
+      ],
+      "settings": {
+        "editor.formatOnSave": true,
+        "[shellscript]": {
+          "editor.defaultFormatter": "foxundermoon.shell-format"
+        }
+      }
     }
   },
   "remoteUser": "vscode",
-
-  // Setup einmal nach dem Erstellen
-  "postCreateCommand": "bash -lc 'set -euxo pipefail; apt-get update; apt-get install -y git curl jq ripgrep fzf tmux; if command -v npm >/dev/null 2>&1; then npm install -g cspell; fi; curl -fsSL https://github.com/errata-ai/vale/releases/latest/download/vale_Linux_64-bit.tar.gz | tar -xz -C /usr/local/bin; echo Setup complete;'",
-
-  // Wartung bei jedem Start (optional, kann später entfernt/abgeschwächt werden)
-  "postStartCommand": "bash -lc 'set -euxo pipefail; echo Running maintenance...; apt-get update -qq; apt-get upgrade -y; apt-get autoremove -y; apt-get clean; rm -rf /var/lib/apt/lists/*; for t in git jq ripgrep fzf tmux vale cspell; do if command -v \"$t\" >/dev/null 2>&1; then echo \"$t: $($t --version 2>/dev/null || true)\"; else echo \"$t fehlt\"; fi; done; echo Maintenance done;'"
+  "postCreateCommand": ".devcontainer/setup.sh"
 }
