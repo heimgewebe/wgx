@@ -1,71 +1,94 @@
 #!/usr/bin/env bash
 
-_wgx_find_bats() {
-  local candidate
-  local -a candidates=()
+# Print usage information for `wgx test`.
+_test_usage() {
+  cat <<'USAGE'
+Usage:
+  wgx test [--list] [--] [BATS_ARGS...]
+  wgx test --help
 
-  for candidate in "${BATS_CMD:-}" "${BATS_BIN:-}" "${BATS:-}"; do
-    if [ -n "$candidate" ]; then
-      candidates+=("$candidate")
-    fi
-  done
+Runs the Bats test suite located under tests/.
 
-  candidates+=(bats bats-core)
+Options:
+  --list        Show discovered *.bats files without executing them.
+  --help        Display this help text.
+  --            Forward all following arguments directly to bats.
 
-  if [ -n "${WGX_DIR:-}" ]; then
-    candidates+=("$WGX_DIR/node_modules/.bin/bats")
-  fi
-  candidates+=("node_modules/.bin/bats")
-
-  for candidate in "${candidates[@]}"; do
-    if [ -z "$candidate" ]; then
-      continue
-    fi
-
-    if command -v "$candidate" >/dev/null 2>&1; then
-      command -v "$candidate"
-      return 0
-    fi
-
-    if [ -x "$candidate" ]; then
-      printf '%s\n' "$candidate"
-      return 0
-    fi
-  done
-
-  return 1
+Examples:
+  wgx test                 # run all Bats suites
+  wgx test -- --filter foo # pass custom flags to bats
+  wgx test --list          # list available test files
+USAGE
 }
 
-cmd_test() {
-  local bats_cmd
-  if ! bats_cmd=$(_wgx_find_bats); then
-    log_error "No 'bats' found. Please install bats-core (e.g. 'npm install -g bats')."
+# Collect all Bats test files in a directory.
+_test_collect_files() {
+  local dir="$1"
+  if [ ! -d "$dir" ]; then
+    return 1
+  fi
+
+  find "$dir" -maxdepth 1 -type f -name '*.bats' -print0 | sort -z
+}
+
+test_cmd() {
+  local base_dir="${WGX_DIR:-"$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"}"
+  local tests_dir="${base_dir}/tests"
+  local show_list=0
+  local -a bats_args=()
+
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      -h|--help)
+        _test_usage
+        return 0
+        ;;
+      --list)
+        show_list=1
+        ;;
+      --)
+        shift
+        while [ $# -gt 0 ]; do
+          bats_args+=("$1")
+          shift
+        done
+        break
+        ;;
+      *)
+        bats_args+=("$1")
+        ;;
+    esac
+    shift || true
+  done
+
+  local -a test_files=()
+  local file
+  while IFS= read -r -d '' file; do
+    test_files+=("$file")
+  done < <(_test_collect_files "$tests_dir") || true
+
+  if [ ${#test_files[@]} -eq 0 ]; then
+    warn "No Bats tests found under ${tests_dir}."
+    return 0
+  fi
+
+  if [ "$show_list" -eq 1 ]; then
+    local f
+    for f in "${test_files[@]}"; do
+      printf '%s\n' "${f#${tests_dir}/}"
+    done
+    return 0
+  fi
+
+  if ! command -v bats >/dev/null 2>&1; then
+    warn "bats (https://github.com/bats-core/bats-core) is not installed. Please install bats-core to run tests."
     return 127
   fi
 
-  local project_dir="${WGX_DIR:-$(pwd)}"
-  local -a bats_args=()
-  if [ "$#" -gt 0 ]; then
-    bats_args=("$@")
-  else
-    local default_suite="${project_dir}/tests"
-    if [ ! -d "$default_suite" ]; then
-      log_warn "No tests/ directory found – nothing to test."
-      return 0
-    fi
-    bats_args=("$default_suite")
-  fi
-
-  local pretty_cmd
-  printf -v pretty_cmd '%q ' "$bats_cmd" "${bats_args[@]}"
-  log_info "Starting tests with: ${pretty_cmd% }"
-
-  (
-    cd "$project_dir" || exit 1
-    "$bats_cmd" "${bats_args[@]}"
-  )
+  info "Starting Bats tests..."
+  bats "${bats_args[@]}" "${test_files[@]}"
 }
 
-wgx_command_main() {
-  cmd_test "$@"
+wgx_command_main(){
+  test_cmd "$@
 }
