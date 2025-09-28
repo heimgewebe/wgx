@@ -245,16 +245,6 @@ if isinstance(tasks, dict):
         emit(f"WGX_TASK_GROUP[{shell_quote(norm)}]={shell_quote(str(group))}")
         emit(f"WGX_TASK_SAFE[{shell_quote(norm)}]={shell_quote('1' if safe else '0')}")
         continue
-        if isinstance(args_value, (list, tuple)) and args_value:
-            tokens.extend(shell_quote(str(item)) for item in args_value)
-        elif isinstance(args_value, dict):
-            variant = select_variant(args_value)
-            tokens.extend(shell_quote(str(item)) for item in normalize_list(variant))
-        spec_value = 'ARR:' + ' '.join(tokens)
-        emit(f"WGX_TASK_CMDS[{shell_quote(norm)}]={shell_quote(spec_value)}")
-        emit(f"WGX_TASK_DESC[{shell_quote(norm)}]={shell_quote(str(desc))}")
-        emit(f"WGX_TASK_GROUP[{shell_quote(norm)}]={shell_quote(str(group))}")
-        emit(f"WGX_TASK_SAFE[{shell_quote(norm)}]={shell_quote('1' if safe else '0')}")
 
 PY
   local status=$?
