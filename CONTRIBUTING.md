@@ -15,7 +15,7 @@ Keep changes small, portable and covered by tests.
 
 ## Lint & tests
 - Format check: `shfmt -d`.
-- Lint: `shellcheck -S style`.
+- Lint: `shellcheck -f gcc`.
 - Tests: place Bats tests under `tests/` and run `bats -r tests`.
 
 ## Commits & PRs
