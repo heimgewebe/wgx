@@ -1,21 +1,67 @@
-name: ci
+name: CI
+
 on:
   push:
+    branches: [ main, master ]
   pull_request:
-defaults:
-  run:
-    shell: bash
+    branches: [ "*" ]
+
 jobs:
-  lint-test:
+  bash_lint_test:
+    name: Bash Lint & Tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: ShellCheck
+
+      - name: Install shell tooling
         run: |
-          sudo apt-get update
-          sudo apt-get install -y shellcheck shfmt bats
-          shellcheck -x cli/wgx lib/*.bash cmd/*.bash || true
-          # shfmt (einheitlicher Stil)
-          shfmt -d .
-      - name: Bats tests
-        run: bats tests || true
+          sudo apt-get update -y
+          sudo apt-get install -y shellcheck shfmt bats jq
+
+      - name: shfmt (check)
+        run: |
+          # Fail if any .sh/.bash not formatted
+          readarray -t files < <(git ls-files '*.sh' '*.bash')
+          if [ "${#files[@]}" -gt 0 ]; then
+            shfmt -d "${files[@]}"
+          else
+            echo "No shell files."
+          fi
+
+      - name: shellcheck
+        run: |
+          readarray -t files < <(git ls-files '*.sh' '*.bash')
+          if [ "${#files[@]}" -gt 0 ]; then
+            shellcheck -S style "${files[@]}"
+          else
+            echo "No shell files."
+          fi
+
+      - name: bats tests
+        run: |
+          if [ -d tests ]; then
+            bats -r tests
+          else
+            echo "No tests/ directory"; exit 1
+          fi
+
+  docs_lint:
+    name: Docs Lint (Markdown + Links)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Markdownlint
+        run: |
+          npm install -g markdownlint-cli2
+          markdownlint-cli2 "**/*.md" "#node_modules" "#.git" "#**/CHANGELOG*.md" || exit 1
+
+      - name: Link Check (Lychee)
+        uses: lycheeverse/lychee-action@v1
+        with:
+          args: >-
+            --no-progress --accept 200,206,429
+            --exclude-loopback --max-concurrency 8
+            .
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
