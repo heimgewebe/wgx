@@ -180,7 +180,7 @@ profile::ensure_version() {
   req="${req%%.*}"
   have="${have%%.*}"
   if [[ -n $req && -n $have && $req != "$have" ]]; then
-    warn "wgx Version inkompatibel (required $WGX_REQUIRED, have ${WGX_VERSION})."
+    warn "wgx version incompatible (required $WGX_REQUIRED, have ${WGX_VERSION})."
     return 1
   fi
   return 0
