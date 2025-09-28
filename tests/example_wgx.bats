@@ -6,8 +6,15 @@ setup() {
   export PATH="$PWD/cmd:$PATH"
 }
 
-@test "wgx shows help" {
-  run bash -c "wgx -h || wgx --help || true"
+@test "wgx shows help with -h" {
+  run wgx -h
+  assert_success
+  assert_output --partial "wgx"
+  assert_output --partial "help"
+}
+
+@test "wgx shows help with --help" {
+  run wgx --help
   assert_success
   assert_output --partial "wgx"
   assert_output --partial "help"
