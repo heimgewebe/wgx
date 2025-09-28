@@ -39,7 +39,7 @@ _wgx_find_bats() {
 cmd_test() {
   local bats_cmd
   if ! bats_cmd=$(_wgx_find_bats); then
-    log_error "Kein 'bats' gefunden. Bitte bats-core installieren (z.B. 'npm install -g bats')."
+    log_error "No 'bats' found. Please install bats-core (e.g. 'npm install -g bats')."
     return 127
   fi
 
