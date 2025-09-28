@@ -1,7 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-WGX_DIR="${WGX_DIR:-"$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"}"
+# WGX_DIR auf Root des Repos setzen (egal woher das Skript aufgerufen wird)
+# see https://stackoverflow.com/a/246128/1329369
+SOURCE="${BASH_SOURCE[0]}"
+while [ -h "$SOURCE" ]; do
+  DIR="$(cd -P "$(dirname "$SOURCE")" >/dev/null 2>&1 && pwd)"
+  SOURCE="$(readlink "$SOURCE")"
+  [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
+done
+WGX_DIR="$(cd -P "$(dirname "$SOURCE")/.." >/dev/null 2>&1 && pwd)"
 export WGX_DIR
 
 # libs laden (alphabetisch hält Ordnung)
