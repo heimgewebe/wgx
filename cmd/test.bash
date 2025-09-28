@@ -81,7 +81,7 @@ test_cmd() {
   fi
 
   if ! command -v bats >/dev/null 2>&1; then
-    warn "bats (https://github.com/bats-core/bats-core) ist nicht installiert. Bitte bats-core installieren, um Tests zu starten."
+    warn "bats (https://github.com/bats-core/bats-core) is not installed. Please install bats-core to run tests."
     return 127
   fi
 
