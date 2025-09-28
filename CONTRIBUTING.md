@@ -1,6 +1,6 @@
 # Contributing to wgx
 
-**Scope:** wgx is a Bash-first helper toolkit targeting Linux/macOS, Termux, WSL and Codespaces.  
+**Scope:** wgx is a Bash-first helper toolkit targeting Linux/macOS, Termux, WSL and Codespaces.
 Keep changes small, portable and covered by tests.
 
 ## Ground rules
