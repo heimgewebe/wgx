@@ -1,0 +1,9 @@
+# Flags German words in code comments only
+extends: existence
+message: "Avoid German words in comments; use English instead."
+ignorecase: true
+level: warning
+scope: comments   # <- checks ONLY comments, not strings or code
+tokens:
+  - "\b(Das|Der|Die|und|nicht|aber|wenn|dann|weil|mit|ohne|für|gegen)\b"
+  - "[äöüßÄÖÜ]"
