@@ -21,18 +21,18 @@ jobs:
       - name: shfmt (check)
         run: |
           # Fail if any .sh/.bash not formatted
-          files=$(git ls-files '*.sh' '*.bash' | tr '\n' ' ')
-          if [ -n "$files" ]; then
-            shfmt -d $files
+          readarray -t files < <(git ls-files '*.sh' '*.bash')
+          if [ "${#files[@]}" -gt 0 ]; then
+            shfmt -d "${files[@]}"
           else
             echo "No shell files."
           fi
 
       - name: shellcheck
         run: |
-          files=$(git ls-files '*.sh' '*.bash' | tr '\n' ' ')
-          if [ -n "$files" ]; then
-            shellcheck -S style $files
+          readarray -t files < <(git ls-files '*.sh' '*.bash')
+          if [ "${#files[@]}" -gt 0 ]; then
+            shellcheck -S style "${files[@]}"
           else
             echo "No shell files."
           fi
