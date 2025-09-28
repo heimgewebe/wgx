@@ -8,6 +8,10 @@ inputs:
     description: "Ref im Ziel-Repo"
     required: false
     default: "main"
+  wgx_ref:
+    description: "Ref des wgx-Repos"
+    required: false
+    default: "main"
 runs:
   using: "composite"
   steps:
@@ -21,6 +25,7 @@ runs:
       uses: actions/checkout@v4
       with:
         path: wgx
+        ref: ${{ inputs.wgx_ref }}
 
     - name: Install basics
       shell: bash
@@ -30,6 +35,12 @@ runs:
         sudo apt-get install -y build-essential pkg-config || true
         curl https://sh.rustup.rs -sSf | sh -s -- -y >/dev/null 2>&1 || true
         echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+        if command -v pnpm >/dev/null 2>&1; then
+          echo "pnpm already available"
+        else
+          curl -fsSL https://get.pnpm.io/install.sh | sh -s -- --silent || true
+          echo "$HOME/.local/share/pnpm" >> $GITHUB_PATH
+        fi
 
     - name: Link wgx
       shell: bash
@@ -41,12 +52,25 @@ runs:
       shell: bash
       run: |
         ./wgx/wgx version || true
-        [[ -f ".wgx/profile.yml" ]] || { echo "profile.yml fehlt"; exit 1; }
+        if ! ls .wgx/profile.* >/dev/null 2>&1; then
+          echo "profile manifest fehlt"
+          exit 1
+        fi
 
-    - name: Tasks (doctor/test falls vorhanden)
+    - name: Validate manifest
       shell: bash
       run: |
-        set -e
-        if ./wgx/wgx tasks | grep -qx "doctor"; then ./wgx/wgx task doctor || true; fi
-        if ./wgx/wgx tasks | grep -qx "test"; then ./wgx/wgx task test; fi
+        wgx validate --json | jq -e '.ok==true'
+
+    - name: Execute safe tasks
+      shell: bash
+      run: |
+        set -euo pipefail
+        tasks_json="$(wgx tasks --json --groups)"
+        if echo "$tasks_json" | jq -e '.tasks[] | select(.name=="doctor" and .safe==true)' >/dev/null; then
+          wgx task doctor || true
+        fi
+        if echo "$tasks_json" | jq -e '.tasks[] | select(.name=="test" and .safe==true)' >/dev/null; then
+          wgx task test
+        fi
 
