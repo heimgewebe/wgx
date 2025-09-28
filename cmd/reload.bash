@@ -5,8 +5,11 @@ cmd_reload() {
   local do_snapshot=0
   while [ $# -gt 0 ]; do
     case "$1" in
-      --snapshot) do_snapshot=1; shift ;;
-      *) break ;;
+    --snapshot)
+      do_snapshot=1
+      shift
+      ;;
+    *) break ;;
     esac
   done
 

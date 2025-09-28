@@ -63,6 +63,7 @@ _load_modules() {
   local d="${base}/modules"
   if [ -d "$d" ]; then
     for f in "$d"/*.bash; do
+      # shellcheck source=/dev/null
       [ -r "$f" ] && source "$f"
     done
   fi
@@ -75,7 +76,7 @@ git_is_repo_root() {
   top=$(git rev-parse --show-toplevel 2>/dev/null) || return 1
   [ "$(pwd -P)" = "$top" ]
 }
-git_has_remote()     { git remote -v | grep -q '^origin' 2>/dev/null; }
+git_has_remote() { git remote -v | grep -q '^origin' 2>/dev/null; }
 
 # Hard Reset auf origin/$WGX_BASE + Cleanup
 git_hard_reload() {
@@ -149,11 +150,18 @@ USAGE
 
 # ── Command dispatcher ──────────────────────────────────────────────────────
 wgx_main() {
-  local sub="${1:-help}"; shift || true
+  local sub="${1:-help}"
+  shift || true
 
   case "$sub" in
-    help|-h|--help) wgx_usage; return ;;
-    --list|commands) wgx_available_commands; return ;;
+  help | -h | --help)
+    wgx_usage
+    return
+    ;;
+  --list | commands)
+    wgx_available_commands
+    return
+    ;;
   esac
 
   _load_modules
@@ -167,9 +175,12 @@ wgx_main() {
   # 2) Datei sourcen und erneut versuchen
   local f="${WGX_DIR}/cmd/${sub}.bash"
   if [ -r "$f" ]; then
+    # shellcheck source=/dev/null
     source "$f"
-    if   declare -F "cmd_${sub}" >/dev/null 2>&1; then "cmd_${sub}" "$@"
-    elif declare -F "wgx_command_main" >/dev/null 2>&1; then wgx_command_main "$@"
+    if declare -F "cmd_${sub}" >/dev/null 2>&1; then
+      "cmd_${sub}" "$@"
+    elif declare -F "wgx_command_main" >/dev/null 2>&1; then
+      wgx_command_main "$@"
     else
       echo "❌ Befehl '${sub}': weder cmd_${sub} noch wgx_command_main definiert." >&2
       return 127

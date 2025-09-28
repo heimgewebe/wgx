@@ -1,26 +1,28 @@
 #!/usr/bin/env bash
 
-selftest_ok(){
+selftest_ok() {
   printf '[OK] %s\n' "$1"
 }
 
-selftest_warn(){
+selftest_warn() {
   printf '[WARN] %s\n' "$1"
 }
 
-selftest_info(){
+selftest_info() {
   printf '[INFO] %s\n' "$1"
 }
 
-selftest_check_bins(){
-  local label="$1"; shift || true
-  local critical="$1"; shift || true
+selftest_check_bins() {
+  local label="$1"
+  shift || true
+  local critical="$1"
+  shift || true
   local miss=0 bin
   for bin in "$@"; do
     if command -v "$bin" >/dev/null 2>&1; then
       selftest_ok "$label: $bin found"
     else
-      if (( critical )); then
+      if ((critical)); then
         selftest_warn "$label: $bin missing"
         miss=1
       else
@@ -31,7 +33,7 @@ selftest_check_bins(){
   return "$miss"
 }
 
-cmd_selftest(){
+cmd_selftest() {
   echo "=== wgx selftest ==="
 
   local had_warn=0
@@ -64,7 +66,7 @@ cmd_selftest(){
     selftest_info "Hinweis: Selbsttest außerhalb eines Git-Repos – einige Kommandos erfordern eins."
   fi
 
-  if (( had_warn == 0 )); then
+  if ((had_warn == 0)); then
     selftest_ok "Selftest abgeschlossen."
     return 0
   fi

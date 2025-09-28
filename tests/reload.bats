@@ -19,7 +19,7 @@ setup() {
   local project_root
   project_root="$(cd "${BATS_TEST_DIRNAME}/.." && pwd)"
   export WGX_DIR="$project_root"
-  export PATH="$WGX_DIR:$PATH"
+  export PATH="$WGX_DIR/cli:$PATH"
 }
 
 teardown() {
@@ -30,16 +30,9 @@ teardown() {
 @test "reload performs hard reset and clean" {
   # lokale Änderung
   echo "local" > local.txt
-  # Debug-Ausgabe, falls das Setup im CI schiefgeht
-  echo "WGX_DIR: ${WGX_DIR:-<unset>}"
-  if [ -e "$WGX_DIR/wgx" ]; then
-    ls -l "$WGX_DIR/wgx"
-  else
-    echo "wgx script missing at $WGX_DIR/wgx"
-  fi
 
   # rufe wgx reload (aus dem echten Projekt)
-  run "$WGX_DIR/wgx" reload
+  run wgx reload
   [ "$status" -eq 0 ]
   # local.txt sollte weg sein (clean -fdx)
   [ ! -f local.txt ]
