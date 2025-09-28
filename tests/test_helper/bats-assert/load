@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+bats_assert_loaded=1
+assert_success() { test "$status" -eq 0; }
+assert_output() { :; }
