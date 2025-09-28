@@ -34,7 +34,7 @@ fi
 
 if ! type -t die >/dev/null 2>&1; then
   die() {
-    _err "$@"
+    _err "$*"
     exit 1
   }
 fi
