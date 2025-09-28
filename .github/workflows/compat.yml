@@ -1,0 +1,26 @@
+name: compat
+
+on:
+  schedule:
+    - cron: "0 4 * * *"
+  workflow_dispatch:
+
+jobs:
+  matrix-check:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - repo: alexdermohr/hauski
+            ref: main
+          - repo: alexdermohr/weltgewebe
+            ref: main
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check target
+        uses: ./.github/actions/wgx-check
+        with:
+          repo: ${{ matrix.target.repo }}
+          ref: ${{ matrix.target.ref }}
+
