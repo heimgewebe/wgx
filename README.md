@@ -45,13 +45,14 @@ wgx --list 2>/dev/null || wgx commands 2>/dev/null || ls -1 cmd/
 ## Commands
 
 ### reload
+
 Destruktiv: setzt den Workspace hart auf `origin/$WGX_BASE` zurück (`git reset --hard` + `git clean -fdx`).
 
 **Alias**: `sync-remote`.
 
 ## Repository-Layout
 
-```
+```text
 .
 ├─ cli/                 # Einstieg: ./cli/wgx (Dispatcher)
 ├─ cmd/                 # EIN Subcommand = EINE Datei
@@ -71,7 +72,8 @@ Wiederkehrende Helfer (Logging, Git-Hilfen, Environment-Erkennung usw.) sind im 
 ## Konfiguration
 
 Standardwerte liegen unter `etc/config.example`.
-Beim ersten Lauf von `wgx init` werden die Werte nach `~/.config/wgx/config` kopiert und können dort projektspezifisch angepasst werden.
+Beim ersten Lauf von `wgx init` werden die Werte nach `~/.config/wgx/config` kopiert.
+Anschließend kannst du sie dort projektspezifisch anpassen.
 
 ## Tests
 
