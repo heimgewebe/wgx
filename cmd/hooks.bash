@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
-wgx_command_main(){
+
+cmd_hooks() {
   hooks_cmd "$@"
+}
+
+wgx_command_main() {
+  cmd_hooks "$@"
 }
