@@ -32,6 +32,16 @@ Falls ein Befehl unbekannt ist, kannst du die verfügbaren Subcommands auflisten
 wgx --list 2>/dev/null || wgx commands 2>/dev/null || ls -1 cmd/
 ```
 
+## Dev quick start
+
+- Open in VS Code → “Reopen in Container”
+- Run CI locally:
+  ```bash
+  shfmt -d $(git ls-files '*.sh' '*.bash')
+  shellcheck -S style $(git ls-files '*.sh' '*.bash')
+  bats -r tests
+  ```
+
 ## Commands
 
 ### reload
