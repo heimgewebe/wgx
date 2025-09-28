@@ -90,5 +90,5 @@ test_cmd() {
 }
 
 wgx_command_main(){
-  test_cmd "$@
+  test_cmd "$@"
 }
