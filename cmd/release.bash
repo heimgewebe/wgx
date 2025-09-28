@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
-wgx_command_main(){
+
+cmd_release() {
   release_cmd "$@"
+}
+
+wgx_command_main() {
+  cmd_release "$@"
 }
