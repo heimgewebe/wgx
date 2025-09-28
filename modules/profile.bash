@@ -264,7 +264,7 @@ profile::_auto_init() {
     if profile::load; then
       profile::ensure_version || true
     else
-      warn "profile.yml konnte nicht geladen werden."
+      warn "profile.yml could not be loaded."
     fi
   fi
 }
