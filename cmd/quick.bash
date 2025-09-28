@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
-wgx_command_main(){
+
+cmd_quick() {
   quick_cmd "$@"
+}
+
+wgx_command_main() {
+  cmd_quick "$@"
 }
