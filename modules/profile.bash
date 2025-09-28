@@ -245,7 +245,9 @@ profile::run_task() {
       if ((${#envs[@]})); then
         export "${envs[@]}"
       fi
-      eval "$base" "$@"
+      # Safely parse $base into an array and execute
+      read -r -a _cmd <<< "$base"
+      "${_cmd[@]}" "$@"
     )
   fi
 }
