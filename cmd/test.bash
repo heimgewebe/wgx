@@ -58,7 +58,7 @@ cmd_test() {
 
   local pretty_cmd
   printf -v pretty_cmd '%q ' "$bats_cmd" "${bats_args[@]}"
-  log_info "Starte Tests mit: ${pretty_cmd% }"
+  log_info "Starting tests with: ${pretty_cmd% }"
 
   (
     cd "$project_dir" || exit 1
