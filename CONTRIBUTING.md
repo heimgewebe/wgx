@@ -30,7 +30,7 @@ This split ensures:
 StylesPath = .vale/styles
 MinAlertLevel = warning
 
-# nur Code-Dateien prüfen
+# check only code files
 [*.{sh,bash,rs,ts,js,py}]
 BasedOnStyles = wgxlint
 
