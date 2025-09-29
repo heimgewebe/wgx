@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+
 # Doctor module: basic repository health checks
 
 doctor_cmd() {
