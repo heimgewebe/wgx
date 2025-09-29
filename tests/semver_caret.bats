@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 
-load 'test/bats-support/load'
-load 'test/bats-assert/load'
+load 'test_helper/bats-support/load'
+load 'test_helper/bats-assert/load'
 
 setup() { source modules/semver.bash; }
 
