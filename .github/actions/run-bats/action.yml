@@ -31,7 +31,8 @@ runs:
           args="$PRIMARY_ARGS"
         fi
         if [[ -z "$args" ]]; then
-          bats
+          echo "Error: No test files or directories specified for bats. Please provide arguments via 'bats-arguments' or 'args'."
+          exit 1
         else
           # shellcheck disable=SC2086  # Allow intentional word splitting for bats args.
           bats $args
