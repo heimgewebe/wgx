@@ -48,7 +48,7 @@ status_cmd() {
       fi
     done
   fi
-  if (( ! info_present )); then
+  if ((!info_present)); then
     local fallback_present=0
     if [[ -d web ]]; then
       echo "▶ Web-Verzeichnis: web"
@@ -63,7 +63,7 @@ status_cmd() {
       fallback_present=1
     fi
 
-    (( fallback_present )) && info_present=1
+    ((fallback_present)) && info_present=1
   fi
 
   # OFFLINE?

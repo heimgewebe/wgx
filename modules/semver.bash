@@ -17,9 +17,9 @@ semver_cmp() {
   local l1 l2 l3 r1 r2 r3
   IFS='.' read -r l1 l2 l3 <<<"$left"
   IFS='.' read -r r1 r2 r3 <<<"$right"
-  if (( l1 > r1 )) || (( l1 == r1 && l2 > r2 )) || (( l1 == r1 && l2 == r2 && l3 > r3 )); then
+  if ((l1 > r1)) || ((l1 == r1 && l2 > r2)) || ((l1 == r1 && l2 == r2 && l3 > r3)); then
     return 1
-  elif (( l1 < r1 )) || (( l1 == r1 && l2 < r2 )) || (( l1 == r1 && l2 == r2 && l3 < r3 )); then
+  elif ((l1 < r1)) || ((l1 == r1 && l2 < r2)) || ((l1 == r1 && l2 == r2 && l3 < r3)); then
     return 2
   fi
   return 0

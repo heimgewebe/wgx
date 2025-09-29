@@ -16,8 +16,10 @@ cmd_task() {
     shift
   fi
 
-  local key="$(profile::_normalize_task_name "$name")"
-  local spec="$(profile::_task_spec "$key")"
+  local key
+  key="$(profile::_normalize_task_name "$name")"
+  local spec
+  spec="$(profile::_task_spec "$key")"
   if [[ -z $spec ]]; then
     die "Task not defined: $name"
   fi
@@ -26,4 +28,3 @@ cmd_task() {
     return 1
   fi
 }
-
