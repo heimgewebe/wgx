@@ -2,7 +2,7 @@
 
 Eigenständiges CLI für Git-/Repo-Workflows (Termux, WSL, Linux, macOS). Lizenz: MIT (projektintern).
 
-## Quickstart
+## Schnellstart
 
 ```bash
 git clone <DEIN-REPO>.git wgx
@@ -32,10 +32,10 @@ Falls ein Befehl unbekannt ist, kannst du die verfügbaren Subcommands auflisten
 wgx --list 2>/dev/null || wgx commands 2>/dev/null || ls -1 cmd/
 ```
 
-## Dev quick start
+## Entwicklungs-Schnellstart
 
-- Open in VS Code → “Reopen in Container”
-- Run CI locally:
+- In VS Code öffnen → „Reopen in Container“
+- CI lokal ausführen:
 
   ```bash
   shfmt -d $(git ls-files '*.sh' '*.bash')
@@ -43,7 +43,7 @@ wgx --list 2>/dev/null || wgx commands 2>/dev/null || ls -1 cmd/
   bats -r tests
   ```
 
-## Commands
+## Kommandos
 
 ### reload
 
@@ -111,9 +111,9 @@ wgx:
     RUST_BACKTRACE: "1"
   envOverrides: {}
   tasks:
-    doctor: { desc: "Sanity checks", safe: true, cmd: ["cargo","run","-p","hauski-cli","--","doctor"] }
-    test:   { desc: "Workspace tests", safe: true, cmd: ["cargo","test","--workspace","--","--nocapture"] }
-    serve:  { desc: "Dev server",      cmd: ["cargo","run","-p","hauski-cli","--","serve"] }
+    doctor: { desc: "Sanity-Checks", safe: true, cmd: ["cargo","run","-p","hauski-cli","--","doctor"] }
+    test:   { desc: "Workspace-Tests", safe: true, cmd: ["cargo","test","--workspace","--","--nocapture"] }
+    serve:  { desc: "Entwicklungsserver", cmd: ["cargo","run","-p","hauski-cli","--","serve"] }
 ```
 
 ## Tests
@@ -121,7 +121,7 @@ wgx:
 Automatisierte Tests werden über `tests/` organisiert (z. B. mit [Bats](https://bats-core.readthedocs.io/)).
 Ergänzende Checks kannst du via `wgx selftest` starten.
 
-## Architecture Note — Modular Only
+## Architekturhinweis — nur modulare Struktur
 
 Seit 2025-09-25 ist die modulare Struktur verbindlich (`cli/`, `cmd/`, `lib/`, `etc/`, `modules/`).
 Der alte Monolith wurde archiviert: `docs/archive/wgx_monolith_*.md`.
