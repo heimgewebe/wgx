@@ -49,7 +49,7 @@ status_cmd() {
       fi
     done
   fi
-  if ((info_present == 0)); then
+  if [[ $info_present -eq 0 ]]; then
     local fallback_present=0
     if [[ -d web ]]; then
       echo "▶ Web-Verzeichnis: web"
