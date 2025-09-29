@@ -146,11 +146,8 @@ run_install() {
     default_to_base=1
   fi
 
-  local -a targets_raw=()
-  mapfile -t targets_raw < <(collect_packages "$@")
-
-  local -a targets=("${targets_raw[@]}")
-
+  local -a targets=()
+  mapfile -t targets < <(collect_packages "$@")
   if ((${#targets[@]} == 0)); then
     if ((default_to_base)); then
       targets=("${BASE_PACKAGES[@]}")
