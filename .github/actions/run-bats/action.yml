@@ -1,0 +1,15 @@
+name: run-bats
+description: Install bats and execute the repository's bats test suite.
+runs:
+  using: composite
+  steps:
+    - name: Install bats dependencies
+      shell: bash
+      run: |
+        set -euo pipefail
+        ./.devcontainer/setup.sh install optional
+    - name: Run bats test suite
+      shell: bash
+      run: |
+        set -euo pipefail
+        bats -r tests
