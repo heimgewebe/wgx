@@ -1,0 +1,83 @@
+name: Compat (on-demand matrix)
+
+on:
+  workflow_dispatch:
+    inputs:
+      targets_json:
+        description: 'Matrix als JSON (repo/ref)'
+        required: false
+        default: |
+          [
+            {"repo":"alexdermohr/hauski","ref":"main"},
+            {"repo":"alexdermohr/weltgewebe","ref":"main"}
+          ]
+  pull_request:
+    branches: [ main ]
+    types: [labeled, unlabeled, synchronize, reopened, ready_for_review]
+  merge_group: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gate:
+    name: Decide when to run
+    runs-on: ubuntu-latest
+    outputs:
+      run_compat: ${{ steps.decide.outputs.run_compat }}
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            core:
+              - 'wgx'
+              - 'lib/**'
+              - 'modules/**'
+              - 'cmd/**'
+              - '.github/actions/**'
+      - id: decide
+        shell: bash
+        run: |
+          labels="${{ github.event.pull_request.number && join(github.event.pull_request.labels.*.name, ' ') || '' }}"
+          # Run if: merge_group OR manual dispatch OR label 'compat'/'full-ci' OR core changed
+          if [[ "${{ github.event_name }}" == "merge_group" ]]; then echo "run_compat=true" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then echo "run_compat=true" >> $GITHUB_OUTPUT
+          elif echo "$labels" | grep -qiE '(^| )(compat|full-ci)( |$)'; then echo "run_compat=true" >> $GITHUB_OUTPUT
+          elif [[ "${{ steps.filter.outputs.core }}" == "true" ]]; then echo "run_compat=true" >> $GITHUB_OUTPUT
+          else echo "run_compat=false" >> $GITHUB_OUTPUT; fi
+      - id: matrix
+        shell: bash
+        run: |
+          def='[{"repo":"alexdermohr/hauski","ref":"main"},{"repo":"alexdermohr/weltgewebe","ref":"main"}]'
+          inp=$(cat <<'JSON'
+${{ github.event.inputs.targets_json }}
+JSON
+)
+          # Fallback auf Default, wenn Input leer/ungültig
+          if jq -e type >/dev/null 2>&1 <<<"$inp"; then echo "matrix=$inp" >> $GITHUB_OUTPUT
+          else echo "matrix=$def" >> $GITHUB_OUTPUT; fi
+
+  compat:
+    name: Check ${{ matrix.target.repo }}@${{ matrix.target.ref }}
+    needs: gate
+    if: needs.gate.outputs.run_compat == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        target: ${{ fromJSON(needs.gate.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run wgx-check
+        uses: ./.github/actions/wgx-check
+        with:
+          repo: ${{ matrix.target.repo }}
+          ref:  ${{ matrix.target.ref }}
