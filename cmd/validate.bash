@@ -24,7 +24,7 @@ validate::run() {
     if (( json_mode )); then
       echo '{"ok":false,"errors":["profile_missing"]}'
     else
-      die "Profile fehlt (.wgx/profile.yml|yaml|json)"
+      die "Profile missing (.wgx/profile.yml|yaml|json)"
     fi
     return 1
   fi
