@@ -36,6 +36,7 @@ wgx --list 2>/dev/null || wgx commands 2>/dev/null || ls -1 cmd/
 
 - Open in VS Code → “Reopen in Container”
 - Run CI locally:
+
   ```bash
   shfmt -d $(git ls-files '*.sh' '*.bash')
   shellcheck -S style $(git ls-files '*.sh' '*.bash')
@@ -81,5 +82,6 @@ Automatisierte Tests werden über `tests/` organisiert (z. B. mit [Bats](https
 Ergänzende Checks kannst du via `wgx selftest` starten.
 
 ## Architecture Note — Modular Only
+
 Seit 2025-09-25 ist die modulare Struktur verbindlich (`cli/`, `cmd/`, `lib/`, `etc/`, `modules/`).
 Der alte Monolith wurde archiviert: `docs/archive/wgx_monolith_*.md`.
