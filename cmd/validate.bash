@@ -3,7 +3,7 @@
 if ! declare -F require_repo >/dev/null 2>&1; then
   require_repo() {
     if ! command -v git >/dev/null 2>&1; then
-      die "git nicht installiert."
+      die "git not installed."
     fi
     if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
       die "Nicht im Git-Repo."
