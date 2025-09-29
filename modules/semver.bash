@@ -53,8 +53,11 @@ semver_in_caret_range() {
   range="$(semver_norm "$range")"
   local major
   IFS='.' read -r major _ _ <<<"$range"
-  local next_major=$(( major + 1 ))
+  local next_major=$((major + 1))
   local lower="$range"
   local upper="${next_major}.0.0"
-  semver_ge "$have" "$lower" && semver_lt "$have" "$upper"
+  if semver_ge "$have" "$lower" && semver_lt "$have" "$upper"; then
+    return 0
+  fi
+  return 1
 }
