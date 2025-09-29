@@ -1,8 +1,9 @@
 #!/usr/bin/env bats
 
 setup() {
-  load 'test_helper/bats-support/load'
-  load 'test_helper/bats-assert/load'
+  TEST_HELPER_DIR="$BATS_TEST_DIRNAME/test_helper"
+  load "$TEST_HELPER_DIR/bats-support/load"
+  load "$TEST_HELPER_DIR/bats-assert/load"
   source "$PWD/modules/semver.bash"
 }
 
