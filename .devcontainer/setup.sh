@@ -12,6 +12,8 @@ Usage: setup.sh [command] [options]
 Commands:
   check                 Report availability of base and optional development tools.
   install [targets...]  Install tool groups or individual packages. Defaults to "base".
+  base|optional|all     Shortcut for "install" with the matching target(s). 
+  <package>             Shortcut for "install" with a specific package.
 
 Targets:
   base       Install baseline development helpers (jq, moreutils).
@@ -106,6 +108,9 @@ collect_packages() {
       jq|moreutils|shellcheck|shfmt|bats)
         packages+=("$target")
         ;;
+      check)
+        echo "Ignoring 'check' target during installation. Run './.devcontainer/setup.sh check' separately." >&2
+        ;;
       *)
         echo "Unknown install target: $target" >&2
         exit 1
@@ -164,6 +169,9 @@ main() {
       run_check
       ;;
     install)
+      run_install "$@"
+      ;;
+    base|optional|all|jq|moreutils|shellcheck|shfmt|bats)
       run_install "$@"
       ;;
     -h|--help)
