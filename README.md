@@ -84,6 +84,7 @@ Anschließend kannst du sie dort projektspezifisch anpassen.
   - `v1.1`: reichere Spezifikation (Arrays, desc/group/safe, envDefaults/Overrides, requiredWgx-Objekt)
 
 ### Minimales Beispiel (v1)
+
 ```yaml
 wgx:
   apiVersion: v1
