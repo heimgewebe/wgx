@@ -27,15 +27,7 @@ jobs:
             exit 0
           fi
 
-          first=1
-          for file in "${files[@]}"; do
-            if (( first )); then
-              first=0
-            else
-              printf ','
-            fi
-            printf '%s' "$file"
-          done
+          printf '%s,' "${files[@]}" | sed 's/,$//'
           echo
 
           shfmt -d "${files[@]}"
