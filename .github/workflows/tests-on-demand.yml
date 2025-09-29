@@ -1,0 +1,64 @@
+name: Tests (bats on-demand)
+
+on:
+  workflow_dispatch: {}
+  pull_request:
+    branches: [ main ]
+    types: [opened, synchronize, reopened, ready_for_review, labeled, unlabeled]
+  merge_group: {}
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    outputs:
+      shell: ${{ steps.filter.outputs.shell }}
+      tests: ${{ steps.filter.outputs.tests }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            shell:
+              - 'wgx'
+              - '**/*.sh'
+              - '**/*.bash'
+            tests:
+              - 'tests/**'
+              - '.github/actions/**'
+              - '.github/workflows/**'
+
+  bats:
+    name: Tests (bats -r tests)
+    needs: changes
+    if: |
+      github.event_name == 'merge_group' ||
+      github.event_name == 'workflow_dispatch' ||
+      (
+        github.event_name == 'pull_request' &&
+        github.event.pull_request.draft == false &&
+        (
+          needs.changes.outputs.tests == 'true' ||
+          needs.changes.outputs.shell == 'true' ||
+          contains(github.event.pull_request.labels.*.name, 'tests') ||
+          contains(github.event.pull_request.labels.*.name, 'bats') ||
+          contains(github.event.pull_request.labels.*.name, 'full-ci')
+        )
+      )
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run bats tests
+        uses: ./.github/actions/run-bats
