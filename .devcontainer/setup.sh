@@ -90,6 +90,7 @@ print_tool_status() {
   fi
 }
 
+# Modifies the array passed by reference via nameref to collect package names for installation.
 collect_packages() {
   local -n _out=$1
   shift || true
