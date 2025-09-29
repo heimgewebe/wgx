@@ -56,7 +56,7 @@ validate::run() {
       printf '"ok":false'
     fi
     printf ',"errors":['
-    local first=1
+    local -i first=1
     local e
     for e in "${errs[@]}"; do
       if (( first )); then
