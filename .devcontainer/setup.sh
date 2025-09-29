@@ -95,6 +95,7 @@ collect_packages() {
   for target in "$@"; do
     case "$target" in
       "")
+        continue
         ;;
       base)
         packages+=("${BASE_PACKAGES[@]}")
@@ -110,6 +111,7 @@ collect_packages() {
         ;;
       check)
         echo "Ignoring 'check' target during installation. Run './.devcontainer/setup.sh check' separately." >&2
+        continue
         ;;
       *)
         echo "Unknown install target: $target" >&2
@@ -118,7 +120,9 @@ collect_packages() {
     esac
   done
 
-  printf '%s\n' "${packages[@]}"
+  if ((${#packages[@]} > 0)); then
+    printf '%s\n' "${packages[@]}"
+  fi
 }
 
 run_check() {
@@ -156,6 +160,9 @@ run_install() {
   declare -A seen_map=()
   local pkg
   for pkg in "${targets[@]}"; do
+    if [[ -z "$pkg" ]]; then
+      continue
+    fi
     if [[ -z "${seen_map[$pkg]:-}" ]]; then
       seen_map[$pkg]=1
       unique+=("$pkg")
