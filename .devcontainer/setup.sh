@@ -111,9 +111,6 @@ collect_packages() {
       jq|moreutils|shellcheck|shfmt|bats)
         packages+=("$target")
         ;;
-      check)
-        echo "Ignoring 'check' target during installation. Run './.devcontainer/setup.sh check' separately." >&2
-        ;;
       *)
         echo "Unknown install target: $target" >&2
         exit 1
@@ -121,7 +118,9 @@ collect_packages() {
     esac
   done
 
-  printf '%s\n' "${packages[@]}"
+  if ((${#packages[@]} > 0)); then
+    printf '%s\n' "${packages[@]}"
+  fi
 }
 
 run_check() {
