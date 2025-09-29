@@ -43,6 +43,7 @@ wgx --list 2>/dev/null || wgx commands 2>/dev/null || ls -1 cmd/
   bats -r tests
   ```
 
+
 ## Commands
 
 ### reload
@@ -80,6 +81,7 @@ Anschließend kannst du sie dort projektspezifisch anpassen.
 
 Automatisierte Tests werden über `tests/` organisiert (z. B. mit [Bats](https://bats-core.readthedocs.io/)).
 Ergänzende Checks kannst du via `wgx selftest` starten.
+
 
 ## Architecture Note — Modular Only
 
