@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 # shellcheck shell=bash
 
 if ! declare -F require_repo >/dev/null 2>&1; then
