@@ -218,19 +218,29 @@ if isinstance(tasks, dict):
         tokens = []
         if isinstance(selected_cmd, (list, tuple)):
             tokens = [shell_quote(str(item)) for item in selected_cmd]
-        elif selected_cmd is None:
-            tokens = []
-        else:
-            command_str = str(selected_cmd)
             if isinstance(args_value, (list, tuple)) and args_value:
-                command_str += ' ' + ' '.join(shell_quote(str(item)) for item in args_value)
+                tokens.extend(shell_quote(str(item)) for item in args_value)
             elif isinstance(args_value, dict):
                 variant = select_variant(args_value)
                 if isinstance(variant, (list, tuple)):
-                    command_str += ' ' + ' '.join(shell_quote(str(item)) for item in variant)
-                elif variant:
-                    command_str += ' ' + shell_quote(str(variant))
-        emit(f"WGX_TASK_CMDS[{shell_quote(norm)}]={shell_quote('STR:' + command_str)}")
+                    tokens.extend(shell_quote(str(item)) for item in variant)
+                elif variant not in (None, ''):
+                    tokens.append(shell_quote(str(variant)))
+            emit(f"WGX_TASK_CMDS[{shell_quote(norm)}]={shell_quote('ARR:' + ' '.join(tokens))}")
+        else:
+            parts = []
+            if selected_cmd is not None:
+                parts.append(str(selected_cmd))
+            if isinstance(args_value, (list, tuple)) and args_value:
+                parts.extend(shell_quote(str(item)) for item in args_value)
+            elif isinstance(args_value, dict):
+                variant = select_variant(args_value)
+                if isinstance(variant, (list, tuple)):
+                    parts.extend(shell_quote(str(item)) for item in variant)
+                elif variant not in (None, ''):
+                    parts.append(shell_quote(str(variant)))
+            command = ' '.join(parts)
+            emit(f"WGX_TASK_CMDS[{shell_quote(norm)}]={shell_quote('STR:' + command)}")
         emit(f"WGX_TASK_DESC[{shell_quote(norm)}]={shell_quote(str(desc))}")
         emit(f"WGX_TASK_GROUP[{shell_quote(norm)}]={shell_quote(str(group))}")
         emit(f"WGX_TASK_SAFE[{shell_quote(norm)}]={shell_quote('1' if safe else '0')}")
@@ -515,7 +525,9 @@ profile::env_apply() {
   for key in "${!WGX_ENV_OVERRIDE_MAP[@]}"; do
     envs+=("${key}=${WGX_ENV_OVERRIDE_MAP[$key]}")
   done
-  printf '%s\n' "${envs[@]}"
+  if (( ${#envs[@]} )); then
+    printf '%s\n' "${envs[@]}"
+  fi
 }
 
 profile::run_task() {
