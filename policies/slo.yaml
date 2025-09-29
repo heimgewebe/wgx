@@ -6,4 +6,4 @@ ci:
     - name: unit-tests
       timeout_minutes: 20
     - name: lint
-      timeout_minutes: 10
+      timeout_minutes: 5
