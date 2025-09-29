@@ -18,9 +18,9 @@ semver_cmp() {
   local l1 l2 l3 r1 r2 r3
   IFS='.' read -r l1 l2 l3 <<<"$left"
   IFS='.' read -r r1 r2 r3 <<<"$right"
-  if ((l1 > r1)) || ((l1 == r1 && l2 > r2)) || ((l1 == r1 && l2 == r2 && l3 > r3)); then
+  if (( l1 > r1 )) || (( l1 == r1 && l2 > r2 )) || (( l1 == r1 && l2 == r2 && l3 > r3 )); then
     return 1
-  elif ((l1 < r1)) || ((l1 == r1 && l2 < r2)) || ((l1 == r1 && l2 == r2 && l3 < r3)); then
+  elif (( l1 < r1 )) || (( l1 == r1 && l2 < r2 )) || (( l1 == r1 && l2 == r2 && l3 < r3 )); then
     return 2
   fi
   return 0
@@ -53,7 +53,7 @@ semver_in_caret_range() {
   range="$(semver_norm "$range")"
   local major
   IFS='.' read -r major _ _ <<<"$range"
-  local next_major=$((major + 1))
+  local next_major=$(( major + 1 ))
   local lower="$range"
   local upper="${next_major}.0.0"
   semver_ge "$have" "$lower" && semver_lt "$have" "$upper"
