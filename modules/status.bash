@@ -64,7 +64,9 @@ status_cmd() {
       fallback_present=1
     fi
 
-    (( fallback_present )) && info_present=1
+    if [[ $fallback_present -ne 0 ]]; then
+      info_present=1
+    fi
   fi
 
   # OFFLINE?
