@@ -30,8 +30,9 @@ runs:
       run: |
         set -euo pipefail
         if [ -n "$BATS_ARGS" ]; then
-          # Split arguments on whitespace to respect simple quoting scenarios.
-          read -r -a _bats_args <<<"$BATS_ARGS"
+          # Use eval and set -- to properly handle quoted arguments.
+          eval "set -- $BATS_ARGS"
+          _bats_args=("$@")
         else
           _bats_args=()
         fi
