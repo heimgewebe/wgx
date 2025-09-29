@@ -142,13 +142,7 @@ run_install() {
   local -a targets_raw=()
   mapfile -t targets_raw < <(collect_packages "$@")
 
-  local -a targets=()
-  local pkg
-  for pkg in "${targets_raw[@]}"; do
-    if [[ -n "$pkg" ]]; then
-      targets+=("$pkg")
-    fi
-  done
+  local -a targets=("${targets_raw[@]}")
 
   if ((${#targets[@]} == 0)); then
     if ((default_to_base)); then
