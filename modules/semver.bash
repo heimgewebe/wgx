@@ -63,8 +63,8 @@ semver_in_caret_range() {
     local next_minor=$(( minor + 1 ))
     upper="0.${next_minor}.0"
   else
-    # For 0.0.x ranges we only allow patch updates, so we stop before the
-    # first minor release.
+    # For 0.0.x ranges, we set the upper bound at the next minor version (0.${next_minor}.0),
+    # so only patch updates within the current minor version are allowed, and we stop before the first minor release.
     local next_minor=$(( minor + 1 ))
     upper="0.${next_minor}.0"
   fi
