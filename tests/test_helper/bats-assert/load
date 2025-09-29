@@ -112,7 +112,7 @@ assert_line() {
 
   local expected="$*"
 
-  if ! [[ -v lines[$index] ]]; then
+  if [[ $index -ge ${#lines[@]} ]]; then
     _assert_fail "Expected line at index $index but command produced ${#lines[@]} lines"
   fi
 
