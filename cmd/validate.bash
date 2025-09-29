@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 # shellcheck shell=bash
 
 if ! declare -F require_repo >/dev/null 2>&1; then
@@ -56,7 +57,7 @@ validate::run() {
       printf '"ok":false'
     fi
     printf ',"errors":['
-    local first=1
+    local -i first=1
     local e
     for e in "${errs[@]}"; do
       if (( first )); then

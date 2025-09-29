@@ -64,7 +64,7 @@ status_cmd() {
       fallback_present=1
     fi
 
-    if (( fallback_present )); then
+    if [[ $fallback_present -ne 0 ]]; then
       info_present=1
     fi
   fi
