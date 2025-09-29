@@ -22,11 +22,23 @@ jobs:
         run: |
           # Fail if any .sh/.bash not formatted
           readarray -t files < <(git ls-files '*.sh' '*.bash')
-          if [ "${#files[@]}" -gt 0 ]; then
-            shfmt -d "${files[@]}"
-          else
+          if [ "${#files[@]}" -eq 0 ]; then
             echo "No shell files."
+            exit 0
           fi
+
+          first=1
+          for file in "${files[@]}"; do
+            if (( first )); then
+              first=0
+            else
+              printf ','
+            fi
+            printf '%s' "$file"
+          done
+          echo
+
+          shfmt -d "${files[@]}"
 
       - name: shellcheck
         run: |
