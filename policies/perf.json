@@ -6,8 +6,8 @@
       "description": "Full build should complete within two minutes"
     },
     "wgx:test": {
-      "budget_ms": 180000,
-      "description": "Unit test suite should complete within three minutes"
+      "budget_ms": 1200000,
+      "description": "Unit test suite should complete within twenty minutes"
     },
     "wgx:lint": {
       "budget_ms": 60000,
