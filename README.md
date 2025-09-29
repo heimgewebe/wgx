@@ -76,6 +76,45 @@ Standardwerte liegen unter `etc/config.example`.
 Beim ersten Lauf von `wgx init` werden die Werte nach `~/.config/wgx/config` kopiert.
 Anschließend kannst du sie dort projektspezifisch anpassen.
 
+## .wgx/profile (v1 / v1.1)
+
+- **Datei**: `.wgx/profile.yml` (oder `.yaml` / `.json`)
+- **apiVersion**:
+  - `v1`: einfache Strings für `tasks.<name>`
+  - `v1.1`: reichere Spezifikation (Arrays, desc/group/safe, envDefaults/Overrides, requiredWgx-Objekt)
+
+### Minimales Beispiel (v1)
+```yaml
+wgx:
+  apiVersion: v1
+  requiredWgx: "^2.0"
+  repoKind: "generic"
+  tasks:
+    test: "cargo test --workspace"
+```
+
+### Erweitertes Beispiel (v1.1)
+
+```yaml
+wgx:
+  apiVersion: v1.1
+  requiredWgx:
+    range: "^2.0"
+    min: "2.0.3"
+    caps: ["task-array","status-dirs"]
+  repoKind: "hauski"
+  dirs: { web: "", api: "crates", data: ".local/state/hauski" }
+  env:
+    RUST_LOG: "info,hauski=debug"
+  envDefaults:
+    RUST_BACKTRACE: "1"
+  envOverrides: {}
+  tasks:
+    doctor: { desc: "Sanity checks", safe: true, cmd: ["cargo","run","-p","hauski-cli","--","doctor"] }
+    test:   { desc: "Workspace tests", safe: true, cmd: ["cargo","test","--workspace","--","--nocapture"] }
+    serve:  { desc: "Dev server",      cmd: ["cargo","run","-p","hauski-cli","--","serve"] }
+```
+
 ## Tests
 
 Automatisierte Tests werden über `tests/` organisiert (z. B. mit [Bats](https://bats-core.readthedocs.io/)).
