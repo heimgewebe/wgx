@@ -102,6 +102,16 @@ jobs:
     timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
+      - name: Install bats helpers
+        run: |
+          set -euo pipefail
+          mkdir -p test
+          if [ ! -d test/bats-support ]; then
+            git clone https://github.com/bats-core/bats-support.git test/bats-support
+          fi
+          if [ ! -d test/bats-assert ]; then
+            git clone https://github.com/bats-core/bats-assert.git test/bats-assert
+          fi
       - name: Run bats test suites
         uses: bats-core/bats-action@v2.0.0
 

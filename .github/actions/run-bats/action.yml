@@ -22,6 +22,18 @@ runs:
         fi
         sudo apt-get update -y
         sudo apt-get install -y bats
+    - name: Install bats helpers
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        set -euo pipefail
+        mkdir -p test
+        if [ ! -d test/bats-support ]; then
+          git clone https://github.com/bats-core/bats-support.git test/bats-support
+        fi
+        if [ ! -d test/bats-assert ]; then
+          git clone https://github.com/bats-core/bats-assert.git test/bats-assert
+        fi
     - name: Execute bats
       shell: bash
       working-directory: ${{ inputs.working-directory }}
