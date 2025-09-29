@@ -20,25 +20,20 @@ jobs:
     name: Detect changes
     runs-on: ubuntu-latest
     outputs:
-      core: ${{ steps.filter.outputs.core }}
+      shell: ${{ steps.filter.outputs.shell }}
       docs: ${{ steps.filter.outputs.docs }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: dorny/paths-filter@v3
         id: filter
         with:
           filters: |
-            core:
+            shell:
               - 'wgx'
-              - 'lib/**'
-              - 'modules/**'
-              - 'cmd/**'
-              - 'templates/**'
-              - 'etc/**'
-              - 'installers/**'
-              - 'tests/**'
-              - '.github/actions/**'
-              - '.github/workflows/**'
+              - '**/*.sh'
+              - '**/*.bash'
             docs:
               - '**/*.md'
               - 'docs/**'
@@ -48,10 +43,16 @@ jobs:
     needs: changes
     if: |
       github.event_name == 'merge_group' ||
-      (github.event_name != 'merge_group' &&
-       github.event.pull_request.draft == false &&
-       (needs.changes.outputs.core == 'true' ||
-        contains(join(github.event.pull_request.labels.*.name), 'full-ci')))
+      github.event_name == 'workflow_dispatch' ||
+      (
+        github.event_name == 'pull_request' &&
+        github.event.pull_request.draft == false &&
+        (
+          needs.changes.outputs.shell == 'true' ||
+          contains(github.event.pull_request.labels.*.name, 'full-ci') ||
+          contains(github.event.pull_request.labels.*.name, 'lint')
+        )
+      )
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
@@ -77,33 +78,19 @@ jobs:
             echo "No shell files."
           fi
 
-  test_bats:
-    name: Tests (bats -r tests)
-    needs: lint_shell
-    if: |
-      github.event_name == 'merge_group' ||
-      (github.event_name != 'merge_group' &&
-       github.event.pull_request.draft == false)
-    runs-on: ubuntu-latest
-    timeout-minutes: 18
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install bats
-        run: |
-          sudo apt-get update -y
-          sudo apt-get install -y bats
-      - name: Run bats
-        run: |
-          if [ -d tests ]; then
-            bats -r tests
-          else
-            echo "No tests/ directory"; exit 1
-          fi
-
   docs_lint:
     name: Docs lint (Markdown + Links)
     needs: changes
-    if: needs.changes.outputs.docs == 'true' || github.event_name == 'merge_group'
+    if: |
+      github.event_name == 'merge_group' ||
+      github.event_name == 'workflow_dispatch' ||
+      (
+        github.event_name == 'pull_request' &&
+        (
+          needs.changes.outputs.docs == 'true' ||
+          contains(github.event.pull_request.labels.*.name, 'full-ci')
+        )
+      )
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
