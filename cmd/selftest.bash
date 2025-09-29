@@ -22,7 +22,7 @@ selftest_check_bins() {
     if command -v "$bin" >/dev/null 2>&1; then
       selftest_ok "$label: $bin found"
     else
-      if ((critical)); then
+      if (( critical )); then
         selftest_warn "$label: $bin missing"
         miss=1
       else
@@ -66,7 +66,7 @@ cmd_selftest() {
     selftest_info "Hinweis: Selbsttest außerhalb eines Git-Repos – einige Kommandos erfordern eins."
   fi
 
-  if ((had_warn == 0)); then
+  if (( had_warn == 0 )); then
     selftest_ok "Selftest abgeschlossen."
     return 0
   fi

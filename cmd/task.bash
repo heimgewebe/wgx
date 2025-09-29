@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 cmd_task() {
-  if (($# == 0)); then
+  if (( $# == 0 )); then
     die "Usage: wgx task <name> [--] [args...]"
   fi
 
