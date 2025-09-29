@@ -96,9 +96,6 @@ collect_packages() {
     case "$target" in
       '')
         ;;
-      check)
-        echo "Ignoring 'check' target during installation. Run './.devcontainer/setup.sh check' separately." >&2
-        ;;
       base)
         packages+=("${BASE_PACKAGES[@]}")
         ;;
@@ -110,10 +107,6 @@ collect_packages() {
         ;;
       jq|moreutils|shellcheck|shfmt|bats)
         packages+=("$target")
-        ;;
-      check)
-        echo "Ignoring 'check' target during installation. Run './.devcontainer/setup.sh check' separately." >&2
-        continue
         ;;
       *)
         echo "Unknown install target: $target" >&2
