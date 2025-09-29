@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "scripts": {
+    "wgx:build": {
+      "budget_ms": 120000,
+      "description": "Full build should complete within two minutes"
+    },
+    "wgx:test": {
+      "budget_ms": 1200000,
+      "description": "Unit test suite should complete within twenty minutes"
+    },
+    "wgx:lint": {
+      "budget_ms": 60000,
+      "description": "Linting must stay under one minute"
+    }
+  }
+}

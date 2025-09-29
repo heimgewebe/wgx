@@ -1,0 +1,9 @@
+version: 1
+ci:
+  max_runtime_minutes: 30
+  max_memory_mb: 4096
+  actions:
+    - name: unit-tests
+      timeout_minutes: 20
+    - name: lint
+      timeout_minutes: 5

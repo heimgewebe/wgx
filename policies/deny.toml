@@ -1,0 +1,17 @@
+[graph]
+depth = 5
+
+[bans]
+bare_version = "deny"
+multiple_versions = "deny"
+
+[licenses]
+allow = ["MIT", "Apache-2.0", "BSD-3-Clause", "BSD-2-Clause"]
+
+[advisories]
+vulnerability = "deny"
+unmaintained = "deny"
+yanked = "deny"
+
+[exceptions]
+crates = []
