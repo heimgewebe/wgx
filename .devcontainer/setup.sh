@@ -92,6 +92,8 @@ collect_packages() {
   local -a packages=()
   for target in "$@"; do
     case "$target" in
+      "")
+        ;;
       base)
         packages+=("${BASE_PACKAGES[@]}")
         ;;
@@ -103,8 +105,6 @@ collect_packages() {
         ;;
       jq|moreutils|shellcheck|shfmt|bats)
         packages+=("$target")
-        ;;
-      "")
         ;;
       *)
         echo "Unknown install target: $target" >&2
@@ -155,12 +155,11 @@ run_install() {
 }
 
 main() {
-  if (($# == 0)); then
-    usage
-    exit 1
-  fi
-
-  case "$1" in
+  case "${1-}" in
+    "")
+      usage
+      exit 1
+      ;;
     check)
       run_check
       ;;
