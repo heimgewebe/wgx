@@ -6,7 +6,7 @@ inputs:
     required: false
     default: .
   bats-args:
-    description: Arguments to pass to the bats command (for example: "-r tests")
+    description: "Arguments to pass to the bats command (for example: \"-r tests\")"
     required: false
     default: -r tests
 runs:
