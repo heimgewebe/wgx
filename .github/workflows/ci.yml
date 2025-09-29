@@ -103,7 +103,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Run bats test suites
-        uses: ./.github/actions/run-bats
+        uses: bats-core/bats-action@v2.0.0
 
   docs_lint:
     name: Docs lint (Markdown + Links)
