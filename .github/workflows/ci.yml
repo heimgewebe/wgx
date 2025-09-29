@@ -1,47 +1,97 @@
-name: CI
+name: CI (smart PR)
 
 on:
-  push:
-    branches: [ main, master ]
   pull_request:
-    branches: [ "*" ]
+    branches: [ main ]
+    types: [opened, synchronize, reopened, ready_for_review, labeled, unlabeled]
+  merge_group: {}
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  bash_lint_test:
-    name: Bash Lint & Tests
+  changes:
+    name: Detect changes
     runs-on: ubuntu-latest
+    outputs:
+      core: ${{ steps.filter.outputs.core }}
+      docs: ${{ steps.filter.outputs.docs }}
     steps:
       - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            core:
+              - 'wgx'
+              - 'lib/**'
+              - 'modules/**'
+              - 'cmd/**'
+              - 'templates/**'
+              - 'etc/**'
+              - 'installers/**'
+              - 'tests/**'
+              - '.github/actions/**'
+              - '.github/workflows/**'
+            docs:
+              - '**/*.md'
+              - 'docs/**'
 
+  lint_shell:
+    name: Shell lint (shfmt + shellcheck)
+    needs: changes
+    if: |
+      github.event_name == 'merge_group' ||
+      (github.event_name != 'merge_group' &&
+       github.event.pull_request.draft == false &&
+       (needs.changes.outputs.core == 'true' ||
+        contains(join(github.event.pull_request.labels.*.name), 'full-ci')))
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
       - name: Install shell tooling
         run: |
           sudo apt-get update -y
-          sudo apt-get install -y shellcheck shfmt bats jq
-
+          sudo apt-get install -y shellcheck shfmt jq
       - name: shfmt (check)
         run: |
-          # Fail if any .sh/.bash not formatted
-          readarray -t files < <(git ls-files '*.sh' '*.bash')
-          if [ "${#files[@]}" -eq 0 ]; then
+          readarray -t files < <(git ls-files '*.sh' '*.bash' 'wgx' 'cmd/*' 'lib/*' 'modules/*' 2>/dev/null || true)
+          if [ "${#files[@]}" -gt 0 ]; then
+            shfmt -d "${files[@]}"
+          else
             echo "No shell files."
-            exit 0
           fi
-
-          printf '%s,' "${files[@]}" | sed 's/,$//'
-          echo
-
-          shfmt -d "${files[@]}"
-
       - name: shellcheck
         run: |
-          readarray -t files < <(git ls-files '*.sh' '*.bash')
+          readarray -t files < <(git ls-files '*.sh' '*.bash' 'wgx' 'cmd/*' 'lib/*' 'modules/*' 2>/dev/null || true)
           if [ "${#files[@]}" -gt 0 ]; then
             shellcheck -S style "${files[@]}"
           else
             echo "No shell files."
           fi
 
-      - name: bats tests
+  test_bats:
+    name: Tests (bats -r tests)
+    needs: lint_shell
+    if: |
+      github.event_name == 'merge_group' ||
+      (github.event_name != 'merge_group' &&
+       github.event.pull_request.draft == false)
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install bats
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y bats
+      - name: Run bats
         run: |
           if [ -d tests ]; then
             bats -r tests
@@ -50,22 +100,20 @@ jobs:
           fi
 
   docs_lint:
-    name: Docs Lint (Markdown + Links)
+    name: Docs lint (Markdown + Links)
+    needs: changes
+    if: needs.changes.outputs.docs == 'true' || github.event_name == 'merge_group'
     runs-on: ubuntu-latest
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
-
       - name: Markdownlint
         run: |
-          npm install -g markdownlint-cli2
-          markdownlint-cli2 "**/*.md" "#node_modules" "#.git" "#**/CHANGELOG*.md" || exit 1
-
-      - name: Link Check (Lychee)
-        uses: lycheeverse/lychee-action@v1
+          npm i -g markdownlint-cli2@0.12.1
+          markdownlint-cli2 "**/*.md" "#node_modules" "#.git" || exit 1
+      - name: Link check (Lychee)
+        uses: lycheeverse/lychee-action@v2
         with:
-          args: >-
-            --no-progress --accept 200,206,429
-            --exclude-loopback --max-concurrency 8
-            .
+          args: --no-progress --accept 200,206,429 --max-concurrency 8 .
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
