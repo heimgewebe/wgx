@@ -135,20 +135,12 @@ run_check() {
 run_install() {
   shift || true
 
-  local -a requested_targets=()
-  local target
-  for target in "$@"; do
-    if [[ -n "$target" ]]; then
-      requested_targets+=("$target")
-    fi
-  done
-
   local default_to_base=0
   if (($# == 0)); then
     default_to_base=1
   fi
 
-  mapfile -t targets < <(collect_packages "${requested_targets[@]}")
+  mapfile -t targets < <(collect_packages "$@")
 
   if ((${#targets[@]} == 0)); then
     if ((default_to_base)); then
