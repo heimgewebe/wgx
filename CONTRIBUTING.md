@@ -5,7 +5,7 @@ Halte Änderungen klein, portabel und mit Tests abgesichert.
 
 ## Grundregeln
 
-- **Sprache:** Dokumentation, Commit-Nachrichten und Hilfetexte auf Deutsch verfassen.
+- **Sprache:** Dokumentation und Hilfetexte auf Deutsch verfassen; Commit-Nachrichten vorzugsweise auf Englisch für Tool-Kompatibilität.
 - **Portabilität:** Termux/WSL/Codespaces nicht brechen. Keine GNU-only-Flags ohne Schutz.
 - **Sicherheit:** In allen Skripten `set -euo pipefail`; keine stillen Fehler.
 - **Hilfe:** Jeder Befehl muss `-h|--help` unterstützen.
