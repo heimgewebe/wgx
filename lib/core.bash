@@ -155,6 +155,13 @@ wgx_main() {
   shift || true
 
   case "$sub" in
+  validate)
+    _load_modules
+    # shellcheck source=/dev/null
+    source "${WGX_DIR}/cmd/validate.bash"
+    validate::run "$@"
+    return
+    ;;
   help | -h | --help)
     wgx_usage
     return

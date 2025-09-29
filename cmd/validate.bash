@@ -1,100 +1,79 @@
-#!/usr/bin/env bash
+# shellcheck shell=bash
 
-cmd_validate() {
-  local json=0 profile_path=""
-  while (($#)); do
-    case "$1" in
-    --json) json=1 ;;
-    --profile)
-      shift || { die "--profile requires a path"; }
-      profile_path="$1"
-      ;;
-    -h | --help)
-      cat <<'USAGE'
-Usage: wgx validate [--json] [--profile <path>]
-  --json       Emit JSON output
-  --profile    Validate an explicit manifest file
-USAGE
-      return 0
-      ;;
-    *)
-      warn "unknown option: $1"
-      return 1
-      ;;
-    esac
+if ! declare -F require_repo >/dev/null 2>&1; then
+  require_repo() {
+    if ! command -v git >/dev/null 2>&1; then
+      die "git nicht installiert."
+    fi
+    if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+      die "Nicht im Git-Repo."
+    fi
+  }
+fi
+
+validate::run() {
+  require_repo
+
+  local json_mode=0
+  if [[ "${1-}" == "--json" ]]; then
+    json_mode=1
     shift || true
-  done
+  fi
 
-  if [[ -n $profile_path ]]; then
-    if ! profile::load "$profile_path"; then
-      die "could not load manifest: $profile_path"
+  if ! profile::load; then
+    if (( json_mode )); then
+      echo '{"ok":false,"errors":["profile_missing"]}'
+    else
+      die "Profile fehlt (.wgx/profile.yml|yaml|json)"
     fi
+    return 1
+  fi
+
+  local ok=true
+  local errs=()
+
+  if ! profile::ensure_version; then
+    ok=false
+    errs+=("version_mismatch")
+  fi
+
+  local tasks_count=0
+  if declare -p WGX_TASK_CMD >/dev/null 2>&1; then
+    tasks_count=${#WGX_TASK_CMD[@]}
+  elif declare -p WGX_TASK_CMDS >/dev/null 2>&1; then
+    tasks_count=${#WGX_TASK_CMDS[@]}
+  fi
+  if (( tasks_count == 0 )); then
+    ok=false
+    errs+=("no_tasks")
+  fi
+
+  if (( json_mode )); then
+    printf '{'
+    if [[ $ok == true ]]; then
+      printf '"ok":true'
+    else
+      printf '"ok":false'
+    fi
+    printf ',"errors":['
+    local first=1
+    local e
+    for e in "${errs[@]}"; do
+      if (( first )); then
+        first=0
+      else
+        printf ','
+      fi
+      printf '"%s"' "$e"
+    done
+    printf ']}'
+    printf '\n'
   else
-    if ! profile::ensure_loaded; then
-      die "no manifest found"
+    if [[ $ok == true ]]; then
+      echo "manifest OK"
+    else
+      echo "manifest ungültig: ${errs[*]}"
+      return 1
     fi
   fi
-
-  local -a errors=()
-  local -a missing_caps=()
-  profile::validate_manifest errors missing_caps || true
-
-  local ok=0
-  if ((${#errors[@]} == 0)); then
-    ok=1
-  fi
-
-  if ((json)); then
-    if ! declare -F json_escape >/dev/null 2>&1; then
-      source "${WGX_DIR:-.}/modules/json.bash"
-    fi
-    local ok_value
-    ok_value=$([[ $ok -eq 1 ]] && echo true || echo false)
-    printf '{"ok":%s,"errors":[' "$ok_value"
-    local sep=""
-    local entry
-    for entry in "${errors[@]}"; do
-      printf '%s"%s"' "$sep" "$(json_escape "$entry")"
-      sep=','
-    done
-    printf '],"caps":{"required":['
-    sep=""
-    for entry in "${WGX_REQUIRED_CAPS[@]}"; do
-      printf '%s"%s"' "$sep" "$(json_escape "$entry")"
-      sep=','
-    done
-    printf '],"available":['
-    sep=""
-    local -a _caps_available=()
-    mapfile -t _caps_available < <(profile::available_caps)
-    local cap
-    for cap in "${_caps_available[@]}"; do
-      [[ -z $cap ]] && continue
-      printf '%s"%s"' "$sep" "$(json_escape "$cap")"
-      sep=','
-    done
-    printf '],"missing":['
-    sep=""
-    for entry in "${missing_caps[@]}"; do
-      printf '%s"%s"' "$sep" "$(json_escape "$entry")"
-      sep=','
-    done
-    printf ']}}\n'
-    ((ok)) && return 0 || return 1
-  fi
-
-  if ((ok)); then
-    echo "Manifest OK"
-    return 0
-  fi
-
-  echo "Manifest issues detected:"
-  local issue
-  for issue in "${errors[@]}"; do
-    echo " - $issue"
-  done
-  if ((${#missing_caps[@]})); then
-    echo "Missing capabilities: ${missing_caps[*]}"
-  fi
-  return 1
 }
