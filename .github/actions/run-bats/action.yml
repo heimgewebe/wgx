@@ -21,7 +21,7 @@ runs:
           exit 0
         fi
         ./.devcontainer/setup.sh install optional
-        # Optional kleiner: sudo rm -rf /var/lib/apt/lists/* || true
+        # Optional cleanup: sudo rm -rf /var/lib/apt/lists/* || true
     - name: Execute bats
       shell: bash
       working-directory: ${{ inputs.working-directory }}
