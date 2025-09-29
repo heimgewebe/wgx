@@ -26,5 +26,5 @@
     }
   },
   "remoteUser": "vscode",
-  "postCreateCommand": ".devcontainer/setup.sh"
+  "postCreateCommand": "bash -lc 'just devcontainer-check || .devcontainer/setup.sh check'"
 }
