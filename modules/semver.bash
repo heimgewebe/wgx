@@ -63,8 +63,10 @@ semver_in_caret_range() {
     local next_minor=$(( minor + 1 ))
     upper="0.${next_minor}.0"
   else
-    local next_patch=$(( _patch + 1 ))
-    upper="0.0.${next_patch}"
+    # For 0.0.x ranges we only allow patch updates, so we stop before the
+    # first minor release.
+    local next_minor=$(( minor + 1 ))
+    upper="0.${next_minor}.0"
   fi
 
   semver_ge "$have" "$lower" && semver_lt "$have" "$upper"

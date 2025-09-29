@@ -90,41 +90,39 @@ print_tool_status() {
 }
 
 collect_packages() {
+  local -n _out=$1
+  shift || true
+
   local target
-  local -a packages=()
   for target in "$@"; do
     case "$target" in
       '')
-        ;;
-      check)
-        echo "Ignoring 'check' target during installation. Run './.devcontainer/setup.sh check' separately." >&2
-        ;;
-      base)
-        packages+=("${BASE_PACKAGES[@]}")
-        ;;
-      optional)
-        packages+=("${OPTIONAL_PACKAGES[@]}")
-        ;;
-      all)
-        packages+=("${BASE_PACKAGES[@]}" "${OPTIONAL_PACKAGES[@]}")
-        ;;
-      jq|moreutils|shellcheck|shfmt|bats)
-        packages+=("$target")
+        continue
         ;;
       check)
         echo "Ignoring 'check' target during installation. Run './.devcontainer/setup.sh check' separately." >&2
         continue
         ;;
+      base)
+        _out+=("${BASE_PACKAGES[@]}")
+        ;;
+      optional)
+        _out+=("${OPTIONAL_PACKAGES[@]}")
+        ;;
+      all)
+        _out+=("${BASE_PACKAGES[@]}" "${OPTIONAL_PACKAGES[@]}")
+        ;;
+      jq|moreutils|shellcheck|shfmt|bats)
+        _out+=("$target")
+        ;;
       *)
         echo "Unknown install target: $target" >&2
-        exit 1
+        return 1
         ;;
     esac
   done
 
-  if ((${#packages[@]} > 0)); then
-    printf '%s\n' "${packages[@]}"
-  fi
+  return 0
 }
 
 run_check() {
@@ -146,7 +144,15 @@ run_install() {
     default_to_base=1
   fi
 
-  mapfile -t targets < <(collect_packages "$@")
+  local -a collected=()
+  if ! collect_packages collected "$@"; then
+    return 1
+  fi
+
+  local -a targets=()
+  if ((${#collected[@]} > 0)); then
+    targets=("${collected[@]}")
+  fi
 
   if ((${#targets[@]} == 0)); then
     if ((default_to_base)); then
