@@ -1,4 +1,129 @@
 #!/usr/bin/env bash
+
 bats_assert_loaded=1
-assert_success() { test "$status" -eq 0; }
-assert_output() { :; }
+
+_assert_fail() {
+  local message=$1
+  printf 'Assertion failed: %s\n' "$message" >&2
+  return 1
+}
+
+_assert_match() {
+  local mode=$1
+  local haystack=$2
+  local needle=$3
+  case "$mode" in
+    exact)
+      [[ $haystack == "$needle" ]]
+      ;;
+    partial)
+      [[ $haystack == *"$needle"* ]]
+      ;;
+    regexp)
+      [[ $haystack =~ $needle ]]
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+assert_success() {
+  local actual=${status-}
+  if [[ ${actual:-1} -ne 0 ]]; then
+    _assert_fail "Expected success (status 0) but got ${actual:-<unset>}"
+  fi
+}
+
+assert_failure() {
+  local expected=${1-}
+  local actual=${status-}
+  if [[ -z ${expected} ]]; then
+    if [[ ${actual:-0} -eq 0 ]]; then
+      _assert_fail "Expected failure (non-zero status) but command succeeded"
+    fi
+  else
+    if [[ ${actual:-0} -ne $expected ]]; then
+      _assert_fail "Expected exit status $expected but got ${actual:-0}"
+    fi
+  fi
+}
+
+assert_output() {
+  local mode=exact
+  while (($#)); do
+    case "$1" in
+      --partial)
+        mode=partial
+        shift
+        ;;
+      --regexp)
+        mode=regexp
+        shift
+        ;;
+      --)
+        shift
+        break
+        ;;
+      *)
+        break
+        ;;
+    esac
+  done
+
+  local expected="$*"
+  local actual=${output-}
+
+  if ! _assert_match "$mode" "$actual" "$expected"; then
+    _assert_fail "Expected output (${mode}) to match '$expected' but was: $actual"
+  fi
+}
+
+assert_line() {
+  local index=""
+  local mode=exact
+  while (($#)); do
+    case "$1" in
+      --index)
+        if [[ -z $2 ]]; then
+          _assert_fail "Missing value for --index argument"
+        fi
+        if ! [[ $2 =~ ^[0-9]+$ ]]; then
+          _assert_fail "Invalid value for --index: '$2' (must be a non-negative integer)"
+        fi
+        index=$2
+        shift 2
+        ;;
+      --partial)
+        mode=partial
+        shift
+        ;;
+      --regexp)
+        mode=regexp
+        shift
+        ;;
+      --)
+        shift
+        break
+        ;;
+      *)
+        break
+        ;;
+    esac
+  done
+
+  if [[ -z $index ]]; then
+    _assert_fail "assert_line requires --index for this helper"
+  fi
+
+  local expected="$*"
+
+  if [[ $index -ge ${#lines[@]} ]]; then
+    _assert_fail "Expected line at index $index but command produced ${#lines[@]} lines"
+  fi
+
+  local line="${lines[$index]}"
+  if ! _assert_match "$mode" "$line" "$expected"; then
+    _assert_fail "Expected line[$index] (${mode}) to match '$expected' but was: $line"
+  fi
+}
