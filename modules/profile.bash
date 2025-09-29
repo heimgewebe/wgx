@@ -6,7 +6,6 @@ PROFILE_VERSION=""
 WGX_REQUIRED_RANGE=""
 WGX_REQUIRED_MIN=""
 WGX_REPO_KIND=""
-WGX_MANIFEST_HERMETIC=""
 WGX_DIR_WEB=""
 WGX_DIR_API=""
 WGX_DIR_DATA=""
@@ -27,7 +26,6 @@ declare -gA WGX_TASK_DESC=()
 declare -gA WGX_TASK_GROUP=()
 declare -gA WGX_TASK_SAFE=()
 
-declare -ga WGX_WORKFLOW_ORDER=()
 declare -gA WGX_WORKFLOW_TASKS=()
 
 profile::_reset() {
@@ -35,14 +33,12 @@ profile::_reset() {
   WGX_REQUIRED_RANGE=""
   WGX_REQUIRED_MIN=""
   WGX_REPO_KIND=""
-  WGX_MANIFEST_HERMETIC=""
   WGX_DIR_WEB=""
   WGX_DIR_API=""
   WGX_DIR_DATA=""
   WGX_REQUIRED_CAPS=()
   WGX_ENV_KEYS=()
   WGX_TASK_ORDER=()
-  WGX_WORKFLOW_ORDER=()
   WGX_ENV_BASE_MAP=()
   WGX_ENV_DEFAULT_MAP=()
   WGX_ENV_OVERRIDE_MAP=()
@@ -179,12 +175,6 @@ else:
     emit_caps([])
 
 emit(f"WGX_REPO_KIND={shell_quote(str(wgx.get('repoKind') or ''))}")
-hermetic = wgx.get('hermetic')
-if isinstance(hermetic, bool):
-    emit(f"WGX_MANIFEST_HERMETIC={'1' if hermetic else '0'}")
-else:
-    emit("WGX_MANIFEST_HERMETIC=")
-
 dirs = wgx.get('dirs') or {}
 emit(f"WGX_DIR_WEB={shell_quote(str(dirs.get('web') or ''))}")
 emit(f"WGX_DIR_API={shell_quote(str(dirs.get('api') or ''))}")
@@ -204,7 +194,6 @@ if isinstance(workflows, dict):
                     task_name = step.get('task')
                     if task_name:
                         steps.append(str(task_name))
-        emit(f"WGX_WORKFLOW_ORDER+=({shell_quote(str(wf_name))})")
         emit(f"WGX_WORKFLOW_TASKS[{shell_quote(str(wf_name))}]={shell_quote(' '.join(steps))}")
 
 tasks = wgx.get('tasks') or {}
@@ -248,10 +237,10 @@ if isinstance(tasks, dict):
 
 PY
   local status=$?
-  if (( status == 0 )); then
+  if ((status == 0)); then
     return 0
   fi
-  if (( status == 3 )); then
+  if ((status == 3)); then
     return 3
   fi
   return 1
@@ -281,6 +270,7 @@ profile::_flat_yaml_parse() {
     if [[ $line =~ ^repoKind:[[:space:]]*(.*)$ ]]; then
       value="${BASH_REMATCH[1]}"
       value="$(printf '%s' "$value" | sed 's/^"//' | sed 's/"$//')"
+      # shellcheck disable=SC2034
       WGX_REPO_KIND="$value"
       continue
     fi
@@ -300,10 +290,11 @@ profile::_flat_yaml_parse() {
       key="${BASH_REMATCH[1]}"
       value="${BASH_REMATCH[2]}"
       value="$(printf '%s' "$value" | sed 's/^"//' | sed 's/"$//')"
+      # shellcheck disable=SC2034
       case "$key" in
-        web)  WGX_DIR_WEB="$value" ;;
-        api)  WGX_DIR_API="$value" ;;
-        data) WGX_DIR_DATA="$value" ;;
+      web) WGX_DIR_WEB="$value" ;;
+      api) WGX_DIR_API="$value" ;;
+      data) WGX_DIR_DATA="$value" ;;
       esac
       continue
     fi
@@ -377,12 +368,12 @@ profile::load() {
       status=0
     else
       local rc=$?
-      if (( rc == 3 )); then
+      if ((rc == 3)); then
         status=3
       fi
     fi
   fi
-  if (( status != 0 )); then
+  if ((status != 0)); then
     profile::_flat_yaml_parse "$file"
   fi
   profile::_collect_env_keys
@@ -479,7 +470,7 @@ profile::tasks_json() {
   for name in $(profile::_task_keys); do
     key="$name"
     safe="$(profile::_task_safe "$key")"
-    if (( safe_only )) && [[ "$safe" != "1" ]]; then
+    if ((safe_only)) && [[ "$safe" != "1" ]]; then
       continue
     fi
     desc="$(profile::_task_desc "$key")"
@@ -490,7 +481,7 @@ profile::tasks_json() {
     sep=','
   done
   printf ']'
-  if (( include_groups )); then
+  if ((include_groups)); then
     local -A groups=()
     for name in $(profile::_task_keys); do
       group="$(profile::_task_group "$name")"
@@ -529,8 +520,10 @@ profile::env_apply() {
 profile::run_task() {
   local name="$1"
   shift || true
-  local key="$(profile::_normalize_task_name "$name")"
-  local spec="$(profile::_task_spec "$key")"
+  local key
+  key="$(profile::_normalize_task_name "$name")"
+  local spec
+  spec="$(profile::_task_spec "$key")"
   [[ -n $spec ]] || return 1
   local -a envs=()
   mapfile -t envs < <(profile::env_apply)
@@ -541,65 +534,65 @@ profile::run_task() {
     shift || true
   done
   case "$spec" in
-    ARR:*)
-      local payload="${spec#ARR:}"
-      local -a cmd=()
-      if [[ -n $payload ]]; then
-        read -r -a cmd <<<"$payload"
+  ARR:*)
+    local payload="${spec#ARR:}"
+    local -a cmd=()
+    if [[ -n $payload ]]; then
+      read -r -a cmd <<<"$payload"
+    fi
+    if ((dryrun)); then
+      printf 'DRY: '
+      local item
+      for item in "${envs[@]}"; do
+        printf '%q ' "$item"
+      done
+      for item in "${cmd[@]}"; do
+        printf '%q ' "$item"
+      done
+      for item in "${args[@]}"; do
+        printf '%q ' "$item"
+      done
+      printf '\n'
+      return 0
+    fi
+    (
+      ((${#envs[@]})) && export "${envs[@]}"
+      exec "${cmd[@]}" "${args[@]}"
+    )
+    ;;
+  STR:*)
+    local command="${spec#STR:}"
+    if ((dryrun)); then
+      printf 'DRY: '
+      local item
+      for item in "${envs[@]}"; do
+        printf '%q ' "$item"
+      done
+      printf '%s' "$command"
+      for item in "${args[@]}"; do
+        printf ' %q' "$item"
+      done
+      printf '\n'
+      return 0
+    fi
+    (
+      ((${#envs[@]})) && export "${envs[@]}"
+      if ((${#args[@]})); then
+        local extra=""
+        local arg
+        for arg in "${args[@]}"; do
+          extra+=" "
+          extra+="$(printf '%q' "$arg")"
+        done
+        exec bash -lc "$command$extra"
+      else
+        exec bash -lc "$command"
       fi
-      if (( dryrun )); then
-        printf 'DRY: '
-        local item
-        for item in "${envs[@]}"; do
-          printf '%q ' "$item"
-        done
-        for item in "${cmd[@]}"; do
-          printf '%q ' "$item"
-        done
-        for item in "${args[@]}"; do
-          printf '%q ' "$item"
-        done
-        printf '\n'
-        return 0
-      fi
-      (
-        (( ${#envs[@]} )) && export "${envs[@]}"
-        exec "${cmd[@]}" "${args[@]}"
-      )
-      ;;
-    STR:*)
-      local command="${spec#STR:}"
-      if (( dryrun )); then
-        printf 'DRY: '
-        local item
-        for item in "${envs[@]}"; do
-          printf '%q ' "$item"
-        done
-        printf '%s' "$command"
-        for item in "${args[@]}"; do
-          printf ' %q' "$item"
-        done
-        printf '\n'
-        return 0
-      fi
-      (
-        (( ${#envs[@]} )) && export "${envs[@]}"
-        if ((${#args[@]})); then
-          local extra=""
-          local arg
-          for arg in "${args[@]}"; do
-            extra+=" "
-            extra+="$(printf '%q' "$arg")"
-          done
-          exec bash -lc "$command$extra"
-        else
-          exec bash -lc "$command"
-        fi
-      )
-      ;;
-    *)
-      return 1
-      ;;
+    )
+    ;;
+  *)
+    return 1
+    ;;
   esac
 }
 
@@ -613,14 +606,14 @@ profile::validate_manifest() {
     _errors_ref+=("missing_apiVersion")
   else
     case "$PROFILE_VERSION" in
-      v1|1|1.0|v1.0|"1.0") ;;
-      v1.1|1.1) ;;
-      *)
-        _errors_ref+=("unsupported_apiVersion")
-        ;;
+    v1 | 1 | 1.0 | v1.0) ;;
+    v1.1 | 1.1) ;;
+    *)
+      _errors_ref+=("unsupported_apiVersion")
+      ;;
     esac
   fi
-  if (( ${#WGX_TASK_CMDS[@]} == 0 )); then
+  if ((${#WGX_TASK_CMDS[@]} == 0)); then
     _errors_ref+=("no_tasks")
   fi
   local key spec
@@ -642,7 +635,7 @@ profile::validate_manifest() {
       missing+=("$cap")
     fi
   done
-  if (( ${#missing[@]} )); then
+  if ((${#missing[@]})); then
     _missing_caps_ref=("${missing[@]}")
     _errors_ref+=("missing_capabilities")
   fi
@@ -651,7 +644,8 @@ profile::validate_manifest() {
     tasks="${WGX_WORKFLOW_TASKS[$wf]}"
     [[ -z $tasks ]] && continue
     for wf_task in $tasks; do
-      local normalised="$(profile::_normalize_task_name "$wf_task")"
+      local normalised
+      normalised="$(profile::_normalize_task_name "$wf_task")"
       if [[ -z ${WGX_TASK_CMDS[$normalised]:-} ]]; then
         _errors_ref+=("workflow_missing_task:${wf}:${wf_task}")
       fi

@@ -4,23 +4,23 @@ cmd_validate() {
   local json=0 profile_path=""
   while (($#)); do
     case "$1" in
-      --json) json=1 ;;
-      --profile)
-        shift || { die "--profile requires a path"; }
-        profile_path="$1"
-        ;;
-      -h|--help)
-        cat <<'USAGE'
+    --json) json=1 ;;
+    --profile)
+      shift || { die "--profile requires a path"; }
+      profile_path="$1"
+      ;;
+    -h | --help)
+      cat <<'USAGE'
 Usage: wgx validate [--json] [--profile <path>]
   --json       Emit JSON output
   --profile    Validate an explicit manifest file
 USAGE
-        return 0
-        ;;
-      *)
-        warn "unknown option: $1"
-        return 1
-        ;;
+      return 0
+      ;;
+    *)
+      warn "unknown option: $1"
+      return 1
+      ;;
     esac
     shift || true
   done
@@ -40,15 +40,16 @@ USAGE
   profile::validate_manifest errors missing_caps || true
 
   local ok=0
-  if (( ${#errors[@]} == 0 )); then
+  if ((${#errors[@]} == 0)); then
     ok=1
   fi
 
-  if (( json )); then
+  if ((json)); then
     if ! declare -F json_escape >/dev/null 2>&1; then
       source "${WGX_DIR:-.}/modules/json.bash"
     fi
-    local ok_value=$([[ $ok -eq 1 ]] && echo true || echo false)
+    local ok_value
+    ok_value=$([[ $ok -eq 1 ]] && echo true || echo false)
     printf '{"ok":%s,"errors":[' "$ok_value"
     local sep=""
     local entry
@@ -79,10 +80,10 @@ USAGE
       sep=','
     done
     printf ']}}\n'
-    (( ok )) && return 0 || return 1
+    ((ok)) && return 0 || return 1
   fi
 
-  if (( ok )); then
+  if ((ok)); then
     echo "Manifest OK"
     return 0
   fi
@@ -92,7 +93,7 @@ USAGE
   for issue in "${errors[@]}"; do
     echo " - $issue"
   done
-  if (( ${#missing_caps[@]} )); then
+  if ((${#missing_caps[@]})); then
     echo "Missing capabilities: ${missing_caps[*]}"
   fi
   return 1
