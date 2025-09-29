@@ -59,9 +59,12 @@ semver_in_caret_range() {
   if (( major > 0 )); then
     local next_major=$(( major + 1 ))
     upper="${next_major}.0.0"
-  else
+  elif (( minor > 0 )); then
     local next_minor=$(( minor + 1 ))
     upper="0.${next_minor}.0"
+  else
+    local next_patch=$(( _patch + 1 ))
+    upper="0.0.${next_patch}"
   fi
 
   semver_ge "$have" "$lower" && semver_lt "$have" "$upper"
