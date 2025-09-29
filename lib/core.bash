@@ -201,7 +201,7 @@ wgx_main() {
     return
   fi
 
-  echo "Unknown command: ${sub}" >&2
+  echo "❌ Unbekannter Befehl: ${sub}" >&2
   wgx_usage >&2
   return 1
 }
