@@ -176,7 +176,7 @@ main() {
       usage
       ;;
     base|optional|all|jq|moreutils|shellcheck|shfmt|bats)
-      run_install install "$@"
+      run_install "$@"
       ;;
     *)
       echo "Unknown command: $1" >&2
