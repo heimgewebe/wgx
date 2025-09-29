@@ -1,39 +1,39 @@
-name: Run BATS tests
-description: Execute the repository's BATS test suite.
+name: Run Bats test suite
+description: Run the repository's Bats-based test suites
 inputs:
-  bats-arguments:
-    description: Additional arguments to pass to the bats command.
+  working-directory:
+    description: Directory to run bats from
+    required: false
+    default: .
+  bats-args:
+    description: Arguments to pass to the bats command (for example: "-r tests")
     required: false
     default: -r tests
-  args:
-    description: Optional alias for bats-arguments.
-    required: false
-    default: ""
 runs:
   using: composite
   steps:
-    - name: Install bats
+    - name: Ensure bats is available
       shell: bash
       run: |
         set -euo pipefail
+        if command -v bats >/dev/null 2>&1; then
+          echo "Using existing bats: $(bats -v)"
+          exit 0
+        fi
         sudo apt-get update -y
-        sudo apt-get install -y --no-install-recommends bats
-        sudo rm -rf /var/lib/apt/lists/*
-    - name: Run bats
+        sudo apt-get install -y bats
+    - name: Execute bats
       shell: bash
+      working-directory: ${{ inputs.working-directory }}
       env:
-        PRIMARY_ARGS: ${{ inputs.bats-arguments }}
-        ALIAS_ARGS: ${{ inputs.args }}
+        BATS_ARGS: ${{ inputs.bats-args }}
       run: |
         set -euo pipefail
-        args="${ALIAS_ARGS:-}"
-        if [[ -z "$args" ]]; then
-          args="$PRIMARY_ARGS"
-        fi
-        if [[ -z "$args" ]]; then
-          echo "Error: No test files or directories specified for bats. Please provide arguments via 'bats-arguments' or 'args'."
-          exit 1
+        if [ -n "$BATS_ARGS" ]; then
+          # Use eval and set -- to properly handle quoted arguments.
+          eval "set -- $BATS_ARGS"
+          _bats_args=("$@")
         else
-          # shellcheck disable=SC2086  # Allow intentional word splitting for bats args.
-          bats $args
+          _bats_args=()
         fi
+        bats "${_bats_args[@]}"
