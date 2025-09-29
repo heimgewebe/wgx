@@ -21,8 +21,8 @@ setup() {
 }
 
 @test "caret range pins zero major zero minor to next patch" {
-  run semver_in_caret_range "0.0.5" "^0.0.3"
+  run semver_in_caret_range "0.0.3" "^0.0.3"
   assert_success
-  run semver_in_caret_range "0.1.0" "^0.0.3"
+  run semver_in_caret_range "0.0.4" "^0.0.3"
   assert_failure
 }
