@@ -1,0 +1,9 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    { "label": "shfmt: diff",   "type": "shell", "command": "shfmt -d $(git ls-files '*.sh' '*.bash')" },
+    { "label": "shellcheck",    "type": "shell", "command": "shellcheck -S style $(git ls-files '*.sh' '*.bash')" },
+    { "label": "bats: tests",   "type": "shell", "command": "bats -r tests" },
+    { "label": "wgx: validate", "type": "shell", "command": "wgx validate" }
+  ]
+}
