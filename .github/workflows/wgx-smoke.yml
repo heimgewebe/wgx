@@ -1,0 +1,31 @@
+name: wgx-smoke
+on:
+  pull_request:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Checkout pinned wgx
+        uses: actions/checkout@v4
+        with:
+          repository: alexdermohr/wgx
+          ref: main   # TODO: auf Tag/SHA pinnen
+          path: .wgx-tool
+
+      - name: Link wgx
+        run: |
+          chmod +x .wgx-tool/wgx
+          echo "${PWD}/.wgx-tool" >> $GITHUB_PATH
+
+      - name: Validate
+        run: wgx validate --json | jq -e '.ok==true'
+
+      - name: Doctor (optional)
+        run: |
+          set -e
+          if wgx tasks | grep -qx doctor; then wgx task doctor || true; fi
