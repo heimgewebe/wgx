@@ -112,7 +112,7 @@ wgx:
   tasks:
     doctor: { desc: "Sanity-Checks", safe: true, cmd: ["cargo","run","-p","hauski-cli","--","doctor"] }
     test:   { desc: "Workspace-Tests", safe: true, cmd: ["cargo","test","--workspace","--","--nocapture"] }
-    serve:  { desc: "Entwicklungsserver",      cmd: ["cargo","run","-p","hauski-cli","--","serve"] }
+    serve:  { desc: "Entwicklungsserver", cmd: ["cargo","run","-p","hauski-cli","--","serve"] }
 ```
 
 ## Tests
