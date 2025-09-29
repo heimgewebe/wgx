@@ -51,8 +51,8 @@ semver_lt() {
 semver_in_caret_range() {
   local have="${1#v}" range="${2#^}"
   range="$(semver_norm "$range")"
-  local major minor patch
-  IFS='.' read -r major minor patch <<<"$range"
+  local major minor _patch
+  IFS='.' read -r major minor _patch <<<"$range"
   local lower="$range"
   local upper
 
@@ -63,7 +63,7 @@ semver_in_caret_range() {
     local next_minor=$(( minor + 1 ))
     upper="0.${next_minor}.0"
   else
-    local next_patch=$(( patch + 1 ))
+    local next_patch=$(( _patch + 1 ))
     upper="0.0.${next_patch}"
   fi
 

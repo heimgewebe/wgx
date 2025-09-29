@@ -73,9 +73,9 @@ profile::_normalize_task_name() {
 }
 
 profile::_python_parse() {
-  local file="$1"
+  local file="$1" output
   profile::_have_cmd python3 || return 1
-  python3 - "$file" <<'PY'
+  output="$(python3 - "$file" <<'PY'
 import json
 import os
 import shlex
@@ -247,14 +247,23 @@ if isinstance(tasks, dict):
         continue
 
 PY
+  )"
   local status=$?
-  if (( status == 0 )); then
+  if (( status != 0 )); then
+    return $status
+  fi
+
+  if [[ -z $output ]]; then
     return 0
   fi
-  if (( status == 3 )); then
-    return 3
-  fi
-  return 1
+
+  local line
+  while IFS= read -r line; do
+    [[ -n $line ]] || continue
+    eval "$line"
+  done <<<"$output"
+
+  return 0
 }
 
 profile::_flat_yaml_parse() {
