@@ -1,5 +1,8 @@
 #!/usr/bin/env bats
 
+load 'test/bats-support/load'
+load 'test/bats-assert/load'
+
 setup() { source modules/semver.bash; }
 
 @test "^0.0.3 allows 0.0.3 and <0.0.4" {
