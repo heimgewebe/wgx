@@ -94,7 +94,10 @@ collect_packages() {
   local -a packages=()
   for target in "$@"; do
     case "$target" in
-      "")
+      '')
+        ;;
+      check)
+        echo "Ignoring 'check' target during installation. Run './.devcontainer/setup.sh check' separately." >&2
         ;;
       base)
         packages+=("${BASE_PACKAGES[@]}")
@@ -167,7 +170,7 @@ run_install() {
 
 main() {
   case "${1-}" in
-    "")
+    '')
       usage
       exit 1
       ;;
