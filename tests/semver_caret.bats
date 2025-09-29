@@ -3,8 +3,6 @@
 setup() {
   load 'test_helper/bats-support/load'
   load 'test_helper/bats-assert/load'
-  # Load the semver helpers from the repository root so the functions are
-  # available directly to the test process.
   source "$PWD/modules/semver.bash"
 }
 
