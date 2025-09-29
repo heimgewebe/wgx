@@ -85,6 +85,12 @@ assert_line() {
   while (($#)); do
     case "$1" in
       --index)
+        if [[ -z $2 ]]; then
+          _assert_fail "Missing value for --index argument"
+        fi
+        if ! [[ $2 =~ ^[0-9]+$ ]]; then
+          _assert_fail "Invalid value for --index: '$2' (must be a non-negative integer)"
+        fi
         index=$2
         shift 2
         ;;
