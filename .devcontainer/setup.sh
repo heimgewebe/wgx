@@ -142,12 +142,12 @@ run_install() {
 
   # Deduplicate while preserving order.
   local -a unique=()
-  local seen=""
+  declare -A seen_map=()
   local pkg
   for pkg in "${targets[@]}"; do
-    if [[ " $seen " != *" $pkg "* ]]; then
+    if [[ -z "${seen_map[$pkg]:-}" ]]; then
+      seen_map[$pkg]=1
       unique+=("$pkg")
-      seen+=" $pkg"
     fi
   done
 
