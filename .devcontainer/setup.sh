@@ -172,7 +172,7 @@ main() {
       run_install "$@"
       ;;
     base|optional|all|jq|moreutils|shellcheck|shfmt|bats)
-      run_install "$@"
+      run_install install "$@"
       ;;
     -h|--help)
       usage
