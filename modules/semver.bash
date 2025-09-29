@@ -63,6 +63,7 @@ semver_in_caret_range() {
     local next_minor=$(( minor + 1 ))
     upper="0.${next_minor}.0"
   else
+    # For 0.0.x ranges we only allow patch updates, so we stop before the next patch.
     local next_patch=$(( _patch + 1 ))
     upper="0.0.${next_patch}"
   fi

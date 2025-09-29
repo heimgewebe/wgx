@@ -26,3 +26,13 @@ setup() {
   run semver_in_caret_range "0.1.0" "^0.0.3"
   assert_failure
 }
+
+@test "caret range rejects the next patch for double-zero major/minor" {
+  run semver_in_caret_range "0.0.4" "^0.0.3"
+  assert_failure
+}
+
+@test "caret range rejects the next major" {
+  run semver_in_caret_range "2.0.0" "^1.2.3"
+  assert_failure
+}
