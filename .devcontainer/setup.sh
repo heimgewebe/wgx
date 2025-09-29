@@ -146,13 +146,16 @@ run_install() {
     default_to_base=1
   fi
 
-  mapfile -t targets < <(collect_packages "$@")
+  local -a targets_raw=()
+  mapfile -t targets_raw < <(collect_packages "$@")
+
+  local -a targets=("${targets_raw[@]}")
 
   if ((${#targets[@]} == 0)); then
     if ((default_to_base)); then
       targets=("${BASE_PACKAGES[@]}")
     else
-      echo "No packages selected for installation. Skipping." >&2
+      echo "No packages selected for installation." >&2
       return 0
     fi
   fi
