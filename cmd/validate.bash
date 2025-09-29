@@ -72,7 +72,7 @@ validate::run() {
     if [[ $ok == true ]]; then
       echo "manifest OK"
     else
-      echo "manifest ungültig: ${errs[*]}"
+      echo "manifest invalid: ${errs[*]}"
       return 1
     fi
   fi
