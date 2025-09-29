@@ -118,10 +118,6 @@ collect_packages() {
     esac
   done
 
-  if ((${#packages[@]} == 0)); then
-    packages+=("${BASE_PACKAGES[@]}")
-  fi
-
   printf '%s\n' "${packages[@]}"
 }
 
@@ -138,17 +134,34 @@ run_check() {
 
 run_install() {
   shift || true
-  mapfile -t targets < <(collect_packages "$@")
+  local default_to_base=0
+  if (($# == 0)); then
+    default_to_base=1
+  fi
+
+  local -a targets_raw=()
+  mapfile -t targets_raw < <(collect_packages "$@")
+
+  local -a targets=()
+  local pkg
+  for pkg in "${targets_raw[@]}"; do
+    if [[ -n "$pkg" ]]; then
+      targets+=("$pkg")
+    fi
+  done
 
   if ((${#targets[@]} == 0)); then
-    echo "No packages selected for installation." >&2
-    exit 1
+    if ((default_to_base)); then
+      targets=("${BASE_PACKAGES[@]}")
+    else
+      echo "No packages selected for installation." >&2
+      return 0
+    fi
   fi
 
   # Deduplicate while preserving order.
   local -a unique=()
   declare -A seen_map=()
-  local pkg
   for pkg in "${targets[@]}"; do
     if [[ -z "${seen_map[$pkg]:-}" ]]; then
       seen_map[$pkg]=1
