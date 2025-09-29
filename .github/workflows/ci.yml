@@ -34,6 +34,9 @@ jobs:
               - 'wgx'
               - '**/*.sh'
               - '**/*.bash'
+            tests:
+              - 'tests/**/*.bats'
+              - 'tests/**/*.sh'
             docs:
               - '**/*.md'
               - 'docs/**'
@@ -77,6 +80,30 @@ jobs:
           else
             echo "No shell files."
           fi
+
+  bats_tests:
+    name: Bats tests
+    needs: changes
+    if: |
+      github.event_name == 'merge_group' ||
+      github.event_name == 'workflow_dispatch' ||
+      (
+        github.event_name == 'pull_request' &&
+        github.event.pull_request.draft == false &&
+        (
+          needs.changes.outputs.shell == 'true' ||
+          needs.changes.outputs.tests == 'true' ||
+          contains(github.event.pull_request.labels.*.name, 'full-ci') ||
+          contains(github.event.pull_request.labels.*.name, 'tests') ||
+          contains(github.event.pull_request.labels.*.name, 'bats')
+        )
+      )
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run bats test suites
+        uses: ./.github/actions/run-bats
 
   docs_lint:
     name: Docs lint (Markdown + Links)
