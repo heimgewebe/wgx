@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+
 # Status-Modul: Projektstatus anzeigen
 
 status_cmd() {

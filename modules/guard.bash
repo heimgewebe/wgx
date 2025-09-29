@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+
 # Guard-Modul: Lint- und Testläufe (aus Monolith portiert)
 
 guard_run() {

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+
 # shellcheck shell=bash
 
 # Minimal SemVer helper utilities.
