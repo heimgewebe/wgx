@@ -151,7 +151,12 @@ USAGE
 
 # ── Command dispatcher ──────────────────────────────────────────────────────
 wgx_main() {
-  local sub="${1:-help}"
+  if (($# == 0)); then
+    wgx_usage
+    return 1
+  fi
+
+  local sub="$1"
   shift || true
 
   case "$sub" in
@@ -164,11 +169,11 @@ wgx_main() {
     ;;
   help | -h | --help)
     wgx_usage
-    return
+    return 0
     ;;
   --list | commands)
     wgx_available_commands
-    return
+    return 0
     ;;
   esac
 
@@ -196,6 +201,7 @@ wgx_main() {
     return
   fi
 
-  echo "❌ Unbekannter Befehl: ${sub}" >&2
-  return 127
+  echo "Unknown command: ${sub}" >&2
+  wgx_usage >&2
+  return 1
 }
