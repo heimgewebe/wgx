@@ -51,8 +51,8 @@ semver_lt() {
 semver_in_caret_range() {
   local have="${1#v}" range="${2#^}"
   range="$(semver_norm "$range")"
-  local major minor _patch
-  IFS='.' read -r major minor _patch <<<"$range"
+  local major minor patch
+  IFS='.' read -r major minor patch <<<"$range"
   local lower="$range"
   local upper
 
@@ -63,10 +63,10 @@ semver_in_caret_range() {
     local next_minor=$(( minor + 1 ))
     upper="0.${next_minor}.0"
   else
-    # For 0.0.x ranges, we set the upper bound at the next minor version (0.${next_minor}.0),
-    # so only patch updates within the current minor version are allowed, and we stop before the first minor release.
-    local next_minor=$(( minor + 1 ))
-    upper="0.${next_minor}.0"
+    # For 0.0.x ranges, caret semantics allow patch updates only, stopping before the next
+    # patch release (e.g. ^0.0.3 allows versions >=0.0.3 and <0.0.4).
+    local next_patch=$(( patch + 1 ))
+    upper="0.0.${next_patch}"
   fi
 
   semver_ge "$have" "$lower" && semver_lt "$have" "$upper"
