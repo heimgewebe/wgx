@@ -240,7 +240,7 @@ jobs:
             echo "No files for Vale."
             exit 0
           fi
-          vale --minAlertLevel=warning $files
+          vale --minAlertLevel=warning "$files"
       - name: Link check (Lychee)
         if: steps.changed_docs.outputs.markdown_files != ''
         uses: lycheeverse/lychee-action@v2
