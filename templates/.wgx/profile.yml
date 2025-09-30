@@ -4,4 +4,4 @@ wgx:
   repoKind: "generic"
   tasks:
     test: "bats -r tests"
-    lint: "shfmt -d $(git ls-files '*.sh' '*.bash') && shellcheck -S style $(git ls-files '*.sh' '*.bash')"
+    lint: "FILES=$(git ls-files '*.sh' '*.bash'); shfmt -d $FILES && shellcheck -S style $FILES"
