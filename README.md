@@ -132,6 +132,8 @@ wgx:
 
 Automatisierte Tests werden über `tests/` organisiert (z. B. mit [Bats](https://bats-core.readthedocs.io/)).
 Ergänzende Checks kannst du via `wgx selftest` starten.
+Die Quoting-Grundregeln sind in der [Leitlinie: Shell-Quoting](docs/Leitlinie.Quoting.de.md)
+gebündelt.
 
 ## Architekturhinweis — nur modulare Struktur
 
