@@ -112,10 +112,6 @@ git_hard_reload() {
     shift || true
   done
 
-  if [ -z "$base" ] && [ $# -gt 0 ]; then
-    base="$1"
-    shift || true
-  fi
   if [ -z "$base" ]; then
     base="$WGX_BASE"
   fi
