@@ -231,7 +231,7 @@ jobs:
             echo "No Markdown files to lint."
             exit 0
           fi
-          markdownlint-cli2 $files
+          markdownlint-cli2 "$files"
       - name: Vale lint (changed only)
         run: |
           set -euo pipefail
