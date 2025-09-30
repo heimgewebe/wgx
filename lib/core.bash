@@ -80,20 +80,70 @@ git_is_repo_root() {
 git_has_remote() { git remote -v | grep -q '^origin' 2>/dev/null; }
 
 # Hard Reset auf origin/$WGX_BASE + Cleanup
+git_workdir_dirty() {
+  git status --porcelain=v1 --untracked-files=normal 2>/dev/null | grep -q .
+}
+
+git_workdir_status_short() {
+  git status --short 2>/dev/null || true
+}
+
 git_hard_reload() {
   git_has_remote || die "Kein origin-Remote gefunden."
-  local base="${1:-$WGX_BASE}"
+  local dry_run=0 base=""
 
-  log_info "Fetch von origin…"
-  git fetch --prune origin || die "git fetch fehlgeschlagen"
+  while [ $# -gt 0 ]; do
+    case "$1" in
+    --dry-run)
+      dry_run=1
+      ;;
+    --)
+      shift
+      break
+      ;;
+    *)
+      if [ -z "$base" ]; then
+        base="$1"
+      else
+        die "git_hard_reload: unerwartetes Argument '$1'"
+      fi
+      ;;
+    esac
+    shift
+  done
 
-  log_info "Kompletter Reset auf origin/${base}… (alle lokalen Änderungen gehen verloren)"
-  git reset --hard "origin/${base}" || die "git reset --hard fehlgeschlagen"
+  if [ -z "$base" ]; then
+    base="$WGX_BASE"
+  fi
+  [ -z "$base" ] && base="main"
 
-  log_info "Untracked/ignored aufräumen (clean -fdx)…"
-  git clean -fdx || die "git clean fehlgeschlagen"
+  local prefix=""
+  if ((dry_run)); then
+    prefix="[DRY-RUN] "
+  fi
 
-  log_info "Reload fertig."
+  log_info "${prefix}Fetch von origin…"
+  if ((dry_run)); then
+    :
+  else
+    git fetch --prune origin || die "git fetch fehlgeschlagen"
+  fi
+
+  log_info "${prefix}Kompletter Reset auf origin/${base}… (alle lokalen Änderungen gehen verloren)"
+  if ((dry_run)); then
+    :
+  else
+    git reset --hard "origin/${base}" || die "git reset --hard fehlgeschlagen"
+  fi
+
+  log_info "${prefix}Untracked/ignored aufräumen (clean -fdx)…"
+  if ((dry_run)); then
+    :
+  else
+    git clean -fdx || die "git clean fehlgeschlagen"
+  fi
+
+  log_info "${prefix}Reload fertig."
 }
 
 # Optional: Safety Snapshot (Stash), nicht default-aktiv

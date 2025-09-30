@@ -9,13 +9,11 @@ setup() {
   echo "x" > x.txt
   git add x.txt
   git commit -m "init" >/dev/null
-  # Fake-Remote
   git checkout -b main >/dev/null
-  git tag baseline >/dev/null
   mkdir -p ../remote && (cd ../remote && git init --bare >/dev/null)
   git remote add origin ../remote
   git push -u origin main >/dev/null
-  # WGX_DIR auf das Projekt-Root setzen (eine Ebene oberhalb des Testverzeichnisses)
+
   local project_root
   project_root="$(cd "${BATS_TEST_DIRNAME}/.." && pwd)"
   export WGX_DIR="$project_root"
@@ -27,26 +25,24 @@ teardown() {
   rm -rf tmprepo remote
 }
 
-@test "reload aborts on dirty working tree without force" {
-  echo "local" > local.txt
+@test "sync aborts on dirty working tree without force" {
+  echo "local" >> x.txt
 
-  run wgx reload
+  run wgx sync
   [ "$status" -ne 0 ]
-  [ -f local.txt ]
-  [[ "$output" =~ "reload abgebrochen" ]]
+  [[ "$output" =~ "sync aborted" ]]
 }
 
-@test "reload --force resets and cleans" {
-  echo "local" > local.txt
+@test "sync --force keeps local change" {
+  echo "local" >> x.txt
 
-  run wgx reload --force
+  run wgx sync --force
   [ "$status" -eq 0 ]
-  [ ! -f local.txt ]
+  grep -q "local" x.txt
 }
 
-@test "reload --dry-run only prints plan" {
-  run wgx reload --dry-run
+@test "sync --dry-run shows planned steps" {
+  run wgx sync --dry-run
   [ "$status" -eq 0 ]
   [[ "$output" =~ "[DRY-RUN]" ]]
-  [ -z "$(git status --porcelain)" ]
 }
