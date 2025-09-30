@@ -2,6 +2,15 @@
 
 # Guard-Modul: Lint- und Testläufe (aus Monolith portiert)
 
+_guard_command_available() {
+  local name="$1"
+  if declare -F "cmd_${name}" >/dev/null 2>&1; then
+    return 0
+  fi
+  local base_dir="${WGX_DIR:-"$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"}"
+  [[ -r "${base_dir}/cmd/${name}.bash" ]]
+}
+
 guard_run() {
   local run_lint=0 run_test=0
   while [[ $# -gt 0 ]]; do
@@ -45,7 +54,7 @@ guard_run() {
 
   # 4. Lint (wenn gewünscht)
   if [[ $run_lint -eq 1 ]]; then
-    if command -v lint_cmd >/dev/null 2>&1 || command -v cmd_lint >/dev/null 2>&1; then
+    if _guard_command_available lint; then
       echo "▶ Running lint checks..."
       ./wgx lint || return 1
     else
@@ -55,7 +64,7 @@ guard_run() {
 
   # 5. Tests (wenn gewünscht)
   if [[ $run_test -eq 1 ]]; then
-    if command -v test_cmd >/dev/null 2>&1 || command -v cmd_test >/dev/null 2>&1; then
+    if _guard_command_available test; then
       echo "▶ Running tests..."
       ./wgx test || return 1
     else
