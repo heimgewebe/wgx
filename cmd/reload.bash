@@ -1,25 +1,70 @@
 #!/usr/bin/env bash
 
 cmd_reload() {
-  # Flags: --snapshot (optional)
-  local do_snapshot=0
+  local do_snapshot=0 force=0 dry_run=0
+
   while [ $# -gt 0 ]; do
     case "$1" in
     --snapshot)
       do_snapshot=1
-      shift
       ;;
-    *) break ;;
+    --force)
+      force=1
+      ;;
+    --dry-run)
+      dry_run=1
+      ;;
+    --)
+      shift
+      break
+      ;;
+    *)
+      break
+      ;;
     esac
+    shift || true
   done
 
   if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
     die "Bitte innerhalb eines Git-Repositories ausführen (kein Git-Repository erkannt)."
   fi
 
-  [ "$do_snapshot" -eq 1 ] && snapshot_make
-
   local base="${1:-$WGX_BASE}"
   [ -z "$base" ] && base="main"
-  git_hard_reload "$base"
+
+  if git_workdir_dirty; then
+    local status
+    status="$(git_workdir_status_short)"
+    if ((force)); then
+      warn "Arbeitsverzeichnis enthält uncommittete Änderungen – --force aktiv, Änderungen können verloren gehen."
+      if [ -n "$status" ]; then
+        while IFS= read -r line; do
+          printf '    %s\n' "$line" >&2
+        done <<<"$status"
+      fi
+    else
+      warn "Arbeitsverzeichnis enthält uncommittete Änderungen – reload abgebrochen."
+      if [ -n "$status" ]; then
+        while IFS= read -r line; do
+          printf '    %s\n' "$line" >&2
+        done <<<"$status"
+      fi
+      warn "Nutze 'wgx reload --force' (oder sichere mit --snapshot), wenn du wirklich alles verwerfen möchtest."
+      return 1
+    fi
+  fi
+
+  if ((do_snapshot)); then
+    if ((dry_run)); then
+      log_info "[DRY-RUN] Snapshot (Stash) würde erstellt."
+    else
+      snapshot_make
+    fi
+  fi
+
+  if ((dry_run)); then
+    git_hard_reload --dry-run "$base"
+  else
+    git_hard_reload "$base"
+  fi
 }
