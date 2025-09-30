@@ -114,6 +114,16 @@ jobs:
           fi
           mapfile -t file_list <<< "$files"
           printf '%s\0' "${file_list[@]}" | xargs -0 shfmt -d
+      - name: bash -n (syntax check)
+        run: |
+          set -euo pipefail
+          files="${{ steps.shell_files.outputs.files }}"
+          if [[ -z "$files" ]]; then
+            echo "No shell files to check."
+            exit 0
+          fi
+          mapfile -t file_list <<< "$files"
+          printf '%s\0' "${file_list[@]}" | xargs -0 -n1 bash -n
       - name: shellcheck
         run: |
           set -euo pipefail
