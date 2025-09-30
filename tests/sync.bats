@@ -30,7 +30,7 @@ teardown() {
 
   run wgx sync
   [ "$status" -ne 0 ]
-  [[ "$output" =~ "sync abgebrochen" ]]
+  [[ "$output" =~ "sync aborted" ]]
 }
 
 @test "sync --force keeps local change" {
