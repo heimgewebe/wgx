@@ -39,7 +39,7 @@ sync_cmd() {
         done <<<"$status"
       fi
     else
-      warn "Arbeitsverzeichnis enthält uncommittete Änderungen – sync abgebrochen."
+      warn "Arbeitsverzeichnis enthält uncommittete Änderungen – sync abgebrochen (sync aborted)."
       if [ -n "$status" ]; then
         while IFS= read -r line; do
           printf '    %s\n' "$line" >&2
