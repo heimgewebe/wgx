@@ -73,8 +73,12 @@ jobs:
           if [[ "$FORCE_FULL" == 'true' ]]; then
             mapfile -t candidates < <(git ls-files '*.sh' '*.bash' 'wgx' 2>/dev/null || true)
           elif [[ -n "$base" ]]; then
-            git fetch --no-tags --depth=50 origin "$base"
-            mapfile -t candidates < <(git diff --name-only "$base" "$head" 2>/dev/null || true)
+            if git fetch --no-tags --depth=50 origin "$base"; then
+              mapfile -t candidates < <(git diff --name-only "$base" "$head" 2>/dev/null || true)
+            else
+              echo "git fetch failed; falling back to full shell file list" >&2
+              mapfile -t candidates < <(git ls-files '*.sh' '*.bash' 'wgx' 2>/dev/null || true)
+            fi
           else
             mapfile -t candidates < <(git ls-files '*.sh' '*.bash' 'wgx' 2>/dev/null || true)
           fi
@@ -99,7 +103,7 @@ jobs:
       - name: Install shell tooling
         run: |
           sudo apt-get update -y
-          sudo apt-get install -y shellcheck shfmt jq
+          sudo apt-get install -y --no-install-recommends shellcheck shfmt jq
       - name: shfmt (check)
         run: |
           set -euo pipefail
@@ -108,7 +112,8 @@ jobs:
             echo "No shell files to format."
             exit 0
           fi
-          shfmt -d "$files"
+          mapfile -t file_list <<< "$files"
+          printf '%s\0' "${file_list[@]}" | xargs -0 shfmt -d
       - name: shellcheck
         run: |
           set -euo pipefail
@@ -117,7 +122,8 @@ jobs:
             echo "No shell files to lint."
             exit 0
           fi
-          shellcheck -S style "$files"
+          mapfile -t file_list <<< "$files"
+          printf '%s\0' "${file_list[@]}" | xargs -0 shellcheck -S style
 
   bats_tests:
     name: Bats tests
@@ -177,8 +183,12 @@ jobs:
           if [[ "$FORCE_FULL" == 'true' ]]; then
             mapfile -t candidates < <(git ls-files '*.md' '*.mdx' '*.sh' '*.bash' 2>/dev/null || true)
           elif [[ -n "$base" ]]; then
-            git fetch --no-tags --depth=50 origin "$base"
-            mapfile -t candidates < <(git diff --name-only "$base" "$head" -- '*.md' '*.mdx' '*.sh' '*.bash' 2>/dev/null || true)
+            if git fetch --no-tags --depth=50 origin "$base"; then
+              mapfile -t candidates < <(git diff --name-only "$base" "$head" -- '*.md' '*.mdx' '*.sh' '*.bash' 2>/dev/null || true)
+            else
+              echo "git fetch failed; falling back to full docs file list" >&2
+              mapfile -t candidates < <(git ls-files '*.md' '*.mdx' '*.sh' '*.bash' 2>/dev/null || true)
+            fi
           else
             mapfile -t candidates < <(git ls-files '*.md' '*.mdx' '*.sh' '*.bash' 2>/dev/null || true)
           fi
@@ -231,7 +241,8 @@ jobs:
             echo "No Markdown files to lint."
             exit 0
           fi
-          markdownlint-cli2 "$files"
+          mapfile -t file_list <<< "$files"
+          printf '%s\0' "${file_list[@]}" | xargs -0 markdownlint-cli2
       - name: Vale lint (changed only)
         run: |
           set -euo pipefail
@@ -240,7 +251,8 @@ jobs:
             echo "No files for Vale."
             exit 0
           fi
-          vale --minAlertLevel=warning "$files"
+          mapfile -t file_list <<< "$files"
+          printf '%s\0' "${file_list[@]}" | xargs -0 vale --minAlertLevel=warning
       - name: Link check (Lychee)
         if: steps.changed_docs.outputs.markdown_files != ''
         uses: lycheeverse/lychee-action@v2
@@ -250,6 +262,7 @@ jobs:
             --accept 200,206,429
             --max-concurrency 8
             --retry-wait-time 2
+            --timeout 30
             --max-retries 2
             --exclude-path 'node_modules|.git'
             --exclude 'localhost|127\.0\.0\.1|badge\.fury\.io|shields\.io'
