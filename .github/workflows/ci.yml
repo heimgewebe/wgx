@@ -60,26 +60,64 @@ jobs:
     timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
+      - name: Find changed shell files
+        id: shell_files
+        env:
+          FORCE_FULL: ${{ github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'full-ci') || contains(github.event.pull_request.labels.*.name, 'lint') }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha || '' }}
+        run: |
+          set -euo pipefail
+          base="$PR_BASE_SHA"
+          head="${GITHUB_SHA}"
+          declare -a candidates=()
+          if [[ "$FORCE_FULL" == 'true' ]]; then
+            mapfile -t candidates < <(git ls-files '*.sh' '*.bash' 'wgx' 2>/dev/null || true)
+          elif [[ -n "$base" ]]; then
+            git fetch --no-tags --depth=50 origin "$base"
+            mapfile -t candidates < <(git diff --name-only "$base" "$head" 2>/dev/null || true)
+          else
+            mapfile -t candidates < <(git ls-files '*.sh' '*.bash' 'wgx' 2>/dev/null || true)
+          fi
+
+          declare -a shell_files=()
+          for file in "${candidates[@]}"; do
+            [[ -z "$file" ]] && continue
+            if [[ -f "$file" ]]; then
+              case "$file" in
+                *.sh|*.bash|wgx)
+                  shell_files+=("$file")
+                  ;;
+              esac
+            fi
+          done
+
+          {
+            echo 'files<<EOF'
+            printf '%s\n' "${shell_files[@]}"
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
       - name: Install shell tooling
         run: |
           sudo apt-get update -y
           sudo apt-get install -y shellcheck shfmt jq
       - name: shfmt (check)
         run: |
-          readarray -t files < <(git ls-files '*.sh' '*.bash' 'wgx' 'cmd/*' 'lib/*' 'modules/*' 2>/dev/null || true)
-          if [ "${#files[@]}" -gt 0 ]; then
-            shfmt -d "${files[@]}"
-          else
-            echo "No shell files."
+          set -euo pipefail
+          files="${{ steps.shell_files.outputs.files }}"
+          if [[ -z "$files" ]]; then
+            echo "No shell files to format."
+            exit 0
           fi
+          shfmt -d "$files"
       - name: shellcheck
         run: |
-          readarray -t files < <(git ls-files '*.sh' '*.bash' 'wgx' 'cmd/*' 'lib/*' 'modules/*' 2>/dev/null || true)
-          if [ "${#files[@]}" -gt 0 ]; then
-            shellcheck -S style "${files[@]}"
-          else
-            echo "No shell files."
+          set -euo pipefail
+          files="${{ steps.shell_files.outputs.files }}"
+          if [[ -z "$files" ]]; then
+            echo "No shell files to lint."
+            exit 0
           fi
+          shellcheck -S style "$files"
 
   bats_tests:
     name: Bats tests
@@ -126,6 +164,54 @@ jobs:
     timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
+      - name: Find changed docs and script files
+        id: changed_docs
+        env:
+          FORCE_FULL: ${{ github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'full-ci') }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha || '' }}
+        run: |
+          set -euo pipefail
+          base="$PR_BASE_SHA"
+          head="${GITHUB_SHA}"
+          declare -a candidates=()
+          if [[ "$FORCE_FULL" == 'true' ]]; then
+            mapfile -t candidates < <(git ls-files '*.md' '*.mdx' '*.sh' '*.bash' 2>/dev/null || true)
+          elif [[ -n "$base" ]]; then
+            git fetch --no-tags --depth=50 origin "$base"
+            mapfile -t candidates < <(git diff --name-only "$base" "$head" -- '*.md' '*.mdx' '*.sh' '*.bash' 2>/dev/null || true)
+          else
+            mapfile -t candidates < <(git ls-files '*.md' '*.mdx' '*.sh' '*.bash' 2>/dev/null || true)
+          fi
+
+          declare -a markdown_files=()
+          declare -a vale_files=()
+          for file in "${candidates[@]}"; do
+            [[ -z "$file" ]] && continue
+            if [[ -f "$file" ]]; then
+              case "$file" in
+                *.md|*.mdx)
+                  markdown_files+=("$file")
+                  vale_files+=("$file")
+                  ;;
+                *.sh|*.bash)
+                  vale_files+=("$file")
+                  ;;
+              esac
+            fi
+          done
+
+          {
+            echo 'markdown_files<<EOF'
+            printf '%s\n' "${markdown_files[@]}"
+            echo 'EOF'
+            echo 'vale_files<<EOF'
+            printf '%s\n' "${vale_files[@]}"
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
       - name: Install Vale
         env:
           VALE_VERSION: v3.7.1
@@ -136,16 +222,38 @@ jobs:
           sudo install -m 0755 vale /usr/local/bin/vale
           vale --version
           rm -f vale vale.tar.gz
-      - name: Markdownlint
+      - name: Markdownlint (changed only)
         run: |
+          set -euo pipefail
           npm i -g markdownlint-cli2@0.12.1
-          markdownlint-cli2 "**/*.md" "#node_modules" "#.git" || exit 1
-      - name: Vale lint
-        run: vale --minAlertLevel=warning $(git ls-files '*.md' '*.mdx' '*.sh')
+          files="${{ steps.changed_docs.outputs.markdown_files }}"
+          if [[ -z "$files" ]]; then
+            echo "No Markdown files to lint."
+            exit 0
+          fi
+          markdownlint-cli2 "$files"
+      - name: Vale lint (changed only)
+        run: |
+          set -euo pipefail
+          files="${{ steps.changed_docs.outputs.vale_files }}"
+          if [[ -z "$files" ]]; then
+            echo "No files for Vale."
+            exit 0
+          fi
+          vale --minAlertLevel=warning "$files"
       - name: Link check (Lychee)
+        if: steps.changed_docs.outputs.markdown_files != ''
         uses: lycheeverse/lychee-action@v2
         with:
-          args: --no-progress --accept 200,206,429 --max-concurrency 8 .
+          args: >-
+            --no-progress
+            --accept 200,206,429
+            --max-concurrency 8
+            --retry-wait-time 2
+            --max-retries 2
+            --exclude-path 'node_modules|.git'
+            --exclude 'localhost|127\.0\.0\.1|badge\.fury\.io|shields\.io'
+            ${{ steps.changed_docs.outputs.markdown_files }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
