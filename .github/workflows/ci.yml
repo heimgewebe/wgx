@@ -108,7 +108,7 @@ jobs:
             echo "No shell files to format."
             exit 0
           fi
-          shfmt -d $files
+          shfmt -d "$files"
       - name: shellcheck
         run: |
           set -euo pipefail
