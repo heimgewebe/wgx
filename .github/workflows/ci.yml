@@ -117,7 +117,7 @@ jobs:
             echo "No shell files to lint."
             exit 0
           fi
-          shellcheck -S style $files
+          shellcheck -S style "$files"
 
   bats_tests:
     name: Bats tests
