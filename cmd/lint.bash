@@ -24,7 +24,9 @@ cmd_lint() {
 
   if [ ${#shell_files[@]} -eq 0 ]; then
     warn "No shell scripts found to lint."
-    cd "$oldpwd" >/dev/null 2>&1 || true
+    if ! cd "$oldpwd" >/dev/null 2>&1; then
+      warn "Failed to return to original directory '$oldpwd'."
+    fi
     return 0
   fi
 
