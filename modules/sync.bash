@@ -22,7 +22,7 @@ sync_cmd() {
       break
       ;;
     esac
-    shift || true
+    shift
   done
 
   local base="${1:-$WGX_BASE}"
