@@ -22,7 +22,7 @@ cmd_reload() {
       break
       ;;
     esac
-    shift || true
+    shift
   done
 
   if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
