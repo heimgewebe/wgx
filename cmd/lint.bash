@@ -31,8 +31,10 @@ cmd_lint() {
   local rc=0
 
   if command -v bash >/dev/null 2>&1; then
-    if ! bash -n "${shell_files[@]}"; then
-      rc=1
+    if [ ${#shell_files[@]} -ne 0 ]; then
+      if ! bash -n "${shell_files[@]}"; then
+        rc=1
+      fi
     fi
   else
     warn "bash not found, skipping syntax check."
