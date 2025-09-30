@@ -109,7 +109,7 @@ git_hard_reload() {
       fi
       ;;
     esac
-    shift || true
+    shift
   done
 
   if [ -z "$base" ]; then
