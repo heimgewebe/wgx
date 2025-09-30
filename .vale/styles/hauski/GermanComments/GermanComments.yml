@@ -1,0 +1,12 @@
+extends: existence
+message: "Avoid colloquial expressions in comments."
+level: warning
+scope: sentence
+tokens:
+  - "halt"
+  - "irgendwie"
+  - "sozusagen"
+  - "quasi"
+  - "mal eben"
+  - "eigentlich"
+  - "kurz mal"

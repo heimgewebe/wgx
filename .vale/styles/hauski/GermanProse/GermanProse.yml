@@ -1,0 +1,9 @@
+extends: existence
+message: "Avoid colloquial expressions in German prose."
+level: warning
+scope: paragraph
+tokens:
+  - "halt"
+  - "irgendwie"
+  - "sozusagen"
+  - "quasi"
