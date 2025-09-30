@@ -1,0 +1,37 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "shfmt: diff",
+      "type": "shell",
+      "command": "shfmt -d $(git ls-files '*.sh' '*.bash' || echo '')",
+      "options": { "cwd": "${workspaceFolder}" },
+      "group": "build",
+     "problemMatcher": []
+    },
+    {
+      "label": "shellcheck",
+      "type": "shell",
+      "command": "shellcheck -S style $(git ls-files '*.sh' '*.bash' || echo '')",
+      "options": { "cwd": "${workspaceFolder}" },
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "bats: tests",
+      "type": "shell",
+      "command": "bats -r tests",
+      "options": { "cwd": "${workspaceFolder}" },
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "wgx: validate",
+      "type": "shell",
+      "command": "wgx validate",
+      "options": { "cwd": "${workspaceFolder}" },
+      "group": "test",
+      "problemMatcher": []
+    }
+  ]
+}
