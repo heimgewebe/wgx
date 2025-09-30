@@ -233,7 +233,10 @@ def _load_manifest(path: str) -> Any:
         try:
             import yaml  # type: ignore
         except Exception:
-            return _parse_simple_yaml(path)
+            try:
+                return _parse_simple_yaml(path)
+            except Exception:
+                return {}
         with open(path, "r", encoding="utf-8") as handle:
             return yaml.safe_load(handle) or {}
     if ext == ".json":
