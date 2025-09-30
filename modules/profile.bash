@@ -76,28 +76,178 @@ profile::_python_parse() {
   local file="$1" output
   profile::_have_cmd python3 || return 1
   output="$(python3 - "$file" <<'PY'
+import ast
 import json
 import os
 import shlex
 import sys
+from typing import Any, Dict, List
+
+
+def _parse_scalar(value: str) -> Any:
+    text = value.strip()
+    if text == "":
+        return ""
+    lowered = text.lower()
+    if lowered in {"true", "yes"}:
+        return True
+    if lowered in {"false", "no"}:
+        return False
+    if lowered in {"null", "none", "~"}:
+        return None
+    try:
+        return ast.literal_eval(text)
+    except Exception:
+        return text
+
+
+def _convert_frame(frame: Dict[str, Any], kind: str) -> None:
+    if frame["type"] == kind:
+        return
+    parent = frame["parent"]
+    key = frame["key"]
+    if kind == "list":
+        new_value: List[Any] = []
+        if parent is None:
+            frame["container"] = new_value
+        elif isinstance(parent, list):
+            parent[key] = new_value
+        else:
+            parent[key] = new_value
+        frame["container"] = new_value
+        frame["type"] = "list"
+    else:
+        new_value: Dict[str, Any] = {}
+        if parent is None:
+            frame["container"] = new_value
+        elif isinstance(parent, list):
+            parent[key] = new_value
+        else:
+            parent[key] = new_value
+        frame["container"] = new_value
+        frame["type"] = "dict"
+
+
+def _parse_simple_yaml(path: str) -> Any:
+    root: Dict[str, Any] = {}
+    stack: List[Dict[str, Any]] = [
+        {"indent": -1, "container": root, "parent": None, "key": None, "type": "dict"}
+    ]
+
+    with open(path, "r", encoding="utf-8") as handle:
+        for raw_line in handle:
+            line = raw_line.rstrip("\n")
+            stripped = line.split("#", 1)[0].rstrip()
+            if not stripped:
+                continue
+            indent = len(line) - len(line.lstrip(" "))
+            content = stripped.lstrip()
+
+            while len(stack) > 1 and indent <= stack[-1]["indent"]:
+                stack.pop()
+
+            frame = stack[-1]
+            container = frame["container"]
+
+            if content.startswith("- "):
+                value_part = content[2:].strip()
+                _convert_frame(frame, "list")
+                container = frame["container"]
+                if not value_part:
+                    item: Dict[str, Any] = {}
+                    container.append(item)
+                    stack.append(
+                        {
+                            "indent": indent,
+                            "container": item,
+                            "parent": container,
+                            "key": len(container) - 1,
+                            "type": "dict",
+                        }
+                    )
+                    continue
+                if value_part.endswith(":") or ": " in value_part:
+                    key, rest = value_part.split(":", 1)
+                    key = key.strip()
+                    rest = rest.strip()
+                    item: Dict[str, Any] = {}
+                    container.append(item)
+                    frame_item = {
+                        "indent": indent,
+                        "container": item,
+                        "parent": container,
+                        "key": len(container) - 1,
+                        "type": "dict",
+                    }
+                    stack.append(frame_item)
+                    if rest:
+                        item[key] = _parse_scalar(rest)
+                    else:
+                        item[key] = {}
+                        stack.append(
+                            {
+                                "indent": indent,
+                                "container": item[key],
+                                "parent": item,
+                                "key": key,
+                                "type": "dict",
+                            }
+                        )
+                    continue
+                container.append(_parse_scalar(value_part))
+                continue
+
+            if content.endswith(":") or ": " in content:
+                key, value_part = content.split(":", 1)
+                key = key.strip()
+                value_part = value_part.strip()
+                _convert_frame(frame, "dict")
+                container = frame["container"]
+                if value_part == "":
+                    container[key] = {}
+                    stack.append(
+                        {
+                            "indent": indent,
+                            "container": container[key],
+                            "parent": container,
+                            "key": key,
+                            "type": "dict",
+                        }
+                    )
+                else:
+                    container[key] = _parse_scalar(value_part)
+                continue
+
+            if isinstance(container, list):
+                container.append(_parse_scalar(content))
+            elif isinstance(container, dict):
+                container[content] = True
+
+    return root
+
+
+def _load_manifest(path: str) -> Any:
+    _, ext = os.path.splitext(path)
+    ext = ext.lower()
+    if ext in {".yaml", ".yml"}:
+        try:
+            import yaml  # type: ignore
+        except Exception:
+            try:
+                return _parse_simple_yaml(path)
+            except Exception:
+                return {}
+        with open(path, "r", encoding="utf-8") as handle:
+            return yaml.safe_load(handle) or {}
+    if ext == ".json":
+        with open(path, "r", encoding="utf-8") as handle:
+            return json.load(handle) or {}
+    with open(path, "r", encoding="utf-8") as handle:
+        return json.load(handle) or {}
+
 
 path = sys.argv[1]
-_, ext = os.path.splitext(path)
-ext = ext.lower()
-data = {}
-if ext in {'.yaml', '.yml'}:
-    try:
-        import yaml  # type: ignore
-    except Exception:
-        sys.exit(3)
-    with open(path, 'r', encoding='utf-8') as handle:
-        data = yaml.safe_load(handle) or {}
-elif ext == '.json':
-    with open(path, 'r', encoding='utf-8') as handle:
-        data = json.load(handle) or {}
-else:
-    with open(path, 'r', encoding='utf-8') as handle:
-        data = json.load(handle) or {}
+data = _load_manifest(path) or {}
 
 wgx = data.get('wgx') or {}
 
@@ -217,16 +367,17 @@ if isinstance(tasks, dict):
         selected_cmd = select_variant(cmd_value)
         tokens = []
         if isinstance(selected_cmd, (list, tuple)):
-            tokens = [shell_quote(str(item)) for item in selected_cmd]
+            tokens = [str(item) for item in selected_cmd]
             if isinstance(args_value, (list, tuple)) and args_value:
-                tokens.extend(shell_quote(str(item)) for item in args_value)
+                tokens.extend(str(item) for item in args_value)
             elif isinstance(args_value, dict):
                 variant = select_variant(args_value)
                 if isinstance(variant, (list, tuple)):
-                    tokens.extend(shell_quote(str(item)) for item in variant)
+                    tokens.extend(str(item) for item in variant)
                 elif variant not in (None, ''):
-                    tokens.append(shell_quote(str(variant)))
-            emit(f"WGX_TASK_CMDS[{shell_quote(norm)}]={shell_quote('ARR:' + ' '.join(tokens))}")
+                    tokens.append(str(variant))
+            payload = json.dumps(tokens, ensure_ascii=False)
+            emit(f"WGX_TASK_CMDS[{shell_quote(norm)}]={shell_quote('ARRJSON:' + payload)}")
         else:
             parts = []
             if selected_cmd is not None:
@@ -264,6 +415,25 @@ PY
   done <<<"$output"
 
   return 0
+}
+
+profile::_decode_json_array() {
+  local json_payload="$1"
+  profile::_have_cmd python3 || return 1
+  python3 - "$json_payload" <<'PY'
+import json
+import sys
+
+try:
+    values = json.loads(sys.argv[1])
+except Exception:
+    sys.exit(1)
+
+for entry in values:
+    if entry is None:
+        continue
+    print(str(entry))
+PY
 }
 
 profile::_flat_yaml_parse() {
@@ -556,11 +726,47 @@ profile::run_task() {
     shift || true
   done
   case "$spec" in
+  ARRJSON:*)
+    local payload_json="${spec#ARRJSON:}"
+    local -a cmd=()
+    if [[ -n $payload_json ]]; then
+      if ! mapfile -t cmd < <(profile::_decode_json_array "$payload_json"); then
+        return 1
+      fi
+    fi
+    if (( ${#cmd[@]} == 0 )); then
+      printf 'wgx: empty command for task %q\n' "$key" >&2
+      return 2
+    fi
+    if (( dryrun )); then
+      printf 'DRY: '
+      local item
+      for item in "${envs[@]}"; do
+        printf '%q ' "$item"
+      done
+      for item in "${cmd[@]}"; do
+        printf '%q ' "$item"
+      done
+      for item in "${args[@]}"; do
+        printf '%q ' "$item"
+      done
+      printf '\n'
+      return 0
+    fi
+    (
+      (( ${#envs[@]} )) && export "${envs[@]}"
+      exec "${cmd[@]}" "${args[@]}"
+    )
+    ;;
   ARR:*)
     local payload="${spec#ARR:}"
     local -a cmd=()
     if [[ -n $payload ]]; then
       read -r -a cmd <<<"$payload"
+    fi
+    if (( ${#cmd[@]} == 0 )); then
+      printf 'wgx: empty command for task %q\n' "$key" >&2
+      return 2
     fi
     if (( dryrun )); then
       printf 'DRY: '
