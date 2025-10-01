@@ -65,3 +65,9 @@ teardown() {
   [[ "$output" =~ "origin/trunk" ]]
   [[ "$output" =~ "überschreibt den angegebenen Branch" ]]
 }
+
+@test "sync --dry-run accepts --base option" {
+  run wgx sync --dry-run --base develop
+  [ "$status" -eq 0 ]
+  [[ "$output" =~ "git fetch origin develop" ]]
+}
