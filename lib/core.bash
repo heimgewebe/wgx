@@ -89,21 +89,28 @@ git_workdir_status_short() {
 }
 
 git_hard_reload() {
-  git_has_remote || die "Kein origin-Remote gefunden."
-  local dry_run=0 base=""
+  if ! git remote -v | grep -q . 2>/dev/null; then
+    die "Kein Remote-Repository konfiguriert."
+  fi
+
+  local dry_run=0 base="" explicit_branch=0
 
   while [ $# -gt 0 ]; do
     case "$1" in
-    --dry-run)
+    --dry-run|-n)
       dry_run=1
       ;;
     --)
       shift
       break
       ;;
+    -*)
+      die "git_hard_reload: unerwartetes Argument '$1'"
+      ;;
     *)
       if [ -z "$base" ]; then
         base="$1"
+        explicit_branch=1
       else
         die "git_hard_reload: unerwartetes Argument '$1'"
       fi
@@ -112,28 +119,61 @@ git_hard_reload() {
     shift
   done
 
-  if [ -z "$base" ]; then
-    base="$WGX_BASE"
+  local remote="origin" target_branch="${base}"
+  if [ -z "$target_branch" ]; then
+    local upstream
+    upstream="$(git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null || true)"
+    if [ -n "$upstream" ]; then
+      remote="${upstream%%/*}"
+      target_branch="${upstream#*/}"
+    fi
   fi
-  [ -z "$base" ] && base="main"
+
+  if [ -z "$target_branch" ]; then
+    target_branch="$WGX_BASE"
+  fi
+
+  if [ -z "$target_branch" ]; then
+    target_branch="main"
+  fi
 
   local prefix=""
   if ((dry_run)); then
     prefix="[DRY-RUN] "
   fi
 
-  log_info "${prefix}Fetch von origin…"
+  log_info "${prefix}Fetch von allen Remotes (inkl. prune)…"
   if ((dry_run)); then
     :
   else
-    git fetch --prune origin || die "git fetch fehlgeschlagen"
+    git fetch --all --prune || die "git fetch fehlgeschlagen"
   fi
 
-  log_info "${prefix}Kompletter Reset auf origin/${base}… (alle lokalen Änderungen gehen verloren)"
+  if ! git rev-parse --verify "${remote}/${target_branch}" >/dev/null 2>&1; then
+    if ((explicit_branch)); then
+      die "git_hard_reload: ${remote}/${target_branch} nicht gefunden."
+    fi
+
+    remote="origin"
+    local candidate=""
+    for candidate in "$target_branch" "$WGX_BASE" main master; do
+      [ -z "$candidate" ] && continue
+      if git rev-parse --verify "origin/${candidate}" >/dev/null 2>&1; then
+        target_branch="$candidate"
+        break
+      fi
+    done
+  fi
+
+  if [ -z "$target_branch" ] || ! git rev-parse --verify "${remote}/${target_branch}" >/dev/null 2>&1; then
+    die "git_hard_reload: Konnte Ziel-Branch nicht bestimmen."
+  fi
+
+  log_info "${prefix}Kompletter Reset auf ${remote}/${target_branch}… (alle lokalen Änderungen gehen verloren)"
   if ((dry_run)); then
     :
   else
-    git reset --hard "origin/${base}" || die "git reset --hard fehlgeschlagen"
+    git reset --hard "${remote}/${target_branch}" || die "git reset --hard fehlgeschlagen"
   fi
 
   log_info "${prefix}Untracked/ignored aufräumen (clean -fdx)…"
@@ -143,7 +183,7 @@ git_hard_reload() {
     git clean -fdx || die "git clean fehlgeschlagen"
   fi
 
-  log_info "${prefix}Reload fertig."
+  log_info "${prefix}Reload fertig (${remote}/${target_branch})."
 }
 
 # Optional: Safety Snapshot (Stash), nicht default-aktiv

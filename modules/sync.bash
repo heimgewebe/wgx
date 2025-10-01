@@ -8,15 +8,19 @@ sync_cmd() {
   local force=0 dry_run=0
   while [ $# -gt 0 ]; do
     case "$1" in
-    --force)
+    --force|-f)
       force=1
       ;;
-    --dry-run)
+    --dry-run|-n)
       dry_run=1
       ;;
     --)
       shift
       break
+      ;;
+    -*)
+      printf 'sync: unbekannte Option %s\n' "$1" >&2
+      return 2
       ;;
     *)
       break
@@ -32,7 +36,7 @@ sync_cmd() {
     local status
     status="$(git_workdir_status_short)"
     if ((force)); then
-      warn "Arbeitsverzeichnis enthält uncommittete Änderungen – --force aktiv, Git stasht ggf. automatisch."
+      warn "Arbeitsverzeichnis enthält uncommittete Änderungen – --force (-f) aktiv, Git stasht ggf. automatisch."
       if [ -n "$status" ]; then
         while IFS= read -r line; do
           printf '    %s\n' "$line" >&2
@@ -45,7 +49,7 @@ sync_cmd() {
           printf '    %s\n' "$line" >&2
         done <<<"$status"
       fi
-      warn "Nutze 'wgx sync --force', wenn du trotzdem fortfahren willst (Änderungen werden ggf. gestasht)."
+      warn "Nutze 'wgx sync --force/-f', wenn du trotzdem fortfahren willst (Änderungen werden ggf. gestasht)."
       # Maschinenlesbarer Marker für aufrufende Prozesse.
       printf 'sync aborted: working directory contains uncommitted changes\n'
       return 1
@@ -54,7 +58,9 @@ sync_cmd() {
 
   local branch
   branch="$(git_current_branch)"
-  [ -z "$branch" ] && die "Konnte aktuellen Branch nicht bestimmen."
+  if [ "$branch" = "HEAD" ] || [ -z "$branch" ]; then
+    die "Aktuell im detached HEAD – wechsle auf einen Branch oder nutze 'wgx reload'."
+  fi
 
   if ((dry_run)); then
     log_info "[DRY-RUN] git pull --rebase --autostash --ff-only"

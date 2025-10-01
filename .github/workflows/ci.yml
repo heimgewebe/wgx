@@ -104,16 +104,6 @@ jobs:
         run: |
           sudo apt-get update -y
           sudo apt-get install -y --no-install-recommends shellcheck shfmt jq
-      - name: shfmt (check)
-        run: |
-          set -euo pipefail
-          files="${{ steps.shell_files.outputs.files }}"
-          if [[ -z "$files" ]]; then
-            echo "No shell files to format."
-            exit 0
-          fi
-          mapfile -t file_list <<< "$files"
-          printf '%s\0' "${file_list[@]}" | xargs -0 shfmt -d
       - name: bash -n (syntax check)
         run: |
           set -euo pipefail
@@ -123,7 +113,17 @@ jobs:
             exit 0
           fi
           mapfile -t file_list <<< "$files"
-          printf '%s\0' "${file_list[@]}" | xargs -0 -n1 bash -n
+          printf '%s\0' "${file_list[@]}" | xargs -0 -r -I{} bash -n {}
+      - name: shfmt (check)
+        run: |
+          set -euo pipefail
+          files="${{ steps.shell_files.outputs.files }}"
+          if [[ -z "$files" ]]; then
+            echo "No shell files to format."
+            exit 0
+          fi
+          mapfile -t file_list <<< "$files"
+          printf '%s\0' "${file_list[@]}" | xargs -0 -r shfmt -d
       - name: shellcheck
         run: |
           set -euo pipefail
