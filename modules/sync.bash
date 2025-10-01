@@ -22,7 +22,7 @@ sync_cmd() {
       shift
       if [ $# -eq 0 ]; then
         printf 'sync: option --base requires an argument\n' >&2
-        return 123
+        return 2
       fi
       base_override="$1"
       shift
@@ -41,7 +41,7 @@ sync_cmd() {
       ;;
     -*)
       printf 'sync: unknown option %s\n' "$1" >&2
-      return 123
+      return 2
       ;;
     *)
       positional+=("$1")
