@@ -234,9 +234,9 @@ jobs:
           cache: 'npm'
       - name: Install Vale
         env:
-          VALE_VERSION: v3.7.1
+          VALE_VERSION: v3.7.0 # Pinned to v3.7.0 (e.g., v3.7.1 was missing); update with caution
         run: |
-          curl -fsSL "https://github.com/errata-ai/vale/releases/download/${VALE_VERSION}/vale_Linux_64-bit.tar.gz" -o vale.tar.gz
+          curl --retry 5 --retry-all-errors -fsSL "https://github.com/errata-ai/vale/releases/download/${VALE_VERSION}/vale_Linux_64-bit.tar.gz" -o vale.tar.gz
           tar -xzf vale.tar.gz
           test -f vale && echo "vale binary extracted" || (echo "vale missing" && exit 1)
           sudo install -m 0755 vale /usr/local/bin/vale
