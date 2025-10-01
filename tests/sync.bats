@@ -46,3 +46,22 @@ teardown() {
   [ "$status" -eq 0 ]
   [[ "$output" =~ "[DRY-RUN]" ]]
 }
+
+@test "sync --base accepts explicit branch" {
+  run wgx sync --dry-run --base main
+  [ "$status" -eq 0 ]
+  [[ "$output" =~ "[DRY-RUN]" ]]
+}
+
+@test "sync --base supports inline value" {
+  run wgx sync --dry-run --base=main
+  [ "$status" -eq 0 ]
+  [[ "$output" =~ "origin/main" ]]
+}
+
+@test "sync --base overrides positional branch" {
+  run wgx sync feature --dry-run --base trunk
+  [ "$status" -eq 0 ]
+  [[ "$output" =~ "origin/trunk" ]]
+  [[ "$output" =~ "überschreibt den angegebenen Branch" ]]
+}

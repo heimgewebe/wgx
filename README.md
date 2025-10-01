@@ -62,6 +62,8 @@ Holt Änderungen vom Remote (`git pull --rebase --autostash --ff-only`). Scheite
 
 - Schützt vor unbeabsichtigtem Lauf auf einem „dirty“ Working Tree (Abbruch ohne `--force`).
 - `--dry-run` zeigt nur die geplanten Git-Kommandos.
+- Über `--base <branch>` lässt sich der Fallback-Branch für den Rebase explizit setzen.
+- Gibt es zusätzlich ein Positionsargument, hat `--base` Vorrang und weist mit einer Warnung darauf hin.
 
 ## Repository-Layout
 
