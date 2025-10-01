@@ -107,36 +107,21 @@ jobs:
       - name: bash -n (syntax check)
         run: |
           set -euo pipefail
-          files="${{ steps.shell_files.outputs.files }}"
-          if [[ -z "$files" ]]; then
-            echo "No shell files to check."
-            exit 0
-          fi
-          files=$(printf '%s\n' "$files" | sed "s/[\"'[:space:]]*$//")
-          mapfile -t file_list <<< "$files"
-          printf '%s\0' "${file_list[@]}" | xargs -0 -r -I{} bash -n {}
+          ./etc/ci/run-with-files.sh --per-file "No shell files to check." bash -n <<'EOF'
+${{ steps.shell_files.outputs.files }}
+EOF
       - name: shfmt (check)
         run: |
           set -euo pipefail
-          files="${{ steps.shell_files.outputs.files }}"
-          if [[ -z "$files" ]]; then
-            echo "No shell files to format."
-            exit 0
-          fi
-          files=$(printf '%s\n' "$files" | sed "s/[\"'[:space:]]*$//")
-          mapfile -t file_list <<< "$files"
-          printf '%s\0' "${file_list[@]}" | xargs -0 -r shfmt -d
+          ./etc/ci/run-with-files.sh "No shell files to format." shfmt -d <<'EOF'
+${{ steps.shell_files.outputs.files }}
+EOF
       - name: shellcheck
         run: |
           set -euo pipefail
-          files="${{ steps.shell_files.outputs.files }}"
-          if [[ -z "$files" ]]; then
-            echo "No shell files to lint."
-            exit 0
-          fi
-          files=$(printf '%s\n' "$files" | sed "s/[\"'[:space:]]*$//")
-          mapfile -t file_list <<< "$files"
-          printf '%s\0' "${file_list[@]}" | xargs -0 shellcheck -S style
+          ./etc/ci/run-with-files.sh "No shell files to lint." shellcheck -S style <<'EOF'
+${{ steps.shell_files.outputs.files }}
+EOF
 
   bats_tests:
     name: Bats tests
@@ -249,25 +234,15 @@ jobs:
         run: |
           set -euo pipefail
           npm i -g markdownlint-cli2@0.12.1
-          files="${{ steps.changed_docs.outputs.markdown_files }}"
-          if [[ -z "$files" ]]; then
-            echo "No Markdown files to lint."
-            exit 0
-          fi
-          files=$(printf '%s\n' "$files" | sed "s/[\"'[:space:]]*$//")
-          mapfile -t file_list <<< "$files"
-          printf '%s\0' "${file_list[@]}" | xargs -0 markdownlint-cli2
+          ./etc/ci/run-with-files.sh "No Markdown files to lint." markdownlint-cli2 <<'EOF'
+${{ steps.changed_docs.outputs.markdown_files }}
+EOF
       - name: Vale lint (changed only)
         run: |
           set -euo pipefail
-          files="${{ steps.changed_docs.outputs.vale_files }}"
-          if [[ -z "$files" ]]; then
-            echo "No files for Vale."
-            exit 0
-          fi
-          files=$(printf '%s\n' "$files" | sed "s/[\"'[:space:]]*$//")
-          mapfile -t file_list <<< "$files"
-          printf '%s\0' "${file_list[@]}" | xargs -0 vale --minAlertLevel=warning
+          ./etc/ci/run-with-files.sh "No files for Vale." vale --minAlertLevel=warning <<'EOF'
+${{ steps.changed_docs.outputs.vale_files }}
+EOF
       - name: Link check (Lychee)
         if: steps.changed_docs.outputs.markdown_files != ''
         uses: lycheeverse/lychee-action@v2
