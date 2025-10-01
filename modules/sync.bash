@@ -45,7 +45,7 @@ sync_cmd() {
       positional+=("$1")
       ;;
     esac
-    shift || break
+    shift
   done
 
   if [ -n "$base_override" ] && [ "${#positional[@]}" -gt 0 ]; then
