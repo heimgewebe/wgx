@@ -65,7 +65,6 @@ status_cmd() {
     fi
 
     if [ "$fallback_present" = "1" ]; then
-
       info_present=1
     fi
   fi
