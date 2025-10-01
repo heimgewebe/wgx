@@ -39,7 +39,7 @@ sync_cmd() {
         done <<<"$status"
       fi
     else
-      warn "Arbeitsverzeichnis enthält uncommittete Änderungen – Sync abgebrochen."
+      warn "Arbeitsverzeichnis enthält uncommittete Änderungen – Sync abgebrochen (sync aborted)."
       if [ -n "$status" ]; then
         while IFS= read -r line; do
           printf '    %s\n' "$line" >&2
@@ -47,7 +47,7 @@ sync_cmd() {
       fi
       warn "Nutze 'wgx sync --force', wenn du trotzdem fortfahren willst (Änderungen werden ggf. gestasht)."
       # Maschinenlesbarer Marker für aufrufende Prozesse.
-      printf 'sync abgebrochen\n'
+      printf 'sync aborted: Arbeitsverzeichnis enthält uncommittete Änderungen\n'
       return 1
     fi
   fi
