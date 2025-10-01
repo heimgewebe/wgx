@@ -19,7 +19,7 @@ cmd_reload() {
       break
       ;;
     -*)
-      printf 'Unbekannte Option: %s\n' "$1" >&2
+      printf 'unbekannte Option: %s\n' "$1" >&2
       return 2
       ;;
     *)
