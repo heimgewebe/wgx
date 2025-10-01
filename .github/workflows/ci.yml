@@ -160,6 +160,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Run bats test suites
+        # Pin to v2 because bats-core/bats-action does not publish a v1 release.
         uses: bats-core/bats-action@v2
         with:
           helpers: |
