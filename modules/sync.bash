@@ -46,6 +46,7 @@ sync_cmd() {
         done <<<"$status"
       fi
       warn "Nutze 'wgx sync --force', wenn du trotzdem fortfahren willst (Änderungen werden ggf. gestasht)."
+      printf 'sync abgebrochen\n'
       return 1
     fi
   fi
