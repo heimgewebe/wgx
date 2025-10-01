@@ -47,7 +47,7 @@ sync_cmd() {
       fi
       warn "Nutze 'wgx sync --force', wenn du trotzdem fortfahren willst (Änderungen werden ggf. gestasht)."
       # Maschinenlesbarer Marker für aufrufende Prozesse.
-      printf 'sync abgebrochen\n'
+      printf 'sync aborted: working directory contains uncommitted changes\n'
       return 1
     fi
   fi
