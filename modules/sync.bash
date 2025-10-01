@@ -19,7 +19,7 @@ sync_cmd() {
       break
       ;;
     -*)
-      printf 'sync: unbekannte Option %s\n' "$1" >&2
+      printf 'sync: unknown option %s\n' "$1" >&2
       return 2
       ;;
     *)
