@@ -5,7 +5,9 @@ sync_cmd() {
     die "Bitte innerhalb eines Git-Repositories ausführen (kein Git-Repository erkannt)."
   fi
 
-  local force=0 dry_run=0
+  local force=0 dry_run=0 base_override=""
+  local -a positional=()
+
   while [ $# -gt 0 ]; do
     case "$1" in
     --force|-f)
@@ -16,8 +18,24 @@ sync_cmd() {
       dry_run=1
       shift
       ;;
+    --base)
+      shift
+      if [ $# -eq 0 ]; then
+        printf 'sync: option --base requires an argument\n' >&2
+        return 2
+      fi
+      base_override="$1"
+      shift
+      ;;
+    --base=*)
+      base_override="${1#--base=}"
+      ;;
     --)
       shift
+      while [ $# -gt 0 ]; do
+        positional+=("$1")
+        shift
+      done
       break
       ;;
     -*)
@@ -25,12 +43,16 @@ sync_cmd() {
       return 123
       ;;
     *)
-      break
+      positional+=("$1")
       ;;
     esac
   done
 
-  local base="${1:-$WGX_BASE}"
+  if [ -n "$base_override" ] && [ "${#positional[@]}" -gt 0 ]; then
+    warn "--base überschreibt den angegebenen Branch '${positional[0]}'."
+  fi
+
+  local base="${base_override:-${positional[0]:-$WGX_BASE}}"
   [ -z "$base" ] && base="main"
 
   if git_workdir_dirty; then
