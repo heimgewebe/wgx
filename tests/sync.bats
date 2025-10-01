@@ -46,3 +46,9 @@ teardown() {
   [ "$status" -eq 0 ]
   [[ "$output" =~ "[DRY-RUN]" ]]
 }
+
+@test "sync --dry-run accepts --base option" {
+  run wgx sync --dry-run --base develop
+  [ "$status" -eq 0 ]
+  [[ "$output" =~ "git fetch origin develop" ]]
+}
