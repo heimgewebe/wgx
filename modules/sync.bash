@@ -10,23 +10,24 @@ sync_cmd() {
     case "$1" in
     --force|-f)
       force=1
+      shift
       ;;
     --dry-run|-n)
       dry_run=1
+      shift
       ;;
     --)
       shift
       break
       ;;
     -*)
-      printf 'sync: unknown option %s\n' "$1" >&2
-      return 2
+      printf 'sync: unbekannte Option %s\n' "$1" >&2
+      return 123
       ;;
     *)
       break
       ;;
     esac
-    shift
   done
 
   local base="${1:-$WGX_BASE}"
