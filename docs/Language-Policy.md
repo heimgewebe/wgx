@@ -6,11 +6,12 @@ but contributors should prefer English when adding or updating content.
 
 ## Guidelines
 
+- **English dialect**: Prefer US English (e.g., "summarize" instead of "summarise").
 - **Commands and CLI output**: Prefer English messaging. If existing commands output
   German text, you may keep it when unrelated to your change. When touching the
   surrounding code, migrate the relevant messages to English.
 - **Documentation**: Write new documentation in English. If you update a German
-  document, consider providing an English translation or summarising the changes in
+  document, consider providing an English translation or summarizing the changes in
   English.
 - **Commit messages and PRs**: Default to English unless the entire conversation for
   the change happens in another language and all stakeholders agree.
