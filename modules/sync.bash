@@ -24,7 +24,6 @@ sync_cmd() {
       fi
       base_override="$1"
       shift
-      continue
       ;;
     --base=*)
       base_override="${1#--base=}"
