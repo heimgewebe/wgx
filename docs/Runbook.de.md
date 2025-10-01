@@ -22,6 +22,28 @@
 - Fehlende Abhängigkeiten mit `pip install -r requirements.txt` nachinstallieren.
 - Bei globaler Installation prüfen, ob Version mit zentralem Contract kompatibel ist.
 
+### `sudo apt-get update -y` schlägt mit „unsigned/403 responses" fehl
+
+- Tritt häufig in abgeschotteten Netzen oder nach dem Hinzufügen externer Repositories auf. Prüfe zunächst die Systemzeit und ob ein Proxy/TLS-Intercepter im Einsatz ist (`echo $https_proxy`).
+- Alte Paketlisten entfernen und neu herunterladen:
+
+  ```bash
+  sudo rm -rf /var/lib/apt/lists/*
+  sudo apt-get clean
+  sudo apt-get update
+  ```
+
+- Für zusätzliche Repositories sicherstellen, dass der passende Signatur-Schlüssel hinterlegt ist (statt `apt-key` den neuen Keyring-Weg nutzen):
+
+  ```bash
+  sudo install -d -m 0755 /etc/apt/keyrings
+  curl -fsSL <KEY_URL> | sudo gpg --dearmor -o /etc/apt/keyrings/<NAME>.gpg
+  echo "deb [signed-by=/etc/apt/keyrings/<NAME>.gpg] <REPO_URL> <DIST> <COMPONENTS>" | sudo tee /etc/apt/sources.list.d/<NAME>.list
+  sudo apt-get update
+  ```
+
+- Bleibt der Fehler bestehen, das Log (`/var/log/apt/term.log`) prüfen. Bei 403-Antworten hilft oft ein Mirror-Wechsel oder das Entfernen veralteter Einträge in `/etc/apt/sources.list.d/`.
+
 ### Git-Hooks blockieren Commits
 
 - `wgx lint` manuell ausführen, um Fehler zu sehen.
