@@ -22,13 +22,14 @@ sync_cmd() {
       shift
       if [ $# -eq 0 ]; then
         printf 'sync: option --base requires an argument\n' >&2
-        return 2
+        return 123
       fi
       base_override="$1"
       shift
       ;;
     --base=*)
       base_override="${1#--base=}"
+      shift
       ;;
     --)
       shift
