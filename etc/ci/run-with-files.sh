@@ -5,8 +5,11 @@ usage() {
   cat <<'USAGE' >&2
 Usage: run-with-files.sh [--per-file] <empty-message> <command> [args...]
 
-Reads a list of file paths from standard input (one per line), filters out
-empty entries, and executes the provided command with the resulting files.
+Reads file paths (one per line) from standard input, filters out empty entries,
+and executes the provided command with the resulting list of files.
+
+Without --per-file the command is run once with all files as arguments. When
+--per-file is supplied the command is invoked separately for each file.
 USAGE
 }
 
