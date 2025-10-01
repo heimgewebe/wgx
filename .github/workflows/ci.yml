@@ -236,12 +236,26 @@ jobs:
         env:
           VALE_VERSION: v3.7.0 # Pinned to v3.7.0 (e.g., v3.7.1 was missing); update with caution
         run: |
+          set -euo pipefail
           curl --retry 5 --retry-all-errors -fsSL "https://github.com/errata-ai/vale/releases/download/${VALE_VERSION}/vale_Linux_64-bit.tar.gz" -o vale.tar.gz
+          curl --retry 5 --retry-all-errors -fsSL "https://github.com/errata-ai/vale/releases/download/${VALE_VERSION}/vale_${VALE_VERSION#v}_checksums.txt" -o checksums.txt
+          EXPECTED_SHA256=$(awk '$2 == "vale_Linux_64-bit.tar.gz" {print $1; exit}' checksums.txt)
+          if [[ -z "${EXPECTED_SHA256:-}" ]]; then
+            echo "Unable to determine expected checksum for vale_Linux_64-bit.tar.gz" >&2
+            exit 1
+          fi
+          ACTUAL_SHA256=$(sha256sum vale.tar.gz | awk '{print $1}')
+          if [[ "$EXPECTED_SHA256" != "$ACTUAL_SHA256" ]]; then
+            echo "SHA256 checksum mismatch for vale.tar.gz" >&2
+            echo "Expected: $EXPECTED_SHA256" >&2
+            echo "Actual:   $ACTUAL_SHA256" >&2
+            exit 1
+          fi
           tar -xzf vale.tar.gz
           test -f vale && echo "vale binary extracted" || (echo "vale missing" && exit 1)
           sudo install -m 0755 vale /usr/local/bin/vale
           vale --version
-          rm -f vale vale.tar.gz
+          rm -f vale vale.tar.gz checksums.txt
       - name: Markdownlint (changed only)
         run: |
           set -euo pipefail
