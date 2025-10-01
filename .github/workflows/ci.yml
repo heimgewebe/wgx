@@ -223,26 +223,113 @@ EOF
           cache: 'npm'
       - name: Install Vale
         env:
-          VALE_VERSION: v3.7.0 # Pinned to v3.7.0 (e.g., v3.7.1 was missing); update with caution
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VALE_VERSION: latest
         run: |
           set -euo pipefail
-          curl --retry 5 --retry-all-errors -fsSL "https://github.com/errata-ai/vale/releases/download/${VALE_VERSION}/vale_Linux_64-bit.tar.gz" -o vale.tar.gz
-          curl --retry 5 --retry-all-errors -fsSL "https://github.com/errata-ai/vale/releases/download/${VALE_VERSION}/checksums.txt" -o checksums.txt
-          EXPECTED_SHA256=$(awk '$2 == "vale_Linux_64-bit.tar.gz" {print $1; exit}' checksums.txt)
+          owner="errata-ai"
+          repo="vale"
+          version="${VALE_VERSION:-latest}"
+          release_json=""
+
+          # Use authenticated GitHub API requests to avoid low rate limits
+          auth_header="Authorization: Bearer ${GITHUB_TOKEN:-}"
+          accept_header="Accept: application/vnd.github+json"
+          api_ver_header="X-GitHub-Api-Version: 2022-11-28"
+
+          if [[ -n "${version}" && "${version}" != "latest" ]]; then
+            if ! release_json=$(curl --retry 5 --retry-all-errors -fsSL \
+              -H "$auth_header" -H "$accept_header" -H "$api_ver_header" \
+              "https://api.github.com/repos/${owner}/${repo}/releases/tags/${version}"); then
+              echo "Unable to fetch release metadata for ${version}; falling back to the latest release" >&2
+              release_json=""
+            fi
+          fi
+
+          if [[ -z "${release_json}" ]]; then
+            release_json=$(curl --retry 5 --retry-all-errors -fsSL \
+              -H "$auth_header" -H "$accept_header" -H "$api_ver_header" \
+              "https://api.github.com/repos/${owner}/${repo}/releases/latest")
+            version=$(printf '%s' "${release_json}" | python3 - <<'PY'
+import json, sys
+data = json.load(sys.stdin)
+tag = data.get('tag_name')
+if not tag:
+    raise SystemExit('Latest release tag_name not found')
+print(tag)
+PY
+)
+          fi
+
+          if [[ -z "${release_json}" ]]; then
+            echo "Failed to retrieve release metadata for Vale" >&2
+            exit 1
+          fi
+
+          readarray -t asset_info < <(printf '%s' "${release_json}" | python3 - <<'PY'
+import json, sys
+
+data = json.load(sys.stdin)
+preferred_suffixes = (
+    'Linux_64-bit.tar.gz',
+    'Linux_amd64.tar.gz',
+)
+
+for suffix in preferred_suffixes:
+    for asset in data.get('assets', []):
+        name = asset.get('name') or ''
+        if name.endswith(suffix):
+            print(name)
+            print(asset.get('browser_download_url') or '')
+            sys.exit(0)
+
+raise SystemExit('No suitable Linux tarball found in release assets')
+PY
+)
+
+          if [[ "${#asset_info[@]}" -lt 2 ]]; then
+            echo "Failed to determine Vale asset download information" >&2
+            exit 1
+          fi
+
+          asset_name="${asset_info[0]}"
+          asset_url="${asset_info[1]}"
+
+          checksums_url=$(printf '%s' "${release_json}" | python3 - <<'PY'
+import json, sys
+
+data = json.load(sys.stdin)
+for asset in data.get('assets', []):
+    name = asset.get('name') or ''
+    if name.endswith('checksums.txt'):
+        print(asset.get('browser_download_url') or '')
+        sys.exit(0)
+
+raise SystemExit('checksums.txt not found in release assets')
+PY
+)
+
+          curl --retry 5 --retry-all-errors -fsSL "${asset_url}" -o vale.tar.gz
+          curl --retry 5 --retry-all-errors -fsSL "${checksums_url}" -o checksums.txt
+
+          EXPECTED_SHA256=$(awk -v file="${asset_name}" '$2 == file {print $1; exit}' checksums.txt)
           if [[ -z "${EXPECTED_SHA256:-}" ]]; then
-            echo "Unable to determine expected checksum for vale_Linux_64-bit.tar.gz" >&2
+            echo "Unable to determine expected checksum for ${asset_name}" >&2
             exit 1
           fi
+
           ACTUAL_SHA256=$(sha256sum vale.tar.gz | awk '{print $1}')
-          if [[ "$EXPECTED_SHA256" != "$ACTUAL_SHA256" ]]; then
+          if [[ "${EXPECTED_SHA256}" != "${ACTUAL_SHA256}" ]]; then
             echo "SHA256 checksum mismatch for vale.tar.gz" >&2
-            echo "Expected: $EXPECTED_SHA256" >&2
-            echo "Actual:   $ACTUAL_SHA256" >&2
+            echo "Expected: ${EXPECTED_SHA256}" >&2
+            echo "Actual:   ${ACTUAL_SHA256}" >&2
             exit 1
           fi
+
           tar -xzf vale.tar.gz
           test -f vale && echo "vale binary extracted" || (echo "vale missing" && exit 1)
           sudo install -m 0755 vale /usr/local/bin/vale
+          echo "Installed Vale ${version} (${asset_name})"
           vale --version
           rm -f vale vale.tar.gz checksums.txt
       - name: Markdownlint (changed only)
