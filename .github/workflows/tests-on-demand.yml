@@ -57,7 +57,8 @@ jobs:
         )
       )
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    # Bail out proactively if the bats suite stops making progress.
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - name: Run bats tests
