@@ -238,7 +238,7 @@ jobs:
         run: |
           set -euo pipefail
           curl --retry 5 --retry-all-errors -fsSL "https://github.com/errata-ai/vale/releases/download/${VALE_VERSION}/vale_Linux_64-bit.tar.gz" -o vale.tar.gz
-          curl --retry 5 --retry-all-errors -fsSL "https://github.com/errata-ai/vale/releases/download/${VALE_VERSION}/vale_${VALE_VERSION#v}_checksums.txt" -o checksums.txt
+          curl --retry 5 --retry-all-errors -fsSL "https://github.com/errata-ai/vale/releases/download/${VALE_VERSION}/checksums.txt" -o checksums.txt
           EXPECTED_SHA256=$(awk '$2 == "vale_Linux_64-bit.tar.gz" {print $1; exit}' checksums.txt)
           if [[ -z "${EXPECTED_SHA256:-}" ]]; then
             echo "Unable to determine expected checksum for vale_Linux_64-bit.tar.gz" >&2
