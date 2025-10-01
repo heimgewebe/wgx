@@ -8,15 +8,19 @@ cmd_reload() {
     --snapshot)
       do_snapshot=1
       ;;
-    --force)
+    --force|-f)
       force=1
       ;;
-    --dry-run)
+    --dry-run|-n)
       dry_run=1
       ;;
     --)
       shift
       break
+      ;;
+    -*)
+      printf 'unbekannte Option: %s\n' "$1" >&2
+      return 2
       ;;
     *)
       break
@@ -36,7 +40,7 @@ cmd_reload() {
     local status
     status="$(git_workdir_status_short)"
     if ((force)); then
-      warn "Arbeitsverzeichnis enthält uncommittete Änderungen – --force aktiv, Änderungen können verloren gehen."
+      warn "Arbeitsverzeichnis enthält uncommittete Änderungen – --force (-f) aktiv, Änderungen können verloren gehen."
       if [ -n "$status" ]; then
         while IFS= read -r line; do
           printf '    %s\n' "$line" >&2
@@ -49,7 +53,7 @@ cmd_reload() {
           printf '    %s\n' "$line" >&2
         done <<<"$status"
       fi
-      warn "Nutze 'wgx reload --force' (oder sichere mit --snapshot), wenn du wirklich alles verwerfen möchtest."
+      warn "Nutze 'wgx reload --force/-f' (oder sichere mit --snapshot), wenn du wirklich alles verwerfen möchtest."
       return 1
     fi
   fi
