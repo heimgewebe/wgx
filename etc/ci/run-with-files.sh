@@ -24,7 +24,7 @@ fi
 empty_message="$1"
 shift
 
-mapfile -t raw_files
+mapfile -t raw_files < /dev/stdin
 
 files=()
 for file in "${raw_files[@]}"; do
