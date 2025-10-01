@@ -112,6 +112,7 @@ jobs:
             echo "No shell files to format."
             exit 0
           fi
+          files=$(printf '%s\n' "$files" | sed "s/["'[:space:]]*$//")
           mapfile -t file_list <<< "$files"
           printf '%s\0' "${file_list[@]}" | xargs -0 shfmt -d
       - name: bash -n (syntax check)
@@ -122,6 +123,7 @@ jobs:
             echo "No shell files to check."
             exit 0
           fi
+          files=$(printf '%s\n' "$files" | sed "s/["'[:space:]]*$//")
           mapfile -t file_list <<< "$files"
           printf '%s\0' "${file_list[@]}" | xargs -0 -n1 bash -n
       - name: shellcheck
@@ -132,6 +134,7 @@ jobs:
             echo "No shell files to lint."
             exit 0
           fi
+          files=$(printf '%s\n' "$files" | sed "s/["'[:space:]]*$//")
           mapfile -t file_list <<< "$files"
           printf '%s\0' "${file_list[@]}" | xargs -0 shellcheck -S style
 
@@ -251,6 +254,7 @@ jobs:
             echo "No Markdown files to lint."
             exit 0
           fi
+          files=$(printf '%s\n' "$files" | sed "s/["'[:space:]]*$//")
           mapfile -t file_list <<< "$files"
           printf '%s\0' "${file_list[@]}" | xargs -0 markdownlint-cli2
       - name: Vale lint (changed only)
@@ -261,6 +265,7 @@ jobs:
             echo "No files for Vale."
             exit 0
           fi
+          files=$(printf '%s\n' "$files" | sed "s/["'[:space:]]*$//")
           mapfile -t file_list <<< "$files"
           printf '%s\0' "${file_list[@]}" | xargs -0 vale --minAlertLevel=warning
       - name: Link check (Lychee)
