@@ -45,6 +45,7 @@ sync_cmd() {
       ;;
     *)
       positional+=("$1")
+      shift
       ;;
     esac
   done
