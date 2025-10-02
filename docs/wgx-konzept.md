@@ -1,6 +1,4 @@
 
----
-
 ## Semantische Erweiterungen: semantAH
 
 semantAH ist ein Ableger-Projekt für semantisches Indexing und Wissensgraphen (Text-Embedding, Obsidian-Integration, Graph-Daten, QA-Reports).  
