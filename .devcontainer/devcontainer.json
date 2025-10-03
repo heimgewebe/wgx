@@ -26,5 +26,5 @@
     }
   },
   "remoteUser": "vscode",
-  "postCreateCommand": "bash -lc 'just devcontainer-check || .devcontainer/setup.sh check'"
+  "postCreateCommand": "bash -lc '.devcontainer/setup.sh ensure-uv && export PATH=\"$HOME/.local/bin:$PATH\" && (just devcontainer-check || .devcontainer/setup.sh check)'"
 }

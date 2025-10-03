@@ -12,7 +12,8 @@ Usage: setup.sh [command] [options]
 Commands:
   check                 Report availability of base and optional development tools.
   install [targets...]  Install tool groups or individual packages. Defaults to "base".
-  base|optional|all     Shortcut for "install" with the matching target(s). 
+  base|optional|all     Shortcut for "install" with the matching target(s).
+  ensure-uv             Install uv (if missing) and ensure ~/.local/bin is on PATH.
   <package>             Shortcut for "install" with a specific package.
 
 Targets:
@@ -27,6 +28,7 @@ Examples:
   setup.sh install optional         # install optional tooling
   setup.sh install all              # install everything
   setup.sh install shellcheck bats  # install a subset
+  setup.sh ensure-uv                # install uv and export ~/.local/bin
 USAGE
 }
 
@@ -87,6 +89,30 @@ print_tool_status() {
   if [[ $installed == "✗" ]]; then
     printf '      %s\n' "$description"
   fi
+}
+
+ensure_uv() {
+  local entry='export PATH="$HOME/.local/bin:$PATH"'
+  local installer_url="https://astral.sh/uv/install.sh"
+
+  if ! command -v uv >/dev/null 2>&1; then
+    echo "Installing uv from ${installer_url}"
+    curl -LsSf "$installer_url" | sh
+  else
+    echo "uv already present: $(uv --version)"
+  fi
+
+  local shell_rc
+  for shell_rc in "$HOME/.bashrc" "$HOME/.profile"; do
+    if [[ ! -e "$shell_rc" ]]; then
+      touch "$shell_rc"
+    fi
+    if ! grep -qxF "$entry" "$shell_rc"; then
+      echo "$entry" >>"$shell_rc"
+    fi
+  done
+
+  export PATH="$HOME/.local/bin:$PATH"
 }
 
 collect_packages() {
@@ -192,6 +218,9 @@ main() {
       ;;
     base|optional|all|jq|moreutils|shellcheck|shfmt|bats)
       run_install install "$@"
+      ;;
+    ensure-uv)
+      ensure_uv
       ;;
     -h|--help)
       usage

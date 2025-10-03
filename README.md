@@ -47,6 +47,72 @@ wgx --list 2>/dev/null || wgx commands 2>/dev/null || ls -1 cmd/
   bats -r tests
   ```
 
+## Python-Stack (uv als Standard)
+
+- wgx nutzt [uv](https://docs.astral.sh/uv/) als Default-Laufzeit für Python-Versionen, Lockfiles und Tools.
+- Die wichtigsten Wrapper-Kommandos:
+
+  ```bash
+  wgx py up         # gewünschte Python-Version via uv bereitstellen
+  wgx py sync       # Abhängigkeiten anhand von uv.lock installieren
+  wgx py run test   # uv run <task>, z. B. Tests
+  wgx tool add ruff # CLI-Tools wie pipx, nur über uv
+  ```
+
+- Projekte deklarieren das Verhalten in `.wgx/profile.yml`:
+
+  ```yaml
+  python:
+    manager: uv
+    version: "3.12"
+    lock: true
+    tools:
+      - ruff
+      - pyright
+  contracts:
+    uv_lock_present: true
+    uv_sync_frozen: true
+  ```
+
+- Die `contracts`-Einträge lassen sich via `wgx guard` automatisiert überprüfen.
+- Übergang aus bestehenden `requirements.txt`: `uv pip sync requirements.txt`, anschließend `uv lock`.
+- Optional für Fremdsysteme: `uv pip compile --output-file requirements.txt` erzeugt kompatible Artefakte.
+- Wer eine alternative Toolchain benötigt, kann in `profile.yml` auf `manager: pip` zurückfallen.
+- `python.version` akzeptiert exakte Versionen (`3.12`) oder Bereiche (`3.12.*`).
+
+- CI-Empfehlung (GitHub Actions, gekürzt):
+
+  ```yaml
+  - name: Install uv
+    run: |
+      curl -LsSf https://astral.sh/uv/install.sh | sh
+      echo "UV_VERSION=$($HOME/.local/bin/uv --version | awk '{print $2}')" >> "$GITHUB_ENV"
+  - name: Cache uv
+    uses: actions/cache@v4
+    with:
+      path: ~/.cache/uv
+      key: uv-${{ runner.os }}-${{ env.UV_VERSION || 'latest' }}-${{ hashFiles('**/pyproject.toml', '**/uv.lock') }}
+  - name: Sync deps (frozen)
+    run: ~/.local/bin/uv sync --frozen
+  - name: Test
+    run: ~/.local/bin/uv run pytest -q
+  ```
+
+- WGX-Contracts (durchsetzbar via `wgx guard`):
+  - `contract:uv_lock_present` → `uv.lock` ist committed
+  - `contract:uv_sync_frozen` → Pipelines nutzen `uv sync --frozen`
+
+- Beispiele für `wgx py run`:
+
+  ```bash
+  wgx py run "python -m http.server"
+  wgx py run pytest -q
+  ```
+
+- Devcontainer-Hinweis: kombiniere die Installation mit dem Sync, z. B. `"postCreateCommand": "bash -lc '.devcontainer/setup.sh ensure-uv && ~/.local/bin/uv sync'"`.
+- Für regulierte Umgebungen kann die Installation statt `curl | sh` über gepinnte Paketquellen erfolgen.
+- Weitere Hintergründe stehen in [docs/ADR-0002__python-env-manager-uv.de.md](docs/ADR-0002__python-env-manager-uv.de.md) und im [Runbook](docs/Runbook.de.md#leitfaden-von-requirementstxt-zu-uv).
+
 ## Kommandos
 
 ### reload

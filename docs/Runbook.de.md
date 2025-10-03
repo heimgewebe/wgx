@@ -18,8 +18,9 @@
 
 ### `wgx`-Befehl schlägt mit Python-Fehlern fehl
 
-- Python-Umgebung aktivieren (`.venv/bin/activate` oder `pipx run`).
-- Fehlende Abhängigkeiten mit `pip install -r requirements.txt` nachinstallieren.
+- `wgx py up` ausführen, damit uv die im Profil hinterlegte Python-Version bereitstellt.
+- `wgx py sync` starten, um Abhängigkeiten anhand des `uv.lock`-Files konsistent zu installieren.
+- Falls ein Repository noch kein Lockfile besitzt, `uv pip sync requirements.txt` verwenden und anschließend `wgx py sync` etablieren.
 - Bei globaler Installation prüfen, ob Version mit zentralem Contract kompatibel ist.
 
 ### `sudo apt-get update -y` schlägt mit „unsigned/403 responses" fehl
@@ -55,8 +56,42 @@
 
 - Termux-Repo aktualisieren (`pkg update`), bevor Python/Node installiert wird.
 - Essentials installieren: `pkg install jq git python`.
-- `pipx` ergänzen (`pip install pipx && pipx ensurepath`), um `wgx` isoliert zu nutzen.
+- `uv` als Single-Binary in `$HOME/.local/bin` installieren:
+
+  ```bash
+  curl -LsSf https://astral.sh/uv/install.sh | sh
+  echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.profile
+  . ~/.profile
+  ```
+
+- Danach `wgx py up` ausführen – uv verwaltet Python-Versionen und virtuelle Umgebungen ohne zusätzliche Tools.
 - Speicherzugriff auf das Projektverzeichnis gewähren (`termux-setup-storage`).
+
+## Leitfaden: Von `requirements.txt` zu uv
+
+1. Vorhandene Abhängigkeiten synchronisieren:
+
+   ```bash
+   uv pip sync requirements.txt
+   ```
+
+2. Projektmetadaten definieren (`pyproject.toml`), sofern noch nicht vorhanden.
+3. Lockfile erzeugen und ins Repository aufnehmen:
+
+   ```bash
+   uv lock
+   git add uv.lock
+   ```
+
+4. Für CI und lokale Entwickler `wgx py sync` dokumentieren; im Fehlerfall `uv sync --frozen` nutzen.
+5. Optional weiterhin Artefakte exportieren (`uv pip compile --output-file requirements.txt`).
+
+## CI mit uv (Kurzüberblick)
+
+- uv installieren (z. B. per `curl -LsSf https://astral.sh/uv/install.sh | sh`).
+- Globalen Cache cachen: `~/.cache/uv` mit einem Key aus uv-Version (`uv --version | awk '{print $2}'`) sowie `pyproject.toml` + `uv.lock`.
+- Abhängigkeiten strikt via `uv sync --frozen` installieren.
+- Tests mit `uv run …` starten (z. B. `uv run pytest -q`).
 
 ## Tipps für VS Code (Remote / Dev Containers)
 
@@ -71,3 +106,4 @@
   ]
 }
 ```
+- Nutze `.devcontainer/setup.sh ensure-uv`, damit uv nach dem Container-Start verfügbar ist (inklusive PATH-Anpassung).
