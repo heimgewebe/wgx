@@ -79,6 +79,42 @@ assert_output() {
   fi
 }
 
+assert_error() {
+  local mode=exact
+  while (($#)); do
+    case "$1" in
+      --partial)
+        mode=partial
+        shift
+        ;;
+      --regexp)
+        mode=regexp
+        shift
+        ;;
+      --)
+        shift
+        break
+        ;;
+      *)
+        break
+        ;;
+    esac
+  done
+
+  local expected="$*"
+
+  local actual=""
+  if [[ -n ${stderr+x} ]]; then
+    actual="$stderr"
+  elif [[ -n ${error+x} ]]; then
+    actual="$error"
+  fi
+
+  if ! _assert_match "$mode" "$actual" "$expected"; then
+    _assert_fail "Expected error (${mode}) to match '$expected' but was: $actual"
+  fi
+}
+
 assert_line() {
   local index=""
   local mode=exact
