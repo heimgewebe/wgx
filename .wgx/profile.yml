@@ -1,11 +1,9 @@
 version: 1
 repo:
-  # Kurzname des Repos (wird automatisch aus git ableitbar sein – hier nur Doku)
   name: auto
   description: "WGX profile for unified tasks and env priorities"
 
 env_priority:
-  # Ordnungsprinzip laut Vorgabe
   - devcontainer
   - devbox
   - mise_direnv
@@ -13,13 +11,13 @@ env_priority:
 
 tooling:
   python:
-    uv: true           # uv ist Standard-Layer für Python-Tools
-    precommit: true    # falls .pre-commit-config.yaml vorhanden
+    uv: true
+    precommit: true
   rust:
-    cargo: auto        # wenn Cargo.toml vorhanden → Rust-Checks aktivieren
+    cargo: auto
     clippy_strict: true
     fmt_check: true
-    deny: optional     # cargo-deny, falls vorhanden
+    deny: optional
 
 tasks:
   up:
@@ -38,17 +36,14 @@ tasks:
     desc: "Schnelle statische Checks (Rust/Python/Markdown/YAML)"
     sh:
       - |
-        # Rust
         if [ -f Cargo.toml ]; then
           cargo fmt --all -- --check
           cargo clippy --all-targets --all-features -- -D warnings
         fi
-        # Python
         if [ -f pyproject.toml ]; then
           if command -v uv >/dev/null 2>&1; then uv run ruff check . || true; fi
           if command -v uv >/dev/null 2>&1; then uv run ruff format --check . || true; fi
         fi
-        # Docs
         command -v markdownlint >/dev/null 2>&1 && markdownlint "**/*.md" || true
         command -v yamllint    >/dev/null 2>&1 && yamllint . || true
   test:

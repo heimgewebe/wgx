@@ -31,10 +31,12 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Run schema-lite check
+      - name: Install PyYAML
         run: |
           python -m pip install --upgrade pip
           python -m pip install pyyaml
+      - name: Run schema-lite check
+        run: |
           python - <<'PY'
 import sys, yaml, pathlib
 p = pathlib.Path(".wgx/profile.yml")
