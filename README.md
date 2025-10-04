@@ -1,3 +1,5 @@
+![WGX](https://img.shields.io/badge/wgx-enabled-blue)
+
 # wgx – Weltgewebe CLI
 
 Eigenständiges CLI für Git-/Repo-Workflows (Termux, WSL, Linux, macOS). Lizenz: MIT (projektintern).
