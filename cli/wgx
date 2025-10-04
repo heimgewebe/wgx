@@ -12,6 +12,16 @@ done
 WGX_DIR="$(cd -P "$(dirname "$SOURCE")/.." >/dev/null 2>&1 && pwd)"
 export WGX_DIR
 
+# Version anzeigen, bevor weitere Komponenten geladen werden
+__WGX_VERSION__="2.0.0"
+export WGX_VERSION="$__WGX_VERSION__"
+case "${1:-}" in
+  --version|-V)
+    echo "wgx ${__WGX_VERSION__}"
+    exit 0
+    ;;
+esac
+
 # libs laden (alphabetisch hält Ordnung)
 if [ -d "$WGX_DIR/lib" ]; then
   for f in "$WGX_DIR/lib/"*.bash; do

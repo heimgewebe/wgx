@@ -1,0 +1,2 @@
+# Placeholder uv lockfile.
+# Generate with `uv sync --frozen` once pyproject.toml is available.
