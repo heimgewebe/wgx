@@ -17,7 +17,7 @@ _guard_require_file() {
     printf '  • %s ✅\n' "$message"
     return 0
   fi
-  printf '  ✗ %s fehlt\n' "$message" >&2
+  printf '  ✗ %s missing\n' "$message" >&2
   return 1
 }
 
