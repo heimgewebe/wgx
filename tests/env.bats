@@ -25,13 +25,13 @@ setup() {
   unset TERMUX_VERSION
   run wgx env doctor --fix
   assert_success
-  assert_output --stderr --partial "only supported on Termux"
+  assert_output --stderr --partial "--fix is currently only supported on Termux"
 }
 
 @test "env doctor --strict fails when git is missing" {
   local tmpbin
   tmpbin="$(mktemp -d)"
-  for cmd in dirname readlink uname head tr; do
+  for cmd in bash dirname readlink uname head tr; do
     ln -s "$(command -v "$cmd")" "$tmpbin/$cmd"
   done
   run env PATH="$tmpbin" "$WGX_DIR/cli/wgx" env doctor --strict
