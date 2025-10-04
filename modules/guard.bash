@@ -11,6 +11,16 @@ _guard_command_available() {
   [[ -r "${base_dir}/cmd/${name}.bash" ]]
 }
 
+_guard_require_file() {
+  local path="$1" message="$2"
+  if [[ -f "$path" ]]; then
+    printf '  • %s ✅\n' "$message"
+    return 0
+  fi
+  printf '  ✗ %s fehlt\n' "$message" >&2
+  return 1
+}
+
 guard_run() {
   local run_lint=0 run_test=0
   while [[ $# -gt 0 ]]; do
@@ -52,7 +62,19 @@ guard_run() {
     return 1
   fi
 
-  # 4. Lint (wenn gewünscht)
+  # 4. Repository Guard-Checks
+  echo "▶ Verifying repository guard checklist..."
+  local checklist_ok=1
+  _guard_require_file "uv.lock" "uv.lock vorhanden" || checklist_ok=0
+  _guard_require_file ".github/workflows/shell-docs.yml" "Shell/Docs CI-Workflow vorhanden" || checklist_ok=0
+  _guard_require_file "templates/profile.template.yml" "Profile-Template vorhanden" || checklist_ok=0
+  _guard_require_file "docs/Runbook.md" "Runbook dokumentiert" || checklist_ok=0
+  if [[ $checklist_ok -eq 0 ]]; then
+    echo "❌ Guard checklist failed." >&2
+    return 1
+  fi
+
+  # 5. Lint (wenn gewünscht)
   if [[ $run_lint -eq 1 ]]; then
     if _guard_command_available lint; then
       echo "▶ Running lint checks..."
@@ -62,7 +84,7 @@ guard_run() {
     fi
   fi
 
-  # 5. Tests (wenn gewünscht)
+  # 6. Tests (wenn gewünscht)
   if [[ $run_test -eq 1 ]]; then
     if _guard_command_available test; then
       echo "▶ Running tests..."

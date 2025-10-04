@@ -1,0 +1,20 @@
+wgx:
+  apiVersion: v1.1
+  requiredWgx:
+    range: "^2.0"
+    min: "2.0.0"
+    caps: ["task-array","status-dirs"]
+  repoKind: "generic"
+  envDefaults:
+    RUST_BACKTRACE: "1"
+  tasks:
+    doctor: { desc: "Sanity-Checks", safe: true, cmd: ["wgx","doctor"] }
+    test:   { desc: "Run Bats",        safe: true, cmd: ["bats","-r","tests"] }
+python:
+  manager: uv
+  version: "3.12"
+  lock: true
+  tools: [ "ruff", "pyright" ]
+contracts:
+  uv_lock_present: true
+  uv_sync_frozen: true

@@ -1,0 +1,77 @@
+name: shell-docs
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  shell-and-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node (cache npm)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Install deps
+        run: |
+          export DEBIAN_FRONTEND=noninteractive
+          sudo apt-get -yq update
+          sudo apt-get -yq install shellcheck shfmt bats
+          npm install -g markdownlint-cli@0.43.0
+          tmpdir="$(mktemp -d)"
+          curl -Ls https://github.com/errata-ai/vale/releases/download/v3.8.0/vale_3.8.0_Linux_64-bit.tar.gz \
+            | tar xz -C "$tmpdir"
+          sudo mv "$tmpdir/vale" /usr/local/bin/vale
+          rm -rf "$tmpdir"
+          vale --version
+      - name: Lint shells
+        run: |
+          set -euo pipefail
+          mapfile -t files < <(git ls-files '*.sh' '*.bash')
+          if [[ ${#files[@]} -eq 0 ]]; then
+            echo "No shell files found."
+            exit 0
+          fi
+          bash -n "${files[@]}"
+          shfmt -d "${files[@]}"
+          shellcheck -S style "${files[@]}"
+      - name: Test (bats)
+        run: |
+          if [ -d tests ]; then
+            bats -r tests
+          else
+            echo "No tests directory" && exit 0
+          fi
+      - name: Lint markdown
+        run: |
+          set -euo pipefail
+          mapfile -t md_files < <(git ls-files '*.md' '*.mdx')
+          if [[ ${#md_files[@]} -eq 0 ]]; then
+            echo "No markdown files."
+            exit 0
+          fi
+          markdownlint "${md_files[@]}"
+          vale .
+
+  python-uv:
+    runs-on: ubuntu-latest
+    if: ${{ hashFiles('uv.lock') != '' && hashFiles('**/pyproject.toml') != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+      - name: Cache uv
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/uv
+          key: uv-${{ runner.os }}-${{ hashFiles('**/pyproject.toml', '**/uv.lock') }}
+      - name: Sync deps (frozen)
+        run: uv sync --frozen
+      - name: Smoke run
+        run: uv run python -c "print('uv ok')"

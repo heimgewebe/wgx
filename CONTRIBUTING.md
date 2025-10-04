@@ -32,3 +32,15 @@ Halte Änderungen klein, portabel und mit Tests abgesichert.
 
 - CI grün (`bash_lint_test`).
 - Für neue/geänderte Befehle: Hilfetext + Bats-Test vorhanden.
+
+## Lokale Checks (Spiegel der CI)
+```bash
+bash -n $(git ls-files "*.sh" "*.bash")
+shfmt -d $(git ls-files "*.sh" "*.bash")
+shellcheck -S style $(git ls-files "*.sh" "*.bash")
+bats -r tests
+markdownlint $(git ls-files "*.md" "*.mdx")
+vale .
+```
+
+> Tipp: `pre-commit install` setzt das als Hook vor jeden Commit.
