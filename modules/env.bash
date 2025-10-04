@@ -142,7 +142,7 @@ env::_apply_fixes() {
     return 1
   fi
 
-  warn "--fix is currently only supported on Termux; no changes applied."
+  warn "--fix is currently only supported on Termux"
   return 0
 }
 
