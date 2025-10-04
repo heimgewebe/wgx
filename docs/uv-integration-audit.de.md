@@ -9,7 +9,7 @@
 
 ## Festgestellte Lücken
 
-- Im `cmd/`-Verzeichnis existiert bislang kein `py.bash` oder `tool.bash`. Die in der README beworbenen Wrapper sind daher noch nicht implementiert und Nutzer:innen müssen uv manuell bedienen.【8c6536†L1-L4】
+- Im `cmd/`-Verzeichnis existiert bislang kein `py.bash` oder `tool.bash`. Die in der README beworbenen Wrapper sind daher noch nicht implementiert und Nutzer:innen müssen uv manuell bedienen.【F:cmd/py.bash†L1-L4】
 - Die Guard-/Contract-Mechanik bietet derzeit keine konkreten Prüfschritte für `uv_lock_present` oder `uv_sync_frozen`, obwohl sie in der README als Vertragskürzel erwähnt werden. Damit lassen sich die versprochenen Sicherungen noch nicht erzwingen.【F:README.md†L66-L103】
 - Das Template `.wgx/profile.yml` enthält keinen `python`-Block. Neue Repos erhalten somit keine Startkonfiguration für uv-Version, Lockfile-Pflicht oder Tool-Liste, obwohl die Dokumentation dies erwartet.【F:templates/.wgx/profile.yml†L1-L7】
 
