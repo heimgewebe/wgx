@@ -54,9 +54,15 @@ tasks:
     desc: "Testsuite"
     sh:
       - |
-        [ -f Cargo.toml ] && cargo test --all --all-features || true
+        if [ -f Cargo.toml ]; then
+          if ! cargo test --all --all-features; then
+            echo "[wgx.test] WARNING: cargo test failed but is being ignored"
+          fi
+        fi
         if [ -f pyproject.toml ] && command -v uv >/dev/null 2>&1; then
-          uv run pytest -q || true
+          if ! uv run pytest -q; then
+            echo "[wgx.test] WARNING: pytest failed but is being ignored"
+          fi
         fi
   build:
     desc: "Build-Artefakte erstellen"
