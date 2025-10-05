@@ -25,7 +25,7 @@ setup() {
   unset TERMUX_VERSION
   run wgx env doctor --fix
   assert_success
-  assert_output --stderr --partial "--fix is currently only supported on Termux"
+  assert_output --partial "--fix is currently only supported on Termux"
 }
 
 @test "env doctor --strict fails when git is missing" {
