@@ -21,6 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       shell: ${{ steps.filter.outputs.shell }}
+      tests: ${{ steps.filter.outputs.tests }}
       docs: ${{ steps.filter.outputs.docs }}
     steps:
       - uses: actions/checkout@v4
