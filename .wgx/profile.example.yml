@@ -43,8 +43,10 @@ tasks:
           cargo clippy --all-targets --all-features -- -D warnings
         fi
         if [ -f pyproject.toml ]; then
-          if command -v uv >/dev/null 2>&1; then uv run ruff check . || true; fi
-          if command -v uv >/dev/null 2>&1; then uv run ruff format --check . || true; fi
+          if command -v uv >/dev/null 2>&1; then
+            uv run ruff check . || true
+            uv run ruff format --check . || true
+          fi
         fi
         command -v markdownlint >/dev/null 2>&1 && markdownlint "**/*.md" || true
         command -v yamllint    >/dev/null 2>&1 && yamllint . || true
