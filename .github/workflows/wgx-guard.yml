@@ -28,7 +28,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Check .wgx/profile.yml presence
+      - name: Check or create .wgx/profile.yml (fallback from example)
         run: |
           if [ -f .wgx/profile.yml ]; then
             echo "OK: .wgx/profile.yml present"
@@ -40,6 +40,17 @@ jobs:
             echo "::error::.wgx/profile.yml and .wgx/profile.example.yml both missing"
             exit 1
           fi
+          echo "OK: .wgx/profile.yml present"
+
+      - name: Install shellcheck (cached)
+        uses: taiki-e/install-action@v2
+        with:
+          tool: shellcheck
+
+      - name: Install shfmt (cached)
+        uses: taiki-e/install-action@v2
+        with:
+          tool: shfmt
 
       - name: Shell Lint
         run: |
@@ -49,8 +60,6 @@ jobs:
             echo "No shell scripts found; skipping lint."
             exit 0
           fi
-          sudo apt-get update -y -qq
-          sudo apt-get install -y -qq shellcheck shfmt
           bash -n "${scripts[@]}"
           shfmt -d "${scripts[@]}"
           shellcheck -S style "${scripts[@]}"
