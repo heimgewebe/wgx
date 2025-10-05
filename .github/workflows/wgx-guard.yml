@@ -70,7 +70,11 @@ jobs:
           echo "ref=${{ github.ref }} sha=${{ github.sha }}"
           test -s README.md || echo "::warning::README.md missing or empty"
           if [ -f Cargo.toml ]; then
-            cargo metadata --no-deps >/dev/null
+            if command -v cargo >/dev/null 2>&1; then
+              cargo metadata --no-deps >/dev/null
+            else
+              echo "::notice::Cargo.toml present but 'cargo' not found – skipping Rust smoke"
+            fi
           fi
           if [ -f pyproject.toml ]; then
             grep -q '^[[:space:]]*\[project\]' pyproject.toml || echo "::warning::[project] section not found in pyproject.toml"
