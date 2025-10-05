@@ -2,7 +2,7 @@
 #  .wgx/profile.example.yml
 #  WARNUNG: Keine echten Zugangsdaten hier eintragen oder commiten!
 #  ➜ Lokale Nutzung: Kopiere diese Datei zu .wgx/profile.yml
-#     und passe sie NUR lokal an (.wgx/profile.yml ist ge-gitignored).
+#     und passe sie NUR lokal an (.wgx/profile.yml ist von Git ignoriert).
 #  Zweck: CI-Fallback & Strukturhinweis (ohne Secrets).
 # =======================================================================
 
