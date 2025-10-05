@@ -5,6 +5,7 @@ on:
   push:
     paths:
       - ".wgx/**"
+      - ".wgx/profile.example.yml"
       - ".github/workflows/**"
       - "pyproject.toml"
       - "uv.lock"
@@ -12,6 +13,7 @@ on:
   pull_request:
     paths:
       - ".wgx/**"
+      - ".wgx/profile.example.yml"
       - ".github/workflows/**"
       - "pyproject.toml"
       - "uv.lock"
@@ -37,6 +39,16 @@ jobs:
             exit 1
           fi
 
+      - name: Install shellcheck (cached)
+        uses: taiki-e/install-action@v2
+        with:
+          tool: shellcheck
+
+      - name: Install shfmt (cached)
+        uses: taiki-e/install-action@v2
+        with:
+          tool: shfmt
+
       - name: Shell Lint
         run: |
           set -euo pipefail
@@ -45,8 +57,6 @@ jobs:
             echo "No shell scripts found; skipping lint."
             exit 0
           fi
-          sudo apt-get update -y -qq
-          sudo apt-get install -y -qq shellcheck shfmt
           bash -n "${scripts[@]}"
           shfmt -d "${scripts[@]}"
           shellcheck -S style "${scripts[@]}"
