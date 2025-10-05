@@ -39,6 +39,8 @@ jobs:
       # Use pre-built action for cargo-audit to avoid repeated compilation
       - name: Audit dependencies
         uses: actions-rs/audit-check@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
       # Optional: falls du ein eigenes DB-Verzeichnis nutzt
       # - name: Audit with explicit DB path
       #   run: cargo audit -d ~/.cargo/advisory-db
