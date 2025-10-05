@@ -155,6 +155,13 @@ Der eigentliche Dispatcher liegt unter `cli/wgx`.
 Alle Subcommands werden über die Dateien im Ordner `cmd/` geladen und greifen dabei auf die Bibliotheken in `lib/` zurück.
 Wiederkehrende Helfer (Logging, Git-Hilfen, Environment-Erkennung usw.) sind im Kernmodul `lib/core.bash` gebündelt.
 
+## Vision & Manifest
+
+Für die vollständige, integrierte Produktvision („Repo-Betriebssystem“) lies
+**[docs/wgx-mycelium-v-omega.de.md](docs/wgx-mycelium-v-omega.de.md)**.
+Sie bündelt Bedienkanon, Fleet, Memory, Policies, Offline, Registry und Roadmap.
+WGX macht Abläufe reproduzierbar, erklärt Policies und liefert Evidence-Packs für PRs – im Einzelrepo und in der Fleet.
+
 ## Konfiguration
 
 Standardwerte liegen unter `etc/config.example`.
@@ -164,6 +171,7 @@ Anschließend kannst du sie dort projektspezifisch anpassen.
 ## .wgx/profile (v1 / v1.1)
 
 - **Datei**: `.wgx/profile.yml` (oder `.yaml` / `.json`)
+- **Details**: Kapitel [6. Profile v1 / v1.1](docs/wgx-mycelium-v-omega.de.md#6-profile-v1--v11-minimal--reich) im Mycelium-Manifest erläutert Struktur, Defaults und Erweiterungen.
 - **apiVersion**:
   - `v1`: einfache Strings für `tasks.<name>`
   - `v1.1`: reichere Spezifikation (Arrays, desc/group/safe, envDefaults/Overrides, requiredWgx-Objekt)
