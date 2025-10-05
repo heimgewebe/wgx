@@ -1,0 +1,25 @@
+# =======================================================================
+#  .wgx/profile.example.yml
+#  WARNUNG: Keine echten Zugangsdaten hier eintragen oder committen!
+#  ➜ Lokale Nutzung: Kopiere diese Datei zu .wgx/profile.yml
+#     und passe sie NUR lokal an (.wgx/profile.yml ist ge-gitignored).
+#  Zweck: CI-Fallback & Strukturhinweis (ohne Secrets).
+# =======================================================================
+
+# Minimalstruktur (Beispiel) – passe bei Bedarf an dein Repo an:
+version: 1
+env_priority:
+  - devcontainer
+  - devbox
+  - mise
+  - termux
+tooling:
+  # nur Bezeichner/Schalter, keine Secrets
+  python: uv
+  shell: bash
+tasks:
+  up: "echo bootstrap"
+  lint: "echo lint"
+  test: "echo test"
+  build: "echo build"
+  smoke: "echo smoke"

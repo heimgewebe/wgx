@@ -1,0 +1,5 @@
+# Ignoriere die echte, lokale Profil-Datei mit evtl. sensiblen Angaben
+profile.yml
+
+# Diese Datei selbst bitte versionieren
+!.gitignore
