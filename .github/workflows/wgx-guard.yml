@@ -63,7 +63,7 @@ jobs:
             echo "OK: .wgx/profile.yml present"
           elif [ -f .wgx/profile.example.yml ]; then
             echo "::warning::.wgx/profile.yml missing – using .wgx/profile.example.yml as CI placeholder"
-            # Nur Sichtprüfung: keine Secrets, nur Strukturhinweis
+            # For visual inspection only: no secrets, structure hint only
             head -n 20 .wgx/profile.example.yml || true
           else
             echo "::error::.wgx/profile.yml and .wgx/profile.example.yml both missing"
