@@ -38,7 +38,6 @@ jobs:
 
       # Use pre-built action for cargo-audit to avoid repeated compilation
       - name: Audit dependencies
-        working-directory: .
         uses: actions-rs/audit-check@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
