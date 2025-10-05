@@ -30,6 +30,32 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Ensure bash is available
+        shell: sh
+        run: |
+          if ! command -v bash >/dev/null 2>&1; then
+            echo "bash not found; installing"
+            if command -v apt-get >/dev/null 2>&1; then
+              if command -v sudo >/dev/null 2>&1; then
+                sudo apt-get update
+                sudo apt-get install -y bash
+              else
+                apt-get update
+                apt-get install -y bash
+              fi
+            elif command -v apk >/dev/null 2>&1; then
+              if command -v sudo >/dev/null 2>&1; then
+                sudo apk add --no-cache bash
+              else
+                apk add --no-cache bash
+              fi
+            else
+              echo "::error::Unable to install bash with available package manager"
+              exit 1
+            fi
+          fi
+          bash --version
+
       - name: Check or create .wgx/profile.yml (fallback from example)
         run: |
           set -euo pipefail
@@ -43,16 +69,6 @@ jobs:
             fi
           fi
           echo "OK: .wgx/profile.yml present"
-
-      - name: Install shellcheck (cached)
-        uses: taiki-e/install-action@v2
-        with:
-          tool: shellcheck
-
-      - name: Install shfmt (cached)
-        uses: taiki-e/install-action@v2
-        with:
-          tool: shfmt
 
       - name: Install shellcheck (cached)
         uses: taiki-e/install-action@v2
