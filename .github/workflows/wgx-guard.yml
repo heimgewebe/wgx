@@ -33,27 +33,31 @@ jobs:
       - name: Ensure bash is available
         shell: sh
         run: |
-          if ! command -v bash >/dev/null 2>&1; then
+          SUDO=""
+          if command -v sudo >/dev/null 2>&1 && sudo -n true 2>/dev/null; then
+            SUDO="sudo"
+          fi
+
+          install_bash() {
+            if command -v bash >/dev/null 2>&1; then
+              return 0
+            fi
+
             echo "bash not found; installing"
             if command -v apt-get >/dev/null 2>&1; then
-              if command -v sudo >/dev/null 2>&1; then
-                sudo apt-get update
-                sudo apt-get install -y bash
-              else
-                apt-get update
-                apt-get install -y bash
-              fi
+              $SUDO apt-get update -qq
+              $SUDO apt-get install -y -qq bash
             elif command -v apk >/dev/null 2>&1; then
-              if command -v sudo >/dev/null 2>&1; then
-                sudo apk add --no-cache bash
-              else
-                apk add --no-cache bash
-              fi
+              $SUDO apk add --no-cache bash
+            elif command -v yum >/dev/null 2>&1; then
+              $SUDO yum install -y -q bash
             else
               echo "::error::Unable to install bash with available package manager"
-              exit 1
+              return 1
             fi
-          fi
+          }
+
+          install_bash || exit 1
           bash --version
 
       - name: Check or create .wgx/profile.yml (fallback from example)
