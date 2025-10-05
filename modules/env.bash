@@ -148,6 +148,7 @@ env::_apply_fixes() {
 
 env_cmd() {
   local sub="doctor" fix=0 strict=0 json=0
+  local apply_fixes=0
 
   while (($#)); do
     case "$1" in
@@ -184,6 +185,14 @@ USAGE
     shift
   done
 
+  if ((fix)); then
+    if env::_is_termux; then
+      apply_fixes=1
+    else
+      printf '%s\n' "--fix is currently only supported on Termux" >&2
+    fi
+  fi
+
   case "$sub" in
   doctor)
     if ((json)); then
@@ -191,7 +200,7 @@ USAGE
     else
       env::_doctor_report
     fi
-    if ((fix)); then
+    if ((apply_fixes)); then
       env::_apply_fixes || return $?
     fi
     if [[ $strict -ne 0 ]]; then
