@@ -132,6 +132,10 @@ env::_termux_fixups() {
   return $rc
 }
 
+env::_fix_unsupported_msg() {
+  printf '%s\n' "--fix is currently only supported on Termux" >&2
+}
+
 env::_apply_fixes() {
   if env::_is_termux; then
     if env::_termux_fixups; then
@@ -142,7 +146,7 @@ env::_apply_fixes() {
     return 1
   fi
 
-  printf '%s\n' "--fix is currently only supported on Termux" >&2
+  env::_fix_unsupported_msg
   return 0
 }
 
@@ -189,7 +193,7 @@ USAGE
     if env::_is_termux; then
       apply_fixes=1
     else
-      printf '%s\n' "--fix is currently only supported on Termux" >&2
+      env::_fix_unsupported_msg
     fi
   fi
 
