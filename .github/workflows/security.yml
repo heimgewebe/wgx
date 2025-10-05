@@ -36,14 +36,9 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-
 
-      - name: Install cargo-audit
-        run: cargo install cargo-audit --locked --force
-
-      # cargo-audit aktualisiert die Advisory-DB selbstständig.
-      # Optional kann man das Cache-Verzeichnis explizit setzen.
-      - name: Audit (with implicit DB update)
-        run: cargo audit
-
+      # Use pre-built action for cargo-audit to avoid repeated compilation
+      - name: Audit dependencies
+        uses: actions-rs/audit-check@v1
       # Optional: falls du ein eigenes DB-Verzeichnis nutzt
       # - name: Audit with explicit DB path
       #   run: cargo audit -d ~/.cargo/advisory-db
