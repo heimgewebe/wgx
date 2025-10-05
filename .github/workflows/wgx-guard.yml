@@ -28,7 +28,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Check .wgx/profile.yml presence
+      - name: Check or create .wgx/profile.yml (fallback from example)
         run: |
           set -euo pipefail
           if [ ! -f .wgx/profile.yml ]; then
