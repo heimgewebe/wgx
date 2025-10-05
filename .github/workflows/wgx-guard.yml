@@ -56,19 +56,19 @@ jobs:
           fi
           bash --version
 
-      - name: Check or create .wgx/profile.yml (fallback from example)
+      - name: Check .wgx profile presence
         run: |
           set -euo pipefail
-          if [ ! -f .wgx/profile.yml ]; then
-            if [ -f .wgx/profile.example.yml ]; then
-              echo "Using .wgx/profile.example.yml as fallback"
-              cp .wgx/profile.example.yml .wgx/profile.yml
-            else
-              echo "::error::.wgx/profile.yml missing"
-              exit 1
-            fi
+          if [ -f .wgx/profile.yml ]; then
+            echo "OK: .wgx/profile.yml present"
+          elif [ -f .wgx/profile.example.yml ]; then
+            echo "::warning::.wgx/profile.yml missing – using .wgx/profile.example.yml as CI placeholder"
+            # Nur Sichtprüfung: keine Secrets, nur Strukturhinweis
+            head -n 20 .wgx/profile.example.yml || true
+          else
+            echo "::error::.wgx/profile.yml and .wgx/profile.example.yml both missing"
+            exit 1
           fi
-          echo "OK: .wgx/profile.yml present"
 
       - name: Install shellcheck (cached)
         uses: taiki-e/install-action@v2
