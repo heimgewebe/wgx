@@ -142,7 +142,7 @@ env::_apply_fixes() {
     return 1
   fi
 
-  printf '⚠️  %s\n' "--fix is currently only supported on Termux" >&2
+  printf '%s\n' "--fix is currently only supported on Termux" >&2
   return 0
 }
 
