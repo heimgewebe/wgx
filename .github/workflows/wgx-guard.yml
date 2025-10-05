@@ -33,27 +33,36 @@ jobs:
       - name: Ensure bash is available
         shell: sh
         run: |
-          if ! command -v bash >/dev/null 2>&1; then
-            echo "bash not found; installing"
-            if command -v apt-get >/dev/null 2>&1; then
-              if command -v sudo >/dev/null 2>&1; then
-                sudo apt-get update
-                sudo apt-get install -y bash
-              else
-                apt-get update
-                apt-get install -y bash
-              fi
-            elif command -v apk >/dev/null 2>&1; then
-              if command -v sudo >/dev/null 2>&1; then
-                sudo apk add --no-cache bash
-              else
-                apk add --no-cache bash
-              fi
+          SUDO=""
+          if command -v sudo >/dev/null 2>&1; then
+            if sudo -n true 2>/dev/null; then
+              SUDO="sudo"
             else
-              echo "::error::Unable to install bash with available package manager"
+              echo "::error::sudo is present but passwordless sudo is not configured. Please configure passwordless sudo or run this workflow as root."
               exit 1
             fi
           fi
+
+          install_bash() {
+            if command -v bash >/dev/null 2>&1; then
+              return 0
+            fi
+
+            echo "bash not found; installing"
+            if command -v apt-get >/dev/null 2>&1; then
+              $SUDO apt-get update -q
+              $SUDO apt-get install -y -q bash
+            elif command -v apk >/dev/null 2>&1; then
+              $SUDO apk add --no-cache bash
+            elif command -v yum >/dev/null 2>&1; then
+              $SUDO yum install -y -q bash
+            else
+              echo "::error::Unable to install bash with available package manager"
+              return 1
+            fi
+          }
+
+          install_bash || exit 1
           bash --version
 
       - name: Check or create .wgx/profile.yml (fallback from example)
