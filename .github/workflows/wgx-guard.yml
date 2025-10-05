@@ -65,6 +65,18 @@ jobs:
           install_bash || exit 1
           bash --version
 
+      - name: Repo smoke (ultra-fast)
+        run: |
+          set -euo pipefail
+          echo "ref=${{ github.ref }} sha=${{ github.sha }}"
+          test -s README.md || echo "::warning::README.md missing or empty"
+          if [ -f Cargo.toml ]; then
+            cargo metadata --no-deps >/dev/null
+          fi
+          if [ -f pyproject.toml ]; then
+            grep -q '^[[:space:]]*\[project\]' pyproject.toml || echo "::warning::[project] section not found in pyproject.toml"
+          fi
+
       - name: Check .wgx profile presence
         run: |
           set -euo pipefail
