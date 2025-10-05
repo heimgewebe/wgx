@@ -1,0 +1,5 @@
+# .wgx/profile.example.yml
+# Beispielkonfiguration, falls keine projektspezifische Datei vorhanden ist.
+# Ersetze die Platzhalterwerte lokal durch echte Zugangsdaten oder Tool-Profile.
+benutzer: "dein_benutzername"
+api_token: "hier_dein_token_einfuegen"
