@@ -50,8 +50,8 @@ jobs:
 
             echo "bash not found; installing"
             if command -v apt-get >/dev/null 2>&1; then
-              $SUDO apt-get update -qq
-              $SUDO apt-get install -y -qq bash
+              $SUDO apt-get update -q
+              $SUDO apt-get install -y -q bash
             elif command -v apk >/dev/null 2>&1; then
               $SUDO apk add --no-cache bash
             elif command -v yum >/dev/null 2>&1; then
