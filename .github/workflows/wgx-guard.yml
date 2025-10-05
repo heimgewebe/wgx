@@ -33,14 +33,13 @@ jobs:
       - name: Ensure bash is available
         shell: sh
         run: |
-          SUDO=""
-          if command -v sudo >/dev/null 2>&1; then
-            if sudo -n true 2>/dev/null; then
-              SUDO="sudo"
-            else
-              echo "::error::sudo is present but passwordless sudo is not configured. Please configure passwordless sudo or run this workflow as root."
-              exit 1
-            fi
+          if [ "$(id -u)" -eq 0 ]; then
+            SUDO=""
+          elif command -v sudo >/dev/null 2>&1 && sudo -n true 2>/dev/null; then
+            SUDO="sudo"
+          else
+            echo "::error::This job requires root or passwordless sudo."
+            exit 1
           fi
 
           install_bash() {
