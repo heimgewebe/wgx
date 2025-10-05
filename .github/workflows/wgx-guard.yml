@@ -74,7 +74,7 @@ jobs:
             cargo metadata --no-deps >/dev/null
           fi
           if [ -f pyproject.toml ]; then
-            grep -q '^\[project\]' pyproject.toml || echo "::warning::[project] section not found in pyproject.toml"
+            grep -q '^[[:space:]]*\[project\]' pyproject.toml || echo "::warning::[project] section not found in pyproject.toml"
           fi
 
       - name: Check .wgx profile presence
