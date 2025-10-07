@@ -35,7 +35,7 @@ jobs:
         shell: sh
         run: |
           if ! command -v bash >/dev/null 2>&1; then
-            echo "::error::bash not found in PATH. Ensure the runner image provides bash."
+            echo "::error::bash not found in PATH. Use a runner or container image that already includes bash."
             exit 1
           fi
           bash --version
