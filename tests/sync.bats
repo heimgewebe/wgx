@@ -41,6 +41,25 @@ teardown() {
   grep -q "local" x.txt
 }
 
+@test "sync --force with remote updates succeeds without warnings" {
+  echo "upstream" >> x.txt
+  git add x.txt
+  git commit -m "upstream" >/dev/null
+  git push origin main >/dev/null
+  git reset --hard HEAD~1 >/dev/null
+
+  echo "local" >> x.txt
+
+  run wgx sync --force
+
+  [ "$status" -eq 0 ]
+  [[ ! "$output" =~ "sync aborted" ]]
+  [[ ! "$output" =~ "Fast-Forward nicht möglich" ]]
+  [[ ! "$output" =~ "cannot be used with --ff-only" ]]
+  grep -q "upstream" x.txt
+  grep -q "local" x.txt
+}
+
 @test "sync --dry-run shows planned steps" {
   run wgx sync --dry-run
   [ "$status" -eq 0 ]

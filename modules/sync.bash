@@ -57,11 +57,27 @@ sync_cmd() {
   local base="${base_override:-${positional[0]:-$WGX_BASE}}"
   [ -z "$base" ] && base="main"
 
+  local stash_ref=""
+  local stash_required=0
+
+  restore_stash() {
+    if [ -n "$stash_ref" ]; then
+      if git stash apply --index "$stash_ref" >/dev/null 2>&1; then
+        git stash drop "$stash_ref" >/dev/null 2>&1 || true
+        log_info "Lokale Änderungen wiederhergestellt."
+      else
+        warn "Konnte lokale Änderungen aus ${stash_ref} nicht automatisch wiederherstellen – bitte 'git stash pop ${stash_ref}' manuell ausführen."
+      fi
+      stash_ref=""
+    fi
+  }
+
   if git_workdir_dirty; then
     local status
     status="$(git_workdir_status_short)"
     if ((force)); then
-      warn "Arbeitsverzeichnis enthält uncommittete Änderungen – --force (-f) aktiv, Git stasht ggf. automatisch."
+      warn "Arbeitsverzeichnis enthält uncommittete Änderungen – --force (-f) aktiv, wgx stasht temporär automatisch."
+      stash_required=1
       if [ -n "$status" ]; then
         while IFS= read -r line; do
           printf '    %s\n' "$line" >&2
@@ -88,25 +104,40 @@ sync_cmd() {
   fi
 
   if ((dry_run)); then
-    log_info "[DRY-RUN] git pull --rebase --autostash --ff-only"
+    log_info "[DRY-RUN] git pull --rebase --autostash"
     log_info "[DRY-RUN] Fallback: git fetch origin ${base} && git rebase origin/${base}"
     return 0
   fi
 
   git_has_remote || die "Kein origin-Remote gefunden."
 
+  if ((stash_required)); then
+    if ! git stash push --include-untracked --message "wgx-sync-autostash" >/dev/null; then
+      die "Konnte lokale Änderungen nicht automatisch stashen."
+    fi
+    stash_ref="$(git stash list --pretty='%gD' | head -n1)"
+  fi
+
   log_info "Pull (rebase, autostash) vom Remote…"
-  if git pull --rebase --autostash --ff-only; then
+  if git pull --rebase --autostash; then
+    restore_stash
     log_info "Sync abgeschlossen (${branch})."
     return 0
   fi
 
   warn "Fast-Forward nicht möglich – versuche Rebase auf origin/${base}."
   log_info "Fetch von origin/${base}…"
-  git fetch origin "$base" || die "git fetch origin ${base} fehlgeschlagen"
+  if ! git fetch origin "$base"; then
+    restore_stash
+    die "git fetch origin ${base} fehlgeschlagen"
+  fi
 
   log_info "Rebase auf origin/${base}…"
-  git rebase "origin/${base}" || die "Rebase fehlgeschlagen – bitte Konflikte manuell lösen oder 'wgx heal' (falls verfügbar) verwenden."
+  if ! git rebase "origin/${base}"; then
+    restore_stash
+    die "Rebase fehlgeschlagen – bitte Konflikte manuell lösen oder 'wgx heal' (falls verfügbar) verwenden."
+  fi
 
+  restore_stash
   log_info "Sync abgeschlossen (${branch})."
 }
