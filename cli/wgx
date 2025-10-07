@@ -13,7 +13,7 @@ WGX_DIR="$(cd -P "$(dirname "$SOURCE")/.." >/dev/null 2>&1 && pwd)"
 export WGX_DIR
 
 # Version anzeigen, bevor weitere Komponenten geladen werden
-__WGX_VERSION__="2.0.0"
+__WGX_VERSION__="2.0.3"
 export WGX_VERSION="$__WGX_VERSION__"
 case "${1:-}" in
   --version|-V)
