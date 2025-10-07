@@ -34,35 +34,10 @@ jobs:
       - name: Ensure bash is available
         shell: sh
         run: |
-          if [ "$(id -u)" -eq 0 ]; then
-            SUDO=""
-          elif command -v sudo >/dev/null 2>&1 && sudo -n true 2>/dev/null; then
-            SUDO="sudo"
-          else
-            echo "::error::This job requires root or passwordless sudo."
+          if ! command -v bash >/dev/null 2>&1; then
+            echo "::error::bash not found in PATH. Ensure the runner image provides bash."
             exit 1
           fi
-
-          install_bash() {
-            if command -v bash >/dev/null 2>&1; then
-              return 0
-            fi
-
-            echo "bash not found; installing"
-            if command -v apt-get >/dev/null 2>&1; then
-              $SUDO apt-get update -q
-              $SUDO apt-get install -y -q bash
-            elif command -v apk >/dev/null 2>&1; then
-              $SUDO apk add --no-cache bash
-            elif command -v yum >/dev/null 2>&1; then
-              $SUDO yum install -y -q bash
-            else
-              echo "::error::Unable to install bash with available package manager"
-              return 1
-            fi
-          }
-
-          install_bash || exit 1
           bash --version
 
       - name: Repo smoke (ultra-fast)
