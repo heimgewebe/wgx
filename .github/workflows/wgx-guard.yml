@@ -1,5 +1,6 @@
 name: wgx-guard
 permissions:
+  id-token: write
   contents: read
 on:
   push:

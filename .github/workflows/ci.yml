@@ -8,6 +8,7 @@ on:
   workflow_dispatch: {}
 
 permissions:
+  id-token: write
   pull-requests: write
   contents: read
 
@@ -389,8 +390,8 @@ EOF
       fail-fast: false
       matrix:
         repo:
-          - https://github.com/alexdermohr/weltgewebe
-          - https://github.com/alexdermohr/hauski
+          - https://github.com/heimgewebe/weltgewebe
+          - https://github.com/heimgewebe/hausKI
           # ggf. weitere Repos ergänzen
     steps:
       - uses: actions/checkout@v4
