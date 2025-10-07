@@ -22,11 +22,25 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Locate Cargo manifest
+        id: cargo-manifest
+        run: |
+          manifest=$(find . -name Cargo.toml -print -quit)
+          if [[ -z "$manifest" ]]; then
+            echo "found=false" >>"$GITHUB_OUTPUT"
+            echo "No Cargo.toml found – skipping cargo audit run."
+          else
+            echo "found=true" >>"$GITHUB_OUTPUT"
+            echo "manifest=$manifest" >>"$GITHUB_OUTPUT"
+          fi
+        shell: bash
+
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
 
       # Caches beschleunigen cargo-audit merklich
       - name: Cache cargo registry + advisory DB
+        if: steps.cargo-manifest.outputs.found == 'true'
         uses: actions/cache@v4
         with:
           path: |
@@ -39,9 +53,15 @@ jobs:
 
       # Use pre-built action for cargo-audit to avoid repeated compilation
       - name: Audit dependencies
+        if: steps.cargo-manifest.outputs.found == 'true'
         uses: actions-rs/audit-check@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          args: --manifest-path ${{ steps.cargo-manifest.outputs.manifest }}
+
+      - name: Skip audit (no Cargo manifest found)
+        if: steps.cargo-manifest.outputs.found != 'true'
+        run: echo "No Cargo.toml detected in repository; cargo audit skipped."
       # Optional: falls du ein eigenes DB-Verzeichnis nutzt
       # - name: Audit with explicit DB path
       #   run: cargo audit -d ~/.cargo/advisory-db
