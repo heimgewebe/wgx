@@ -557,10 +557,10 @@ Validate the local manifest or additional repositories.
 Examples:
   wgx validate
   wgx validate ../weltgewebe ../hauski
-  wgx validate https://github.com/alexdermohr/weltgewebe
+  wgx validate https://github.com/heimgewebe/weltgewebe
   wgx validate --json -- \
-    https://github.com/alexdermohr/weltgewebe \
-    https://github.com/alexdermohr/hauski
+    https://github.com/heimgewebe/weltgewebe \
+    https://github.com/heimgewebe/hausKI
 USAGE
       return 0
       ;;
