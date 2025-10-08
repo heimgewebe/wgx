@@ -106,6 +106,9 @@ jobs:
         run: |
           set -euo pipefail
           curl -LsSf https://astral.sh/uv/install.sh | sh
+          # GitHub Actions schreibt $GITHUB_PATH erst für nachfolgende Schritte um,
+          # daher ergänzen wir den PATH zusätzlich für die aktuelle Shell.
+          export PATH="$HOME/.local/bin:$PATH"
           echo "$HOME/.local/bin" >>"$GITHUB_PATH"
           uv_version="$($HOME/.local/bin/uv --version | awk '{print $2}')"
           echo "UV_VERSION=$uv_version" >>"$GITHUB_ENV"
@@ -133,9 +136,10 @@ jobs:
             echo "::error::uv.lock missing (pyproject.toml present)"
             exit 1
           fi
-          uv --version
+          export PATH="$HOME/.local/bin:$PATH"
+          "$HOME/.local/bin/uv" --version
           echo "Running 'uv sync --frozen' to verify frozen installs..."
-          uv sync --frozen
+          "$HOME/.local/bin/uv" sync --frozen
           echo "uv contracts satisfied ✅"
 
       - name: Rust manifest check
