@@ -40,7 +40,7 @@ wgx --list 2>/dev/null || wgx commands 2>/dev/null || ls -1 cmd/
 ## Entwicklungs-Schnellstart
 
 - In VS Code öffnen → „Reopen in Container“
-- CI lokal ausführen:
+- CI lokal ausführen (gespiegelt durch GitHub Actions, via `tests/shell_ci.bats` abgesichert):
 
   ```bash
   bash -n $(git ls-files '*.sh' '*.bash')
