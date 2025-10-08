@@ -34,9 +34,18 @@ jobs:
       - name: Ensure bash is available
         shell: sh
         run: |
+          set -euo pipefail
           if ! command -v bash >/dev/null 2>&1; then
-            echo "::error::bash not found in PATH. Use a runner or container image that already includes bash."
-            exit 1
+            echo "::notice::bash not found – attempting installation"
+            if command -v apk >/dev/null 2>&1; then
+              apk --no-cache add bash
+            elif command -v apt-get >/dev/null 2>&1; then
+              sudo apt-get update
+              sudo apt-get install -y bash
+            else
+              echo "::error::Unable to install bash automatically. Ensure the runner image includes bash."
+              exit 1
+            fi
           fi
           bash --version
 
