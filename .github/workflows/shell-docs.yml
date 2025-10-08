@@ -64,14 +64,17 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install uv
         run: |
+          set -euo pipefail
           curl -LsSf https://astral.sh/uv/install.sh | sh
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          echo "$HOME/.local/bin" >>"$GITHUB_PATH"
+          uv_version="$($HOME/.local/bin/uv --version | awk '{print $2}')"
+          echo "UV_VERSION=$uv_version" >>"$GITHUB_ENV"
       - name: Cache uv
         uses: actions/cache@v4
         with:
           path: ~/.cache/uv
-          key: uv-${{ runner.os }}-${{ hashFiles('**/pyproject.toml', '**/uv.lock') }}
+          key: uv-${{ runner.os }}-${{ env.UV_VERSION || 'latest' }}-${{ hashFiles('**/pyproject.toml', '**/uv.lock') }}
       - name: Sync deps (frozen)
-        run: uv sync --frozen
+        run: ~/.local/bin/uv sync --frozen
       - name: Smoke run
-        run: uv run python -c "print('uv ok')"
+        run: ~/.local/bin/uv run python -c "print('uv ok')"
