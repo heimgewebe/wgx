@@ -6,8 +6,8 @@ Eigenständiges CLI für Git-/Repo-Workflows (Termux, WSL, Linux, macOS). Lizenz
 
 ## Schnellstart
 
-> 📘 **Language policy:** New contributions should use English for user-facing text.
-> See [docs/Language-Policy.md](docs/Language-Policy.md) for the detailed guidance.
+> 📘 **Sprach-Policy:** Neue Beiträge sollen derzeit deutschsprachige, benutzernahe Texte verwenden.
+> Details stehen in [docs/Language-Policy.md](docs/Language-Policy.md); eine spätere Umstellung auf Englisch ist dort skizziert.
 
 ```bash
 git clone <DEIN-REPO>.git wgx
