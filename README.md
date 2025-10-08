@@ -2,7 +2,7 @@
 
 # wgx – Weltgewebe CLI
 
-Eigenständiges CLI für Git-/Repo-Workflows (Termux, WSL, Linux, macOS). Lizenz: MIT (projektintern).
+Eigenständiges CLI für Git-/Repo-Workflows (Termux, WSL, Linux, macOS). License: MIT; intended for internal use but repository is publicly visible.
 
 ## Schnellstart
 
