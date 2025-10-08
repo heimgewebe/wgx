@@ -32,7 +32,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Ensure bash is available
-        shell: sh
+        shell: bash
         run: |
           set -euo pipefail
           if ! command -v bash >/dev/null 2>&1; then
@@ -40,12 +40,25 @@ jobs:
             if command -v apk >/dev/null 2>&1; then
               apk --no-cache add bash
             elif command -v apt-get >/dev/null 2>&1; then
-              sudo apt-get update
+              export DEBIAN_FRONTEND=noninteractive
+              sudo apt-get update -y
               sudo apt-get install -y bash
+            elif command -v dnf >/dev/null 2>&1; then
+              sudo dnf install -y bash
+            elif command -v yum >/dev/null 2>&1; then
+              sudo yum install -y bash
+            elif command -v pacman >/dev/null 2>&1; then
+              sudo pacman -Sy --noconfirm bash
+            elif command -v brew >/dev/null 2>&1; then
+              brew install bash
             else
-              echo "::error::Unable to install bash automatically. Ensure the runner image includes bash."
+              echo "::error::Unable to install bash automatically (no known package manager found)."
               exit 1
             fi
+          fi
+          if ! command -v bash >/dev/null 2>&1; then
+            echo "::error::bash still not available after attempted installation. Use a runner/container image that includes bash."
+            exit 1
           fi
           bash --version
 
