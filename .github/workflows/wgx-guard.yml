@@ -133,6 +133,10 @@ jobs:
             echo "::error::uv.lock missing (pyproject.toml present)"
             exit 1
           fi
+          uv --version
+          echo "Running 'uv sync --frozen' to verify frozen installs..."
+          uv sync --frozen
+          echo "uv contracts satisfied ✅"
 
       - name: Rust manifest check
         run: |
