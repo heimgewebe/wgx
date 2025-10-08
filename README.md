@@ -4,6 +4,23 @@
 
 Eigenständiges CLI für Git-/Repo-Workflows (Termux, WSL, Linux, macOS). License: MIT; intended for internal use but repository is publicly visible.
 
+## Lizenz & Nutzung
+
+Dieses Repository steht unter der **MIT-Lizenz** (siehe `./LICENSE`).
+Die Lizenzdatei bleibt **unverändert**, damit gängige Tools die Lizenz korrekt erkennen.
+
+**Beabsichtigte Nutzung:** WGX ist primär für den internen Einsatz innerhalb der
+heimgewebe-Ökosphäre gedacht, das Repository ist jedoch öffentlich sichtbar.
+Diese Klarstellung ändert **nicht** die Lizenzrechte, sondern dient nur der
+Transparenz bezüglich Support-Erwartungen und Projektfokus.
+
+**Hinweis für Beiträge/Dateiköpfe:** In neuen Dateien bitte nach Möglichkeit den
+SPDX-Kurzidentifier verwenden, z. B.:
+
+```
+# SPDX-License-Identifier: MIT
+```
+
 ## Schnellstart
 
 > 📘 **Language policy:** New contributions should use English for user-facing text.
