@@ -2,12 +2,12 @@
 
 # wgx – Weltgewebe CLI
 
-Eigenständiges CLI für Git-/Repo-Workflows (Termux, WSL, Linux, macOS). Lizenz: MIT (projektintern).
+Eigenständiges CLI für Git-/Repo-Workflows (Termux, WSL, Linux, macOS). License: MIT; intended for internal use but repository is publicly visible.
 
 ## Schnellstart
 
-> 📘 **Language policy:** New contributions should use English for user-facing text.
-> See [docs/Language-Policy.md](docs/Language-Policy.md) for the detailed guidance.
+> 📘 **Sprach-Policy:** Neue Beiträge sollen derzeit deutschsprachige, benutzernahe Texte verwenden.
+> Details stehen in [docs/Language-Policy.md](docs/Language-Policy.md); eine spätere Umstellung auf Englisch ist dort skizziert.
 
 ```bash
 git clone <DEIN-REPO>.git wgx
@@ -40,7 +40,7 @@ wgx --list 2>/dev/null || wgx commands 2>/dev/null || ls -1 cmd/
 ## Entwicklungs-Schnellstart
 
 - In VS Code öffnen → „Reopen in Container“
-- CI lokal ausführen:
+- CI lokal ausführen (gespiegelt durch GitHub Actions, via `tests/shell_ci.bats` abgesichert):
 
   ```bash
   bash -n $(git ls-files '*.sh' '*.bash')
@@ -48,6 +48,7 @@ wgx --list 2>/dev/null || wgx commands 2>/dev/null || ls -1 cmd/
   shellcheck -S style $(git ls-files '*.sh' '*.bash')
   bats -r tests
   ```
+- Node.js tooling ist nicht erforderlich; npm-/pnpm-Workflows sind deaktiviert, und es existiert kein `package.json` mehr.
 
 ## Python-Stack (uv als Standard)
 

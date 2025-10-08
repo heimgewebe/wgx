@@ -92,19 +92,44 @@ jobs:
           shfmt -d "${scripts[@]}"
           shellcheck -S style "${scripts[@]}"
 
-      - name: Install uv (only if pyproject exists)
-        if: ${{ hashFiles('pyproject.toml') != '' }}
+      - name: Detect Python project
+        id: python-project
+        run: |
+          if [ -f pyproject.toml ]; then
+            echo "present=true" >>"$GITHUB_OUTPUT"
+          else
+            echo "present=false" >>"$GITHUB_OUTPUT"
+          fi
+
+      - name: Install uv
+        if: steps.python-project.outputs.present == 'true'
         run: |
           set -euo pipefail
           curl -LsSf https://astral.sh/uv/install.sh | sh
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-          uv --version
+          echo "$HOME/.local/bin" >>"$GITHUB_PATH"
+          uv_version="$($HOME/.local/bin/uv --version | awk '{print $2}')"
+          echo "UV_VERSION=$uv_version" >>"$GITHUB_ENV"
 
-      - name: Enforce uv contracts (lock + frozen sync)
-        if: ${{ hashFiles('pyproject.toml') != '' }}
+      - name: Cache uv
+        if: steps.python-project.outputs.present == 'true'
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/uv
+          key: uv-${{ runner.os }}-${{ env.UV_VERSION || 'latest' }}-${{ hashFiles('**/pyproject.toml', '**/uv.lock') }}
+
+      - name: Sync deps (uv)
+        if: steps.python-project.outputs.present == 'true'
         run: |
           set -euo pipefail
-          if [ ! -f uv.lock ]; then
+          ~/.local/bin/uv sync --frozen
+
+      - name: uv contracts (only if pyproject exists)
+        if: steps.python-project.outputs.present == 'true'
+        run: |
+          set -euo pipefail
+          if [ -f uv.lock ]; then
+            echo "OK: uv.lock present"
+          else
             echo "::error::uv.lock missing (pyproject.toml present)"
             exit 1
           fi
