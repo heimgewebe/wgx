@@ -48,6 +48,7 @@ wgx --list 2>/dev/null || wgx commands 2>/dev/null || ls -1 cmd/
   shellcheck -S style $(git ls-files '*.sh' '*.bash')
   bats -r tests
   ```
+- Node.js tooling ist nicht erforderlich; npm-/pnpm-Workflows sind deaktiviert, und es existiert kein `package.json` mehr.
 
 ## Python-Stack (uv als Standard)
 

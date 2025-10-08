@@ -1,7 +1,0 @@
-{
-  "name": "wgx-ci",
-  "version": "1.0.0",
-  "private": true,
-  "description": "Auxiliary metadata for GitHub Actions caching",
-  "license": "MIT"
-}
