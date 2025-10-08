@@ -93,30 +93,25 @@ jobs:
           shellcheck -S style "${scripts[@]}"
 
       - name: Install uv (only if pyproject exists)
+        if: ${{ hashFiles('pyproject.toml') != '' }}
         run: |
           set -euo pipefail
-          if [ ! -f pyproject.toml ]; then
-            echo "No pyproject.toml – skipping uv installation."
-            exit 0
-          fi
           curl -LsSf https://astral.sh/uv/install.sh | sh
-          echo "$HOME/.local/bin" >> '$GITHUB_PATH'
-          export PATH="$HOME/.local/bin:$PATH"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
           uv --version
 
-      - name: uv contracts (only if pyproject exists)
+      - name: Enforce uv contracts (lock + frozen sync)
+        if: ${{ hashFiles('pyproject.toml') != '' }}
         run: |
           set -euo pipefail
-          if [ -f pyproject.toml ]; then
-            if [ -f uv.lock ]; then
-              echo "OK: uv.lock present"
-            else
-              echo "::error::uv.lock missing (pyproject.toml present)"
-              exit 1
-            fi
-          else
-            echo "No pyproject.toml – skipping uv.lock check."
+          if [ ! -f uv.lock ]; then
+            echo "::error::uv.lock missing (pyproject.toml present)"
+            exit 1
           fi
+          uv --version
+          echo "Running 'uv sync --frozen' to verify frozen installs..."
+          uv sync --frozen
+          echo "uv contracts satisfied ✅"
 
       - name: Rust manifest check
         run: |
