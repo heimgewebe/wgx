@@ -51,13 +51,14 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-
 
-      # Use pre-built action for cargo-audit to avoid repeated compilation
+      - name: Install cargo-audit
+        if: steps.cargo-manifest.outputs.found == 'true'
+        run: cargo install cargo-audit --locked
+
       - name: Audit dependencies
         if: steps.cargo-manifest.outputs.found == 'true'
-        uses: actions-rs/audit-check@v1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          args: --manifest-path ${{ steps.cargo-manifest.outputs.manifest }}
+        run: cargo audit --manifest-path "${{ steps.cargo-manifest.outputs.manifest }}"
+        timeout-minutes: 5
 
       - name: Skip audit (no Cargo manifest found)
         if: steps.cargo-manifest.outputs.found != 'true'
