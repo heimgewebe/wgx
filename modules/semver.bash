@@ -18,9 +18,9 @@ semver_cmp() {
   local l1 l2 l3 r1 r2 r3
   IFS='.' read -r l1 l2 l3 <<<"$left"
   IFS='.' read -r r1 r2 r3 <<<"$right"
-  if (( l1 > r1 )) || (( l1 == r1 && l2 > r2 )) || (( l1 == r1 && l2 == r2 && l3 > r3 )); then
+  if ((l1 > r1)) || ((l1 == r1 && l2 > r2)) || ((l1 == r1 && l2 == r2 && l3 > r3)); then
     return 1
-  elif (( l1 < r1 )) || (( l1 == r1 && l2 < r2 )) || (( l1 == r1 && l2 == r2 && l3 < r3 )); then
+  elif ((l1 < r1)) || ((l1 == r1 && l2 < r2)) || ((l1 == r1 && l2 == r2 && l3 < r3)); then
     return 2
   fi
   return 0
@@ -56,16 +56,16 @@ semver_in_caret_range() {
   local lower="$range"
   local upper
 
-  if (( major > 0 )); then
-    local next_major=$(( major + 1 ))
+  if ((major > 0)); then
+    local next_major=$((major + 1))
     upper="${next_major}.0.0"
-  elif (( minor > 0 )); then
-    local next_minor=$(( minor + 1 ))
+  elif ((minor > 0)); then
+    local next_minor=$((minor + 1))
     upper="0.${next_minor}.0"
   else
     # For 0.0.x ranges, caret semantics allow patch updates only, stopping before the next
     # patch release (e.g. ^0.0.3 allows versions >=0.0.3 and <0.0.4).
-    local next_patch=$(( patch + 1 ))
+    local next_patch=$((patch + 1))
     upper="0.0.${next_patch}"
   fi
 

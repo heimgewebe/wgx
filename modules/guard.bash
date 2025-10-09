@@ -57,9 +57,9 @@ guard_run() {
 
   # 3. Bigfiles checken
   echo "▶ Checking for oversized files..."
-  if git ls-files -z \
-    | xargs -0 du -sb 2>/dev/null \
-    | awk 'BEGIN { found = 0 } $1 >= 1048576 { print; found = 1 } END { exit(found ? 0 : 1) }'; then
+  if git ls-files -z |
+    xargs -0 du -sb 2>/dev/null |
+    awk 'BEGIN { found = 0 } $1 >= 1048576 { print; found = 1 } END { exit(found ? 0 : 1) }'; then
     echo "❌ Zu große Dateien im Repo!" >&2
     return 1
   fi

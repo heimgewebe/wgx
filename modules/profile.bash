@@ -75,7 +75,8 @@ profile::_normalize_task_name() {
 profile::_python_parse() {
   local file="$1" output
   profile::_have_cmd python3 || return 1
-  output="$(python3 - "$file" <<'PY'
+  output="$(
+    python3 - "$file" <<'PY'
 import ast
 import json
 import os
@@ -400,7 +401,7 @@ if isinstance(tasks, dict):
 PY
   )"
   local status=$?
-  if (( status != 0 )); then
+  if ((status != 0)); then
     return $status
   fi
 
@@ -558,12 +559,12 @@ profile::load() {
       status=0
     else
       local rc=$?
-      if (( rc == 3 )); then
+      if ((rc == 3)); then
         status=3
       fi
     fi
   fi
-  if (( status != 0 )); then
+  if ((status != 0)); then
     profile::_flat_yaml_parse "$file"
   fi
   profile::_collect_env_keys
@@ -614,7 +615,7 @@ profile::ensure_version() {
 }
 
 profile::_task_keys() {
-  if (( ${#WGX_TASK_CMDS[@]} == 0 )); then
+  if ((${#WGX_TASK_CMDS[@]} == 0)); then
     return 0
   fi
   local key
@@ -660,7 +661,7 @@ profile::tasks_json() {
   for name in $(profile::_task_keys); do
     key="$name"
     safe="$(profile::_task_safe "$key")"
-    if (( safe_only )) && [[ "$safe" != "1" ]]; then
+    if ((safe_only)) && [[ "$safe" != "1" ]]; then
       continue
     fi
     desc="$(profile::_task_desc "$key")"
@@ -671,7 +672,7 @@ profile::tasks_json() {
     sep=','
   done
   printf ']'
-  if (( include_groups )); then
+  if ((include_groups)); then
     local -A groups=()
     for name in $(profile::_task_keys); do
       group="$(profile::_task_group "$name")"
@@ -704,7 +705,7 @@ profile::env_apply() {
   for key in "${!WGX_ENV_OVERRIDE_MAP[@]}"; do
     envs+=("${key}=${WGX_ENV_OVERRIDE_MAP[$key]}")
   done
-  if (( ${#envs[@]} )); then
+  if ((${#envs[@]})); then
     printf '%s\n' "${envs[@]}"
   fi
 }
@@ -721,7 +722,7 @@ profile::run_task() {
   mapfile -t envs < <(profile::env_apply)
   local dryrun="${DRYRUN:-0}"
   local args=()
-  while (( $# )); do
+  while (($#)); do
     args+=("$1")
     shift || true
   done
@@ -734,11 +735,11 @@ profile::run_task() {
         return 1
       fi
     fi
-    if (( ${#cmd[@]} == 0 )); then
+    if ((${#cmd[@]} == 0)); then
       printf 'wgx: empty command for task %q\n' "$key" >&2
       return 2
     fi
-    if (( dryrun )); then
+    if ((dryrun)); then
       printf 'DRY: '
       local item
       for item in "${envs[@]}"; do
@@ -754,7 +755,7 @@ profile::run_task() {
       return 0
     fi
     (
-      (( ${#envs[@]} )) && export "${envs[@]}"
+      ((${#envs[@]})) && export "${envs[@]}"
       exec "${cmd[@]}" "${args[@]}"
     )
     ;;
@@ -764,11 +765,11 @@ profile::run_task() {
     if [[ -n $payload ]]; then
       read -r -a cmd <<<"$payload"
     fi
-    if (( ${#cmd[@]} == 0 )); then
+    if ((${#cmd[@]} == 0)); then
       printf 'wgx: empty command for task %q\n' "$key" >&2
       return 2
     fi
-    if (( dryrun )); then
+    if ((dryrun)); then
       printf 'DRY: '
       local item
       for item in "${envs[@]}"; do
@@ -784,13 +785,13 @@ profile::run_task() {
       return 0
     fi
     (
-      (( ${#envs[@]} )) && export "${envs[@]}"
+      ((${#envs[@]})) && export "${envs[@]}"
       exec "${cmd[@]}" "${args[@]}"
     )
     ;;
   STR:*)
     local command="${spec#STR:}"
-    if (( dryrun )); then
+    if ((dryrun)); then
       printf 'DRY: '
       local item
       for item in "${envs[@]}"; do
@@ -804,8 +805,8 @@ profile::run_task() {
       return 0
     fi
     (
-      (( ${#envs[@]} )) && export "${envs[@]}"
-      if (( ${#args[@]} )); then
+      ((${#envs[@]})) && export "${envs[@]}"
+      if ((${#args[@]})); then
         local extra=""
         local arg
         for arg in "${args[@]}"; do
@@ -841,7 +842,7 @@ profile::validate_manifest() {
       ;;
     esac
   fi
-  if (( ${#WGX_TASK_CMDS[@]} == 0 )); then
+  if ((${#WGX_TASK_CMDS[@]} == 0)); then
     _errors_ref+=("no_tasks")
   fi
   local key spec
@@ -863,7 +864,7 @@ profile::validate_manifest() {
       missing+=("$cap")
     fi
   done
-  if (( ${#missing[@]} )); then
+  if ((${#missing[@]})); then
     _missing_caps_ref=("${missing[@]}")
     _errors_ref+=("missing_capabilities")
   fi

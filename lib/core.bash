@@ -97,7 +97,7 @@ git_hard_reload() {
 
   while [ $# -gt 0 ]; do
     case "$1" in
-    --dry-run|-n)
+    --dry-run | -n)
       dry_run=1
       ;;
     --)
@@ -122,7 +122,7 @@ git_hard_reload() {
   local remote="origin" target_branch="${base}"
   if [ -z "$target_branch" ]; then
     local upstream
-    upstream="$(git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null || true)"
+    upstream="$(git rev-parse --abbrev-ref --symbolic-full-name '@{u}' 2>/dev/null || true)"
     if [ -n "$upstream" ]; then
       remote="${upstream%%/*}"
       target_branch="${upstream#*/}"

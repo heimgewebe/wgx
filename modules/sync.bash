@@ -10,11 +10,11 @@ sync_cmd() {
 
   while [ $# -gt 0 ]; do
     case "$1" in
-    --force|-f)
+    --force | -f)
       force=1
       shift
       ;;
-    --dry-run|-n)
+    --dry-run | -n)
       dry_run=1
       shift
       ;;
