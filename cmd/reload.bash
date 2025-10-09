@@ -8,10 +8,10 @@ cmd_reload() {
     --snapshot)
       do_snapshot=1
       ;;
-    --force|-f)
+    --force | -f)
       force=1
       ;;
-    --dry-run|-n)
+    --dry-run | -n)
       dry_run=1
       ;;
     --)

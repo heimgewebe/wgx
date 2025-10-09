@@ -34,10 +34,10 @@ cmd_quick() {
 
   while (($#)); do
     case "$1" in
-    -i|--interactive)
+    -i | --interactive)
       interactive=1
       ;;
-    -h|--help)
+    -h | --help)
       _quick_usage
       return 0
       ;;
@@ -61,7 +61,7 @@ cmd_quick() {
     warn "guard command not available; skipping lint/test checks."
   fi
 
-  if (( guard_status > 1 )); then
+  if ((guard_status > 1)); then
     return $guard_status
   fi
 
@@ -71,11 +71,11 @@ cmd_quick() {
   fi
 
   local -a send_args=()
-  if (( guard_status == 1 )); then
+  if ((guard_status == 1)); then
     send_args+=(--draft)
   fi
   send_args+=(--ci --open)
-  if (( interactive )); then
+  if ((interactive)); then
     send_args+=(-i)
   fi
 
@@ -84,7 +84,7 @@ cmd_quick() {
     send_status=$?
   fi
 
-  if (( send_status != 0 )); then
+  if ((send_status != 0)); then
     return $send_status
   fi
 

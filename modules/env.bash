@@ -86,17 +86,17 @@ env::_doctor_json() {
     if env::_have "$tool"; then
       have="available"
       case "$tool" in
-        git) ver="$(git --version 2>/dev/null | head -n1)" ;;
-        gh) ver="$(gh --version 2>/dev/null | head -n1)" ;;
-        glab) ver="$(glab --version 2>/dev/null | head -n1)" ;;
-        node) ver="$(node --version 2>/dev/null | head -n1)" ;;
-        npm) ver="$(npm --version 2>/dev/null | head -n1)" ;;
-        python3) ver="$(python3 --version 2>/dev/null | head -n1)" ;;
-        uv) ver="$(uv --version 2>/dev/null | head -n1)" ;;
-        docker) ver="$(docker --version 2>/dev/null | head -n1)" ;;
+      git) ver="$(git --version 2>/dev/null | head -n1)" ;;
+      gh) ver="$(gh --version 2>/dev/null | head -n1)" ;;
+      glab) ver="$(glab --version 2>/dev/null | head -n1)" ;;
+      node) ver="$(node --version 2>/dev/null | head -n1)" ;;
+      npm) ver="$(npm --version 2>/dev/null | head -n1)" ;;
+      python3) ver="$(python3 --version 2>/dev/null | head -n1)" ;;
+      uv) ver="$(uv --version 2>/dev/null | head -n1)" ;;
+      docker) ver="$(docker --version 2>/dev/null | head -n1)" ;;
       esac
     fi
-    (( first )) || printf ','
+    ((first)) || printf ','
     first=0
     printf '"%s":{' "$tool"
     printf '"status":'
@@ -168,7 +168,7 @@ env_cmd() {
     --json)
       json=1
       ;;
-    -h|--help)
+    -h | --help)
       cat <<'USAGE'
 Usage: wgx env doctor [--fix] [--strict] [--json]
   doctor     Inspect the local environment (default)
