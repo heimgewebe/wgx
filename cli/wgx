@@ -16,10 +16,10 @@ export WGX_DIR
 __WGX_VERSION__="2.0.3"
 export WGX_VERSION="$__WGX_VERSION__"
 case "${1:-}" in
-  --version|-V)
-    echo "wgx ${__WGX_VERSION__}"
-    exit 0
-    ;;
+--version | -V)
+  echo "wgx ${__WGX_VERSION__}"
+  exit 0
+  ;;
 esac
 
 # libs laden (alphabetisch hält Ordnung)
@@ -29,6 +29,7 @@ if [ -d "$WGX_DIR/lib" ]; then
       if [[ ${WGX_DEBUG:-0} != 0 ]]; then
         echo "Loading library: $f" >&2
       fi
+      # shellcheck disable=SC1090
       if ! source "$f"; then
         echo "Error: Failed to source library file: $f" >&2
         exit 1

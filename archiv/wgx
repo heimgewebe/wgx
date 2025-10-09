@@ -24,12 +24,15 @@ export LC_ALL=C LANG=C
 # (bewusst: wer überschreiben will, nutzt >|)
 set -o noclobber
 
+# shellcheck disable=SC2154
 trap 'ec=$?; cmd=$BASH_COMMAND; line=${BASH_LINENO[0]}; fn=${FUNCNAME[1]:-MAIN}; \
       ((ec)) && printf "❌ wgx: Fehler in %s (Zeile %s): %s (exit=%s)\n" \
       "$fn" "$line" "$cmd" "$ec" >&2' ERR
 
 WGX_VERSION="2.0.0"
-RC_OK=0; RC_WARN=1; RC_BLOCK=2
+RC_OK=0
+RC_WARN=1
+RC_BLOCK=2
 
 # Früh-Exit für Versionsabfrage (auch ohne Git-Repo nutzbar)
 if [[ "${1-}" == "--version" || "${1-}" == "-V" ]]; then
@@ -160,7 +163,8 @@ if [[ -f "$ROOT_DIR/.wgx.conf" ]]; then
     [[ -z "$k" || "$k" =~ ^# ]] && continue
     if [[ "$k" =~ ^[A-Z0-9_]+$ ]]; then
       v="${v%$'\r'}"
-      [[ "$v" == *'$('* || "$v" == *'`'* || "$v" == *$'\0'* ]] && { warn ".wgx.conf: unsicherer Wert für $k ignoriert"; continue; }
+      # shellcheck disable=SC2016
+      if [[ "$v" == *'$('* || "$v" == *'`'* || "$v" == *$'\0'* ]]; then warn ".wgx.conf: unsicherer Wert für $k ignoriert"; continue; fi
       printf -v _sanitized "%s" "$v"
       declare -x "$k=$_sanitized"
     else
@@ -185,10 +189,15 @@ git_supports_magic() { git -C "$1" ls-files -z -- ':(exclude)node_modules/**' >/
 mktemp_portable() {
   local p="${1:-wgx}"
   if has mktemp; then
-    mktemp -t "${p}.XXXXXX" 2>/dev/null || { local f="${TMPDIR:-/tmp}/${p}.$$.tmp"; : > "$f" && printf "%s" "$f"; }
+    mktemp -t "${p}.XXXXXX" 2>/dev/null || {
+      local f
+      f="${TMPDIR:-/tmp}/${p}.$$.tmp"
+      : >"$f" && printf "%s" "$f"
+    }
   else
-    local f="${TMPDIR:-/tmp}/${p}.$(date +%s).$$"
-    : > "$f" || die "Konnte temporäre Datei nicht erstellen: $f"
+    local f
+    f="${TMPDIR:-/tmp}/${p}.$(date +%s).$$"
+    : >"$f" || die "Konnte temporäre Datei nicht erstellen: $f"
     printf "%s" "$f"
   fi
 }
@@ -208,8 +217,13 @@ maybe_sign_flag() {
 # Optionaler Timeout-Wrapper
 with_timeout() {
   local t="${TIMEOUT:-0}"
-  (( NOTIMEOUT )) && exec "$@"
-  (( t>0 )) && command -v timeout >/dev/null 2>&1 && timeout "$t" "$@" || exec "$@"
+  if ((NOTIMEOUT)); then
+    exec "$@"
+  elif ((t > 0)) && has timeout; then
+    timeout "$t" "$@"
+  else
+    exec "$@"
+  fi
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -285,7 +299,12 @@ git_ahead_behind() {
   read -r behind ahead <<<"$ab" || true
   printf "%s %s\n" "${behind:-0}" "${ahead:-0}"
 }
-ab_read() { local ref="$1" ab; ab="$(git_ahead_behind "$ref" 2>/dev/null || echo "0 0")"; set -- $ab; echo "${1:-0} ${2:-0}"; }
+ab_read() {
+  local ref="$1" ab
+  ab="$(git_ahead_behind "$ref" 2>/dev/null || echo "0 0")"
+  set -- "$ab"
+  echo "${1:-0} ${2:-0}"
+}
 
 detect_web_dir() { for d in apps/web web; do [[ -d "$d" ]] && { echo "$d"; return; }; done; echo ""; }
 detect_api_dir() { for d in apps/api api crates; do [[ -f "$d/Cargo.toml" ]] && { echo "$d"; return; }; done; echo ""; }
@@ -423,14 +442,18 @@ validate_base_branch() {
 
 guard_run() {
   require_repo
-  local FIX=0 LINT_OPT=0 TEST_OPT=0 DEEP_SCAN=0
+  local FIX=0 DEEP_SCAN=0
   while [[ $# -gt 0 ]]; do
     case "$1" in
-      --fix) FIX=1;;
-      --lint) LINT_OPT=1;;
-      --test) TEST_OPT=1;;
-      --deep-scan) DEEP_SCAN=1;;
-      *) ;;
+    --fix)
+      FIX=1
+      ;;
+    --lint) ;;
+    --test) ;;
+    --deep-scan)
+      DEEP_SCAN=1
+      ;;
+    *) ;;
     esac
     shift || true
   done
@@ -478,10 +501,12 @@ guard_run() {
     if [[ -n "$secrets" ]]; then
       echo "[BLOCKER] mögliche Secrets im Commit (Dateinamen-Match):"
       printf "%s\n" "$secrets" | sed 's/^/  - /'
-      if (( FIX )); then
+      if ((FIX)); then
         while IFS= read -r s; do
-          [[ -n "$s" ]] && git restore --staged -- "$s" 2>/dev/null || true
-        done <<< "$secrets"
+          if [[ -n "$s" ]]; then
+            git restore --staged -- "$s" 2>/dev/null || true
+          fi
+        done <<<"$secrets"
         echo "→ Secrets aus dem Index entfernt (Dateien bleiben lokal)."
       fi
       rc=$RC_BLOCK
@@ -494,6 +519,7 @@ guard_run() {
         || true)"
       if [[ -n "$leaked" ]]; then
         echo "[BLOCKER] möglicher Secret-Inhalt im Diff:"
+        # shellcheck disable=SC2001
         echo "$leaked" | sed 's/^/  > /'
         rc=$RC_BLOCK
       fi
@@ -523,7 +549,11 @@ guard_run() {
 
   # Vale (nur Rückgabecode bewerten)
   if [[ -f ".vale.ini" ]]; then
-    vale_maybe --staged || (( rc==RC_OK )) && rc=$RC_WARN
+    if ! vale_maybe --staged; then
+      if ((rc == RC_OK)); then
+        rc=$RC_WARN
+      fi
+    fi
   fi
 
   case "$rc" in
@@ -543,7 +573,8 @@ snapshot_make() {
     info "Kein Snapshot nötig (Arbeitsbaum sauber)."
     return 0
   fi
-  local msg="snapshot@$(date +%s) $(git_branch)"
+  local msg
+  msg="snapshot@$(date +%s) $(git_branch)"
   git stash push -u -m "$msg" >/dev/null 2>&1 || true
   info "Snapshot erstellt (git stash list)."
 }
@@ -616,34 +647,39 @@ lint_cmd() {
     fi
 
     local has_gnu_find=0
-    if find --version >/dev/null 2>&1; then
-      find --version 2>/dev/null | grep -q GNU && has_gnu_find=1
+    # shellcheck disable=SC2185
+    if find . --version >/dev/null 2>&1; then
+      # shellcheck disable=SC2185
+      find . --version 2>/dev/null | grep -q GNU && has_gnu_find=1
     fi
 
     # Prettier Check (große Dateimengen effizient, node_modules/dist/build ausgeschlossen)
-    if (( ! OFFLINE )); then
-      if git_supports_magic "$wd" && (( has_gnu_find )); then
-        git -C "$wd" ls-files -z \
-          -- ':(exclude)node_modules/**' ':(exclude)dist/**' ':(exclude)build/**' \
-             '*.js' '*.ts' '*.tsx' '*.jsx' '*.json' '*.css' '*.scss' '*.md' '*.svelte' 2>/dev/null \
-        | run_with_files_xargs0 "Prettier Check" \
-            sh -c 'cd "$1"; shift; '"$prettier_cmd"' -c -- "$@"' _ "$wd" \
-        || run_with_files_xargs0 "Prettier Check (fallback npx)" \
-            sh -c 'cd "$1"; shift; npx --yes prettier -c -- "$@"' _ "$wd" \
-        || rc_total=$RC_WARN
+    if ((!OFFLINE)); then
+      if git_supports_magic "$wd" && ((has_gnu_find)); then
+        if ! (
+          export PRETTIER_CMD="$prettier_cmd"
+          git -C "$wd" ls-files -z \
+            -- ':(exclude)node_modules/**' ':(exclude)dist/**' ':(exclude)build/**' \
+            '*.js' '*.ts' '*.tsx' '*.jsx' '*.json' '*.css' '*.scss' '*.md' '*.svelte' 2>/dev/null |
+            run_with_files_xargs0 "Prettier Check" \
+              bash -c 'cd "$1"; shift; $PRETTIER_CMD -c -- "$@"' _ "$wd"
+        ); then
+          rc_total=$RC_WARN
+        fi
       else
-        find "$wd" \( -path "$wd/node_modules" -o -path "$wd/dist" -o -path "$wd/build" \) -prune -o \
-             -type f \( -name '*.js' -o -name '*.ts' -o -name '*.tsx' -o -name '*.jsx' -o -name '*.json' -o -name '*.css' -o -name '*.scss' -o -name '*.md' -o -name '*.svelte' \) -print0 \
-        | while IFS= read -r -d '' f; do rel="${f#$wd/}"; printf '%s\0' "$rel"; done \
-        | run_with_files_xargs0 "Prettier Check" \
-            sh -c 'cd "$1"; shift; '"$prettier_cmd"' -c -- "$@"' _ "$wd" \
-        || { 
-             if (( ! OFFLINE )); then
-               run_with_files_xargs0 "Prettier Check (fallback npx)" \
-                 sh -c 'cd "$1"; shift; npx --yes prettier -c -- "$@"' _ "$wd"
-             fi
-           } \
-        || rc_total=$RC_WARN
+        if ! (
+          export PRETTIER_CMD="$prettier_cmd"
+          find "$wd" \( -path "$wd/node_modules" -o -path "$wd/dist" -o -path "$wd/build" \) -prune -o \
+            -type f \( -name '*.js' -o -name '*.ts' -o -name '*.tsx' -o -name '*.jsx' -o -name '*.json' -o -name '*.css' -o -name '*.scss' -o -name '*.md' -o -name '*.svelte' \) -print0 |
+            while IFS= read -r -d '' f; do
+              rel="${f#"$wd"/}"
+              printf '%s\0' "$rel"
+            done |
+            run_with_files_xargs0 "Prettier Check" \
+              bash -c 'cd "$1"; shift; $PRETTIER_CMD -c -- "$@"' _ "$wd"
+        ); then
+          rc_total=$RC_WARN
+        fi
       fi
     fi
 
@@ -651,12 +687,14 @@ lint_cmd() {
     local has_eslint_cfg=0
     [[ -f "$wd/.eslintrc" || -f "$wd/.eslintrc.js" || -f "$wd/.eslintrc.cjs" || -f "$wd/.eslintrc.json" \
        || -f "$wd/eslint.config.js" || -f "$wd/eslint.config.mjs" || -f "$wd/eslint.config.cjs" ]] && has_eslint_cfg=1
-    if (( has_eslint_cfg )); then
-      run_soft "ESLint" bash -c "cd '$wd' && $eslint_cmd -v >/dev/null 2>&1 && $eslint_cmd . --ext .js,.cjs,.mjs,.ts,.tsx,.svelte" \
-      || { if (( OFFLINE )); then warn "ESLint übersprungen (offline)"; false; \
-           else run_soft "ESLint (fallback npx)" \
-                  bash -c "cd '$wd' && npx --yes eslint . --ext .js,.cjs,.mjs,.ts,.tsx,.svelte"; fi; } \
-      || rc_total=$RC_WARN
+    if ((has_eslint_cfg)); then
+      if ! run_soft "ESLint" bash -c "cd '$wd' && $eslint_cmd -v >/dev/null 2>&1 && $eslint_cmd . --ext .js,.cjs,.mjs,.ts,.tsx,.svelte"; then
+        if ((OFFLINE)); then
+          warn "ESLint übersprungen (offline)"
+        elif ! run_soft "ESLint (fallback npx)" bash -c "cd '$wd' && npx --yes eslint . --ext .js,.cjs,.mjs,.ts,.tsx,.svelte"; then
+          rc_total=$RC_WARN
+        fi
+      fi
     fi
   fi
 
@@ -686,8 +724,13 @@ lint_cmd() {
   fi
   if has actionlint && [[ -d ".github/workflows" ]]; then run_soft "actionlint" actionlint || rc_total=$RC_WARN; fi
 
-  (( rc_total==RC_OK )) && ok "Lint OK" || warn "Lint mit Hinweisen (rc=$rc_total)."
-  printf "%s\n" "$rc_total"; return 0
+  if ((rc_total == RC_OK)); then
+    ok "Lint OK"
+  else
+    warn "Lint mit Hinweisen (rc=$rc_total)."
+  fi
+  printf "%s\n" "$rc_total"
+  return 0
 }
 
 pm_test() {
@@ -702,22 +745,29 @@ pm_test() {
 
 test_cmd() {
   require_repo
-  local rc_web=0 rc_api=0 wd ad pid_web= pid_api=
+  local rc_web=0 rc_api=0 wd ad pid_web="" pid_api=""
   trap '[[ -n "${pid_web-}" ]] && kill "$pid_web" 2>/dev/null || true; [[ -n "${pid_api-}" ]] && kill "$pid_api" 2>/dev/null || true' INT
-  wd="$(detect_web_dir || true)"; ad="$(detect_api_dir || true)"
+  wd="$(detect_web_dir || true)"
+  ad="$(detect_api_dir || true)"
   if [[ -n "$wd" && -f "$wd/package.json" ]]; then
-    info "Web-Tests…"; ( pm_test "$wd" ) & pid_web=$!
+    info "Web-Tests…"
+    (pm_test "$wd") &
+    pid_web=$!
   fi
   if [[ -n "$ad" && -f "$ad/Cargo.toml" ]] && has cargo; then
-    info "Rust-Tests…"; ( cd "$ad" && cargo test --all --quiet ) & pid_api=$!
+    info "Rust-Tests…"
+    (cd "$ad" && cargo test --all --quiet) &
+    pid_api=$!
   fi
   if [[ -n "${pid_web-}" ]]; then wait "$pid_web" || rc_web=1; fi
   if [[ -n "${pid_api-}" ]]; then wait "$pid_api" || rc_api=1; fi
-  (( rc_web==0 && rc_api==0 )) && ok "Tests OK" || {
-    [[ $rc_web -ne 0 ]] && warn "Web-Tests fehlgeschlagen."
-    [[ $rc_api -ne 0 ]] && warn "Rust-Tests fehlgeschlagen."
+  if ((rc_web == 0 && rc_api == 0)); then
+    ok "Tests OK"
+  else
+    if [[ $rc_web -ne 0 ]]; then warn "Web-Tests fehlgeschlagen."; fi
+    if [[ $rc_api -ne 0 ]]; then warn "Rust-Tests fehlgeschlagen."; fi
     return 1
-  }
+  fi
 }
 # ─────────────────────────────────────────────────────────────────────────────
 # Block 2 – Sicherheitsshims & Defaults (nur wirksam, wenn upstream fehlt)
@@ -921,6 +971,7 @@ _codeowners_reviewers() { # liest \n-separierte Pfade von stdin
     matchOwners=""
     for (( i=0; i<${#CODEOWNERS_PATTERNS[@]}; i++ )); do
       p="${CODEOWNERS_PATTERNS[$i]}"; [[ "$p" == /* ]] && p="${p:1}"
+      # shellcheck disable=SC2254
       case "$f" in $p) matchOwners="${CODEOWNERS_OWNERS[$i]}";; esac
     done
     [[ -z "$matchOwners" && ${#default_owners[@]} -gt 0 ]] && matchOwners="$(printf "%s " "${default_owners[@]}")"
@@ -1103,7 +1154,8 @@ send_cmd() {
   local AUTO_BRANCH_FLAG=$(( AUTO_BRANCH || ${WGX_AUTO_BRANCH:-0} ))
   if [[ "$current" == "$WGX_BASE" ]]; then
     if (( AUTO_BRANCH_FLAG )); then
-      local slug="auto-pr-$(date +%Y%m%d-%H%M%S)"
+      local slug
+      slug="auto-pr-$(date +%Y%m%d-%H%M%S)"
       info "Base-Branch ($WGX_BASE) erkannt → auto Branch: $slug"
       start_cmd "$slug" || die "auto-branch fehlgeschlagen"
     else
@@ -1118,7 +1170,12 @@ send_cmd() {
 
   guard_run; local rc=$?
   (( rc==1 && (ASSUME_YES || ${WGX_DRAFT_ON_WARN:-0}) )) && DRAFT=1
-  (( SYNC_FIRST )) && sync_cmd ${SIGN:+--sign} --scope "${SCOPE}" --base "$WGX_BASE" || { warn "Sync fehlgeschlagen → PR abgebrochen."; return 1; }
+  if ((SYNC_FIRST)); then
+    if ! sync_cmd ${SIGN:+--sign} --scope "${SCOPE}" --base "$WGX_BASE"; then
+      warn "Sync fehlgeschlagen → PR abgebrochen."
+      return 1
+    fi
+  fi
 
   local files scope short
   files="$(git diff --name-only "origin/$WGX_BASE"...HEAD 2>/dev/null || true)"
@@ -1154,7 +1211,9 @@ send_cmd() {
         elif [[ -n "$REVIEWERS" ]] ; then IFS=, read -r -a rv <<<"$REVIEWERS"; local r; for r in "${rv[@]}"; do r="$(trim "$r")"; [[ -n "$r" ]] && args+=(--reviewer "$r"); done; fi
         glab "${args[@]}" || die "glab mr create fehlgeschlagen."
         ok "Merge Request erstellt."
-        (( OPEN_PR )) && glab mr view --web >/dev/null 2>&1 || true
+        if ((OPEN_PR)); then
+          glab mr view --web >/dev/null 2>&1 || true
+        fi
       else
         warn "glab CLI nicht gefunden. MR manuell im GitLab anlegen."
         local url; url="$(compare_url)"; [[ -n "$url" ]] && echo "Vergleich: $url"
@@ -1172,10 +1231,16 @@ send_cmd() {
           if [[ -n "$rlist" ]]; then while IFS= read -r r2; do [[ -n "$r2" ]] && args+=(--reviewer "$r2"); done <<< "$rlist"; info "Reviewer (auto): $(printf '%s' "$rlist" | tr '\n' ' ')"; else warn "CODEOWNERS ohne User-Reviewer."; fi
         elif [[ -n "$REVIEWERS" ]]; then IFS=, read -r -a rvw2 <<<"$REVIEWERS"; local r3; for r3 in "${rvw2[@]}"; do r3="$(trim "$r3")"; [[ -n "$r3" ]] && args+=(--reviewer "$r3"); done; fi
         gh "${args[@]}" || die "gh pr create fehlgeschlagen."
-        local pr_url; pr_url="$(gh pr view --json url -q .url 2>/dev/null || true)"; [[ -n "$pr_url" ]] && info "PR: $pr_url"
+        local pr_url
+        pr_url="$(gh pr view --json url -q .url 2>/dev/null || true)"
+        [[ -n "$pr_url" ]] && info "PR: $pr_url"
         ok "PR erstellt."
-        (( TRIGGER_CI )) && [[ -n "${WGX_CI_WORKFLOW-}" ]] && gh workflow run "$WGX_CI_WORKFLOW" >/dev/null 2>&1 || true
-        (( OPEN_PR )) && gh pr view -w >/dev/null 2>&1 || true
+        if ((TRIGGER_CI)) && [[ -n "${WGX_CI_WORKFLOW-}" ]]; then
+          gh workflow run "$WGX_CI_WORKFLOW" >/dev/null 2>&1 || true
+        fi
+        if ((OPEN_PR)); then
+          gh pr view -w >/dev/null 2>&1 || true
+        fi
       else
         local url; url="$(compare_url)"; echo "gh CLI nicht gefunden. PR manuell anlegen."; [[ -n "$url" ]] && echo "URL: $url"
         echo "Labels: $LABELS"; echo "--- PR Text ---"; echo "$body"
@@ -1212,7 +1277,12 @@ heal_cmd() {
     fi
   fi
 
-  (( CONT ))  && { git add -A; git rebase --continue || die "continue fehlgeschlagen."; ok "Rebase fortgesetzt."; return 0; }
+  if ((CONT)); then
+    git add -A
+    git rebase --continue || die "continue fehlgeschlagen."
+    ok "Rebase fortgesetzt."
+    return 0
+  fi
   (( STASH )) && snapshot_make
 
   _fetch_guard
@@ -1298,9 +1368,15 @@ clean_cmd() {
       git branch --merged \
       | grep -Ev '^\*|[[:space:]](main|master|dev)$' \
       | sed 's/^[*[:space:]]*//' \
-      | while IFS= read -r b; do [[ -n "$b" ]] && git branch -d "$b" 2>/dev/null || true; done
+      | while IFS= read -r b; do
+          if [[ -n "$b" ]]; then
+            git branch -d "$b" 2>/dev/null || true
+          fi
+        done
     fi
-    git remote | grep -qx "origin" && do_git remote prune origin >/dev/null 2>&1 || true
+    if git remote | grep -qx "origin"; then
+      do_git remote prune origin >/dev/null 2>&1 || true
+    fi
   fi
 
   (( DEEP )) && do_git clean -xfd
@@ -1611,7 +1687,9 @@ release_cmd() {
     gitlab)
       if has glab && glab auth status >/dev/null 2>&1; then
         glab release create "$VERSION" --notes-file "$notes_file" || die "glab release create fehlgeschlagen."
-        (( LATEST )) && glab release edit "$VERSION" --latest >/dev/null 2>&1 || true
+        if ((LATEST)); then
+          glab release edit "$VERSION" --latest >/dev/null 2>&1 || true
+        fi
         ok "GitLab Release erstellt: $VERSION"
       else
         warn "glab fehlt/unauthenticated – Release nur lokal getaggt."
@@ -1763,7 +1841,11 @@ env_fix_termux() {
     fi
   fi
 
-  (( rc==0 )) && ok "Termux-Fixes angewendet (sofern bestätigt)." || warn "Einige Fixes fehlgeschlagen (rc=$rc)."
+  if ((rc == 0)); then
+    ok "Termux-Fixes angewendet (sofern bestätigt)."
+  else
+    warn "Einige Fixes fehlgeschlagen (rc=$rc)."
+  fi
   return $rc
 }
 
@@ -1936,7 +2018,7 @@ selftest_cmd() {
     info "Hinweis: Selbsttest außerhalb eines Git-Repos – einige Kommandos erfordern eins."
   fi
 
-  if (( rc==RC_OK )); then
+  if ((rc == RC_OK)); then
     ok "Selftest abgeschlossen."
     return 0
   fi
