@@ -1,9 +1,24 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# WGX_DIR auf Root des Repos setzen (egal woher das Skript aufgerufen wird)
-DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-WGX_DIR="$(dirname "$DIR")"
+# WGX_DIR auf Root des Repos setzen – robust MIT Symlink-Auflösung
+# Warum? Wenn cli/wgx als Symlink in ~/.local/bin/wgx landet, zeigt
+# ${BASH_SOURCE[0]} zunächst auf den Symlink-Pfad. Wir folgen allen
+# Symlinks und landen zuverlässig im echten Verzeichnis der Datei.
+SOURCE="${BASH_SOURCE[0]}"
+while [ -h "$SOURCE" ]; do
+  # Verzeichnis des gerade betrachteten Pfades (kann selbst ein Symlink sein)
+  DIR="$(cd -P "$(dirname "$SOURCE")" >/dev/null 2>&1 && pwd)"
+  # Aufgelöstes Ziel des Symlinks holen
+  TARGET="$(readlink "$SOURCE")"
+  # Wenn Ziel ein relativer Pfad ist, relativ zu DIR auflösen
+  [[ "$TARGET" != /* ]] && TARGET="$DIR/$TARGET"
+  SOURCE="$TARGET"
+done
+# Jetzt ist SOURCE eine echte Datei; ihr Verzeichnis ist das cli/-Verzeichnis.
+DIR="$(cd -P "$(dirname "$SOURCE")" >/dev/null 2>&1 && pwd)"
+# WGX_DIR zeigt auf Repo-Root (eine Ebene über cli/)
+WGX_DIR="$(cd -P "$DIR/.." >/dev/null 2>&1 && pwd)"
 export WGX_DIR
 
 # Version anzeigen, bevor weitere Komponenten geladen werden
