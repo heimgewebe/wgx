@@ -253,6 +253,10 @@ USAGE
 
   cd "$oldpwd" >/dev/null 2>&1 || true
 
+  if [ $dry_run -eq 1 ] && [ $rc -ne 0 ]; then
+    rc=0
+  fi
+
   if [ $rc -eq 0 ]; then
     if [ $dry_run -eq 1 ]; then
       info "Clean (Dry-Run) abgeschlossen."
