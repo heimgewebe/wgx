@@ -219,8 +219,12 @@ USAGE
         fi
       fi
     else
-      warn "--git verlangt ein Git-Repository."
-      rc=1
+      if [ $dry_run -eq 1 ]; then
+        info "--git übersprungen (kein Git-Repository, Dry-Run)."
+      else
+        warn "--git verlangt ein Git-Repository."
+        rc=1
+      fi
     fi
   fi
 
@@ -238,8 +242,12 @@ USAGE
       fi
       performed=1
     else
-      warn "--deep verlangt ein Git-Repository."
-      rc=1
+      if [ $dry_run -eq 1 ]; then
+        info "--deep übersprungen (kein Git-Repository, Dry-Run)."
+      else
+        warn "--deep verlangt ein Git-Repository."
+        rc=1
+      fi
     fi
   fi
 
