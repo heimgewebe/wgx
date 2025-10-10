@@ -81,26 +81,42 @@ USAGE
   _remove_paths() {
     local desc="$1"
     shift
-    local removed_any=0 path
+    local removed_any=0 path rc=0 status=0
+
     for path in "$@"; do
       if _remove_path "$path"; then
         removed_any=1
+      else
+        status=$?
+        if [ $status -ne 1 ] && [ $rc -eq 0 ]; then
+          rc=$status
+        fi
       fi
     done
+
     if [ $removed_any -eq 1 ]; then
       info "$desc entfernt."
     fi
+
+    return $rc
   }
 
   if [ $safe -eq 1 ]; then
-    _remove_paths "Temporäre Caches" \
+    if _remove_paths "Temporäre Caches" \
       .pytest_cache \
       .ruff_cache \
       .mypy_cache \
       .coverage \
       coverage \
       .hypothesis \
-      .cache
+      .cache; then
+      :
+    else
+      local status=$?
+      if [ $status -ne 0 ] && [ $rc -eq 0 ]; then
+        rc=$status
+      fi
+    fi
 
     if [ -d "${TMPDIR:-/tmp}" ]; then
       if [ $dry_run -eq 1 ]; then
@@ -112,7 +128,7 @@ USAGE
   fi
 
   if [ $build -eq 1 ]; then
-    _remove_paths "Build-Artefakte" \
+    if _remove_paths "Build-Artefakte" \
       build \
       dist \
       target \
@@ -121,7 +137,14 @@ USAGE
       .venv \
       .uv \
       .pdm-build \
-      node_modules/.cache
+      node_modules/.cache; then
+      :
+    else
+      local status=$?
+      if [ $status -ne 0 ] && [ $rc -eq 0 ]; then
+        rc=$status
+      fi
+    fi
 
     if [ $dry_run -eq 1 ]; then
       printf 'DRY: find . -maxdepth 1 -type d -name %q -exec rm -rf -- {} +\n' '*.egg-info'
