@@ -32,35 +32,13 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Ensure bash is available
-        shell: bash
+        shell: sh
         run: |
-          set -euo pipefail
           if ! command -v bash >/dev/null 2>&1; then
-            echo "::notice::bash not found – attempting installation"
-            if command -v apk >/dev/null 2>&1; then
-              apk --no-cache add bash
-            elif command -v apt-get >/dev/null 2>&1; then
-              export DEBIAN_FRONTEND=noninteractive
-              sudo apt-get update -y
-              sudo apt-get install -y bash
-            elif command -v dnf >/dev/null 2>&1; then
-              sudo dnf install -y bash
-            elif command -v yum >/dev/null 2>&1; then
-              sudo yum install -y bash
-            elif command -v pacman >/dev/null 2>&1; then
-              sudo pacman -Sy --noconfirm bash
-            elif command -v brew >/dev/null 2>&1; then
-              brew install bash
-            else
-              echo "::error::Unable to install bash automatically (no known package manager found)."
-              exit 1
-            fi
-          fi
-          if ! command -v bash >/dev/null 2>&1; then
-            echo "::error::bash still not available after attempted installation. Use a runner/container image that includes bash."
+            echo "::error::bash not available on this runner. Use an image that includes bash (e.g. ubuntu-latest or a custom container with bash)."
             exit 1
           fi
-          bash --version
+          exec bash -lc 'set -euo pipefail; bash --version'
 
       - name: Repo smoke (ultra-fast)
         run: |
