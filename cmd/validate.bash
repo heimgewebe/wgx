@@ -51,22 +51,40 @@ validate_manifest(){
 
   # 1) Bevorzugt: ajv mit Schema (wenn vorhanden)
   if (( have_ajv )) && [[ -f "$schema_json" ]]; then
-    if ajv validate -s "$schema_json" -d "$prof" >/dev/null 2>&1; then
-      local ok="Manifest ist valide (ajv + Schema)."
-      if (( json )); then
-        json_emit "ok" "$ok" "{\"validator\":\"ajv\",\"schema\":\"$schema_json\"}" | tee "${out_path:-/dev/null}"
-      else
-        log "$ok"
+    if (( have_yq )); then
+      local _tmp_json
+      _tmp_json="$(mktemp -t wgx-prof-XXXX.json)"
+      if ! yq -o=json '.' "$prof" >"$_tmp_json" 2>/dev/null; then
+        local err="Konnte YAML nicht nach JSON konvertieren (yq)."
+        rm -f -- "$_tmp_json"
+        if (( json )); then
+          json_emit "error" "$err" "{\"validator\":\"yq\"}" | tee "${out_path:-/dev/null}"
+        else
+          log "$err"
+        fi
+        return 1
       fi
-      return 0
+      if ajv validate -s "$schema_json" -d "$_tmp_json" >/dev/null 2>&1; then
+        rm -f -- "$_tmp_json"
+        local ok="Manifest ist valide (ajv + Schema; YAML→JSON via yq)."
+        if (( json )); then
+          json_emit "ok" "$ok" "{\"validator\":\"ajv\",\"schema\":\"$schema_json\"}" | tee "${out_path:-/dev/null}"
+        else
+          log "$ok"
+        fi
+        return 0
+      else
+        rm -f -- "$_tmp_json"
+        local err="Manifest ungültig laut ajv (nach YAML→JSON-Konvertierung)."
+        if (( json )); then
+          json_emit "error" "$err" "{\"validator\":\"ajv\",\"schema\":\"$schema_json\"}" | tee "${out_path:-/dev/null}"
+        else
+          log "$err"
+        fi
+        return 1
+      fi
     else
-      local err="Manifest ungültig laut ajv."
-      if (( json )); then
-        json_emit "error" "$err" "{\"validator\":\"ajv\",\"schema\":\"$schema_json\"}" | tee "${out_path:-/dev/null}"
-      else
-        log "$err"
-      fi
-      return 1
+      log "Hinweis: yq nicht gefunden – überspringe ajv (braucht JSON) und nutze Minimalchecks."
     fi
   fi
 
