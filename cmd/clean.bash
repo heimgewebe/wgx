@@ -67,13 +67,29 @@ USAGE
   local rc=0
   local performed=0
 
-  local require_clean_tree=0
-  if [ $dry_run -eq 0 ] && { [ $git_cleanup -eq 1 ] || [ $deep -eq 1 ]; }; then
-    require_clean_tree=1
+  local require_clean_tree=0 allow_untracked_dirty=0
+  if [ $dry_run -eq 0 ]; then
+    if [ $git_cleanup -eq 1 ]; then
+      require_clean_tree=1
+    fi
+    if [ $deep -eq 1 ]; then
+      allow_untracked_dirty=1
+    fi
   fi
 
-  if [ $require_clean_tree -eq 1 ] && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-    if git_workdir_dirty; then
+  if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    local worktree_dirty=0
+    if [ $require_clean_tree -eq 1 ]; then
+      if git_workdir_dirty; then
+        worktree_dirty=1
+      fi
+    elif [ $allow_untracked_dirty -eq 1 ]; then
+      if git status --porcelain=v1 --untracked-files=no 2>/dev/null | grep -q .; then
+        worktree_dirty=1
+      fi
+    fi
+
+    if [ $worktree_dirty -eq 1 ]; then
       warn "Git-Arbeitsverzeichnis ist nicht sauber. Bitte committe oder stash deine Änderungen und versuche es erneut."
       local status_output
       status_output="$(git status --short 2>/dev/null || true)"
