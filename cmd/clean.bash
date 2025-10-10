@@ -36,8 +36,8 @@ Usage:
 Options:
   --safe       Entfernt temporäre Cache-Verzeichnisse (Standard).
   --build      Löscht Build-Artefakte (dist, build, target, ...).
-  --git        Räumt gemergte Branches und Remote-Referenzen auf.
-  --deep       Führt ein destruktives `git clean -xfd` aus (erfordert --force).
+  --git        Räumt gemergte Branches und Remote-Referenzen auf (nur sauberer Git-Tree).
+  --deep       Führt ein destruktives `git clean -xfd` aus (erfordert --force, nur sauberer Git-Tree).
   --dry-run    Zeigt nur an, was passieren würde.
   --force      Bestätigt destruktive Operationen (für --deep).
 USAGE
@@ -66,6 +66,27 @@ USAGE
 
   local rc=0
   local performed=0
+
+  local require_clean_tree=0
+  if [ $dry_run -eq 0 ] && { [ $git_cleanup -eq 1 ] || [ $deep -eq 1 ]; }; then
+    require_clean_tree=1
+  fi
+
+  if [ $require_clean_tree -eq 1 ] && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    if git_workdir_dirty; then
+      warn "Git-Arbeitsverzeichnis ist nicht sauber. Bitte committe oder stash deine Änderungen und versuche es erneut."
+      local status_output
+      status_output="$(git status --short 2>/dev/null || true)"
+      if [ -n "$status_output" ]; then
+        while IFS= read -r line; do
+          [ -n "$line" ] || continue
+          printf '    %s\n' "$line" >&2
+        done <<<"$status_output"
+      fi
+      cd "$oldpwd" >/dev/null 2>&1 || true
+      return 1
+    fi
+  fi
 
   _remove_path() {
     local target="$1"
@@ -187,7 +208,7 @@ USAGE
 
   if [ $rc -eq 0 ]; then
     if [ $dry_run -eq 1 ]; then
-      ok "Clean (Dry-Run) abgeschlossen."
+      info "Clean (Dry-Run) abgeschlossen."
     else
       if [ $performed -eq 0 ]; then
         info "Nichts zu tun."

@@ -48,6 +48,17 @@ wgx clean
 wgx send "feat: initial test run"
 ```
 
+### `wgx clean`
+
+`wgx clean` räumt temporäre Dateien im Workspace auf. Standardmäßig werden nur sichere Caches entfernt (`--safe`). Weitere Modi lassen sich kombinieren:
+
+- `--build` löscht Build-Artefakte wie `dist/`, `build/`, `.venv/`, `.uv/` usw.
+- `--git` räumt gemergte Branches sowie Remote-Referenzen auf. Funktioniert nur in einem sauberen Git-Arbeitsverzeichnis.
+- `--deep` führt ein destruktives `git clean -xfd` aus und benötigt zusätzlich `--force`. Ein sauberer Git-Tree ist Pflicht.
+- `--dry-run` zeigt alle Schritte nur an – ideal, um vor destruktiven Varianten zu prüfen, was passieren würde.
+
+💡 Tipp: `wgx clean --dry-run --git` hilft beim schnellen Check, welche Git-Aufräumarbeiten anstehen. Sobald der Tree sauber ist, kann `wgx clean --git` (oder `--deep --force`) sicher laufen.
+
 Falls ein Befehl unbekannt ist, kannst du die verfügbaren Subcommands auflisten:
 
 ```bash
