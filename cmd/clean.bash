@@ -65,6 +65,7 @@ USAGE
   fi
 
   local rc=0
+  local fatal_error=0
   local performed=0
   local skip_cleanup=0
 
@@ -103,6 +104,7 @@ USAGE
       skip_cleanup=1
       if [ $dry_run -eq 0 ]; then
         rc=1
+        fatal_error=1
       fi
     fi
   fi
@@ -130,6 +132,7 @@ USAGE
         status=$?
         if [ $status -ne 1 ] && [ $rc -eq 0 ]; then
           rc=$status
+          fatal_error=1
         fi
       fi
     done
@@ -160,6 +163,7 @@ USAGE
         local status=$?
         if [ $status -ne 0 ] && [ $rc -eq 0 ]; then
           rc=$status
+          fatal_error=1
         fi
       fi
 
@@ -200,6 +204,7 @@ USAGE
         local status=$?
         if [ $status -ne 0 ] && [ $rc -eq 0 ]; then
           rc=$status
+          fatal_error=1
         fi
       fi
 
@@ -244,6 +249,7 @@ USAGE
         else
           warn "--git verlangt ein Git-Repository."
           rc=1
+          fatal_error=1
         fi
       fi
     fi
@@ -251,13 +257,22 @@ USAGE
     if [ $deep -eq 1 ]; then
       if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
         if [ $dry_run -eq 1 ]; then
-          git clean -nfxd || rc=$?
+          if ! git clean -nfxd; then
+            local clean_status=${PIPESTATUS[0]:-$?}
+            rc=$clean_status
+            fatal_error=1
+          fi
         else
           if [ $force -eq 0 ]; then
             warn "--deep ist destruktiv und benötigt --force."
             rc=1
+            fatal_error=1
           else
-            git clean -xfd || rc=$?
+            if ! git clean -xfd; then
+              local clean_status=${PIPESTATUS[0]:-$?}
+              rc=$clean_status
+              fatal_error=1
+            fi
           fi
         fi
         performed=1
@@ -267,6 +282,7 @@ USAGE
         else
           warn "--deep verlangt ein Git-Repository."
           rc=1
+          fatal_error=1
         fi
       fi
     fi
@@ -274,7 +290,7 @@ USAGE
 
   cd "$oldpwd" >/dev/null 2>&1 || true
 
-  if [ $dry_run -eq 1 ] && [ $rc -ne 0 ]; then
+  if [ $dry_run -eq 1 ] && [ $fatal_error -eq 0 ]; then
     rc=0
   fi
 
