@@ -1,47 +1,46 @@
 #!/usr/bin/env bash
-# shellcheck shell=bash
-set -euo pipefail
-IFS=$'\n\t'
-
 # ================================================================
-# wgx validate — Manifest-Validator (öffentliche API) + Shell-Lints
+# Validiert ein wgx-Profil.
 #
-# Öffentliche Schnittstelle (von lib/core.bash erwartet):
+# SYNOPSIS
 #   validate::run [--json] [--out <pfad>] [<repo_dir>]
-#     - Validiert .wgx/profile.yml gemäß Schema (ajv), Fallback: yq-Minimalchecks
-#     - Gibt bei --json eine JSON-Zusammenfassung aus (und optional nach --out)
 #
-# Zusätzliche, optionale Lint-Funktion (nicht Teil der historischen API):
-#   wgx-validate-lints [-c] [-q]
-#     -c  nur geänderte Dateien (gg. HEAD)
-#     -q  ruhiger Modus
-#     -> Bash -n, shfmt -d, shellcheck -S style
+# BEMERKUNGEN
+#   - Prüft .wgx/profile.yml gegen .wgx/schema/profile.v1.json
+#   - Nutzt `ajv` (bevorzugt) oder `yq` (Fallback)
+#   - CLI-Entrypoint: `wgx-validate`
+#
+# SUBKOMMANDO: lints
+#   - Führt Shell-Linter (bash -n, shfmt, shellcheck) aus.
+#   - SYNOPSIS: wgx-validate-lints [-c] [-q]
+#       -c -> nur geänderte Dateien
+#       -q -> leise
 # ================================================================
 
-log() {
-  printf '%s\n' "$*" >&2
-}
+set -euo pipefail
 
-die() {
-  log "ERR: $*"
-  exit 1
-}
-
-need() {
-  command -v "$1" >/dev/null 2>&1 || die "Fehlt Tool: $1"
-}
+log() { printf '%s\n' "$*" >&2; }
+die() { log "ERR: $*"; exit 1; }
+need() { command -v "$1" >/dev/null 2>&1 || die "Fehlt Tool: $1"; }
 
 # ---------------------- JSON Helper ------------------------------
 _json_escape() {
-  jq -Rrs . <<<"${1:-}"
-} 2>/dev/null || true
+  if command -v jq >/dev/null 2>&1; then
+    jq -Rrs . <<<"${1:-}"
+  else
+    # Minimal-Fallback, falls jq fehlt (keine Unicode-Escapes, aber sicher genug für Logs)
+    # ersetzt Backslash und doppelte Anführungszeichen, kapselt in Anführungszeichen
+    local s="${1:-}"
+    s=${s//\\/\\\\}
+    s=${s//\"/\\\"}
+    printf '"%s"' "$s"
+  fi
+}
 
 json_emit() { # json_emit status msg details
   local status="${1:-error}" msg="${2:-}" details="${3:-}"
-  local s m d
-  s="$status"; m="$msg"; d="$details"
   printf '{"status":%s,"message":%s,"details":%s}\n' \
-    "$(_json_escape "$s")" "$(_json_escape "$m")" "$(_json_escape "$d")"
+    "$(_json_escape "$status")" "$(_json_escape "$msg")" "$(_json_escape "$details")"
 }
 
 # ---------------- Manifest Validation ---------------------------
@@ -50,16 +49,16 @@ validate_manifest() {
   local prof="$repo/.wgx/profile.yml"
   local schema_json="$repo/.wgx/schema/profile.v1.json"
 
-  [[ -f "$prof" ]] || {
+  if [[ ! -f "$prof" ]]; then
     local msg="Profil fehlt: $prof"
-    ((json)) && json_emit "error" "$msg" "{}" || die "$msg"
+    if ((json)); then json_emit "error" "$msg" "{}"; else die "$msg"; fi
     return 1
-  }
+  fi
 
   # Tools optional prüfen
   local have_ajv=0 have_yq=0
   command -v ajv >/dev/null 2>&1 && have_ajv=1
-  command -v yq >/dev/null 2>&1 && have_yq=1
+  command -v yq  >/dev/null 2>&1 && have_yq=1
 
   # 1) Bevorzugt: ajv mit Schema (wenn vorhanden)
   if ((have_ajv)) && [[ -f "$schema_json" ]]; then
@@ -95,8 +94,6 @@ validate_manifest() {
         fi
         return 1
       fi
-    else
-      log "Hinweis: yq nicht gefunden – überspringe ajv (braucht JSON) und nutze Minimalchecks."
     fi
   fi
 
@@ -140,17 +137,21 @@ validate::run() { # [--json] [--out <pfad>] [<repo>]
   local json=0 out_path="" repo="."
   while [[ $# -gt 0 ]]; do
     case "${1:-}" in
-      --json) json=1; shift ;;
-      --out)  out_path="${2:-}"; [[ -n "$out_path" ]] || die "--out braucht Pfad"; shift 2 ;;
+      --json)
+        json=1; shift ;;
+      --out)
+        out_path="${2:-}"
+        [[ -n "$out_path" ]] || die "--out braucht Pfad"
+        shift 2 ;;
       -h|--help)
         cat <<'USAGE'
 validate::run [--json] [--out <pfad>] [<repo_dir>]
   Validiert <repo_dir>/.wgx/profile.yml gegen Schema (ajv) oder via Minimalchecks (yq).
   Rückgabe: Exit 0 (ok), 1 (ungültig), 2 (keine Validierung möglich).
 USAGE
-        return 0
-        ;;
-      *) repo="$1"; shift ;;
+        return 0 ;;
+      *)
+        repo="$1"; shift ;;
     esac
   done
 
@@ -170,19 +171,21 @@ wgx-validate-lints [-c] [-q]
   -c   Nur geänderte Dateien prüfen (gegen HEAD)
   -q   Ruhiger Modus (nur Fehlerausgabe)
 USAGE
-        return 0
-        ;;
-      \?) die "Unbekannte Option: -$OPTARG (nutze -h)";;
+        return 0 ;;
+      \?) die "Unbekannte Option: -$OPTARG (nutze -h)" ;;
     esac
   done
-  shift $((OPTIND-1))
+  shift $((OPTIND - 1))
 
-  need git; need bash; need shfmt; need shellcheck
+  need git
+  need bash
+  need shfmt
+  need shellcheck
 
   local -a files=()
   if ((changed_only)); then
     while IFS= read -r -d '' f; do
-      case "$f" in (*.sh|*.bash) files+=("$f");; esac
+      case "$f" in *.sh|*.bash) files+=("$f") ;; esac
     done < <(git diff --name-only -z --diff-filter=ACMRTUXB HEAD --)
   else
     while IFS= read -r -d '' f; do files+=("$f"); done < <(git ls-files -z -- '*.sh' '*.bash')
@@ -193,17 +196,20 @@ USAGE
     return 0
   fi
 
-  ((quiet)) || { log "Dateien:"; printf ' - %s\n' "${files[@]}" >&2; }
+  if ! ((quiet)); then
+    log "Dateien:"
+    printf ' - %s\n' "${files[@]}" >&2
+  fi
 
   local rc=0
-  bash -n "${files[@]}" || rc=1
-  shfmt -d "${files[@]}" || rc=1
+  bash -n "${files[@]}"            || rc=1
+  shfmt -d -i 2 -ci -sr "${files[@]}" || rc=1
   shellcheck -S style "${files[@]}" || rc=1
-  return "$rc"
+
+  return $rc
 }
 
-# Wenn direkt aufgerufen: historische API bewahren
-#  - Ohne Funktionsaufruf im Sourcing-Kontext wird validate::run ausgeführt.
+# ----------------------- Main Entry -----------------------------
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
   # Direkter CLI-Entry:
   #  - Falls erstes Argument "lints" ist -> Lint-Subkommando

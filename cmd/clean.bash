@@ -66,6 +66,7 @@ USAGE
 
   local rc=0
   local performed=0
+  local skip_cleanup=0
 
   local require_clean_tree=0 allow_untracked_dirty=0
   if [ $dry_run -eq 0 ]; then
@@ -99,8 +100,10 @@ USAGE
           printf '    %s\n' "$line" >&2
         done <<<"$status_output"
       fi
-      cd "$oldpwd" >/dev/null 2>&1 || true
-      return 1
+      skip_cleanup=1
+      if [ $dry_run -eq 0 ]; then
+        rc=1
+      fi
     fi
   fi
 
@@ -138,57 +141,27 @@ USAGE
     return $rc
   }
 
-  if [ $safe -eq 1 ]; then
-    if _remove_paths "Temporäre Caches" \
-      .pytest_cache \
-      .ruff_cache \
-      .mypy_cache \
-      .coverage \
-      coverage \
-      .hypothesis \
-      .cache; then
-      :
-    else
-      local status=$?
-      if [ $status -ne 0 ] && [ $rc -eq 0 ]; then
-        rc=$status
-      fi
-    fi
-
-    if [ -d "${TMPDIR:-/tmp}" ]; then
-      if [ $dry_run -eq 1 ]; then
-        printf 'DRY: find "%s" -maxdepth 1 -type f -name %q -mtime +1 -delete\n' "${TMPDIR:-/tmp}" 'wgx-*.log'
-      else
-        find "${TMPDIR:-/tmp}" -maxdepth 1 -type f -name 'wgx-*.log' -mtime +1 -exec rm -f -- {} + 2>/dev/null || true
-      fi
-    fi
-  fi
-
-  if [ $build -eq 1 ]; then
-    if _remove_paths "Build-Artefakte" \
-      build \
-      dist \
-      target \
-      .tox \
-      .nox \
-      .venv \
-      .uv \
-      .pdm-build \
-      node_modules/.cache; then
-      :
-    else
-      local status=$?
-      if [ $status -ne 0 ] && [ $rc -eq 0 ]; then
-        rc=$status
-      fi
-    fi
-
+  if [ $skip_cleanup -eq 1 ]; then
     if [ $dry_run -eq 1 ]; then
-      printf 'DRY: find . -maxdepth 1 -type d -name %q -exec rm -rf -- {} +\n' '*.egg-info'
-    else
-      find . -maxdepth 1 -type d -name '*.egg-info' -exec rm -rf -- {} + 2>/dev/null || true
+      info "Dry-Run: Bereinigung aufgrund verschmutztem Git-Arbeitsverzeichnis übersprungen."
     fi
-  fi
+  else
+    if [ $safe -eq 1 ]; then
+      if _remove_paths "Temporäre Caches" \
+        .pytest_cache \
+        .ruff_cache \
+        .mypy_cache \
+        .coverage \
+        coverage \
+        .hypothesis \
+        .cache; then
+        :
+      else
+        local status=$?
+        if [ $status -ne 0 ] && [ $rc -eq 0 ]; then
+          rc=$status
+        fi
+      fi
 
   if [ $git_cleanup -eq 1 ]; then
     if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
@@ -198,55 +171,103 @@ USAGE
       while IFS= read -r branch; do
         [ -n "$branch" ] || continue
         case "$branch" in
-        "$current_branch"|main|master|dev)
+        "$current_branch" | main | master | dev)
           continue
           ;;
         esac
         performed=1
         if [ $dry_run -eq 1 ]; then
-          printf 'DRY: git branch -d -- %q\n' "$branch"
+          printf 'DRY: find "%s" -maxdepth 1 -type f -name %q -mtime +1 -delete\n' "${TMPDIR:-/tmp}" 'wgx-*.log'
         else
-          git branch -d "$branch" >/dev/null 2>&1 || true
+          find "${TMPDIR:-/tmp}" -maxdepth 1 -type f -name 'wgx-*.log' -mtime +1 -exec rm -f -- {} + 2>/dev/null || true
         fi
-      done < <(git for-each-ref --format='%(refname:short)' --merged 2>/dev/null)
-
-      if git remote | grep -qx 'origin'; then
-        performed=1
-        if [ $dry_run -eq 1 ]; then
-          echo 'DRY: git remote prune origin'
-        else
-          git remote prune origin >/dev/null 2>&1 || true
-        fi
-      fi
-    else
-      if [ $dry_run -eq 1 ]; then
-        info "--git übersprungen (kein Git-Repository, Dry-Run)."
-      else
-        warn "--git verlangt ein Git-Repository."
-        rc=1
       fi
     fi
-  fi
 
-  if [ $deep -eq 1 ]; then
-    if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-      if [ $dry_run -eq 1 ]; then
-        git clean -nfxd || rc=$?
+    if [ $build -eq 1 ]; then
+      if _remove_paths "Build-Artefakte" \
+        build \
+        dist \
+        target \
+        .tox \
+        .nox \
+        .venv \
+        .uv \
+        .pdm-build \
+        node_modules/.cache; then
+        :
       else
-        if [ $force -eq 0 ]; then
-          warn "--deep ist destruktiv und benötigt --force."
-          rc=1
-        else
-          git clean -xfd || rc=$?
+        local status=$?
+        if [ $status -ne 0 ] && [ $rc -eq 0 ]; then
+          rc=$status
         fi
       fi
-      performed=1
-    else
+
       if [ $dry_run -eq 1 ]; then
-        info "--deep übersprungen (kein Git-Repository, Dry-Run)."
+        printf 'DRY: find . -maxdepth 1 -type d -name %q -exec rm -rf -- {} +\n' '*.egg-info'
       else
-        warn "--deep verlangt ein Git-Repository."
-        rc=1
+        find . -maxdepth 1 -type d -name '*.egg-info' -exec rm -rf -- {} + 2>/dev/null || true
+      fi
+    fi
+
+    if [ $git_cleanup -eq 1 ]; then
+      if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+        local current_branch
+        current_branch="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")"
+        local branch
+        while IFS= read -r branch; do
+          [ -n "$branch" ] || continue
+          case "$branch" in
+          "$current_branch"|main|master|dev)
+            continue
+            ;;
+          esac
+          performed=1
+          if [ $dry_run -eq 1 ]; then
+            printf 'DRY: git branch -d -- %q\n' "$branch"
+          else
+            git branch -d "$branch" >/dev/null 2>&1 || true
+          fi
+        done < <(git for-each-ref --format='%(refname:short)' --merged 2>/dev/null)
+
+        if git remote | grep -qx 'origin'; then
+          performed=1
+          if [ $dry_run -eq 1 ]; then
+            echo 'DRY: git remote prune origin'
+          else
+            git remote prune origin >/dev/null 2>&1 || true
+          fi
+        fi
+      else
+        if [ $dry_run -eq 1 ]; then
+          info "--git übersprungen (kein Git-Repository, Dry-Run)."
+        else
+          warn "--git verlangt ein Git-Repository."
+          rc=1
+        fi
+      fi
+    fi
+
+    if [ $deep -eq 1 ]; then
+      if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+        if [ $dry_run -eq 1 ]; then
+          git clean -nfxd || rc=$?
+        else
+          if [ $force -eq 0 ]; then
+            warn "--deep ist destruktiv und benötigt --force."
+            rc=1
+          else
+            git clean -xfd || rc=$?
+          fi
+        fi
+        performed=1
+      else
+        if [ $dry_run -eq 1 ]; then
+          info "--deep übersprungen (kein Git-Repository, Dry-Run)."
+        else
+          warn "--deep verlangt ein Git-Repository."
+          rc=1
+        fi
       fi
     fi
   fi
