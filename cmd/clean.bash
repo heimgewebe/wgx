@@ -198,7 +198,7 @@ USAGE
       while IFS= read -r branch; do
         [ -n "$branch" ] || continue
         case "$branch" in
-        "$current_branch"|main|master|dev)
+        "$current_branch" | main | master | dev)
           continue
           ;;
         esac
