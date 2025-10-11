@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#
+# ================================================================
 # Validiert ein wgx-Profil.
 #
 # SYNOPSIS
@@ -13,28 +13,34 @@
 # SUBKOMMANDO: lints
 #   - Führt Shell-Linter (bash -n, shfmt, shellcheck) aus.
 #   - SYNOPSIS: wgx-validate-lints [-c] [-q]
-#     -c -> nur geänderte Dateien
-#     -q -> leise
-#     -> Bash -n, shfmt -d, shellcheck -S style
+#       -c -> nur geänderte Dateien
+#       -q -> leise
 # ================================================================
 
+set -euo pipefail
+
 log() { printf '%s\n' "$*" >&2; }
-die() {
-  log "ERR: $*"
-  exit 1
-}
+die() { log "ERR: $*"; exit 1; }
 need() { command -v "$1" >/dev/null 2>&1 || die "Fehlt Tool: $1"; }
 
 # ---------------------- JSON Helper ------------------------------
-_json_escape() { jq -Rrs . <<<"${1:-}"; } 2>/dev/null || true
+_json_escape() {
+  if command -v jq >/dev/null 2>&1; then
+    jq -Rrs . <<<"${1:-}"
+  else
+    # Minimal-Fallback, falls jq fehlt (keine Unicode-Escapes, aber sicher genug für Logs)
+    # ersetzt Backslash und doppelte Anführungszeichen, kapselt in Anführungszeichen
+    local s="${1:-}"
+    s=${s//\\/\\\\}
+    s=${s//\"/\\\"}
+    printf '"%s"' "$s"
+  fi
+}
+
 json_emit() { # json_emit status msg details
   local status="${1:-error}" msg="${2:-}" details="${3:-}"
-  local s m d
-  s="$status"
-  m="$msg"
-  d="$details"
   printf '{"status":%s,"message":%s,"details":%s}\n' \
-    "$(_json_escape "$s")" "$(_json_escape "$m")" "$(_json_escape "$d")"
+    "$(_json_escape "$status")" "$(_json_escape "$msg")" "$(_json_escape "$details")"
 }
 
 # ---------------- Manifest Validation ---------------------------
@@ -52,7 +58,7 @@ validate_manifest() {
   # Tools optional prüfen
   local have_ajv=0 have_yq=0
   command -v ajv >/dev/null 2>&1 && have_ajv=1
-  command -v yq >/dev/null 2>&1 && have_yq=1
+  command -v yq  >/dev/null 2>&1 && have_yq=1
 
   # 1) Bevorzugt: ajv mit Schema (wenn vorhanden)
   if ((have_ajv)) && [[ -f "$schema_json" ]]; then
@@ -88,7 +94,7 @@ validate_manifest() {
         fi
         return 1
       fi
-    fi # Ende 'have_yq' Block für Konvertierung
+    fi
   fi
 
   # 2) Fallback: Minimalchecks mit yq
@@ -131,27 +137,21 @@ validate::run() { # [--json] [--out <pfad>] [<repo>]
   local json=0 out_path="" repo="."
   while [[ $# -gt 0 ]]; do
     case "${1:-}" in
-    --json)
-      json=1
-      shift
-      ;;
-    --out)
-      out_path="${2:-}"
-      [[ -n "$out_path" ]] || die "--out braucht Pfad"
-      shift 2
-      ;;
-    -h | --help)
-      cat <<'USAGE'
+      --json)
+        json=1; shift ;;
+      --out)
+        out_path="${2:-}"
+        [[ -n "$out_path" ]] || die "--out braucht Pfad"
+        shift 2 ;;
+      -h|--help)
+        cat <<'USAGE'
 validate::run [--json] [--out <pfad>] [<repo_dir>]
   Validiert <repo_dir>/.wgx/profile.yml gegen Schema (ajv) oder via Minimalchecks (yq).
   Rückgabe: Exit 0 (ok), 1 (ungültig), 2 (keine Validierung möglich).
 USAGE
-      return 0
-      ;;
-    *)
-      repo="$1"
-      shift
-      ;;
+        return 0 ;;
+      *)
+        repo="$1"; shift ;;
     esac
   done
 
@@ -163,17 +163,16 @@ wgx-validate-lints() { # [-c] [-q]
   local changed_only=0 quiet=0
   while getopts ':cqh' opt; do
     case "$opt" in
-    c) changed_only=1 ;;
-    q) quiet=1 ;;
-    h)
-      cat <<'USAGE'
+      c) changed_only=1 ;;
+      q) quiet=1 ;;
+      h)
+        cat <<'USAGE'
 wgx-validate-lints [-c] [-q]
   -c   Nur geänderte Dateien prüfen (gegen HEAD)
   -q   Ruhiger Modus (nur Fehlerausgabe)
 USAGE
-      return 0
-      ;;
-    \?) die "Unbekannte Option: -$OPTARG (nutze -h)" ;;
+        return 0 ;;
+      \?) die "Unbekannte Option: -$OPTARG (nutze -h)" ;;
     esac
   done
   shift $((OPTIND - 1))
@@ -186,7 +185,7 @@ USAGE
   local -a files=()
   if ((changed_only)); then
     while IFS= read -r -d '' f; do
-      case "$f" in *.sh | *.bash) files+=("$f") ;; esac
+      case "$f" in *.sh|*.bash) files+=("$f") ;; esac
     done < <(git diff --name-only -z --diff-filter=ACMRTUXB HEAD --)
   else
     while IFS= read -r -d '' f; do files+=("$f"); done < <(git ls-files -z -- '*.sh' '*.bash')
@@ -203,7 +202,7 @@ USAGE
   fi
 
   local rc=0
-  bash -n "${files[@]}" || rc=1
+  bash -n "${files[@]}"            || rc=1
   shfmt -d -i 2 -ci -sr "${files[@]}" || rc=1
   shellcheck -S style "${files[@]}" || rc=1
 
