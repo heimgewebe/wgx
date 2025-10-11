@@ -162,26 +162,6 @@ USAGE
           rc=$status
         fi
       fi
-
-  if [ $git_cleanup -eq 1 ]; then
-    if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-      local current_branch
-      current_branch="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")"
-      local branch
-      while IFS= read -r branch; do
-        [ -n "$branch" ] || continue
-        case "$branch" in
-        "$current_branch" | main | master | dev)
-          continue
-          ;;
-        esac
-        performed=1
-        if [ $dry_run -eq 1 ]; then
-          printf 'DRY: find "%s" -maxdepth 1 -type f -name %q -mtime +1 -delete\n' "${TMPDIR:-/tmp}" 'wgx-*.log'
-        else
-          find "${TMPDIR:-/tmp}" -maxdepth 1 -type f -name 'wgx-*.log' -mtime +1 -exec rm -f -- {} + 2>/dev/null || true
-        fi
-      fi
     fi
 
     if [ $build -eq 1 ]; then
@@ -211,6 +191,13 @@ USAGE
     fi
 
     if [ $git_cleanup -eq 1 ]; then
+      performed=1
+      if [ $dry_run -eq 1 ]; then
+        printf 'DRY: find "%s" -maxdepth 1 -type f -name %q -mtime +1 -delete\n' "${TMPDIR:-/tmp}" 'wgx-*.log'
+      else
+        find "${TMPDIR:-/tmp}" -maxdepth 1 -type f -name 'wgx-*.log' -mtime +1 -exec rm -f -- {} + 2>/dev/null || true
+      fi
+
       if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
         local current_branch
         current_branch="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")"
