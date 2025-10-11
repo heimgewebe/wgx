@@ -1,6 +1,8 @@
 name: metrics (contracts-v1)
 permissions:
   contents: read
+  actions: read
+  checks: write
 on:
   workflow_dispatch:
   schedule:

@@ -1,6 +1,8 @@
 name: contracts-validate
 permissions:
   contents: read
+  actions: read
+  checks: write
 on: [push, pull_request]
 jobs:
   validate:
