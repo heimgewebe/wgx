@@ -7,10 +7,10 @@ host=$(hostname)
 # Temperaturen (best effort; leeres Objekt, wenn sensors fehlt)
 temps_json="{}"
 if command -v sensors >/dev/null 2>&1; then
-  if ! mapfile -t lines < <(sensors 2>/dev/null | awk -F'[:+ ]+' '/°C/{print $1":"$3}') ; then
+  if ! mapfile -t lines < <(sensors 2>/dev/null | awk -F'[:+ ]+' '/°C/{print $1":"$3}'); then
     lines=()
   fi
-  if [ ${#lines[@]:-0} -gt 0 ]; then
+  if ((${#lines[@]} > 0)); then
     kv=""
     for l in "${lines[@]}"; do
       k=${l%%:*}
