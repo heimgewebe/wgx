@@ -11,7 +11,9 @@ if command -v sensors >/dev/null 2>&1; then
   if [ ${#lines[@]} -gt 0 ]; then
     kv=""
     for l in "${lines[@]}"; do
-      k=${l%%:*}; v=${l##*:}; v=${v%%.*}
+      k=${l%%:*}
+      v=${l##*:}
+      v=${v%%.*}
       kv="${kv}${kv:+,}\"${k}\":${v}"
     done
     temps_json="{${kv}}"
@@ -44,7 +46,7 @@ jq -n \
   --argjson ufp "$updates_flatpak" \
   --argjson age "$age_days" \
   --argjson drift "$drift_templates" \
-'{
+  '{
   ts: $ts,
   host: $host,
   temps: $temps,
