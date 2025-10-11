@@ -1,0 +1,10 @@
+name: metrics (contracts-v1)
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 * * * *"
+jobs:
+  m:
+    uses: heimgewebe/metarepo/.github/workflows/wgx-metrics.yml@contracts-v1
+    with:
+      post_url: ""
