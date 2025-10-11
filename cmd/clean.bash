@@ -166,24 +166,59 @@ USAGE
           fatal_error=1
         fi
       fi
+    fi
 
-  if [ $git_cleanup -eq 1 ]; then
-    if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-      local current_branch
-      current_branch="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")"
-      local branch
-      while IFS= read -r branch; do
-        [ -n "$branch" ] || continue
-        case "$branch" in
-        "$current_branch" | main | master | dev)
-          continue
-          ;;
-        esac
-        performed=1
+    if [ $git_cleanup -eq 1 ]; then
+      if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+        local git_performed=0
         if [ $dry_run -eq 1 ]; then
           printf 'DRY: find "%s" -maxdepth 1 -type f -name %q -mtime +1 -delete\n' "${TMPDIR:-/tmp}" 'wgx-*.log'
+          git_performed=1
         else
-          find "${TMPDIR:-/tmp}" -maxdepth 1 -type f -name 'wgx-*.log' -mtime +1 -exec rm -f -- {} + 2>/dev/null || true
+          local tmpdir="${TMPDIR:-/tmp}"
+          if find "$tmpdir" -maxdepth 1 -type f -name 'wgx-*.log' -mtime +1 -print -quit 2>/dev/null | grep -q .; then
+            git_performed=1
+            find "$tmpdir" -maxdepth 1 -type f -name 'wgx-*.log' -mtime +1 -exec rm -f -- {} + 2>/dev/null || true
+          fi
+        fi
+
+        local current_branch
+        current_branch="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")"
+        local branch
+        while IFS= read -r branch; do
+          [ -n "$branch" ] || continue
+          case "$branch" in
+          "$current_branch" | main | master | dev)
+            continue
+            ;;
+          esac
+          git_performed=1
+          if [ $dry_run -eq 1 ]; then
+            printf 'DRY: git branch -d -- %q\n' "$branch"
+          else
+            git branch -d "$branch" >/dev/null 2>&1 || true
+          fi
+        done < <(git for-each-ref --format='%(refname:short)' --merged 2>/dev/null)
+
+        if git remote | grep -qx 'origin'; then
+          git_performed=1
+          if [ $dry_run -eq 1 ]; then
+            echo 'DRY: git remote prune origin'
+          else
+            git remote prune origin >/dev/null 2>&1 || true
+          fi
+        fi
+
+        if [ $git_performed -eq 1 ]; then
+          performed=1
+        fi
+      else
+        if [ $dry_run -eq 1 ]; then
+          info "--git übersprungen (kein Git-Repository, Dry-Run)."
+        else
+          warn "--git verlangt ein Git-Repository."
+          rc=1
+          fatal_error=1
         fi
       fi
     fi
@@ -212,45 +247,6 @@ USAGE
         printf 'DRY: find . -maxdepth 1 -type d -name %q -exec rm -rf -- {} +\n' '*.egg-info'
       else
         find . -maxdepth 1 -type d -name '*.egg-info' -exec rm -rf -- {} + 2>/dev/null || true
-      fi
-    fi
-
-    if [ $git_cleanup -eq 1 ]; then
-      if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-        local current_branch
-        current_branch="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")"
-        local branch
-        while IFS= read -r branch; do
-          [ -n "$branch" ] || continue
-          case "$branch" in
-          "$current_branch"|main|master|dev)
-            continue
-            ;;
-          esac
-          performed=1
-          if [ $dry_run -eq 1 ]; then
-            printf 'DRY: git branch -d -- %q\n' "$branch"
-          else
-            git branch -d "$branch" >/dev/null 2>&1 || true
-          fi
-        done < <(git for-each-ref --format='%(refname:short)' --merged 2>/dev/null)
-
-        if git remote | grep -qx 'origin'; then
-          performed=1
-          if [ $dry_run -eq 1 ]; then
-            echo 'DRY: git remote prune origin'
-          else
-            git remote prune origin >/dev/null 2>&1 || true
-          fi
-        fi
-      else
-        if [ $dry_run -eq 1 ]; then
-          info "--git übersprungen (kein Git-Repository, Dry-Run)."
-        else
-          warn "--git verlangt ein Git-Repository."
-          rc=1
-          fatal_error=1
-        fi
       fi
     fi
 
