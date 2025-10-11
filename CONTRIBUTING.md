@@ -7,7 +7,8 @@ Halte Änderungen klein, portabel und mit Tests abgesichert.
 
 - **Sprache:** Dokumentation und Hilfetexte auf Deutsch verfassen; Commit-Nachrichten vorzugsweise auf Englisch für Tool-Kompatibilität.
 - **Portabilität:** Termux/WSL/Codespaces nicht brechen. Keine GNU-only-Flags ohne Schutz.
-- **Sicherheit:** In allen Skripten `set -euo pipefail`; keine stillen Fehler.
+- **Sicherheit:** Skripte aktivieren `set -e`/`set -u` und versuchen `pipefail`; wenn die Shell es nicht
+  unterstützt, wird ohne weitergelaufen – aber niemals mit stillen Fehlern.
 - **Quoting:** Die [Leitlinie: Shell-Quoting](docs/Leitlinie.Quoting.de.md) ist
   verbindlich, Ausnahmen müssen dokumentiert und begründet werden.
 - **Hilfe:** Jeder Befehl muss `-h|--help` unterstützen.

@@ -19,7 +19,13 @@ run_clean_in_dir() {
   runner="$(mktemp)"
   cat <<'SCRIPT' >"$runner"
 #!/usr/bin/env bash
-set -euo pipefail
+set -e
+set -u
+if ! set -o pipefail 2>/dev/null; then
+  if [[ ${WGX_DEBUG:-0} != 0 ]]; then
+    echo "clean-runner: 'pipefail' wird nicht unterstützt; fahre ohne fort." >&2
+  fi
+fi
 CLI_ROOT="$1"
 TARGET="$2"
 shift 2

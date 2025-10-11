@@ -10,7 +10,13 @@ setup() {
   local script="$BATS_TEST_TMPDIR/check-shebang.sh"
   cat <<'SCRIPT' >"$script"
 #!/usr/bin/env bash
-set -euo pipefail
+set -e
+set -u
+if ! set -o pipefail 2>/dev/null; then
+  if [[ ${WGX_DEBUG:-0} != 0 ]]; then
+    echo "shell-ci: 'pipefail' wird nicht unterstützt; fahre ohne fort." >&2
+  fi
+fi
 
 mapfile -t files < <(git ls-files '*.sh' '*.bash' 'wgx' 'cli/wgx')
 missing=()
