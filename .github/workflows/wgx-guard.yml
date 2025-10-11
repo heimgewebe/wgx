@@ -20,7 +20,7 @@ on:
       - "uv.lock"
       - "Cargo.toml"
   workflow_dispatch:
-
+  
 jobs:
   guard:
     runs-on: ubuntu-latest
