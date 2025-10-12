@@ -17,7 +17,13 @@
 #       -q -> leise
 # ================================================================
 
-set -euo pipefail
+set -e
+set -u
+if ! set -o pipefail 2>/dev/null; then
+  if [[ ${WGX_DEBUG:-0} != 0 ]]; then
+    echo "validate: 'pipefail' wird von dieser Shell nicht unterstützt; fahre ohne fort." >&2
+  fi
+fi
 
 log() { printf '%s\n' "$*" >&2; }
 die() { log "ERR: $*"; exit 1; }

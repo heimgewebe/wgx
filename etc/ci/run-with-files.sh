@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -e
+set -u
+if ! set -o pipefail 2>/dev/null; then
+  if [[ ${WGX_DEBUG:-0} != 0 ]]; then
+    echo "run-with-files.sh: 'pipefail' wird nicht unterstützt; führe ohne fort." >&2
+  fi
+fi
 
 usage() {
   cat <<'USAGE' >&2

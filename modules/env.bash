@@ -1,5 +1,12 @@
 #!/usr/bin/env bash
-set -Eeuo pipefail
+set -e
+set -u
+set -E
+if ! set -o pipefail 2>/dev/null; then
+  if [[ ${WGX_DEBUG:-0} != 0 ]]; then
+    echo "env module: 'pipefail' wird nicht unterstützt; fahre ohne fort." >&2
+  fi
+fi
 
 export LC_ALL="${LC_ALL:-C}"
 

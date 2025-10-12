@@ -12,7 +12,14 @@
 # ─────────────────────────────────────────────────────────────────────────────
 # SAFETY / SHELL MODE
 # ─────────────────────────────────────────────────────────────────────────────
-set -Eeuo pipefail
+set -e
+set -u
+set -E
+if ! set -o pipefail 2>/dev/null; then
+  if [[ ${WGX_DEBUG:-0} != 0 ]]; then
+    echo "archiv/wgx: 'pipefail' wird nicht unterstützt; fahre ohne fort." >&2
+  fi
+fi
 IFS=$'\n\t'
 umask 077
 shopt -s extglob nullglob

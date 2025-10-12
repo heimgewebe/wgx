@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -e
+set -u
+if ! set -o pipefail 2>/dev/null; then
+  if [[ ${WGX_DEBUG:-0} != 0 ]]; then
+    echo "WGX: 'pipefail' wird von dieser Shell nicht unterstützt; fahre ohne fort." >&2
+  fi
+fi
 
 # WGX_DIR auf Root des Repos setzen – robust MIT Symlink-Auflösung
 # Warum? Wenn cli/wgx als Symlink in ~/.local/bin/wgx landet, zeigt
