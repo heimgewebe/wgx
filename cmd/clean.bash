@@ -290,7 +290,7 @@ USAGE
     rc=0
   fi
 
-  if [ $rc -eq 0 ]; then
+  if [ "$rc" -eq 0 ]; then
     if [ $dry_run -eq 1 ]; then
       info "Clean (Dry-Run) abgeschlossen."
     else
@@ -302,7 +302,7 @@ USAGE
     fi
   fi
 
-  return $rc
+  return "$rc"
 }
 
 clean_cmd() {
