@@ -26,7 +26,10 @@ if ! set -o pipefail 2>/dev/null; then
 fi
 
 log() { printf '%s\n' "$*" >&2; }
-die() { log "ERR: $*"; exit 1; }
+die() {
+  log "ERR: $*"
+  exit 1
+}
 need() { command -v "$1" >/dev/null 2>&1 || die "Fehlt Tool: $1"; }
 
 # ---------------------- JSON Helper ------------------------------
@@ -64,7 +67,7 @@ validate_manifest() {
   # Tools optional prüfen
   local have_ajv=0 have_yq=0
   command -v ajv >/dev/null 2>&1 && have_ajv=1
-  command -v yq  >/dev/null 2>&1 && have_yq=1
+  command -v yq >/dev/null 2>&1 && have_yq=1
 
   # 1) Bevorzugt: ajv mit Schema (wenn vorhanden)
   if ((have_ajv)) && [[ -f "$schema_json" ]]; then
@@ -143,21 +146,27 @@ validate::run() { # [--json] [--out <pfad>] [<repo>]
   local json=0 out_path="" repo="."
   while [[ $# -gt 0 ]]; do
     case "${1:-}" in
-      --json)
-        json=1; shift ;;
-      --out)
-        out_path="${2:-}"
-        [[ -n "$out_path" ]] || die "--out braucht Pfad"
-        shift 2 ;;
-      -h|--help)
-        cat <<'USAGE'
+    --json)
+      json=1
+      shift
+      ;;
+    --out)
+      out_path="${2:-}"
+      [[ -n "$out_path" ]] || die "--out braucht Pfad"
+      shift 2
+      ;;
+    -h | --help)
+      cat <<'USAGE'
 validate::run [--json] [--out <pfad>] [<repo_dir>]
   Validiert <repo_dir>/.wgx/profile.yml gegen Schema (ajv) oder via Minimalchecks (yq).
   Rückgabe: Exit 0 (ok), 1 (ungültig), 2 (keine Validierung möglich).
 USAGE
-        return 0 ;;
-      *)
-        repo="$1"; shift ;;
+      return 0
+      ;;
+    *)
+      repo="$1"
+      shift
+      ;;
     esac
   done
 
@@ -169,16 +178,17 @@ wgx-validate-lints() { # [-c] [-q]
   local changed_only=0 quiet=0
   while getopts ':cqh' opt; do
     case "$opt" in
-      c) changed_only=1 ;;
-      q) quiet=1 ;;
-      h)
-        cat <<'USAGE'
+    c) changed_only=1 ;;
+    q) quiet=1 ;;
+    h)
+      cat <<'USAGE'
 wgx-validate-lints [-c] [-q]
   -c   Nur geänderte Dateien prüfen (gegen HEAD)
   -q   Ruhiger Modus (nur Fehlerausgabe)
 USAGE
-        return 0 ;;
-      \?) die "Unbekannte Option: -$OPTARG (nutze -h)" ;;
+      return 0
+      ;;
+    \?) die "Unbekannte Option: -$OPTARG (nutze -h)" ;;
     esac
   done
   shift $((OPTIND - 1))
@@ -191,7 +201,7 @@ USAGE
   local -a files=()
   if ((changed_only)); then
     while IFS= read -r -d '' f; do
-      case "$f" in *.sh|*.bash) files+=("$f") ;; esac
+      case "$f" in *.sh | *.bash) files+=("$f") ;; esac
     done < <(git diff --name-only -z --diff-filter=ACMRTUXB HEAD --)
   else
     while IFS= read -r -d '' f; do files+=("$f"); done < <(git ls-files -z -- '*.sh' '*.bash')
@@ -208,7 +218,7 @@ USAGE
   fi
 
   local rc=0
-  bash -n "${files[@]}"            || rc=1
+  bash -n "${files[@]}" || rc=1
   shfmt -d -i 2 -ci -sr "${files[@]}" || rc=1
   shellcheck -S style "${files[@]}" || rc=1
 
