@@ -286,15 +286,18 @@ USAGE
 
   cd "$oldpwd" >/dev/null 2>&1 || true
 
+  local exit_rc=$rc
+
   if [ $dry_run -eq 1 ]; then
     if [ $fatal_error -eq 0 ]; then
-      rc=0
+      exit_rc=0
     fi
 
-    if [ "$rc" -eq 0 ]; then
+    if [ "$exit_rc" -eq 0 ]; then
       info "Clean (Dry-Run) abgeschlossen."
-      return 0
     fi
+
+    return "$exit_rc"
   fi
 
   if [ "$rc" -eq 0 ]; then
