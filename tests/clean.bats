@@ -3,9 +3,17 @@
 setup() {
   load 'test_helper/bats-support/load'
   load 'test_helper/bats-assert/load'
+  local test_dir repo_root
+  if [ -n "${BATS_TEST_FILENAME:-}" ]; then
+    test_dir="$(cd "$(dirname "${BATS_TEST_FILENAME}")" && pwd)"
+  else
+    test_dir="$(pwd)"
+  fi
+  repo_root="$(cd "$test_dir/.." && pwd)"
+
   export WGX_DIR="$(pwd)"
-  export PATH="$WGX_DIR/cli:$PATH"
-  export WGX_CLI_ROOT="$WGX_DIR"
+  export PATH="$repo_root/cli:$PATH"
+  export WGX_CLI_ROOT="$repo_root"
 }
 
 teardown() {
