@@ -292,10 +292,10 @@ USAGE
     if [ $fatal_error -eq 0 ]; then
       exit_rc=0
       info "Clean (Dry-Run) abgeschlossen."
-      return 0
+    else
+      warn "Clean (Dry-Run) aufgrund von Fehlern abgebrochen (RC=${exit_rc})."
     fi
 
-    warn "Clean (Dry-Run) aufgrund von Fehlern abgebrochen (RC=${exit_rc})."
     return "$exit_rc"
   fi
 
