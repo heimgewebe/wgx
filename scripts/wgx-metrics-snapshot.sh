@@ -1,32 +1,70 @@
 #!/usr/bin/env bash
+
 set -e
 set -u
+
 if ! set -o pipefail 2>/dev/null; then
   if [[ ${WGX_DEBUG:-0} != 0 ]]; then
     echo "wgx-metrics-snapshot: 'pipefail' wird nicht unterstützt; fahre ohne fort." >&2
   fi
 fi
 
-ts=$(date +%s)
-host=$(hostname)
+print_json=0
+output_path=${WGX_METRICS_OUTPUT:-metrics.json}
 
-# Temperaturen (best effort; leeres Objekt, wenn sensors fehlt)
-temps_json="{}"
-if command -v sensors >/dev/null 2>&1; then
-  if ! mapfile -t lines < <(sensors 2>/dev/null | awk -F'[:+ ]+' '/°C/{print $1":"$3}'); then
-    lines=()
-  fi
-  if ((${#lines[@]} > 0)); then
-    kv=""
-    for l in "${lines[@]}"; do
-      k=${l%%:*}
-      v=${l##*:}
-      v=${v%%.*}
-      kv="${kv}${kv:+,}\"${k}\":${v}"
-    done
-    temps_json="{${kv}}"
+usage() {
+  cat <<'EOF'
+wgx-metrics-snapshot.sh [--json] [--output PATH]
+
+Erzeugt eine metrics.json gemäß contracts-v1 (ts, host, updates, backup, drift).
+
+  --json           JSON zusätzlich zur Datei auf STDOUT ausgeben
+  --output PATH    Ziel-Datei (Standard: metrics.json oder WGX_METRICS_OUTPUT)
+EOF
+}
+
+while ((${#})) ; do
+  case "$1" in
+    --json)
+      print_json=1
+      ;;
+    --output)
+      if (($# < 2)); then
+        echo "--output erwartet einen Pfad" >&2
+        usage >&2
+        exit 1
+      fi
+      output_path=$2
+      shift
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "Unbekannte Option: $1" >&2
+      usage >&2
+      exit 1
+      ;;
+  esac
+  shift
+done
+
+if [[ -z ${output_path} ]]; then
+  echo "Der Ausgabe-Pfad darf nicht leer sein" >&2
+  exit 1
+fi
+
+output_dir=$(dirname "$output_path")
+if [[ ! -d $output_dir ]]; then
+  if ! mkdir -p "$output_dir"; then
+    echo "Konnte Ausgabe-Verzeichnis '$output_dir' nicht anlegen" >&2
+    exit 1
   fi
 fi
+
+ts=$(date +%s)
+host=$(hostname)
 
 # Updates (Platzhalter – OS-spezifisch später ersetzen)
 updates_os=${UPDATES_OS:-0}
@@ -39,26 +77,30 @@ if date -d "yesterday" +%F >/dev/null 2>&1; then
 else
   last_ok=$(date -v-1d +%F) # BSD/macOS
 fi
-age_days=1
+age_days=${BACKUP_AGE_DAYS:-1}
 
 # Template-Drift (Platzhalter)
 drift_templates=${DRIFT_TEMPLATES:-0}
 
-jq -n \
+json=$(jq -n \
   --arg host "$host" \
   --arg last_ok "$last_ok" \
   --argjson ts "$ts" \
-  --argjson temps "$temps_json" \
   --argjson uos "$updates_os" \
   --argjson upkg "$updates_pkg" \
   --argjson ufp "$updates_flatpak" \
   --argjson age "$age_days" \
   --argjson drift "$drift_templates" \
   '{
-  ts: $ts,
-  host: $host,
-  temps: $temps,
-  updates: { os: $uos, pkg: $upkg, flatpak: $ufp },
-  backup: { last_ok: $last_ok, age_days: $age },
-  drift: { templates: $drift }
-}'
+    ts: $ts,
+    host: $host,
+    updates: { os: $uos, pkg: $upkg, flatpak: $ufp },
+    backup: { last_ok: $last_ok, age_days: $age },
+    drift: { templates: $drift }
+  }')
+
+printf '%s\n' "$json" >"$output_path"
+
+if ((print_json != 0)); then
+  printf '%s\n' "$json"
+fi
