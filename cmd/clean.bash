@@ -286,7 +286,7 @@ USAGE
 
   cd "$oldpwd" >/dev/null 2>&1 || true
 
-  local exit_rc=$rc
+  local exit_rc=${rc:-0}
 
   if [ $dry_run -eq 1 ]; then
     if [ $fatal_error -eq 0 ]; then
@@ -295,9 +295,6 @@ USAGE
       # Teiloperationen einen non-zero Status gemeldet haben (z.B. ein
       # fehlendes Verzeichnis), wurden sie bereits als nicht fatal
       # eingestuft. Wir quittieren daher immer mit Erfolg.
-      if [ "$exit_rc" -ne 0 ]; then
-        exit_rc=0
-      fi
       info "Clean (Dry-Run) abgeschlossen."
       return 0
     fi
