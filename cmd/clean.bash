@@ -290,12 +290,19 @@ USAGE
 
   if [ $dry_run -eq 1 ]; then
     if [ $fatal_error -eq 0 ]; then
-      exit_rc=0
+      # Ein Dry-Run darf niemals als Fehler enden, solange keine
+      # tatsächlich kritische Situation entdeckt wurde. Selbst wenn
+      # Teiloperationen einen non-zero Status gemeldet haben (z.B. ein
+      # fehlendes Verzeichnis), wurden sie bereits als nicht fatal
+      # eingestuft. Wir quittieren daher immer mit Erfolg.
+      if [ "$exit_rc" -ne 0 ]; then
+        exit_rc=0
+      fi
       info "Clean (Dry-Run) abgeschlossen."
-    else
-      warn "Clean (Dry-Run) aufgrund von Fehlern abgebrochen (RC=${exit_rc})."
+      return 0
     fi
 
+    warn "Clean (Dry-Run) aufgrund von Fehlern abgebrochen (RC=${exit_rc})."
     return "$exit_rc"
   fi
 
