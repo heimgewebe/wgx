@@ -7,8 +7,34 @@ on:
   workflow_dispatch:
   schedule:
     - cron: "0 * * * *"
+
+env:
+  METRICS_SCHEMA_URL: https://raw.githubusercontent.com/heimgewebe/metarepo/contracts-v1/contracts/wgx/metrics.json
+  HAUSKI_POST_URL: ${{ secrets.HAUSKI_METRICS_URL }}
+
 jobs:
-  m:
-    uses: heimgewebe/metarepo/.github/workflows/wgx-metrics.yml@contracts-v1
-    with:
-      post_url: ""
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Ensure Node for ajv-cli
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Snapshot metrics
+        run: scripts/wgx-metrics-snapshot.sh --json
+
+      - name: Validate metrics contract
+        run: npx --yes ajv-cli@5 validate -s "$METRICS_SCHEMA_URL" -d metrics.json
+
+      - name: Optional POST to hausKI
+        if: ${{ env.HAUSKI_POST_URL && env.HAUSKI_POST_URL != '' }}
+        run: |
+          curl --fail --silent --show-error \
+            -H 'Content-Type: application/json' \
+            --data @metrics.json \
+            "$HAUSKI_POST_URL"
