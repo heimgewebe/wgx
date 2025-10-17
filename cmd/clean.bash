@@ -66,6 +66,7 @@ USAGE
 
   local rc=0
   local fatal_error=0
+  local dry_run_error=0
   local performed=0
   local skip_cleanup=0
 
@@ -103,11 +104,27 @@ USAGE
       fi
       skip_cleanup=1
       if [ $dry_run -eq 0 ]; then
-        rc=1
-        fatal_error=1
+        _record_error 1
       fi
     fi
   fi
+
+  _record_error() {
+    local status=${1:-1}
+    if [ "$status" -eq 0 ]; then
+      status=1
+    fi
+
+    if [ "$rc" -eq 0 ]; then
+      rc=$status
+    fi
+
+    if [ $dry_run -eq 1 ]; then
+      dry_run_error=1
+    else
+      fatal_error=1
+    fi
+  }
 
   _remove_path() {
     local target="$1"
@@ -123,16 +140,16 @@ USAGE
   _remove_paths() {
     local desc="$1"
     shift
-    local removed_any=0 path rc=0 status=0
+    local removed_any=0 path local_rc=0 status=0
 
     for path in "$@"; do
       if _remove_path "$path"; then
         removed_any=1
       else
         status=$?
-        if [ $status -ne 1 ] && [ $rc -eq 0 ]; then
-          rc=$status
-          fatal_error=1
+        if [ $status -ne 1 ] && [ $local_rc -eq 0 ]; then
+          local_rc=$status
+          _record_error "$status"
         fi
       fi
     done
@@ -141,7 +158,7 @@ USAGE
       info "$desc entfernt."
     fi
 
-    return $rc
+    return $local_rc
   }
 
   if [ $skip_cleanup -eq 1 ]; then
@@ -161,9 +178,11 @@ USAGE
         :
       else
         local status=$?
-        if [ $status -ne 0 ] && [ $rc -eq 0 ]; then
-          rc=$status
-          fatal_error=1
+        if [ $status -ne 0 ]; then
+          if [ $rc -eq 0 ]; then
+            rc=$status
+          fi
+          _record_error "$status"
         fi
       fi
     fi
@@ -217,8 +236,7 @@ USAGE
           info "--git übersprungen (kein Git-Repository, Dry-Run)."
         else
           warn "--git verlangt ein Git-Repository."
-          rc=1
-          fatal_error=1
+          _record_error 1
         fi
       fi
     fi
@@ -237,9 +255,11 @@ USAGE
         :
       else
         local status=$?
-        if [ $status -ne 0 ] && [ $rc -eq 0 ]; then
-          rc=$status
-          fatal_error=1
+        if [ $status -ne 0 ]; then
+          if [ $rc -eq 0 ]; then
+            rc=$status
+          fi
+          _record_error "$status"
         fi
       fi
 
@@ -256,18 +276,17 @@ USAGE
           if ! git clean -nfxd; then
             local clean_status=${PIPESTATUS[0]:-$?}
             rc=$clean_status
-            fatal_error=1
+            _record_error "$clean_status"
           fi
         else
           if [ $force -eq 0 ]; then
             warn "--deep ist destruktiv und benötigt --force."
-            rc=1
-            fatal_error=1
+            _record_error 1
           else
             if ! git clean -xfd; then
               local clean_status=${PIPESTATUS[0]:-$?}
               rc=$clean_status
-              fatal_error=1
+              _record_error "$clean_status"
             fi
           fi
         fi
@@ -277,8 +296,7 @@ USAGE
           info "--deep übersprungen (kein Git-Repository, Dry-Run)."
         else
           warn "--deep verlangt ein Git-Repository."
-          rc=1
-          fatal_error=1
+          _record_error 1
         fi
       fi
     fi
@@ -289,7 +307,7 @@ USAGE
   local exit_rc=${rc:-0}
 
   if [ $dry_run -eq 1 ]; then
-    if [ $fatal_error -eq 0 ]; then
+    if [ $dry_run_error -eq 0 ] && [ $fatal_error -eq 0 ]; then
       # Ein Dry-Run darf niemals als Fehler enden, solange keine
       # tatsächlich kritische Situation entdeckt wurde. Selbst wenn
       # Teiloperationen einen non-zero Status gemeldet haben (z.B. ein
