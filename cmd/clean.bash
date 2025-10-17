@@ -7,6 +7,14 @@ cmd_clean() {
     die "Clean: Basisverzeichnis '$base_dir' nicht erreichbar."
   fi
 
+  local __cmd_clean_restore_errexit=0
+  case $- in
+    *e*)
+      __cmd_clean_restore_errexit=1
+      set +e
+      ;;
+  esac
+
   local dry_run=0 safe=0 build=0 git_cleanup=0 deep=0 force=0
   while [ $# -gt 0 ]; do
     case "$1" in
@@ -30,12 +38,18 @@ Options:
   --force      Bestätigt destruktive Operationen (für --deep).
 USAGE
         cd "$oldpwd" >/dev/null 2>&1 || true
+        if [ "$__cmd_clean_restore_errexit" -eq 1 ]; then
+          set -e
+        fi
         return 0
         ;;
       --) shift; break ;;
       -*)
         warn "Unbekannte Option: $1"
         cd "$oldpwd" >/dev/null 2>&1 || true
+        if [ "$__cmd_clean_restore_errexit" -eq 1 ]; then
+          set -e
+        fi
         return 2
         ;;
       *)
@@ -247,6 +261,9 @@ USAGE
   if [ $dry_run -eq 1 ]; then
     # Dry-Run: nie als Fehler enden (Tests erwarten Exit 0)
     info "Clean (Dry-Run) abgeschlossen."
+    if [ "$__cmd_clean_restore_errexit" -eq 1 ]; then
+      set -e
+    fi
     return 0
   fi
 
@@ -256,6 +273,9 @@ USAGE
     else
       ok "Clean abgeschlossen."
     fi
+  fi
+  if [ "$__cmd_clean_restore_errexit" -eq 1 ]; then
+    set -e
   fi
   return "$rc"
 }
