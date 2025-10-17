@@ -311,23 +311,24 @@ USAGE
   local exit_dry_rc=${dry_run_rc:-0}
 
   if [ $dry_run -eq 1 ]; then
-    # Dry-Run bleibt "grün", solange keine echten Fehler markiert wurden.
-    # (dry_run_error signalisiert, dass _record_error im Dry-Run ausgelöst wurde.)
+    # Im Dry-Run werden niemals destruktive Aktionen ausgeführt. Selbst wenn
+    # hypothetische Fehler erkannt werden, soll der Befehl deshalb mit RC=0
+    # beenden. Die Informationen bleiben dennoch im Log sichtbar.
     if [ $dry_run_error -eq 0 ] && [ $fatal_error -eq 0 ]; then
       info "Clean (Dry-Run) abgeschlossen."
-      return 0
+    else
+      local rc_to_report=$exit_dry_rc
+      if [ "$rc_to_report" -eq 0 ]; then
+        rc_to_report=$exit_rc
+      fi
+      if [ "$rc_to_report" -eq 0 ]; then
+        rc_to_report=1
+      fi
+
+      warn "Clean (Dry-Run) aufgrund von Fehlern abgebrochen (RC=${rc_to_report})."
     fi
 
-    local rc_to_report=$exit_dry_rc
-    if [ "$rc_to_report" -eq 0 ]; then
-      rc_to_report=$exit_rc
-    fi
-    if [ "$rc_to_report" -eq 0 ]; then
-      rc_to_report=1
-    fi
-
-    warn "Clean (Dry-Run) aufgrund von Fehlern abgebrochen (RC=${rc_to_report})."
-    return "$rc_to_report"
+    return 0
   fi
 
   if [ "$rc" -eq 0 ]; then
