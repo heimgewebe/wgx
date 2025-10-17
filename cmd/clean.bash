@@ -158,8 +158,47 @@ USAGE
       info "$desc entfernt."
     fi
 
-    return $local_rc
+    return "${local_rc}"
   }
+
+  local require_clean_tree=0 allow_untracked_dirty=0
+  if [ $dry_run -eq 0 ]; then
+    if [ $git_cleanup -eq 1 ]; then
+      require_clean_tree=1
+    fi
+    if [ $deep -eq 1 ]; then
+      allow_untracked_dirty=1
+    fi
+  fi
+
+  if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    local worktree_dirty=0
+    if [ $require_clean_tree -eq 1 ]; then
+      if git_workdir_dirty; then
+        worktree_dirty=1
+      fi
+    elif [ $allow_untracked_dirty -eq 1 ]; then
+      if git status --porcelain=v1 --untracked-files=no 2>/dev/null | grep -q .; then
+        worktree_dirty=1
+      fi
+    fi
+
+    if [ $worktree_dirty -eq 1 ]; then
+      warn "Git-Arbeitsverzeichnis ist nicht sauber. Bitte committe oder stash deine Änderungen und versuche es erneut."
+      local status_output
+      status_output="$(git status --short 2>/dev/null || true)"
+      if [ -n "$status_output" ]; then
+        while IFS= read -r line; do
+          [ -n "$line" ] || continue
+          printf '    %s\n' "$line" >&2
+        done <<<"$status_output"
+      fi
+      skip_cleanup=1
+      if [ $dry_run -eq 0 ]; then
+        _record_error 1
+      fi
+    fi
+  fi
 
   if [ $skip_cleanup -eq 1 ]; then
     if [ $dry_run -eq 1 ]; then
@@ -315,7 +354,7 @@ USAGE
     fi
 
     warn "Clean (Dry-Run) aufgrund von Fehlern abgebrochen (RC=${exit_rc})."
-    return "$exit_rc"
+    return "${exit_rc}"
   fi
 
   if [ "$rc" -eq 0 ]; then
@@ -326,7 +365,7 @@ USAGE
     fi
   fi
 
-  return "$rc"
+  return "${rc}"
 }
 
 clean_cmd() {
