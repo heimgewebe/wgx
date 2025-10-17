@@ -307,18 +307,22 @@ USAGE
   local exit_rc=${rc:-0}
 
   if [ $dry_run -eq 1 ]; then
-    if [ $dry_run_error -eq 0 ] && [ $fatal_error -eq 0 ]; then
-      # Ein Dry-Run darf niemals als Fehler enden, solange keine
-      # tatsächlich kritische Situation entdeckt wurde. Selbst wenn
-      # Teiloperationen einen non-zero Status gemeldet haben (z.B. ein
-      # fehlendes Verzeichnis), wurden sie bereits als nicht fatal
-      # eingestuft. Wir quittieren daher immer mit Erfolg.
-      info "Clean (Dry-Run) abgeschlossen."
+    # Dry-Runs dienen nur der Simulation. Selbst wenn Teilschritte
+    # Probleme melden, darf der Gesamtbefehl nicht fehlschlagen – das
+    # tatsächliche Clean soll anhand der Hinweise vorbereitet werden.
+    if [ $fatal_error -ne 0 ]; then
+      warn "Clean (Dry-Run) aufgrund unerwarteter Fehler abgebrochen (RC=${exit_rc})."
+      return "${exit_rc}"
+    fi
+
+    if [ $dry_run_error -ne 0 ]; then
+      warn "Clean (Dry-Run) hat Probleme erkannt (würde mit RC=${exit_rc} enden)."
+      info "Dry-Run bleibt dennoch erfolgreich, damit ein reales Clean vorbereitet werden kann."
       return 0
     fi
 
-    warn "Clean (Dry-Run) aufgrund von Fehlern abgebrochen (RC=${exit_rc})."
-    return "${exit_rc}"
+    info "Clean (Dry-Run) abgeschlossen."
+    return 0
   fi
 
   if [ "$rc" -eq 0 ]; then
