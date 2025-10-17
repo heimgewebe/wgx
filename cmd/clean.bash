@@ -70,6 +70,23 @@ USAGE
   local performed=0
   local skip_cleanup=0
 
+  _record_error() {
+    local status=${1:-1}
+    if [ "$status" -eq 0 ]; then
+      status=1
+    fi
+
+    if [ "$rc" -eq 0 ]; then
+      rc=$status
+    fi
+
+    if [ $dry_run -eq 1 ]; then
+      dry_run_error=1
+    else
+      fatal_error=1
+    fi
+  }
+
   local require_clean_tree=0 allow_untracked_dirty=0
   if [ $dry_run -eq 0 ]; then
     if [ $git_cleanup -eq 1 ]; then
@@ -108,23 +125,6 @@ USAGE
       fi
     fi
   fi
-
-  _record_error() {
-    local status=${1:-1}
-    if [ "$status" -eq 0 ]; then
-      status=1
-    fi
-
-    if [ "$rc" -eq 0 ]; then
-      rc=$status
-    fi
-
-    if [ $dry_run -eq 1 ]; then
-      dry_run_error=1
-    else
-      fatal_error=1
-    fi
-  }
 
   _remove_path() {
     local target="$1"
@@ -274,7 +274,7 @@ USAGE
       if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
         if [ $dry_run -eq 1 ]; then
           if ! git clean -nfxd; then
-            local clean_status=${PIPESTATUS[0]:-$?}
+            local clean_status=$?
             rc=$clean_status
             _record_error "$clean_status"
           fi
@@ -284,7 +284,7 @@ USAGE
             _record_error 1
           else
             if ! git clean -xfd; then
-              local clean_status=${PIPESTATUS[0]:-$?}
+              local clean_status=$?
               rc=$clean_status
               _record_error "$clean_status"
             fi
@@ -307,12 +307,9 @@ USAGE
   local exit_rc=${rc:-0}
 
   if [ $dry_run -eq 1 ]; then
+    # Dry-Run bleibt "grün", solange keine echten Fehler markiert wurden.
+    # (dry_run_error signalisiert, dass _record_error im Dry-Run ausgelöst wurde.)
     if [ $dry_run_error -eq 0 ] && [ $fatal_error -eq 0 ]; then
-      # Ein Dry-Run darf niemals als Fehler enden, solange keine
-      # tatsächlich kritische Situation entdeckt wurde. Selbst wenn
-      # Teiloperationen einen non-zero Status gemeldet haben (z.B. ein
-      # fehlendes Verzeichnis), wurden sie bereits als nicht fatal
-      # eingestuft. Wir quittieren daher immer mit Erfolg.
       info "Clean (Dry-Run) abgeschlossen."
       return 0
     fi
