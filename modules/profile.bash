@@ -658,6 +658,7 @@ profile::tasks_json() {
   local sep=""
   printf '{"tasks":['
   local key name safe desc group
+  local -A groups=()
   for name in $(profile::_task_keys); do
     key="$name"
     safe="$(profile::_task_safe "$key")"
@@ -670,15 +671,12 @@ profile::tasks_json() {
       "$sep" "$(json_escape "$name")" "$(json_escape "$desc")" "$(json_escape "$group")" \
       "$([[ $safe == 1 ]] && echo true || echo false)"
     sep=','
+    if ((include_groups)) && [[ -n $group ]]; then
+      groups["$group"]=1
+    fi
   done
   printf ']'
   if ((include_groups)); then
-    local -A groups=()
-    for name in $(profile::_task_keys); do
-      group="$(profile::_task_group "$name")"
-      [[ -n $group ]] || continue
-      groups["$group"]=1
-    done
     printf ',"groups":['
     sep=""
     local g
