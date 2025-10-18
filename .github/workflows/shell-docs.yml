@@ -6,6 +6,9 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   shell-and-docs:
     runs-on: ubuntu-latest
