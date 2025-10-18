@@ -9,23 +9,23 @@ cmd_clean() {
 
   local __cmd_clean_restore_errexit=0
   case $- in
-    *e*)
-      __cmd_clean_restore_errexit=1
-      set +e
-      ;;
+  *e*)
+    __cmd_clean_restore_errexit=1
+    set +e
+    ;;
   esac
 
   local dry_run=0 safe=0 build=0 git_cleanup=0 deep=0 force=0
   while [ $# -gt 0 ]; do
     case "$1" in
-      --safe)  safe=1 ;;
-      --build) build=1 ;;
-      --git)   git_cleanup=1 ;;
-      --deep)  deep=1 ;;
-      --dry-run|-n) dry_run=1 ;;
-      --force|-f)   force=1 ;;
-      --help|-h)
-        cat <<'USAGE'
+    --safe) safe=1 ;;
+    --build) build=1 ;;
+    --git) git_cleanup=1 ;;
+    --deep) deep=1 ;;
+    --dry-run | -n) dry_run=1 ;;
+    --force | -f) force=1 ;;
+    --help | -h)
+      cat <<'USAGE'
 Usage:
   wgx clean [--safe] [--build] [--git] [--deep] [--dry-run] [--force]
 
@@ -37,24 +37,27 @@ Options:
   --dry-run    Zeigt nur an, was passieren würde.
   --force      Bestätigt destruktive Operationen (für --deep).
 USAGE
-        cd "$oldpwd" >/dev/null 2>&1 || true
-        if [ "$__cmd_clean_restore_errexit" -eq 1 ]; then
-          set -e
-        fi
-        return 0
-        ;;
-      --) shift; break ;;
-      -*)
-        warn "Unbekannte Option: $1"
-        cd "$oldpwd" >/dev/null 2>&1 || true
-        if [ "$__cmd_clean_restore_errexit" -eq 1 ]; then
-          set -e
-        fi
-        return 2
-        ;;
-      *)
-        warn "Ignoriere unerwartetes Argument: $1"
-        ;;
+      cd "$oldpwd" >/dev/null 2>&1 || true
+      if [ "$__cmd_clean_restore_errexit" -eq 1 ]; then
+        set -e
+      fi
+      return 0
+      ;;
+    --)
+      shift
+      break
+      ;;
+    -*)
+      warn "Unbekannte Option: $1"
+      cd "$oldpwd" >/dev/null 2>&1 || true
+      if [ "$__cmd_clean_restore_errexit" -eq 1 ]; then
+        set -e
+      fi
+      return 2
+      ;;
+    *)
+      warn "Ignoriere unerwartetes Argument: $1"
+      ;;
     esac
     shift || true
   done
@@ -66,8 +69,6 @@ USAGE
 
   local rc=0
   local performed=0
-  local fatal_error=0
-  local dry_run_error=0
   local skip_cleanup=0
 
   # Fehler protokollieren (vor erster Nutzung definiert)
@@ -75,9 +76,10 @@ USAGE
     local status=${1:-1}
     if [ "$status" -eq 0 ]; then status=1; fi
     if [ $dry_run -eq 1 ]; then
-      dry_run_error=1
+      # Im Dry-Run wird nur der finale RC-Wert beeinflusst,
+      # aber kein harter Fehler ausgelöst.
+      :
     else
-      fatal_error=1
       if [ "$rc" -eq 0 ]; then rc=$status; fi
     fi
   }
@@ -129,7 +131,8 @@ USAGE
   }
 
   _remove_paths() {
-    local desc="$1"; shift
+    local desc="$1"
+    shift
     local removed_any=0 local_rc=0 status=0 path
     for path in "$@"; do
       if _remove_path "$path"; then
@@ -154,8 +157,8 @@ USAGE
     # --safe: ungefährliche Caches
     if [ $safe -eq 1 ]; then
       if _remove_paths "Temporäre Caches" \
-           .pytest_cache .ruff_cache .mypy_cache .coverage coverage \
-           .hypothesis .cache; then :; else
+        .pytest_cache .ruff_cache .mypy_cache .coverage coverage \
+        .hypothesis .cache; then :; else
         local status=$?
         if [ $status -ne 0 ]; then
           [ $rc -eq 0 ] && rc=$status
@@ -180,7 +183,7 @@ USAGE
         local branch
         while IFS= read -r branch; do
           [ -n "$branch" ] || continue
-          case "$branch" in "$current_branch"|main|master|dev) continue ;; esac
+          case "$branch" in "$current_branch" | main | master | dev) continue ;; esac
           git_performed=1
           if [ $dry_run -eq 1 ]; then
             printf 'DRY: git branch -d -- %q\n' "$branch"
@@ -212,7 +215,7 @@ USAGE
     # --build: Build-/Tool-Artefakte
     if [ $build -eq 1 ]; then
       if _remove_paths "Build-Artefakte" \
-           build dist target .tox .nox .venv .uv .pdm-build node_modules/.cache; then :; else
+        build dist target .tox .nox .venv .uv .pdm-build node_modules/.cache; then :; else
         local status=$?
         if [ $status -ne 0 ]; then
           [ $rc -eq 0 ] && rc=$status
@@ -231,7 +234,7 @@ USAGE
     if [ $deep -eq 1 ]; then
       if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
         if [ $dry_run -eq 1 ]; then
-          git clean -nfxd || true   # Simulation, Dry-Run bleibt grün
+          git clean -nfxd || true # Simulation, Dry-Run bleibt grün
         else
           if [ $force -eq 0 ]; then
             warn "--deep ist destruktiv und benötigt --force."
