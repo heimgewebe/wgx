@@ -1,4 +1,4 @@
-name: metrics (contracts-v1)
+name: "📊 Metrics Snapshot & Validation"
 permissions:
   contents: read
   actions: read
@@ -38,3 +38,8 @@ jobs:
             -H 'Content-Type: application/json' \
             --data @metrics.json \
             "$HAUSKI_POST_URL"
+      - name: Upload metrics.json artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: metrics-snapshot
+          path: metrics.json
