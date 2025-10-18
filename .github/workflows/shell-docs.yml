@@ -1,4 +1,6 @@
 name: shell-docs
+permissions:
+  contents: read
 on:
   push:
     branches: [ main ]
