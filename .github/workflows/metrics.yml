@@ -1,7 +1,7 @@
 name: "📊 Metrics Snapshot & Validation"
 permissions:
   contents: read
-  actions: read
+  actions: write
   checks: write
 on:
   workflow_dispatch:
