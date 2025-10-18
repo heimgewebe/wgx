@@ -1,6 +1,7 @@
 name: shell-docs
 permissions:
   contents: read
+  actions: write
 on:
   push:
     branches: [ main ]
@@ -10,6 +11,7 @@ on:
 
 permissions:
   contents: read
+  actions: write
 
 jobs:
   shell-and-docs:
