@@ -10,6 +10,7 @@ WGX_REPO_KIND=""
 WGX_DIR_WEB=""
 WGX_DIR_API=""
 WGX_DIR_DATA=""
+WGX_PROFILE_LOADED=""
 
 # shellcheck disable=SC2034
 WGX_AVAILABLE_CAPS=(task-array status-dirs tasks-json validate env-defaults env-overrides workflows)
@@ -48,9 +49,11 @@ profile::_reset() {
   WGX_TASK_GROUP=()
   WGX_TASK_SAFE=()
   WGX_WORKFLOW_TASKS=()
+  WGX_PROFILE_LOADED=""
 }
 
 profile::_detect_file() {
+  PROFILE_FILE=""
   local base
   for base in ".wgx/profile.yml" ".wgx/profile.yaml" ".wgx/profile.json"; do
     if [[ -f $base ]]; then
@@ -63,6 +66,22 @@ profile::_detect_file() {
 
 profile::_have_cmd() {
   command -v "$1" >/dev/null 2>&1
+}
+
+profile::_abspath() {
+  local p="$1"
+  if profile::_have_cmd python3; then
+    python3 - <<'PY' "$p" 2>/dev/null || true
+import os
+import sys
+
+print(os.path.abspath(sys.argv[1]))
+PY
+  elif command -v readlink >/dev/null 2>&1; then
+    readlink -f -- "$p" 2>/dev/null || printf '%s\n' "$p"
+  else
+    printf '%s\n' "$p"
+  fi
 }
 
 profile::_normalize_task_name() {
@@ -549,7 +568,9 @@ profile::load() {
     profile::_detect_file || return 1
     file="$PROFILE_FILE"
   fi
-  if [[ ${WGX_PROFILE_LOADED:-} == "$file" ]]; then
+  local _norm_file
+  _norm_file="$(profile::_abspath "$file")"
+  if [[ ${WGX_PROFILE_LOADED:-} == "$_norm_file" ]]; then
     return 0
   fi
   profile::_reset
@@ -568,12 +589,14 @@ profile::load() {
     profile::_flat_yaml_parse "$file"
   fi
   profile::_collect_env_keys
-  WGX_PROFILE_LOADED="$file"
+  WGX_PROFILE_LOADED="$_norm_file"
   return 0
 }
 
 profile::ensure_loaded() {
   if ! profile::has_manifest; then
+    profile::_reset
+    PROFILE_FILE=""
     return 1
   fi
   profile::load "$PROFILE_FILE"
