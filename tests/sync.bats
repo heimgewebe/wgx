@@ -11,7 +11,7 @@ setup() {
   echo "x" > x.txt
   git add x.txt
   git commit -m "init" >/dev/null
-  git checkout -b main >/dev/null
+  # Already on main after git init --initial-branch=main
   mkdir -p ../remote && (cd ../remote && git init --bare >/dev/null)
   git remote add origin ../remote
   git push -u origin main >/dev/null

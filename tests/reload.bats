@@ -9,8 +9,8 @@ setup() {
   echo "x" > x.txt
   git add x.txt
   git commit -m "init" >/dev/null
+  # Already on main after git init --initial-branch=main
   # Fake-Remote
-  git checkout -b main >/dev/null
   git tag baseline >/dev/null
   mkdir -p ../remote && (cd ../remote && git init --bare >/dev/null)
   git remote add origin ../remote
