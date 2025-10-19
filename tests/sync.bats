@@ -1,5 +1,7 @@
 #!/usr/bin/env bats
 
+load test_helper
+
 setup() {
   rm -rf tmprepo
   git init tmprepo >/dev/null
@@ -13,11 +15,6 @@ setup() {
   mkdir -p ../remote && (cd ../remote && git init --bare >/dev/null)
   git remote add origin ../remote
   git push -u origin main >/dev/null
-
-  local project_root
-  project_root="$(cd "${BATS_TEST_DIRNAME}/.." && pwd)"
-  export WGX_DIR="$project_root"
-  export PATH="$WGX_DIR/cli:$PATH"
 }
 
 teardown() {

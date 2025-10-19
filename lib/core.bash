@@ -2,18 +2,6 @@
 
 # ---------- Logging ----------
 
-_err() {
-  printf '❌ %s\n' "$*" >&2
-}
-
-_ok() {
-  printf '✅ %s\n' "$*" >&2
-}
-
-_warn() {
-  printf '⚠️  %s\n' "$*" >&2
-}
-
 if ! type -t info >/dev/null 2>&1; then
   info() {
     printf '• %s\n' "$*"
@@ -22,34 +10,22 @@ fi
 
 if ! type -t ok >/dev/null 2>&1; then
   ok() {
-    _ok "$@"
+    printf '✅ %s\n' "$*" >&2
   }
 fi
 
 if ! type -t warn >/dev/null 2>&1; then
   warn() {
-    _warn "$@"
+    printf '⚠️  %s\n' "$*" >&2
   }
 fi
 
 if ! type -t die >/dev/null 2>&1; then
   die() {
-    _err "$*"
+    printf '❌ %s\n' "$*" >&2
     exit 1
   }
 fi
-
-log_info() {
-  printf '[INFO] %s\n' "$*" >&2
-}
-
-log_warn() {
-  printf '[WARN] %s\n' "$*" >&2
-}
-
-log_error() {
-  printf '[ERROR] %s\n' "$*" >&2
-}
 
 # ---------- Env / Defaults ----------
 : "${WGX_VERSION:=2.0.3}"
@@ -73,9 +49,12 @@ _load_modules() {
 # ---------- Git helpers ----------
 git_current_branch() { git rev-parse --abbrev-ref HEAD 2>/dev/null || echo ""; }
 git_is_repo_root() {
+  # We intentionally use `pwd` instead of `pwd -P` to avoid resolving
+  # symlinks, which simplifies behavior and aligns with the project's focus on
+  # straightforward, common use cases.
   local top
   top=$(git rev-parse --show-toplevel 2>/dev/null) || return 1
-  [ "$(pwd -P)" = "$top" ]
+  [ "$(pwd)" = "$top" ]
 }
 git_has_remote() { git remote -v | grep -q '^origin' 2>/dev/null; }
 
@@ -88,13 +67,28 @@ git_workdir_status_short() {
   git status --short 2>/dev/null || true
 }
 
+# Helper: Finde den ersten existierenden Remote-Branch aus einer Kandidatenliste
+_git_resolve_branch() {
+  local remote="$1"
+  shift
+  local candidate
+  for candidate in "$@"; do
+    [ -z "$candidate" ] && continue
+    if git rev-parse --verify "${remote}/${candidate}" >/dev/null 2>&1; then
+      printf '%s' "$candidate"
+      return 0
+    fi
+  done
+  return 1
+}
+
 git_hard_reload() {
   if ! git remote -v | grep -q . 2>/dev/null; then
     die "Kein Remote-Repository konfiguriert."
   fi
 
-  local dry_run=0 base="" explicit_branch=0
-
+  # 1. Argumente parsen
+  local dry_run=0 base=""
   while [ $# -gt 0 ]; do
     case "$1" in
     --dry-run | -n)
@@ -110,86 +104,59 @@ git_hard_reload() {
     *)
       if [ -z "$base" ]; then
         base="$1"
-        explicit_branch=1
       else
-        die "git_hard_reload: unerwartetes Argument '$1'"
+        die "git_hard_reload: zu viele Argumente"
       fi
       ;;
     esac
     shift
   done
 
-  local remote="origin" target_branch="${base}"
-  if [ -z "$target_branch" ]; then
+  # 2. Dry-run Prefix setzen und Fetch ausführen
+  local prefix=""
+  ((dry_run)) && prefix="[DRY-RUN] "
+
+  info "${prefix}Fetch von allen Remotes (inkl. prune)…"
+  ((dry_run)) || git fetch --all --prune || die "git fetch fehlgeschlagen"
+
+  # 3. Ziel-Branch bestimmen
+  local remote target_branch
+  if [ -n "$base" ]; then
+    remote="origin"
+    target_branch="$(_git_resolve_branch "$remote" "$base")"
+    if [ -z "$target_branch" ]; then
+      die "git_hard_reload: Branch '${base}' nicht auf '${remote}' gefunden."
+    fi
+  else
     local upstream
     upstream="$(git rev-parse --abbrev-ref --symbolic-full-name '@{u}' 2>/dev/null || true)"
     if [ -n "$upstream" ]; then
       remote="${upstream%%/*}"
       target_branch="${upstream#*/}"
+    else
+      remote="origin"
+      target_branch="$(_git_resolve_branch "$remote" "$WGX_BASE" "main" "master")"
     fi
   fi
 
   if [ -z "$target_branch" ]; then
-    target_branch="$WGX_BASE"
+    die "git_hard_reload: Konnte keinen gültigen Ziel-Branch finden."
   fi
 
-  if [ -z "$target_branch" ]; then
-    target_branch="main"
-  fi
+  # 4. Reset und Clean ausführen
+  info "${prefix}Kompletter Reset auf ${remote}/${target_branch}… (alle lokalen Änderungen gehen verloren)"
+  ((dry_run)) || git reset --hard "${remote}/${target_branch}" || die "git reset --hard fehlgeschlagen"
 
-  local prefix=""
-  if ((dry_run)); then
-    prefix="[DRY-RUN] "
-  fi
+  info "${prefix}Untracked/ignored aufräumen (clean -fdx)…"
+  ((dry_run)) || git clean -fdx || die "git clean fehlgeschlagen"
 
-  log_info "${prefix}Fetch von allen Remotes (inkl. prune)…"
-  if ((dry_run)); then
-    :
-  else
-    git fetch --all --prune || die "git fetch fehlgeschlagen"
-  fi
-
-  if ! git rev-parse --verify "${remote}/${target_branch}" >/dev/null 2>&1; then
-    if ((explicit_branch)); then
-      die "git_hard_reload: ${remote}/${target_branch} nicht gefunden."
-    fi
-
-    remote="origin"
-    local candidate=""
-    for candidate in "$target_branch" "$WGX_BASE" main master; do
-      [ -z "$candidate" ] && continue
-      if git rev-parse --verify "origin/${candidate}" >/dev/null 2>&1; then
-        target_branch="$candidate"
-        break
-      fi
-    done
-  fi
-
-  if [ -z "$target_branch" ] || ! git rev-parse --verify "${remote}/${target_branch}" >/dev/null 2>&1; then
-    die "git_hard_reload: Konnte Ziel-Branch nicht bestimmen."
-  fi
-
-  log_info "${prefix}Kompletter Reset auf ${remote}/${target_branch}… (alle lokalen Änderungen gehen verloren)"
-  if ((dry_run)); then
-    :
-  else
-    git reset --hard "${remote}/${target_branch}" || die "git reset --hard fehlgeschlagen"
-  fi
-
-  log_info "${prefix}Untracked/ignored aufräumen (clean -fdx)…"
-  if ((dry_run)); then
-    :
-  else
-    git clean -fdx || die "git clean fehlgeschlagen"
-  fi
-
-  log_info "${prefix}Reload fertig (${remote}/${target_branch})."
+  ok "${prefix}Reload fertig (${remote}/${target_branch})."
 }
 
 # Optional: Safety Snapshot (Stash), nicht default-aktiv
 snapshot_make() {
   git stash push -u -m "wgx snapshot $(date -u +%FT%TZ)" >/dev/null 2>&1 || true
-  log_info "Snapshot (Stash) erstellt."
+  info "Snapshot (Stash) erstellt."
 }
 
 # ---------- Router ----------
@@ -250,13 +217,6 @@ wgx_main() {
   shift || true
 
   case "$sub" in
-  validate)
-    _load_modules
-    # shellcheck source=/dev/null
-    source "${WGX_DIR}/cmd/validate.bash"
-    validate::run "$@"
-    return
-    ;;
   help | -h | --help)
     wgx_usage
     return 0
