@@ -32,9 +32,12 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Ensure bash is available
-        shell: bash {0}
+        shell: sh
         run: |
-          set -euo pipefail
+          set -eu
+          if (set -o pipefail) 2>/dev/null; then
+            set -o pipefail
+          fi
           if ! command -v bash >/dev/null 2>&1; then
             echo "::warning::bash not available – attempting to install it"
             if [ -f /etc/os-release ]; then
