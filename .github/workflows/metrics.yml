@@ -23,7 +23,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
+          # Kein npm-Cache am Repo-Root, da es hier keine package-lock.json gibt.
+          # Der Cache würde ohne Lockfile fehlschlagen. Daher bewusst deaktiviert.
 
       - name: Snapshot metrics
         run: scripts/wgx-metrics-snapshot.sh --json
