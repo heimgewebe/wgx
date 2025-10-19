@@ -2,7 +2,7 @@
 
 setup() {
   rm -rf tmprepo
-  git init tmprepo >/dev/null
+  git init --initial-branch=main tmprepo >/dev/null
   cd tmprepo || exit 1
   git config user.email "test@example.com"
   git config user.name "Test"
