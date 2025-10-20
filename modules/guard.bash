@@ -27,6 +27,31 @@ guard_run() {
     case "$1" in
     --lint) run_lint=1 ;;
     --test) run_test=1 ;;
+    -h | --help)
+      cat <<'USAGE'
+Usage:
+  wgx guard [--lint] [--test]
+
+Description:
+  Führt eine Reihe von Sicherheits- und Qualitätsprüfungen für das Repository aus.
+  Dies ist ein Sicherheitsnetz, das vor dem Erstellen eines Pull Requests ausgeführt wird.
+  Standardmäßig werden sowohl Linting als auch Tests ausgeführt.
+
+Checks:
+  - Sucht nach potentiellen Secrets im Staging-Bereich.
+  - Sucht nach verbleibenden Konfliktmarkern im Code.
+  - Prüft auf übergroße Dateien (>= 1MB).
+  - Verifiziert das Vorhandensein von wichtigen Repository-Dateien (z.B. uv.lock).
+  - Führt 'wgx lint' aus (falls --lint angegeben oder Standard).
+  - Führt 'wgx test' aus (falls --test angegeben oder Standard).
+
+Options:
+  --lint        Nur die Linting-Prüfungen ausführen.
+  --test        Nur die Test-Prüfungen ausführen.
+  -h, --help    Diese Hilfe anzeigen.
+USAGE
+      return 0
+      ;;
     *)
       echo "Unknown option: $1" >&2
       return 1

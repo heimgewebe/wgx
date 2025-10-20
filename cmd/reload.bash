@@ -14,6 +14,26 @@ cmd_reload() {
     --dry-run | -n)
       dry_run=1
       ;;
+    -h | --help)
+      cat <<'USAGE'
+Usage:
+  wgx reload [--snapshot] [--force] [--dry-run] [<base_branch>]
+
+Description:
+  Setzt den Workspace hart auf den Stand des remote 'origin'-Branches zurück.
+  Standardmäßig wird der in der Konfiguration festgelegte Basis-Branch ($WGX_BASE)
+  oder 'main' verwendet.
+  Dies ist ein destruktiver Befehl, der lokale Änderungen verwirft.
+
+Options:
+  --snapshot    Erstellt vor dem Reset einen Git-Stash als Sicherung.
+  --force, -f   Erzwingt den Reset, auch wenn das Arbeitsverzeichnis unsauber ist.
+  --dry-run, -n Zeigt nur die auszuführenden Befehle an, ohne Änderungen vorzunehmen.
+  <base_branch> Der Branch, auf den zurückgesetzt werden soll (Standard: $WGX_BASE oder 'main').
+  -h, --help    Diese Hilfe anzeigen.
+USAGE
+      return 0
+      ;;
     --)
       shift
       break

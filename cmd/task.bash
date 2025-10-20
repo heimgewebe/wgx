@@ -1,8 +1,23 @@
 #!/usr/bin/env bash
 
 cmd_task() {
-  if (($# == 0)); then
-    die "Usage: wgx task <name> [--] [args...]"
+  if [[ "${1:-}" == "-h" || "${1:-}" == "--help" || $# -eq 0 ]]; then
+    cat <<'USAGE'
+Usage:
+  wgx task <name> [--] [args...]
+
+Description:
+  Führt einen Task aus, der in der '.wgx/profile.yml'-Datei des Repositorys
+  definiert ist. Alle Argumente nach dem Task-Namen (und einem optionalen '--')
+  werden an den Task weitergegeben.
+
+Example:
+  wgx task test -- --verbose
+
+Options:
+  -h, --help    Diese Hilfe anzeigen.
+USAGE
+    return 0
   fi
 
   if ! profile::ensure_loaded; then
