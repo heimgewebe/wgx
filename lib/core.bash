@@ -2,27 +2,57 @@
 
 # ---------- Logging ----------
 
+: "${WGX_NO_EMOJI:=0}"
+: "${WGX_QUIET:=0}"
+: "${WGX_INFO_STDOUT:=0}"
+
+if [[ "$WGX_NO_EMOJI" != 0 ]]; then
+  _OK="[OK]"
+  _WARN="[WARN]"
+  _ERR="[ERR]"
+  _DOT="*"
+else
+  _OK="✅"
+  _WARN="⚠️"
+  _ERR="❌"
+  _DOT="•"
+fi
+
+if ! type -t debug >/dev/null 2>&1; then
+  debug() {
+    [[ ${WGX_DEBUG:-0} != 0 ]] || return
+    [[ ${WGX_QUIET:-0} != 0 ]] && return
+    printf 'DEBUG %s\n' "$*" >&2
+  }
+fi
+
 if ! type -t info >/dev/null 2>&1; then
   info() {
-    printf '• %s\n' "$*"
+    [[ ${WGX_QUIET:-0} != 0 ]] && return
+    if [[ ${WGX_INFO_STDOUT:-0} != 0 ]]; then
+      printf '%s %s\n' "$_DOT" "$*"
+    else
+      printf '%s %s\n' "$_DOT" "$*" >&2
+    fi
   }
 fi
 
 if ! type -t ok >/dev/null 2>&1; then
   ok() {
-    printf '✅ %s\n' "$*" >&2
+    [[ ${WGX_QUIET:-0} != 0 ]] && return
+    printf '%s %s\n' "$_OK" "$*" >&2
   }
 fi
 
 if ! type -t warn >/dev/null 2>&1; then
   warn() {
-    printf '⚠️  %s\n' "$*" >&2
+    printf '%s %s\n' "$_WARN" "$*" >&2
   }
 fi
 
 if ! type -t die >/dev/null 2>&1; then
   die() {
-    printf '❌ %s\n' "$*" >&2
+    printf '%s %s\n' "$_ERR" "$*" >&2
     exit 1
   }
 fi
