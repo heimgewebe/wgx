@@ -4,7 +4,7 @@
 
 : "${WGX_NO_EMOJI:=0}"
 : "${WGX_QUIET:=0}"
-: "${WGX_INFO_STDOUT:=0}"
+: "${WGX_INFO_STDERR:=0}"
 
 if [[ "$WGX_NO_EMOJI" != 0 ]]; then
   _OK="[OK]"
@@ -28,11 +28,12 @@ fi
 
 if ! type -t info >/dev/null 2>&1; then
   info() {
+    # Default: STDOUT (wie bisher). Für CI/quiet-Logs optional auf STDERR umleitbar.
     [[ ${WGX_QUIET:-0} != 0 ]] && return
-    if [[ ${WGX_INFO_STDOUT:-0} != 0 ]]; then
-      printf '%s %s\n' "$_DOT" "$*"
-    else
+    if [[ ${WGX_INFO_STDERR:-0} != 0 ]]; then
       printf '%s %s\n' "$_DOT" "$*" >&2
+    else
+      printf '%s %s\n' "$_DOT" "$*"
     fi
   }
 fi
