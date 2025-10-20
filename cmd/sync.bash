@@ -51,12 +51,21 @@ cmd_sync() {
     esac
   done
 
+  local base_spec="${base_override:-${positional[0]:-$WGX_BASE}}"
+  [ -z "$base_spec" ] && base_spec="main"
+
+  local base_remote base_branch
+  read -r base_remote base_branch < <(_git_parse_remote_branch_spec "$base_spec" "origin")
+  if [ -z "$base_branch" ]; then
+    die "sync: Ungültiger Basis-Branch '${base_spec}'."
+  fi
+  local base_display="${base_remote}/${base_branch}"
+
   if [ -n "$base_override" ] && [ "${#positional[@]}" -gt 0 ]; then
-    warn "--base überschreibt den angegebenen Branch '${positional[0]}'."
+    warn "--base überschreibt den angegebenen Branch '${positional[0]}'. Nutze ${base_display} als Basis."
   fi
 
-  local base="${base_override:-${positional[0]:-$WGX_BASE}}"
-  [ -z "$base" ] && base="main"
+  debug "cmd_sync: force=${force} dry_run=${dry_run} base_spec='${base_spec}' -> remote='${base_remote}' branch='${base_branch}'"
 
   local stash_ref=""
   local stash_required=0
@@ -64,6 +73,7 @@ cmd_sync() {
   restore_stash() {
     [ -z "$stash_ref" ] && return
 
+    debug "restore_stash: attempting apply --index für ${stash_ref}"
     if git -c merge.renames=true -c rerere.enabled=true stash apply --index "$stash_ref" >/dev/null 2>&1; then
       debug "stash apply --index für ${stash_ref} erfolgreich"
       git stash drop "$stash_ref" >/dev/null 2>&1 || true
@@ -72,6 +82,7 @@ cmd_sync() {
       return
     fi
 
+    debug "restore_stash: attempting apply ohne --index für ${stash_ref}"
     if git -c merge.renames=true -c rerere.enabled=true stash apply "$stash_ref" >/dev/null 2>&1; then
       git add -A >/dev/null 2>&1 || true
       git stash drop "$stash_ref" >/dev/null 2>&1 || true
@@ -116,22 +127,29 @@ cmd_sync() {
   fi
 
   if ((dry_run)); then
+    info "[DRY-RUN] Geplante Schritte:"
+    if ((stash_required)); then
+      info "[DRY-RUN] git stash push --include-untracked --message wgx-sync-autostash"
+      info "[DRY-RUN] (anschließend Wiederherstellung des Stash nach erfolgreichem Sync)"
+    fi
     info "[DRY-RUN] git pull --rebase --autostash"
-    info "[DRY-RUN] Fallback: git fetch origin ${base} && git rebase origin/${base}"
+    info "[DRY-RUN] Fallback: git fetch ${base_remote} ${base_branch} && git rebase ${base_display}"
     return 0
   fi
 
-  git_has_remote || die "Kein origin-Remote gefunden."
+  git_has_remote "$base_remote" || die "Kein ${base_remote}-Remote gefunden."
 
   if ! git rev-parse --abbrev-ref --symbolic-full-name "@{u}" >/dev/null 2>&1; then
-    die "Kein Upstream für ${branch} konfiguriert. Setze ihn mit: git branch --set-upstream-to=origin/${base} ${branch}"
+    die "Kein Upstream für ${branch} konfiguriert. Setze ihn mit: git branch --set-upstream-to=${base_display} ${branch}"
   fi
 
   if ((stash_required)); then
+    debug "cmd_sync: creating autostash vor Pull"
     if ! git stash push --include-untracked --message "wgx-sync-autostash" >/dev/null; then
       die "Konnte lokale Änderungen nicht automatisch stashen."
     fi
     stash_ref="$(git stash list --pretty='%gD' | head -n1)"
+    debug "cmd_sync: erzeugter Stash ${stash_ref}"
   fi
 
   info "Pull (rebase, autostash) vom Remote…"
@@ -141,15 +159,15 @@ cmd_sync() {
     return 0
   fi
 
-  warn "git pull --rebase --autostash fehlgeschlagen – versuche Rebase auf origin/${base}."
-  info "Fetch von origin/${base}…"
-  if ! git fetch origin "$base"; then
+  warn "git pull --rebase --autostash fehlgeschlagen – versuche Rebase auf ${base_display}."
+  info "Fetch von ${base_display}…"
+  if ! git fetch "$base_remote" "$base_branch"; then
     restore_stash
-    die "git fetch origin ${base} fehlgeschlagen"
+    die "git fetch ${base_display} fehlgeschlagen"
   fi
 
-  info "Rebase auf origin/${base}…"
-  if ! git rebase "origin/${base}"; then
+  info "Rebase auf ${base_display}…"
+  if ! git rebase "${base_display}"; then
     restore_stash
     die "Rebase fehlgeschlagen – bitte Konflikte manuell lösen oder 'wgx heal' (falls verfügbar) verwenden."
   fi
