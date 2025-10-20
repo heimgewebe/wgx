@@ -87,7 +87,10 @@ git_is_repo_root() {
   top=$(git rev-parse --show-toplevel 2>/dev/null) || return 1
   [ "$(pwd)" = "$top" ]
 }
-git_has_remote() { git remote -v | grep -q '^origin' 2>/dev/null; }
+git_has_remote() {
+  local remote="${1:-origin}"
+  git remote 2>/dev/null | grep -qx "$remote"
+}
 
 # Hard Reset auf origin/$WGX_BASE + Cleanup
 git_workdir_dirty() {
@@ -111,6 +114,29 @@ _git_resolve_branch() {
     fi
   done
   return 1
+}
+
+_git_parse_remote_branch_spec() {
+  local spec="$1"
+  local default_remote="${2:-origin}"
+  local remote="$default_remote"
+  local branch="$spec"
+
+  if [ -z "$branch" ]; then
+    printf '%s %s\n' "$remote" ""
+    return 0
+  fi
+
+  if [[ "$spec" == */* ]]; then
+    local candidate_remote="${spec%%/*}"
+    local candidate_branch="${spec#*/}"
+    if git remote 2>/dev/null | grep -qx "$candidate_remote"; then
+      remote="$candidate_remote"
+      branch="$candidate_branch"
+    fi
+  fi
+
+  printf '%s %s\n' "$remote" "$branch"
 }
 
 git_hard_reload() {
@@ -143,18 +169,17 @@ git_hard_reload() {
     shift
   done
 
-  # 2. Dry-run Prefix setzen und Fetch ausführen
-  local prefix=""
-  ((dry_run)) && prefix="[DRY-RUN] "
+  debug "git_hard_reload: dry_run=${dry_run} base='${base}'"
 
-  info "${prefix}Fetch von allen Remotes (inkl. prune)…"
-  ((dry_run)) || git fetch --all --prune || die "git fetch fehlgeschlagen"
-
-  # 3. Ziel-Branch bestimmen
-  local remote target_branch
+  # 2. Ziel-Branch bestimmen
+  local remote target_branch base_branch
   if [ -n "$base" ]; then
-    remote="origin"
-    target_branch="$(_git_resolve_branch "$remote" "$base")"
+    read -r remote base_branch < <(_git_parse_remote_branch_spec "$base" "origin")
+    debug "git_hard_reload: parsed base spec '${base}' -> remote='${remote}' branch='${base_branch}'"
+    if [ -z "$base_branch" ]; then
+      die "git_hard_reload: Ungültiger Basis-Branch '${base}'."
+    fi
+    target_branch="$(_git_resolve_branch "$remote" "$base_branch")"
     if [ -z "$target_branch" ]; then
       die "git_hard_reload: Branch '${base}' nicht auf '${remote}' gefunden."
     fi
@@ -174,14 +199,32 @@ git_hard_reload() {
     die "git_hard_reload: Konnte keinen gültigen Ziel-Branch finden."
   fi
 
-  # 4. Reset und Clean ausführen
-  info "${prefix}Kompletter Reset auf ${remote}/${target_branch}… (alle lokalen Änderungen gehen verloren)"
-  ((dry_run)) || git reset --hard "${remote}/${target_branch}" || die "git reset --hard fehlgeschlagen"
+  local full_ref="${remote}/${target_branch}"
+  debug "git_hard_reload: resolved remote ref '${full_ref}'"
 
-  info "${prefix}Untracked/ignored aufräumen (clean -fdx)…"
-  ((dry_run)) || git clean -fdx || die "git clean fehlgeschlagen"
+  if ((dry_run)); then
+    info "[DRY-RUN] Geplante Schritte:"
+    info "[DRY-RUN] git fetch --all --prune"
+    info "[DRY-RUN] git reset --hard ${full_ref}"
+    info "[DRY-RUN] git clean -fd"
+    ok "[DRY-RUN] Reload fertig (${full_ref})."
+    return 0
+  fi
 
-  ok "${prefix}Reload fertig (${remote}/${target_branch})."
+  info "Fetch von allen Remotes (inkl. prune)…"
+  debug "git_hard_reload: running 'git fetch --all --prune'"
+  git fetch --all --prune || die "git fetch fehlgeschlagen"
+
+  info "Kompletter Reset auf ${full_ref}… (alle lokalen Änderungen gehen verloren)"
+  debug "git_hard_reload: running 'git reset --hard ${full_ref}'"
+  git reset --hard "${full_ref}" || die "git reset --hard fehlgeschlagen"
+
+  info "Untracked-Dateien und Verzeichnisse bereinigen (clean -fd)…"
+  debug "git_hard_reload: running 'git clean -fd'"
+  git clean -fd || die "git clean fehlgeschlagen"
+
+  ok "Reload fertig (${full_ref})."
+  return 0
 }
 
 # Optional: Safety Snapshot (Stash), nicht default-aktiv

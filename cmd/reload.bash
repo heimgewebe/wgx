@@ -36,6 +36,8 @@ cmd_reload() {
   local base="${1:-$WGX_BASE}"
   [ -z "$base" ] && base="main"
 
+  debug "cmd_reload: force=${force} dry_run=${dry_run} snapshot=${do_snapshot} base='${base}'"
+
   if git_workdir_dirty; then
     local status
     status="$(git_workdir_status_short)"
