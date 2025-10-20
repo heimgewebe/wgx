@@ -2,6 +2,13 @@
 
 setup() {
   rm -rf tmprepo
+
+  # Ermittle das Projekt-Root *bevor* wir in das temporäre Repository wechseln.
+  # BATS_TEST_DIRNAME kann je nach Bats-Version relativ sein (z. B. "tests"),
+  # daher lösen wir den Pfad zunächst absolut auf.
+  local project_root
+  project_root="$(cd "${BATS_TEST_DIRNAME:-$(dirname "${BATS_TEST_FILENAME}")}" && cd .. && pwd)"
+
   git init --initial-branch=main tmprepo >/dev/null
   cd tmprepo || exit 1
   git config user.email "test@example.com"
@@ -15,9 +22,6 @@ setup() {
   mkdir -p ../remote && (cd ../remote && git init --bare --initial-branch=main >/dev/null 2>&1)
   git remote add origin ../remote
   git push -u origin main >/dev/null
-  # WGX_DIR auf das Projekt-Root setzen (eine Ebene oberhalb des Testverzeichnisses)
-  local project_root
-  project_root="$(cd "${BATS_TEST_DIRNAME}/.." && pwd)"
   export WGX_DIR="$project_root"
   export PATH="$WGX_DIR/cli:$PATH"
 }
