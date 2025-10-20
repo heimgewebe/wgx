@@ -62,15 +62,26 @@ cmd_sync() {
   local stash_required=0
 
   restore_stash() {
-    if [ -n "$stash_ref" ]; then
-      if git stash apply --index "$stash_ref" >/dev/null 2>&1; then
-        git stash drop "$stash_ref" >/dev/null 2>&1 || true
-        info "Lokale Änderungen wiederhergestellt."
-      else
-        warn "Konnte lokale Änderungen aus ${stash_ref} nicht automatisch wiederherstellen – bitte 'git stash pop ${stash_ref}' manuell ausführen."
-      fi
+    [ -z "$stash_ref" ] && return
+
+    if git -c merge.renames=true -c rerere.enabled=true stash apply --index "$stash_ref" >/dev/null 2>&1; then
+      debug "stash apply --index für ${stash_ref} erfolgreich"
+      git stash drop "$stash_ref" >/dev/null 2>&1 || true
       stash_ref=""
+      info "Lokale Änderungen wiederhergestellt."
+      return
     fi
+
+    if git -c merge.renames=true -c rerere.enabled=true stash apply "$stash_ref" >/dev/null 2>&1; then
+      git add -A >/dev/null 2>&1 || true
+      git stash drop "$stash_ref" >/dev/null 2>&1 || true
+      stash_ref=""
+      warn "Änderungen angewendet (ohne --index). Bitte Konflikte prüfen und ggf. auflösen."
+      return
+    fi
+
+    warn "Automatisches Wiederherstellen aus ${stash_ref} ist fehlgeschlagen – bitte 'git stash pop --index ${stash_ref}' manuell ausführen und Konflikte lösen."
+    stash_ref=""
   }
 
   if git_workdir_dirty; then
