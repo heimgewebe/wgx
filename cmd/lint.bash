@@ -1,6 +1,22 @@
 #!/usr/bin/env bash
 
 cmd_lint() {
+  if [[ "$1" == "-h" || "$1" == "--help" ]]; then
+    cat <<'USAGE'
+Usage:
+  wgx lint
+
+Description:
+  Führt Linting-Prüfungen für verschiedene Dateitypen im Repository aus.
+  Dies umfasst Shell-Skripte (Syntax-Prüfung mit bash -n, Formatierung mit shfmt,
+  statische Analyse mit shellcheck) und potenziell weitere linter.
+
+Options:
+  -h, --help    Diese Hilfe anzeigen.
+USAGE
+    return 0
+  fi
+
   local base_dir="${WGX_DIR:-"$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"}"
   local oldpwd="$PWD"
   if ! cd "$base_dir" >/dev/null 2>&1; then

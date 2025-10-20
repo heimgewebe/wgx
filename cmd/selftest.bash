@@ -34,6 +34,22 @@ selftest_check_bins() {
 }
 
 cmd_selftest() {
+  if [[ "$1" == "-h" || "$1" == "--help" ]]; then
+    cat <<'USAGE'
+Usage:
+  wgx selftest
+
+Description:
+  Führt einen Mini-Sanity-Check für die 'wgx'-CLI und ihre Umgebung durch.
+  Prüft, ob 'wgx' ausführbar ist, ob die Version abgerufen werden kann und
+  ob kritische Abhängigkeiten wie 'git' und 'jq' verfügbar sind.
+
+Options:
+  -h, --help    Diese Hilfe anzeigen.
+USAGE
+    return 0
+  fi
+
   echo "=== wgx selftest ==="
 
   local had_warn=0

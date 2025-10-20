@@ -32,6 +32,25 @@ cmd_sync() {
       base_override="${1#--base=}"
       shift
       ;;
+    -h | --help)
+      cat <<'USAGE'
+Usage:
+  wgx sync [--force] [--dry-run] [--base <branch>]
+
+Description:
+  Holt Änderungen vom Remote-Repository. Führt 'git pull --rebase --autostash' aus.
+  Wenn dies fehlschlägt, wird ein Rebase auf den angegebenen Basis-Branch
+  (Standard: $WGX_BASE oder 'main') versucht.
+
+Options:
+  --force, -f      Erzwingt den Sync, auch wenn das Arbeitsverzeichnis unsauber ist
+                   (lokale Änderungen werden temporär gestasht).
+  --dry-run, -n    Zeigt nur die geplanten Git-Befehle an.
+  --base <branch>  Setzt den Fallback-Branch für den Rebase explizit.
+  -h, --help       Diese Hilfe anzeigen.
+USAGE
+      return 0
+      ;;
     --)
       shift
       while [ $# -gt 0 ]; do

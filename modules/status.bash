@@ -3,6 +3,23 @@
 # Status-Modul: Projektstatus anzeigen
 
 status_cmd() {
+  if [[ "$1" == "-h" || "$1" == "--help" ]]; then
+    cat <<'USAGE'
+Usage:
+  wgx status
+
+Description:
+  Zeigt einen kompakten Snapshot des Repository-Status an.
+  Dies umfasst den aktuellen Branch, den Ahead/Behind-Status im Vergleich zum
+  Upstream-Branch, erkannte Projektverzeichnisse (Web, API, etc.) und
+  globale Flags wie den OFFLINE-Modus.
+
+Options:
+  -h, --help    Diese Hilfe anzeigen.
+USAGE
+    return 0
+  fi
+
   profile::ensure_loaded || true
 
   echo "▶ Repo-Root: $(git rev-parse --show-toplevel 2>/dev/null || echo 'N/A')"

@@ -71,7 +71,7 @@ profile::_have_cmd() {
 profile::_abspath() {
   local p="$1"
   if profile::_have_cmd python3; then
-    python3 - <<'PY' "$p" 2>/dev/null || true
+    python3 - "$p" <<'PY' 2>/dev/null || true
 import os
 import sys
 

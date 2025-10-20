@@ -61,11 +61,34 @@ Options:
 
 ### config
 
-_Command does not provide structured --help output._
+```
+Usage:
+  wgx config [show]
+  wgx config set <KEY>=<VALUE>
+
+Description:
+  Zeigt die aktuelle Konfiguration an oder setzt einen Wert in der
+  '.wgx.conf'-Datei.
+  Die Implementierung dieses Befehls ist noch in Arbeit.
+
+Options:
+  -h, --help    Diese Hilfe anzeigen.
+```
 
 ### doctor
 
-_Command does not provide structured --help output._
+```
+Usage:
+  wgx doctor
+
+Description:
+  Führt eine grundlegende Diagnose des Repositorys und der Umgebung durch.
+  Prüft, ob 'git' installiert ist, ob der Befehl innerhalb eines Git-Worktrees
+  ausgeführt wird und ob ein 'origin'-Remote konfiguriert ist.
+
+Options:
+  -h, --help    Diese Hilfe anzeigen.
+```
 
 ### env
 
@@ -79,11 +102,44 @@ Usage: wgx env doctor [--fix] [--strict] [--json]
 
 ### guard
 
-_Command does not provide structured --help output._
+```
+Usage:
+  wgx guard [--lint] [--test]
+
+Description:
+  Führt eine Reihe von Sicherheits- und Qualitätsprüfungen für das Repository aus.
+  Dies ist ein Sicherheitsnetz, das vor dem Erstellen eines Pull Requests ausgeführt wird.
+  Standardmäßig werden sowohl Linting als auch Tests ausgeführt.
+
+Checks:
+  - Sucht nach potentiellen Secrets im Staging-Bereich.
+  - Sucht nach verbleibenden Konfliktmarkern im Code.
+  - Prüft auf übergroße Dateien (>= 1MB).
+  - Verifiziert das Vorhandensein von wichtigen Repository-Dateien (z.B. uv.lock).
+  - Führt 'wgx lint' aus (falls --lint angegeben oder Standard).
+  - Führt 'wgx test' aus (falls --test angegeben oder Standard).
+
+Options:
+  --lint        Nur die Linting-Prüfungen ausführen.
+  --test        Nur die Test-Prüfungen ausführen.
+  -h, --help    Diese Hilfe anzeigen.
+```
 
 ### heal
 
-_Command does not provide structured --help output._
+```
+Usage:
+  wgx heal [ours|theirs|ff-only|--continue|--abort]
+
+Description:
+  Hilft bei der Lösung von Merge- oder Rebase-Konflikten.
+  Die vollständige Implementierung dieses Befehls ist noch in Arbeit.
+  Für eine detaillierte Beschreibung der geplanten Funktionalität,
+  siehe 'docs/Command-Reference.de.md'.
+
+Options:
+  -h, --help    Diese Hilfe anzeigen.
+```
 
 ### help
 
@@ -127,15 +183,49 @@ More:
 
 ### hooks
 
-_Command does not provide structured --help output._
+```
+Usage:
+  wgx hooks [install]
+
+Description:
+  Verwaltet die Git-Hooks für das Repository.
+  Die vollständige Implementierung dieses Befehls ist noch in Arbeit.
+  Aktuell ist nur die 'install'-Aktion geplant.
+  Für Details, siehe 'docs/Command-Reference.de.md'.
+
+Options:
+  -h, --help    Diese Hilfe anzeigen.
+```
 
 ### init
 
-_Command does not provide structured --help output._
+```
+Usage:
+  wgx init
+
+Description:
+  Initialisiert die 'wgx'-Konfiguration im Repository.
+  Legt die '.wgx.conf'-Datei und das '.wgx/'-Verzeichnis mit Vorlagen an,
+  falls diese noch nicht vorhanden sind.
+
+Options:
+  -h, --help    Diese Hilfe anzeigen.
+```
 
 ### lint
 
-_Command does not provide structured --help output._
+```
+Usage:
+  wgx lint
+
+Description:
+  Führt Linting-Prüfungen für verschiedene Dateitypen im Repository aus.
+  Dies umfasst Shell-Skripte (Syntax-Prüfung mit bash -n, Formatierung mit shfmt,
+  statische Analyse mit shellcheck) und potenziell weitere linter.
+
+Options:
+  -h, --help    Diese Hilfe anzeigen.
+```
 
 ### quick
 
@@ -151,39 +241,164 @@ Options:
 
 ### release
 
-_Command does not provide structured --help output._
+```
+Usage:
+  wgx release [--version <tag>] [--auto-version <bump>] [...]
+
+Description:
+  Erstellt SemVer-Tags und GitHub/GitLab-Releases.
+  Die vollständige Implementierung dieses Befehls ist noch in Arbeit.
+  Für eine detaillierte Beschreibung der geplanten Funktionalität,
+  siehe 'docs/Command-Reference.de.md'.
+
+Options:
+  --version <tag>    Die genaue Version für das Release (z.B. v1.2.3).
+  --auto-version     Erhöht die Version automatisch (patch, minor, major).
+  -h, --help         Diese Hilfe anzeigen.
+```
 
 ### reload
 
-_Command does not provide structured --help output._
+```
+Usage:
+  wgx reload [--snapshot] [--force] [--dry-run] [<base_branch>]
+
+Description:
+  Setzt den Workspace hart auf den Stand des remote 'origin'-Branches zurück.
+  Standardmäßig wird der in der Konfiguration festgelegte Basis-Branch ($WGX_BASE)
+  oder 'main' verwendet.
+  Dies ist ein destruktiver Befehl, der lokale Änderungen verwirft.
+
+Options:
+  --snapshot    Erstellt vor dem Reset einen Git-Stash als Sicherung.
+  --force, -f   Erzwingt den Reset, auch wenn das Arbeitsverzeichnis unsauber ist.
+  --dry-run, -n Zeigt nur die auszuführenden Befehle an, ohne Änderungen vorzunehmen.
+  <base_branch> Der Branch, auf den zurückgesetzt werden soll (Standard: $WGX_BASE oder 'main').
+  -h, --help    Diese Hilfe anzeigen.
+```
 
 ### selftest
 
-_Command does not provide structured --help output._
+```
+Usage:
+  wgx selftest
+
+Description:
+  Führt einen Mini-Sanity-Check für die 'wgx'-CLI und ihre Umgebung durch.
+  Prüft, ob 'wgx' ausführbar ist, ob die Version abgerufen werden kann und
+  ob kritische Abhängigkeiten wie 'git' und 'jq' verfügbar sind.
+
+Options:
+  -h, --help    Diese Hilfe anzeigen.
+```
 
 ### send
 
-_Command does not provide structured --help output._
+```
+Usage:
+  wgx send [--draft] [--title <title>] [--why <reason>] [...]
+
+Description:
+  Erstellt einen Pull/Merge Request (PR/MR) auf GitHub oder GitLab.
+  Vor dem Senden werden 'wgx guard' und 'wgx sync' ausgeführt.
+  Die vollständige Implementierung dieses Befehls ist noch in Arbeit.
+  Für eine detaillierte Beschreibung der geplanten Funktionalität,
+  siehe 'docs/Command-Reference.de.md'.
+
+Options:
+  --draft       Erstellt den PR/MR als Entwurf.
+  --title <t>   Setzt den Titel des PR/MR.
+  --why <r>     Setzt den "Warum"-Teil im PR/MR-Body.
+  --ci          Löst einen CI-Workflow aus (falls konfiguriert).
+  --open        Öffnet den erstellten PR/MR im Browser.
+  -h, --help    Diese Hilfe anzeigen.
+```
 
 ### setup
 
-_Command does not provide structured --help output._
+```
+Usage:
+  wgx setup
+
+Description:
+  Hilft bei der Erstinstallation von 'wgx' und seinen Abhängigkeiten,
+  insbesondere in Umgebungen wie Termux.
+  Prüft auf das Vorhandensein von Kernpaketen (git, gh, glab, jq, etc.)
+  und gibt Hinweise zur Installation.
+  Die vollständige Implementierung dieses Befehls ist noch in Arbeit.
+
+Options:
+  -h, --help    Diese Hilfe anzeigen.
+```
 
 ### start
 
-_Command does not provide structured --help output._
+```
+Usage:
+  wgx start <branch_name>
+
+Description:
+  Erstellt einen neuen Feature-Branch nach einem validierten Schema.
+  Der Name wird normalisiert (Sonderzeichen entfernt, etc.) und optional
+  mit einer Issue-Nummer versehen.
+  Die vollständige Implementierung dieses Befehls ist noch in Arbeit.
+
+Options:
+  -h, --help    Diese Hilfe anzeigen.
+```
 
 ### status
 
-_Command does not provide structured --help output._
+```
+Usage:
+  wgx status
+
+Description:
+  Zeigt einen kompakten Snapshot des Repository-Status an.
+  Dies umfasst den aktuellen Branch, den Ahead/Behind-Status im Vergleich zum
+  Upstream-Branch, erkannte Projektverzeichnisse (Web, API, etc.) und
+  globale Flags wie den OFFLINE-Modus.
+
+Options:
+  -h, --help    Diese Hilfe anzeigen.
+```
 
 ### sync
 
-_Command does not provide structured --help output._
+```
+Usage:
+  wgx sync [--force] [--dry-run] [--base <branch>]
+
+Description:
+  Holt Änderungen vom Remote-Repository. Führt 'git pull --rebase --autostash' aus.
+  Wenn dies fehlschlägt, wird ein Rebase auf den angegebenen Basis-Branch
+  (Standard: $WGX_BASE oder 'main') versucht.
+
+Options:
+  --force, -f      Erzwingt den Sync, auch wenn das Arbeitsverzeichnis unsauber ist
+                   (lokale Änderungen werden temporär gestasht).
+  --dry-run, -n    Zeigt nur die geplanten Git-Befehle an.
+  --base <branch>  Setzt den Fallback-Branch für den Rebase explizit.
+  -h, --help       Diese Hilfe anzeigen.
+```
 
 ### task
 
-_Command does not provide structured --help output._
+```
+Usage:
+  wgx task <name> [--] [args...]
+
+Description:
+  Führt einen Task aus, der in der '.wgx/profile.yml'-Datei des Repositorys
+  definiert ist. Alle Argumente nach dem Task-Namen (und einem optionalen '--')
+  werden an den Task weitergegeben.
+
+Example:
+  wgx task test -- --verbose
+
+Options:
+  -h, --help    Diese Hilfe anzeigen.
+```
 
 ### tasks
 
@@ -216,5 +431,20 @@ Examples:
 
 ### version
 
-_Command does not provide structured --help output._
+```
+Usage:
+  wgx version [bump <level>] [set <version>]
+
+Description:
+  Zeigt die aktuelle Version von 'wgx' an oder manipuliert die Version
+  in Projektdateien wie 'package.json' oder 'Cargo.toml'.
+  Die Implementierung der Unterbefehle 'bump' und 'set' ist noch in Arbeit.
+
+Subcommands:
+  bump <level>   Erhöht die Version ('patch', 'minor', 'major').
+  set <version>  Setzt die Version auf einen exakten Wert.
+
+Options:
+  -h, --help     Diese Hilfe anzeigen.
+```
 
