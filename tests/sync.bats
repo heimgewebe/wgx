@@ -12,7 +12,7 @@ setup() {
   git add x.txt
   git commit -m "init" >/dev/null
   # Already on main after git init --initial-branch=main
-  mkdir -p ../remote && (cd ../remote && git init --bare >/dev/null)
+  mkdir -p ../remote && (cd ../remote && git init --bare --initial-branch=main >/dev/null 2>&1)
   git remote add origin ../remote
   git push -u origin main >/dev/null
 }
