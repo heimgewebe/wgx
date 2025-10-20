@@ -123,6 +123,10 @@ cmd_sync() {
 
   git_has_remote || die "Kein origin-Remote gefunden."
 
+  if ! git rev-parse --abbrev-ref --symbolic-full-name "@{u}" >/dev/null 2>&1; then
+    die "Kein Upstream für ${branch} konfiguriert. Setze ihn mit: git branch --set-upstream-to=origin/${base} ${branch}"
+  fi
+
   if ((stash_required)); then
     if ! git stash push --include-untracked --message "wgx-sync-autostash" >/dev/null; then
       die "Konnte lokale Änderungen nicht automatisch stashen."
@@ -137,7 +141,7 @@ cmd_sync() {
     return 0
   fi
 
-  warn "Fast-Forward nicht möglich – versuche Rebase auf origin/${base}."
+  warn "git pull --rebase --autostash fehlgeschlagen – versuche Rebase auf origin/${base}."
   info "Fetch von origin/${base}…"
   if ! git fetch origin "$base"; then
     restore_stash
