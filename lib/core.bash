@@ -20,7 +20,7 @@ fi
 
 if ! type -t debug >/dev/null 2>&1; then
   debug() {
-    [[ ${WGX_DEBUG:-0} != 0 ]] || return
+    [[ ${WGX_DEBUG:-0} != 0 ]] || return 0
     [[ ${WGX_QUIET:-0} != 0 ]] && return
     printf 'DEBUG %s\n' "$*" >&2
   }
