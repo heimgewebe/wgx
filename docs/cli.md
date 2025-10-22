@@ -16,6 +16,7 @@ Commands:
   doctor
   env
   guard
+  validate
   heal
   help
   hooks
@@ -123,6 +124,18 @@ Options:
   --lint        Nur die Linting-Prüfungen ausführen.
   --test        Nur die Test-Prüfungen ausführen.
   -h, --help    Diese Hilfe anzeigen.
+```
+
+### validate
+
+```
+Usage:
+  wgx validate [--json]
+
+Validates the current repository's .wgx/profile.* manifest.
+Exit code is 0 when the manifest is valid; non-zero otherwise.
+Options:
+  --json   Emit a compact JSON object: { ok, errors[], missingCapabilities[] }
 ```
 
 ### heal
