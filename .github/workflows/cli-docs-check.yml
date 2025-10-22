@@ -1,0 +1,60 @@
+name: CLI Docs (consistency)
+
+on:
+  pull_request:
+    branches: [ "**" ]
+    paths:
+      - "wgx"
+      - "cmd/**"
+      - "scripts/gen-cli-docs.sh"
+      - "docs/cli.md"
+  push:
+    branches: [ "main" ]
+    paths:
+      - "wgx"
+      - "cmd/**"
+      - "scripts/gen-cli-docs.sh"
+      - "docs/cli.md"
+
+permissions:
+  contents: read
+  # keine artifacts, kein cache -> keine actions:write nötig
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  check:
+    name: Regenerate & verify docs/cli.md
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Make generator executable (defensiv)
+        run: |
+          chmod +x scripts/gen-cli-docs.sh || true
+          chmod +x wgx || true
+
+      - name: Regenerate CLI docs
+        run: |
+          scripts/gen-cli-docs.sh
+
+      - name: Verify no diff
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- docs/cli.md; then
+            echo "✅ docs/cli.md ist aktuell."
+          else
+            echo "::error::CLI-Referenz ist nicht aktuell. Bitte lokal 'scripts/gen-cli-docs.sh' ausführen und Änderungen committen."
+            echo ""
+            echo "──── git diff docs/cli.md ────"
+            git --no-pager diff -- docs/cli.md || true
+            echo ""
+            echo "Lokal fixen: ./scripts/gen-cli-docs.sh && git add docs/cli.md && git commit"
+            exit 1
+          fi
