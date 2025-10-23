@@ -3,23 +3,50 @@
 #  WARNUNG: Keine echten Zugangsdaten hier eintragen oder commiten!
 #  ➜ Lokale Nutzung: Kopiere diese Datei zu .wgx/profile.yml
 #     und passe sie NUR lokal an (.wgx/profile.yml ist von Git ignoriert).
+#  ❗ Do not commit .wgx/profile.yml – nur diese Example-Datei gehört ins Repo.
 #  Zweck: CI-Fallback & Strukturhinweis (ohne Secrets).
 # =======================================================================
 
-# Minimalstruktur (Beispiel) – passe bei Bedarf an dein Repo an:
-version: 1
-env_priority:
-  - devcontainer
-  - devbox
-  - mise
-  - termux
-tooling:
-  # nur Bezeichner/Schalter, keine Secrets
-  python: uv
-  shell: bash
-tasks:
-  up: "echo bootstrap"
-  lint: "echo lint"
-  test: "echo test"
-  build: "echo build"
-  smoke: "echo smoke"
+wgx:
+  apiVersion: v1
+  requiredWgx: "^2.0.0"
+  repoKind: generic
+
+  env:
+    prefer:
+      - devcontainer
+      - devbox
+      - mise
+      - termux
+
+  tooling:
+    python:
+      manager: uv
+      version: "3.12"
+      lockfile: true
+    shell:
+      default: bash
+
+  tasks:
+    up: "echo bootstrap"
+    lint: "echo lint"
+    test: "echo test"
+    build: "echo build"
+    smoke: "echo smoke"
+
+  workflows:
+    pr:
+      steps:
+        - task: lint
+        - task: test
+
+  contracts:
+    ci:
+      template: etc/ci/template.yml
+
+# Hinweise:
+# - `env.prefer`: legt die bevorzugte Reihenfolge der Laufzeitumgebungen fest.
+# - `tasks`: definiert wiederverwendbare Shell-Kommandos bzw. Pipelines.
+# - `workflows`: referenziert Tasks, um CI-Abläufe oder lokale Sequenzen zu beschreiben.
+# Weitere Felder können je nach Repository ergänzt werden, z. B. `topTasks`,
+# zusätzliche `contracts`, oder projektspezifische Tooling-Konfigurationen.
