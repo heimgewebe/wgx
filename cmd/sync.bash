@@ -98,7 +98,7 @@ USAGE
       git stash drop "$stash_ref" >/dev/null 2>&1 || true
       stash_ref=""
       info "Lokale Änderungen wiederhergestellt."
-      return
+      return 0
     fi
 
     debug "restore_stash: attempting apply ohne --index für ${stash_ref}"
@@ -107,11 +107,12 @@ USAGE
       git stash drop "$stash_ref" >/dev/null 2>&1 || true
       stash_ref=""
       warn "Änderungen angewendet (ohne --index). Bitte Konflikte prüfen und ggf. auflösen."
-      return
+      return 0
     fi
 
     warn "Automatisches Wiederherstellen aus ${stash_ref} ist fehlgeschlagen – bitte 'git stash pop --index ${stash_ref}' manuell ausführen und Konflikte lösen."
     stash_ref=""
+    return 0
   }
 
   if git_workdir_dirty; then
@@ -193,4 +194,5 @@ USAGE
 
   restore_stash
   info "Sync abgeschlossen (${branch})."
+  return 0
 }
