@@ -308,6 +308,15 @@ def select_variant(value):
         return None
     return value
 
+def as_bool(value):
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, int):
+        return value != 0
+    if isinstance(value, str):
+        return value.strip().lower() in ("1", "true", "yes", "on")
+    return False
+
 def normalize_list(value):
     if value is None:
         return []
@@ -418,15 +427,18 @@ if isinstance(workflows, dict):
         emit(f"WGX_WORKFLOW_TASKS[{shell_quote(str(wf_name))}]={shell_quote(' '.join(steps))}")
 
 tasks = wgx.get('tasks') if isinstance(wgx, dict) else None
-if not isinstance(tasks, dict):
+if not isinstance(tasks, dict) or not tasks:
     tasks = root_tasks if isinstance(root_tasks, dict) else {}
     if tasks:
         used_root_fallback = True
 if isinstance(tasks, dict):
+    seen_task_order = set()
     for raw_name, spec in tasks.items():
         name = str(raw_name)
         norm = name.replace(' ', '').replace('_', '-').lower()
-        emit(f"WGX_TASK_ORDER+=({shell_quote(norm)})")
+        if norm not in seen_task_order:
+            emit(f"WGX_TASK_ORDER+=({shell_quote(norm)})")
+            seen_task_order.add(norm)
         desc = ''
         group = ''
         safe = False
@@ -435,13 +447,20 @@ if isinstance(tasks, dict):
         if isinstance(spec, dict):
             desc = spec.get('desc') or ''
             group = spec.get('group') or ''
-            safe = bool(spec.get('safe') or False)
+            safe = as_bool(spec.get('safe'))
             cmd_value = spec.get('cmd')
             args_value = spec.get('args')
         selected_cmd = select_variant(cmd_value)
         tokens = []
+        use_array_format = False
         if isinstance(selected_cmd, (list, tuple)):
             tokens = [str(item) for item in selected_cmd]
+            use_array_format = True
+        elif isinstance(selected_cmd, str) and selected_cmd.strip():
+            tokens = shlex.split(selected_cmd)
+        elif selected_cmd not in (None, ''):
+            tokens = [str(selected_cmd)]
+        if tokens:
             if isinstance(args_value, (list, tuple)) and args_value:
                 tokens.extend(str(item) for item in args_value)
             elif isinstance(args_value, dict):
@@ -450,21 +469,11 @@ if isinstance(tasks, dict):
                     tokens.extend(str(item) for item in variant)
                 elif variant not in (None, ''):
                     tokens.append(str(variant))
+        if use_array_format and tokens:
             payload = json.dumps(tokens, ensure_ascii=False)
             emit(f"WGX_TASK_CMDS[{shell_quote(norm)}]={shell_quote('ARRJSON:' + payload)}")
         else:
-            parts = []
-            if selected_cmd is not None:
-                parts.append(str(selected_cmd))
-            if isinstance(args_value, (list, tuple)) and args_value:
-                parts.extend(shell_quote(str(item)) for item in args_value)
-            elif isinstance(args_value, dict):
-                variant = select_variant(args_value)
-                if isinstance(variant, (list, tuple)):
-                    parts.extend(shell_quote(str(item)) for item in variant)
-                elif variant not in (None, ''):
-                    parts.append(shell_quote(str(variant)))
-            command = ' '.join(parts)
+            command = ' '.join(shell_quote(str(part)) for part in tokens)
             emit(f"WGX_TASK_CMDS[{shell_quote(norm)}]={shell_quote('STR:' + command)}")
         emit(f"WGX_TASK_DESC[{shell_quote(norm)}]={shell_quote(str(desc))}")
         emit(f"WGX_TASK_GROUP[{shell_quote(norm)}]={shell_quote(str(group))}")
