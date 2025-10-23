@@ -269,7 +269,15 @@ def _load_manifest(path: str) -> Any:
 path = sys.argv[1]
 data = _load_manifest(path) or {}
 
-wgx = data.get('wgx') or {}
+wgx = data.get('wgx')
+if not isinstance(wgx, dict):
+    wgx = {}
+
+# Backwards compatibility: allow certain keys (e.g. tasks) at the top level.
+# Older profiles stored "tasks" directly on the root object. Newer profiles nest
+# them inside the "wgx" block. We support both to avoid breaking existing
+# repositories.
+root_tasks = data.get('tasks') if isinstance(data, dict) else None
 
 platform_keys = []
 plat = sys.platform
@@ -368,6 +376,8 @@ if isinstance(workflows, dict):
         emit(f"WGX_WORKFLOW_TASKS[{shell_quote(str(wf_name))}]={shell_quote(' '.join(steps))}")
 
 tasks = wgx.get('tasks') or {}
+if not tasks and isinstance(root_tasks, dict):
+    tasks = root_tasks
 if isinstance(tasks, dict):
     for raw_name, spec in tasks.items():
         name = str(raw_name)
