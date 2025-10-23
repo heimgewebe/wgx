@@ -75,25 +75,6 @@ jobs:
             echo "has-bash=false" >>"$GITHUB_OUTPUT"
           fi
 
-      - name: Provide fallback .wgx profile example
-        shell: sh
-        run: |
-          set -eu
-          if (set -o pipefail) 2>/dev/null; then
-            set -o pipefail
-          fi
-          if [ ! -f .wgx/profile.yml ] && [ ! -f .wgx/profile.example.yml ]; then
-            echo "::notice::Creating temporary .wgx/profile.example.yml placeholder for CI"
-            mkdir -p .wgx
-            cat <<'EOF' >.wgx/profile.example.yml
-version: 1
-env_priority: []
-tooling:
-  shell: sh
-tasks: {}
-EOF
-          fi
-
       - name: Repo smoke (ultra-fast)
         shell: sh
         run: |
@@ -118,17 +99,15 @@ EOF
         shell: sh
         run: |
           set -eu
-          if (set -o pipefail) 2>/dev/null; then
-            set -o pipefail
-          fi
-          if [ -f .wgx/profile.yml ]; then
-            echo "OK: .wgx/profile.yml present"
-          elif [ -f .wgx/profile.example.yml ]; then
-            echo "::warning::.wgx/profile.yml missing – using .wgx/profile.example.yml as CI placeholder"
-            # For visual inspection only: no secrets, structure hint only
+          if (set -o pipefail) 2>/dev/null; then set -o pipefail; fi
+          # Require a file that is actually tracked in git, not a file created during CI.
+          if git ls-files --error-unmatch .wgx/profile.yml >/dev/null 2>&1; then
+            echo "OK: tracked .wgx/profile.yml present"
+          elif git ls-files --error-unmatch .wgx/profile.example.yml >/dev/null 2>&1; then
+            echo "::warning::tracked .wgx/profile.yml missing – using tracked .wgx/profile.example.yml as placeholder"
             head -n 20 .wgx/profile.example.yml || true
           else
-            echo "::error::.wgx/profile.yml and .wgx/profile.example.yml both missing"
+            echo "::error::No tracked .wgx/profile.yml or .wgx/profile.example.yml found in repository"
             exit 1
           fi
 
