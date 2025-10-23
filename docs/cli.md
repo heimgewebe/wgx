@@ -16,7 +16,6 @@ Commands:
   doctor
   env
   guard
-  validate
   heal
   help
   hooks
@@ -34,6 +33,7 @@ Commands:
   task
   tasks
   test
+  validate
   version
 
 Env:
@@ -126,18 +126,6 @@ Options:
   -h, --help    Diese Hilfe anzeigen.
 ```
 
-### validate
-
-```
-Usage:
-  wgx validate [--json]
-
-Validates the current repository's .wgx/profile.* manifest.
-Exit code is 0 when the manifest is valid; non-zero otherwise.
-Options:
-  --json   Emit a compact JSON object: { ok, errors[], missingCapabilities[] }
-```
-
 ### heal
 
 ```
@@ -185,6 +173,7 @@ Commands:
   task
   tasks
   test
+  validate
   version
 
 Env:
@@ -440,6 +429,20 @@ Examples:
   wgx test                 # run all Bats suites
   wgx test -- --filter foo # pass custom flags to bats
   wgx test --list          # list available test files
+```
+
+### validate
+
+```
+Usage:
+  wgx validate [--json]
+
+Validiert das Manifest (.wgx/profile.*) im aktuellen Repository.
+Exit-Status: 0 bei gültigem Manifest, sonst >0.
+
+Optionen:
+  --json   Kompakte maschinenlesbare Ausgabe:
+           {"ok":bool,"errors":[...],"missingCapabilities":[...]}
 ```
 
 ### version
