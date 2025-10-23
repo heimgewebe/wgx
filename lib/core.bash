@@ -244,6 +244,7 @@ git_hard_reload() {
   git clean -fdx || die "git clean fehlgeschlagen"
 
   ok "Reload fertig (${full_ref})."
+  return 0
 }
 
 # Optional: Safety Snapshot (Stash), nicht default-aktiv

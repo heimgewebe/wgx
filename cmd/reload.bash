@@ -88,9 +88,12 @@ USAGE
     fi
   fi
 
-  if ((dry_run)); then
-    git_hard_reload --dry-run "$base"
-  else
-    git_hard_reload "$base"
-  fi
+  local rc=0
+  local -a reload_args=()
+  ((dry_run)) && reload_args+=(--dry-run)
+
+  git_hard_reload "${reload_args[@]}" "$base"
+  rc=$?
+
+  return $rc
 }
