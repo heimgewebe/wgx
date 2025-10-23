@@ -278,6 +278,12 @@ if not isinstance(wgx, dict):
 # them inside the "wgx" block. We support both to avoid breaking existing
 # repositories.
 root_tasks = data.get('tasks') if isinstance(data, dict) else None
+root_repo_kind = data.get('repoKind') if isinstance(data, dict) else None
+root_dirs = data.get('dirs') if isinstance(data, dict) else None
+root_env = data.get('env') if isinstance(data, dict) else None
+root_env_defaults = data.get('envDefaults') if isinstance(data, dict) else None
+root_env_overrides = data.get('envOverrides') if isinstance(data, dict) else None
+root_workflows = data.get('workflows') if isinstance(data, dict) else None
 
 platform_keys = []
 plat = sys.platform
@@ -286,6 +292,8 @@ if plat.startswith('darwin'):
 elif plat.startswith('linux'):
     platform_keys.append('linux')
 elif plat.startswith('win'):
+    platform_keys.append('win32')
+elif plat.startswith('cygwin') or plat.startswith('msys'):
     platform_keys.append('win32')
 platform_keys.append('default')
 
@@ -338,6 +346,9 @@ def emit_caps(caps):
             continue
         emit(f"WGX_REQUIRED_CAPS+=({shell_quote(str(cap))})")
 
+# track if we used any root-level fallback (for a single deprecation note)
+used_root_fallback = False
+
 emit(f"PROFILE_VERSION={shell_quote(str(wgx.get('apiVersion') or ''))}")
 req = wgx.get('requiredWgx')
 if isinstance(req, str):
@@ -353,17 +364,48 @@ elif isinstance(req, dict):
 else:
     emit_caps([])
 
-emit(f"WGX_REPO_KIND={shell_quote(str(wgx.get('repoKind') or ''))}")
-dirs = wgx.get('dirs') or {}
+repo_kind = wgx.get('repoKind') if isinstance(wgx, dict) else None
+if repo_kind is None:
+    repo_kind = root_repo_kind
+    if repo_kind is not None:
+        used_root_fallback = True
+emit(f"WGX_REPO_KIND={shell_quote(str(repo_kind or ''))}")
+
+dirs = wgx.get('dirs') if isinstance(wgx, dict) else None
+if not isinstance(dirs, dict):
+    dirs = root_dirs if isinstance(root_dirs, dict) else {}
+    if dirs:
+        used_root_fallback = True
 emit(f"WGX_DIR_WEB={shell_quote(str(dirs.get('web') or ''))}")
 emit(f"WGX_DIR_API={shell_quote(str(dirs.get('api') or ''))}")
 emit(f"WGX_DIR_DATA={shell_quote(str(dirs.get('data') or ''))}")
 
-emit_env('WGX_ENV_DEFAULT_MAP', wgx.get('envDefaults') or {})
-emit_env('WGX_ENV_BASE_MAP', wgx.get('env') or {})
-emit_env('WGX_ENV_OVERRIDE_MAP', wgx.get('envOverrides') or {})
+env_defaults = wgx.get('envDefaults') if isinstance(wgx, dict) else None
+if not isinstance(env_defaults, dict):
+    env_defaults = root_env_defaults if isinstance(root_env_defaults, dict) else {}
+    if env_defaults:
+        used_root_fallback = True
+emit_env('WGX_ENV_DEFAULT_MAP', env_defaults)
 
-workflows = wgx.get('workflows') or {}
+env_base = wgx.get('env') if isinstance(wgx, dict) else None
+if not isinstance(env_base, dict):
+    env_base = root_env if isinstance(root_env, dict) else {}
+    if env_base:
+        used_root_fallback = True
+emit_env('WGX_ENV_BASE_MAP', env_base)
+
+env_overrides = wgx.get('envOverrides') if isinstance(wgx, dict) else None
+if not isinstance(env_overrides, dict):
+    env_overrides = root_env_overrides if isinstance(root_env_overrides, dict) else {}
+    if env_overrides:
+        used_root_fallback = True
+emit_env('WGX_ENV_OVERRIDE_MAP', env_overrides)
+
+workflows = wgx.get('workflows') if isinstance(wgx, dict) else None
+if not isinstance(workflows, dict):
+    workflows = root_workflows if isinstance(root_workflows, dict) else {}
+    if workflows:
+        used_root_fallback = True
 if isinstance(workflows, dict):
     for wf_name, wf_spec in workflows.items():
         steps = []
@@ -375,9 +417,11 @@ if isinstance(workflows, dict):
                         steps.append(str(task_name))
         emit(f"WGX_WORKFLOW_TASKS[{shell_quote(str(wf_name))}]={shell_quote(' '.join(steps))}")
 
-tasks = wgx.get('tasks') or {}
-if not tasks and isinstance(root_tasks, dict):
-    tasks = root_tasks
+tasks = wgx.get('tasks') if isinstance(wgx, dict) else None
+if not isinstance(tasks, dict):
+    tasks = root_tasks if isinstance(root_tasks, dict) else {}
+    if tasks:
+        used_root_fallback = True
 if isinstance(tasks, dict):
     for raw_name, spec in tasks.items():
         name = str(raw_name)
@@ -426,6 +470,9 @@ if isinstance(tasks, dict):
         emit(f"WGX_TASK_GROUP[{shell_quote(norm)}]={shell_quote(str(group))}")
         emit(f"WGX_TASK_SAFE[{shell_quote(norm)}]={shell_quote('1' if safe else '0')}")
         continue
+
+if used_root_fallback and os.environ.get("WGX_PROFILE_DEPRECATION", "warn") != "quiet":
+    print("wgx: note: using root-level profile keys for backwards compatibility; consider nesting under 'wgx.'", file=sys.stderr)
 
 PY
   )"
