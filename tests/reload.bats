@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 
 setup() {
-  rm -rf tmprepo
+  rm -rf tmprepo remote
 
   # Ermittle das Projekt-Root *bevor* wir in das temporäre Repository wechseln.
   # BATS_TEST_DIRNAME kann je nach Bats-Version relativ sein (z. B. "tests"),
@@ -27,7 +27,8 @@ setup() {
 }
 
 teardown() {
-  cd ..
+  # zurück ins Tests-Verzeichnis und Repos aufräumen
+  cd .. 2>/dev/null || true
   rm -rf tmprepo remote
 }
 
