@@ -40,7 +40,7 @@ printf 'safe=%s\n' "${WGX_TASK_SAFE[buildapp]}"
 SH
   chmod +x "$helper_script"
 
-  run "$helper_script" "$REPO_ROOT" "$WORKDIR"
+  run env WGX_PROFILE_DEPRECATION=quiet "$helper_script" "$REPO_ROOT" "$WORKDIR"
   assert_success
   assert_line --index 0 -- "order=buildapp"
   assert_line --index 1 -- "cmd=ARRJSON:[\"npm\", \"run\", \"build\", \"--prod\"]"
@@ -95,7 +95,7 @@ printf 'safetask_safe=%s\n' "${WGX_TASK_SAFE[safetask]}"
 SH
   chmod +x "$helper_script"
 
-  run "$helper_script" "$REPO_ROOT" "$WORKDIR"
+  run env WGX_PROFILE_DEPRECATION=quiet "$helper_script" "$REPO_ROOT" "$WORKDIR"
   assert_success
   assert_line --index 0 -- "order_count=3"
   assert_line --index 1 -- "order_values=buildapp format safetask"

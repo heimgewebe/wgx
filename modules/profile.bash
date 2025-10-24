@@ -69,19 +69,31 @@ profile::_have_cmd() {
 }
 
 profile::_abspath() {
-  local p="$1"
+  local p="$1" resolved=""
   if profile::_have_cmd python3; then
-    python3 - "$p" <<'PY' 2>/dev/null || true
+    if resolved="$(python3 - "$p" <<'PY' 2>/dev/null
 import os
 import sys
 
 print(os.path.abspath(sys.argv[1]))
 PY
-  elif command -v readlink >/dev/null 2>&1; then
-    readlink -f -- "$p" 2>/dev/null || printf '%s\n' "$p"
-  else
-    printf '%s\n' "$p"
+)"; then
+      if [[ -n $resolved ]]; then
+        printf '%s\n' "$resolved"
+        return 0
+      fi
+    fi
   fi
+  if command -v readlink >/dev/null 2>&1; then
+    resolved="$(readlink -f -- "$p" 2>/dev/null || true)"
+    if [[ -n $resolved ]]; then
+      printf '%s\n' "$resolved"
+    else
+      printf '%s\n' "$p"
+    fi
+    return 0
+  fi
+  printf '%s\n' "$p"
 }
 
 profile::_normalize_task_name() {
@@ -524,11 +536,15 @@ PY
 
 profile::_flat_yaml_parse() {
   local file="$1" section="" line key value
+  local current_task=""
+  declare -A _task_seen=()
+
   while IFS= read -r line || [[ -n $line ]]; do
     line="$(printf '%s' "$line" | sed 's/#.*$//' | sed 's/[[:space:]]*$//' | sed 's/^[[:space:]]*//')"
     [[ -z $line ]] && continue
     if [[ $line == wgx:* ]]; then
       section="root"
+      current_task=""
       continue
     fi
     if [[ $line =~ ^apiVersion:[[:space:]]*(.*)$ ]]; then
@@ -552,14 +568,66 @@ profile::_flat_yaml_parse() {
     fi
     if [[ $line == dirs:* ]]; then
       section="dirs"
+      current_task=""
       continue
     fi
     if [[ $line == tasks:* ]]; then
       section="tasks"
+      current_task=""
       continue
     fi
     if [[ $line == env:* ]]; then
       section="env"
+      current_task=""
+      continue
+    fi
+    if [[ $section == tasks && $line =~ ^([a-zA-Z0-9_-]+):[[:space:]]*$ ]]; then
+      key="${BASH_REMATCH[1]}"
+      key="$(profile::_normalize_task_name "$key")"
+      current_task="$key"
+      if [[ -z ${_task_seen[$key]:-} ]]; then
+        _task_seen[$key]=1
+        WGX_TASK_ORDER+=("$key")
+      fi
+      [[ -n ${WGX_TASK_CMDS[$key]+_} ]] || WGX_TASK_CMDS["$key"]="STR:"
+      [[ -n ${WGX_TASK_DESC[$key]+_} ]] || WGX_TASK_DESC["$key"]=""
+      [[ -n ${WGX_TASK_GROUP[$key]+_} ]] || WGX_TASK_GROUP["$key"]=""
+      [[ -n ${WGX_TASK_SAFE[$key]+_} ]] || WGX_TASK_SAFE["$key"]="0"
+      continue
+    fi
+    if [[ $section == tasks && $line =~ ^cmd:[[:space:]]*(.*)$ ]]; then
+      [[ -n $current_task ]] || continue
+      value="${BASH_REMATCH[1]}"
+      value="$(printf '%s' "$value" | sed 's/^"//' | sed 's/"$//')"
+      WGX_TASK_CMDS["$current_task"]="STR:${value}"
+      continue
+    fi
+    if [[ $section == tasks && $line =~ ^desc:[[:space:]]*(.*)$ ]]; then
+      [[ -n $current_task ]] || continue
+      value="${BASH_REMATCH[1]}"
+      value="$(printf '%s' "$value" | sed 's/^"//' | sed 's/"$//')"
+      WGX_TASK_DESC["$current_task"]="$value"
+      continue
+    fi
+    if [[ $section == tasks && $line =~ ^group:[[:space:]]*(.*)$ ]]; then
+      [[ -n $current_task ]] || continue
+      value="${BASH_REMATCH[1]}"
+      value="$(printf '%s' "$value" | sed 's/^"//' | sed 's/"$//')"
+      WGX_TASK_GROUP["$current_task"]="$value"
+      continue
+    fi
+    if [[ $section == tasks && $line =~ ^safe:[[:space:]]*(.*)$ ]]; then
+      [[ -n $current_task ]] || continue
+      value="${BASH_REMATCH[1]}"
+      value="$(printf '%s' "$value" | sed 's/^"//' | sed 's/"$//')"
+      case "${value,,}" in
+      1|true|yes|on)
+        WGX_TASK_SAFE["$current_task"]="1"
+        ;;
+      *)
+        WGX_TASK_SAFE["$current_task"]="0"
+        ;;
+      esac
       continue
     fi
     if [[ $section == dirs && $line =~ ^([a-zA-Z0-9_-]+):[[:space:]]*(.*)$ ]]; then
@@ -576,14 +644,21 @@ profile::_flat_yaml_parse() {
     fi
     if [[ $section == tasks && $line =~ ^([a-zA-Z0-9_-]+):[[:space:]]*(.*)$ ]]; then
       key="${BASH_REMATCH[1]}"
-      key="$(profile::_normalize_task_name "$key")"
       value="${BASH_REMATCH[2]}"
       value="$(printf '%s' "$value" | sed 's/^"//' | sed 's/"$//')"
-      WGX_TASK_ORDER+=("$key")
-      WGX_TASK_CMDS["$key"]="STR:${value}"
-      WGX_TASK_DESC["$key"]=""
-      WGX_TASK_GROUP["$key"]=""
-      WGX_TASK_SAFE["$key"]="0"
+      key="$(profile::_normalize_task_name "$key")"
+      current_task="$key"
+      if [[ -z ${_task_seen[$key]:-} ]]; then
+        _task_seen[$key]=1
+        WGX_TASK_ORDER+=("$key")
+      fi
+      [[ -n ${WGX_TASK_DESC[$key]+_} ]] || WGX_TASK_DESC["$key"]=""
+      [[ -n ${WGX_TASK_GROUP[$key]+_} ]] || WGX_TASK_GROUP["$key"]=""
+      [[ -n ${WGX_TASK_SAFE[$key]+_} ]] || WGX_TASK_SAFE["$key"]="0"
+      [[ -n ${WGX_TASK_CMDS[$key]+_} ]] || WGX_TASK_CMDS["$key"]="STR:"
+      if [[ -n $value ]]; then
+        WGX_TASK_CMDS["$key"]="STR:${value}"
+      fi
       continue
     fi
     if [[ $section == env && $line =~ ^([A-Z0-9_]+):[[:space:]]*(.*)$ ]]; then
