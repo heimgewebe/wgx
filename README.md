@@ -207,6 +207,7 @@ Anschließend kannst du sie dort projektspezifisch anpassen.
 ## .wgx/profile (v1 / v1.1)
 
 - **Datei**: `.wgx/profile.yml` (oder `.yaml` / `.json`)
+- **Fallback**: Falls keine `.wgx/profile.yml` eingecheckt ist, nutzt CI die versionierte `.wgx/profile.example.yml` als Vorlage – sie muss daher im Repository bleiben.
 - **Details**: Kapitel [6. Profile v1 / v1.1](docs/wgx-mycelium-v-omega.de.md#6-profile-v1--v11-minimal--reich) im Mycelium-Manifest erläutert Struktur, Defaults und Erweiterungen.
 - **apiVersion**:
   - `v1`: einfache Strings für `tasks.<name>`

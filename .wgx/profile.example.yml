@@ -5,6 +5,7 @@
 #     und passe sie NUR lokal an (.wgx/profile.yml ist von Git ignoriert).
 #  ❗ Do not commit .wgx/profile.yml – nur diese Example-Datei gehört ins Repo.
 #  Zweck: CI-Fallback & Strukturhinweis (ohne Secrets).
+#  ➜ Diese Datei MUSS versioniert bleiben, damit die Guard-Jobs laufen.
 # =======================================================================
 
 wgx:
@@ -33,6 +34,7 @@ wgx:
     test: "echo test"
     build: "echo build"
     smoke: "echo smoke"
+    metrics: "scripts/wgx-metrics-snapshot.sh --output metrics.json"
 
   workflows:
     pr:
