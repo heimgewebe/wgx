@@ -144,6 +144,9 @@ Diese Übersicht fasst die wichtigsten Subcommands zusammen, inklusive Zweck und
 ### `wgx task`
 - **Zweck:** Führt einen Task aus `.wgx/profile.yml` aus.
 - **Benutzung:** `wgx task <name> [--] [args…]`; benötigt ein geladenes Profil.
+- **Manifest:** `tasks.<name>.cmd` kann als Shell-String oder als Array angegeben werden. String-Varianten
+  werden unverändert übergeben; optionale `args`-Einträge werden separat gequotet angehängt.
+  Array-Kommandos bleiben Listen und werden inklusive `args` als JSON-Payload ausgegeben.
 
 ### `wgx tasks`
 - **Zweck:** Listet Tasks aus dem Profil.
