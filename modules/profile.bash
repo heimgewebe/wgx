@@ -471,8 +471,8 @@ if isinstance(tasks, dict):
         # - If manifest provided an ARRAY: emit ARRJSON (and extend with args).
         # - Otherwise: coerce to string sensibly.
         #
-        base_cmd: str | None = None
-        tokens: list[str] = []
+        base_cmd = None
+        tokens = []
         use_array_format = False
 
         if isinstance(selected_cmd, (list, tuple)):
@@ -485,7 +485,7 @@ if isinstance(tasks, dict):
             tokens = [str(selected_cmd)]
 
         # Normalize/collect args (list/dict with platform variants)
-        appended_args: list[str] = []
+        appended_args = []
         if isinstance(args_value, (list, tuple)) and args_value:
             appended_args.extend(str(item) for item in args_value)
         elif isinstance(args_value, dict):
