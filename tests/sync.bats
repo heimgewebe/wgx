@@ -3,7 +3,7 @@
 load test_helper
 
 setup() {
-  rm -rf tmprepo
+  rm -rf tmprepo remote
   git init --initial-branch=main tmprepo >/dev/null
   cd tmprepo || exit 1
   git config user.email "test@example.com"
