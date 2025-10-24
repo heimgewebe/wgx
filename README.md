@@ -207,6 +207,7 @@ Anschließend kannst du sie dort projektspezifisch anpassen.
 ## .wgx/profile (v1 / v1.1)
 
 - **Datei**: `.wgx/profile.yml` (oder `.yaml` / `.json`)
+- **Hinweis**: Lokale Profile im Arbeitsbaum sind per `.gitignore` ausgeschlossen. Hinterlegt daher ein Beispielprofil (z.B. `profile.example.yml`) im Repo, wenn die Guard-Jobs ein manifestiertes Profil erwarten.
 - **Details**: Kapitel [6. Profile v1 / v1.1](docs/wgx-mycelium-v-omega.de.md#6-profile-v1--v11-minimal--reich) im Mycelium-Manifest erläutert Struktur, Defaults und Erweiterungen.
 - **apiVersion**:
   - `v1`: einfache Strings für `tasks.<name>`

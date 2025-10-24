@@ -5,3 +5,8 @@
 .DS_Store
 .tmp/
 metrics.json
+
+# Local wgx profiles
+.wgx/profile.yml
+.wgx/profile.yaml
+.wgx/profile.json
