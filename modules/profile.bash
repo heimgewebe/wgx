@@ -354,7 +354,8 @@ def emit_env(prefix: str, mapping):
         return
     for key, val in mapping.items():
         if key is None:
-          continue
+            continue
+        # env base/overrides werden 1:1 als STR übernommen
         skey = str(key)
         sval = '' if val is None else str(val)
         emit(f"{prefix}[{shell_quote(skey)}]={shell_quote(sval)}")
@@ -463,29 +464,53 @@ if isinstance(tasks, dict):
             cmd_value = spec.get('cmd')
             args_value = spec.get('args')
         selected_cmd = select_variant(cmd_value)
-        tokens = []
+        #
+        # Build command preserving semantics:
+        # - If manifest provided a STRING: keep it as-is (no re-quoting/splitting).
+        #   Only append args (quoted) if present.
+        # - If manifest provided an ARRAY: emit ARRJSON (and extend with args).
+        # - Otherwise: coerce to string sensibly.
+        #
+        base_cmd: str | None = None
+        tokens: list[str] = []
         use_array_format = False
+
         if isinstance(selected_cmd, (list, tuple)):
             tokens = [str(item) for item in selected_cmd]
             use_array_format = True
         elif isinstance(selected_cmd, str) and selected_cmd.strip():
-            tokens = shlex.split(selected_cmd)
+            base_cmd = selected_cmd  # preserve raw shell string
         elif selected_cmd not in (None, ''):
+            # numbers/other scalars -> treat as a single token
             tokens = [str(selected_cmd)]
-        if tokens:
-            if isinstance(args_value, (list, tuple)) and args_value:
-                tokens.extend(str(item) for item in args_value)
-            elif isinstance(args_value, dict):
-                variant = select_variant(args_value)
-                if isinstance(variant, (list, tuple)):
-                    tokens.extend(str(item) for item in variant)
-                elif variant not in (None, ''):
-                    tokens.append(str(variant))
-        if use_array_format and tokens:
+
+        # Normalize/collect args (list/dict with platform variants)
+        appended_args: list[str] = []
+        if isinstance(args_value, (list, tuple)) and args_value:
+            appended_args.extend(str(item) for item in args_value)
+        elif isinstance(args_value, dict):
+            variant = select_variant(args_value)
+            if isinstance(variant, (list, tuple)):
+                appended_args.extend(str(item) for item in variant)
+            elif variant not in (None, ''):
+                appended_args.append(str(variant))
+
+        if use_array_format:
+            if appended_args:
+                tokens.extend(appended_args)
             payload = json.dumps(tokens, ensure_ascii=False)
             emit(f"WGX_TASK_CMDS[{shell_quote(norm)}]={shell_quote('ARRJSON:' + payload)}")
         else:
-            command = ' '.join(shell_quote(str(part)) for part in tokens)
+            if base_cmd is not None:
+                # keep base string as-is; only quote appended args
+                if appended_args:
+                    command = base_cmd + ' ' + ' '.join(shlex.quote(str(a)) for a in appended_args)
+                else:
+                    command = base_cmd
+            else:
+                # no base string; fall back to joined tokens/args
+                all_parts = tokens + appended_args
+                command = ' '.join(shlex.quote(str(p)) for p in all_parts)
             emit(f"WGX_TASK_CMDS[{shell_quote(norm)}]={shell_quote('STR:' + command)}")
         emit(f"WGX_TASK_DESC[{shell_quote(norm)}]={shell_quote(str(desc))}")
         emit(f"WGX_TASK_GROUP[{shell_quote(norm)}]={shell_quote(str(group))}")

@@ -104,3 +104,49 @@ SH
   assert_line --index 4 -- "safetask_cmd=ARRJSON:[\"/bin/echo\", \"done\", \"extra\"]"
   assert_line --index 5 -- "safetask_safe=1"
 }
+
+@test "profile task preserves raw strings and quotes appended args" {
+  WORKDIR="$BATS_TEST_TMPDIR/raw"
+  mkdir -p "$WORKDIR/.wgx"
+  cat >"$WORKDIR/.wgx/profile.yml" <<'YAML'
+wgx:
+  apiVersion: v1
+tasks:
+  raw-str:
+    cmd: echo 'a # b'
+    args:
+      - x y
+  array-task:
+    cmd:
+      - bash
+      - -lc
+      - echo ok
+    args:
+      linux:
+        - --flag
+  scalar-cmd:
+    cmd: 42
+YAML
+
+  helper_script="$BATS_TEST_TMPDIR/check_raw.sh"
+  cat >"$helper_script" <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+REPO_ROOT="$1"
+WORKDIR="$2"
+source "$REPO_ROOT/lib/core.bash"
+source "$REPO_ROOT/modules/profile.bash"
+cd "$WORKDIR"
+profile::load ".wgx/profile.yml"
+printf 'raw_cmd=%s\n' "${WGX_TASK_CMDS["raw-str"]}"
+printf 'array_cmd=%s\n' "${WGX_TASK_CMDS["array-task"]}"
+printf 'scalar_cmd=%s\n' "${WGX_TASK_CMDS["scalar-cmd"]}"
+SH
+  chmod +x "$helper_script"
+
+  run "$helper_script" "$REPO_ROOT" "$WORKDIR"
+  assert_success
+  assert_line --index 0 -- "raw_cmd=STR:echo 'a # b' 'x y'"
+  assert_line --index 1 -- "array_cmd=ARRJSON:[\"bash\", \"-lc\", \"echo ok\", \"--flag\"]"
+  assert_line --index 2 -- "scalar_cmd=STR:42"
+}
