@@ -95,21 +95,32 @@ jobs:
             grep -q '^[[:space:]]*\[project\]' pyproject.toml || echo "::warning::[project] section not found in pyproject.toml"
           fi
 
-      - name: Check .wgx profile presence
+      - name: Check tracked .wgx profile presence (no fallbacks)
         shell: sh
         run: |
           set -eu
-          if (set -o pipefail) 2>/dev/null; then set -o pipefail; fi
-          # Require a file that is actually tracked in git, not a file created during CI.
-          if git ls-files --error-unmatch .wgx/profile.yml >/dev/null 2>&1; then
-            echo "OK: tracked .wgx/profile.yml present"
-          elif git ls-files --error-unmatch .wgx/profile.example.yml >/dev/null 2>&1; then
-            echo "::warning::tracked .wgx/profile.yml missing – using tracked .wgx/profile.example.yml as placeholder"
-            head -n 20 .wgx/profile.example.yml || true
-          else
-            echo "::error::No tracked .wgx/profile.yml or .wgx/profile.example.yml found in repository"
-            exit 1
+          (set -o pipefail) 2>/dev/null && set -o pipefail || true
+          if [ "${WGX_ALLOW_NO_PROFILE:-}" = "1" ]; then
+            echo "::warning::Skipping profile check due to WGX_ALLOW_NO_PROFILE=1"
+            exit 0
           fi
+          if files="$(git ls-files -- .wgx/profile.yml .wgx/profile.example.yml)"; then
+            if [ -n "$files" ]; then
+              echo "OK: tracked wgx profile(s):"
+              printf '%s\n' "$files"
+              exit 0
+            fi
+          fi
+          echo "::error::No tracked wgx profile found. Commit one of:"
+          echo "::error::  • .wgx/profile.yml   (preferred for production config)"
+          echo "::error::  • .wgx/profile.example.yml   (placeholder for CI)"
+          echo
+          echo "If you intended to use the example, run:"
+          echo "  git add .wgx/profile.example.yml && git commit -m 'Add example profile for CI'"
+          echo
+          echo "If you have a local .wgx/profile.yml but it's ignored, remove it from .gitignore or commit the example file instead."
+          echo "See README.md section '.wgx/profile (v1 / v1.1)' for details."
+          exit 1
 
       - name: Install shellcheck (cached)
         if: steps.ensure-bash.outputs.has-bash == 'true'
