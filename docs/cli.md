@@ -48,8 +48,6 @@ More:
 
 ### audit
 
-> **Status:** Preview
-
 ```
 Usage:
   wgx audit verify [--strict]
