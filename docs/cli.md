@@ -11,6 +11,7 @@ Usage:
   wgx <command> [args]
 
 Commands:
+  audit
   clean
   config
   doctor
@@ -44,6 +45,17 @@ More:
 ```
 
 ## Commands
+
+### audit
+
+> **Status:** Preview
+
+```
+Usage:
+  wgx audit verify [--strict]
+
+Verwaltet das Audit-Ledger von wgx.
+```
 
 ### clean
 
@@ -151,6 +163,7 @@ Usage:
   wgx <command> [args]
 
 Commands:
+  audit
   clean
   config
   doctor
@@ -203,14 +216,14 @@ Options:
 
 ```
 Usage:
-  wgx init
+  wgx init [--wizard]
 
 Description:
-  Initialisiert die 'wgx'-Konfiguration im Repository.
-  Legt die '.wgx.conf'-Datei und das '.wgx/'-Verzeichnis mit Vorlagen an,
-  falls diese noch nicht vorhanden sind.
+  Initialisiert die 'wgx'-Konfiguration im Repository. Mit `--wizard` wird
+  ein interaktiver Assistent gestartet, der `.wgx/profile.yml` erstellt.
 
 Options:
+  --wizard      Interaktiven Profil-Wizard starten.
   -h, --help    Diese Hilfe anzeigen.
 ```
 
