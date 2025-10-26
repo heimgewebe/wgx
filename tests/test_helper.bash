@@ -23,3 +23,7 @@ export PATH
 # Setzt das WGX_DIR, damit die Kern-Bibliotheken gefunden werden
 WGX_DIR="$_wgx_project_root"
 export WGX_DIR
+
+# Unterdrückt Kompatibilitäts-Hinweise in Tests, damit die Ausgaben stabil bleiben
+WGX_PROFILE_DEPRECATION="quiet"
+export WGX_PROFILE_DEPRECATION

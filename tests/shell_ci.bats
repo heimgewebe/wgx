@@ -68,3 +68,8 @@ SCRIPT
     assert_success
   done
 }
+
+@test "assertion helper self-tests pass" {
+  run bats -r tests/assertions.bats
+  assert_success
+}

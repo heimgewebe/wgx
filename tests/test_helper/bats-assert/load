@@ -2,6 +2,7 @@
 
 bats_assert_loaded=1
 
+# ---- core helpers ----
 _assert_fail() {
   local message=$1
   printf 'Assertion failed: %s\n' "$message" >&2
@@ -28,6 +29,50 @@ _assert_match() {
   esac
 }
 
+# ---- value equality ----
+assert_equal() {
+  if (($# != 2)); then
+    _assert_fail "assert_equal requires exactly 2 arguments: expected, actual"
+  fi
+
+  local expected="$1"
+  local actual="$2"
+
+  if [[ "$actual" != "$expected" ]]; then
+    if [[ "$expected" == *$'\n'* || "$actual" == *$'\n'* ]]; then
+      local _exp _act _diff msg
+      _exp="$(mktemp)"
+      _act="$(mktemp)"
+      trap 'rm -f "$_exp" "$_act"; trap - RETURN' RETURN
+      printf '%s' "$expected" >"$_exp"
+      printf '%s' "$actual"   >"$_act"
+      if command -v diff >/dev/null 2>&1; then
+        _diff="$(diff -u --label expected --label actual "$_exp" "$_act" 2>/dev/null || true)"
+        msg=$'assert_equal failed (multiline)\n'"${_diff}"
+      else
+        msg=$'assert_equal failed (multiline; no diff available)\n--- expected ---\n'"$expected"$'\n--- actual ---\n'"$actual"
+      fi
+      _assert_fail "$msg"
+      return 1
+    fi
+    _assert_fail "Expected '${expected}', got '${actual}'"
+  fi
+}
+
+assert_not_equal() {
+  if (($# != 2)); then
+    _assert_fail "assert_not_equal requires exactly 2 arguments: not_expected, actual"
+  fi
+
+  local not_expected="$1"
+  local actual="$2"
+
+  if [[ "$actual" == "$not_expected" ]]; then
+    _assert_fail "Expected values to differ, but both were: '${actual}'"
+  fi
+}
+
+# ---- command status ----
 assert_success() {
   local actual=${status-}
   if [[ ${actual:-1} -ne 0 ]]; then
@@ -162,4 +207,73 @@ assert_line() {
   if ! _assert_match "$mode" "$line" "$expected"; then
     _assert_fail "Expected line[$index] (${mode}) to match '$expected' but was: $line"
   fi
+}
+
+# ---- JSON helpers ----
+_json_normalize() {
+  # Reads JSON from stdin and prints a stable, minified, key-sorted representation.
+  # Prefers jq -S .; falls back to python3. Returns non-zero if neither exists or input invalid.
+  if command -v jq >/dev/null 2>&1; then
+    jq -S -c .
+    return $?
+  fi
+  if command -v python3 >/dev/null 2>&1; then
+    python3 - <<'PY'
+import json, sys
+try:
+    data = json.load(sys.stdin)
+except Exception as e:
+    sys.stderr.write("json-parse-error: %s\n" % (e,))
+    sys.exit(1)
+sys.stdout.write(json.dumps(data, sort_keys=True, separators=(",", ":")))
+PY
+    return $?
+  fi
+  printf 'json-normalize: missing jq and python3\n' >&2
+  return 127
+}
+
+assert_json_equal() {
+  if (($# != 2)); then
+    _assert_fail "assert_json_equal requires exactly 2 arguments: expected_json, actual_json"
+  fi
+
+  local expected_raw="$1"
+  local actual_raw="$2"
+
+  local _exp _act _norm_exp _norm_act
+  _exp="$(mktemp)"
+  _act="$(mktemp)"
+  trap 'rm -f "$_exp" "$_act"; trap - RETURN' RETURN
+  printf '%s' "$expected_raw" >"$_exp"
+  printf '%s' "$actual_raw"   >"$_act"
+
+  if ! _norm_exp="$(_json_normalize <"$_exp")"; then
+    _assert_fail "assert_json_equal: expected JSON is invalid or normalization failed"
+    return 1
+  fi
+  if ! _norm_act="$(_json_normalize <"$_act")"; then
+    _assert_fail "assert_json_equal: actual JSON is invalid or normalization failed"
+    return 1
+  fi
+
+  assert_equal "$_norm_exp" "$_norm_act"
+}
+
+assert_json_not_equal() {
+  if (($# != 2)); then
+    _assert_fail "assert_json_not_equal requires exactly 2 arguments: json_a, json_b"
+  fi
+
+  local a_norm b_norm
+  if ! a_norm="$(_json_normalize <<<"$1")"; then
+    _assert_fail "assert_json_not_equal: json_a is invalid or normalization failed"
+    return 1
+  fi
+  if ! b_norm="$(_json_normalize <<<"$2")"; then
+    _assert_fail "assert_json_not_equal: json_b is invalid or normalization failed"
+    return 1
+  fi
+
+  assert_not_equal "$a_norm" "$b_norm"
 }
