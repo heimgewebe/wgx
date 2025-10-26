@@ -108,8 +108,10 @@ PY
   audit::log "task_start" "$payload_start" || true
   hauski::emit "task.start" "$payload_start" || true
 
-  if ! profile::run_task "$name" "${forwarded[@]}"; then
-    local rc=$?
+  # Run task, capture real exit code, then branch on it.
+  profile::run_task "$name" "${forwarded[@]}"
+  local rc=$?
+  if (( rc != 0 )); then
     if command -v python3 >/dev/null 2>&1; then
       payload_finish=$(python3 - "$name" "$rc" <<'PY'
 import json
