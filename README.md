@@ -65,6 +65,16 @@ Falls ein Befehl unbekannt ist, kannst du die verfügbaren Subcommands auflisten
 wgx --list 2>/dev/null || wgx commands 2>/dev/null || ls -1 cmd/
 ```
 
+## WGX Readiness
+
+Der Workflow [`wgx-guard`](.github/workflows/wgx-guard.yml) generiert pro Lauf
+eine Readiness-Matrix und veröffentlicht sie als Artefakte (`readiness.json`,
+`readiness-table.md`, `readiness-badge.svg`). Die Dateien werden nicht
+versioniert, um Git-Lärm zu vermeiden. Du findest sie im neuesten erfolgreichen
+CI-Lauf oder lokal nach `./scripts/gen-readiness.sh`; Details stehen in
+[docs/readiness.md](docs/readiness.md). Ergänzend erklärt
+[docs/audit-ledger.md](docs/audit-ledger.md) die Audit-Logs und Beispiele.
+
 ## Entwicklungs-Schnellstart
 
 - In VS Code öffnen → „Reopen in Container“
@@ -77,6 +87,8 @@ wgx --list 2>/dev/null || wgx commands 2>/dev/null || ls -1 cmd/
   bats -r tests
   ```
 - Node.js tooling ist nicht erforderlich; npm-/pnpm-Workflows sind deaktiviert, und es existiert kein `package.json` mehr.
+
+- Mehr Hinweise im [Quickstart](docs/quickstart.md).
 
 ## Python-Stack (uv als Standard)
 
