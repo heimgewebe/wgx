@@ -109,8 +109,20 @@ PY
   hauski::emit "task.start" "$payload_start" || true
 
   # Run task, capture real exit code, then branch on it.
+  # Important: The CLI wrapper enables `set -e` (errexit). If the task fails,
+  # a plain invocation would abort the shell before we can capture `$?`.
+  # We therefore (temporarily) disable errexit, run the task, grab rc, and
+  # restore the original errexit state afterwards.
+  local rc had_errexit=0
+  if [[ $- == *e* ]]; then
+    had_errexit=1
+    set +o errexit
+  fi
   profile::run_task "$name" "${forwarded[@]}"
-  local rc=$?
+  rc=$?
+  if (( had_errexit )); then
+    set -o errexit
+  fi
   if (( rc != 0 )); then
     if command -v python3 >/dev/null 2>&1; then
       payload_finish=$(python3 - "$name" "$rc" <<'PY'
