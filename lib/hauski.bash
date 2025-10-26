@@ -33,7 +33,11 @@ except Exception:
 print(json.dumps({"event": event, "timestamp": timestamp, "payload": payload}))
 PY
 )
-  curl -fsS --connect-timeout 1 --max-time 2 -X POST -H 'Content-Type: application/json' \
-    --data "$body" http://127.0.0.1:7070/v1/events >/dev/null 2>&1 && \
-    printf 'hauski: event %s delivered\n' "$event" >&2
+  curl -fsS -X POST -H 'Content-Type: application/json' \
+    --connect-timeout 1 \
+    --max-time 2 \
+    --retry 0 \
+    --data "$body" \
+    http://127.0.0.1:7070/v1/events >/dev/null 2>&1 && \
+    printf 'hauski: delivered %s\n' "$event" >&2
 }
