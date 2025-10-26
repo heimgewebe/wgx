@@ -10,3 +10,12 @@ metrics.json
 .wgx/profile.yml
 .wgx/profile.yaml
 .wgx/profile.json
+
+# Audit temp signatures
+.wgx/audit/*.sig
+.wgx/audit/ledger.jsonl
+
+# Generated readiness artifacts (published via CI)
+/artifacts/readiness.json
+/artifacts/readiness-table.md
+/artifacts/readiness-badge.svg

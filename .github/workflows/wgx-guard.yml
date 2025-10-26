@@ -95,6 +95,35 @@ jobs:
             grep -q '^[[:space:]]*\[project\]' pyproject.toml || echo "::warning::[project] section not found in pyproject.toml"
           fi
 
+      - name: Generate Readiness
+        if: steps.ensure-bash.outputs.has-bash == 'true'
+        id: readiness
+        shell: bash
+        run: |
+          set -euo pipefail
+          if scripts/gen-readiness.sh; then
+            if [ -s artifacts/readiness.json ]; then
+              echo "has-matrix=true" >>"$GITHUB_OUTPUT"
+            else
+              echo "::warning::Readiness artifacts not created"
+              echo "has-matrix=false" >>"$GITHUB_OUTPUT"
+            fi
+          else
+            echo "::warning::Readiness generation failed"
+            echo "has-matrix=false" >>"$GITHUB_OUTPUT"
+          fi
+
+      - name: Upload Readiness artifacts
+        if: steps.readiness.outputs.has-matrix == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: readiness-matrix
+          retention-days: 7
+          path: |
+            artifacts/readiness.json
+            artifacts/readiness-table.md
+            artifacts/readiness-badge.svg
+
       - name: Check tracked .wgx profile presence (no fallbacks)
         shell: sh
         run: |
