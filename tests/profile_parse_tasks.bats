@@ -1,8 +1,8 @@
 #!/usr/bin/env bats
 
+load test_helper
+
 setup() {
-  load 'test_helper/bats-support/load'
-  load 'test_helper/bats-assert/load'
   REPO_ROOT="$(pwd)"
   export WGX_DIR="$REPO_ROOT"
   mkdir -p "$BATS_TEST_TMPDIR/bin"

@@ -5,6 +5,11 @@
 # Gemeinsamer Test-Setup-Code für alle Bats-Tests
 # Wird über `load test_helper` in den Test-Skripten geladen
 
+# Stellt die gemeinsamen Bats-Hilfsbibliotheken bereit, damit Assertions wie
+# `assert_success` in allen Tests verfügbar sind.
+load 'test_helper/bats-support/load'
+load 'test_helper/bats-assert/load'
+
 # Fehler frühzeitig sichtbar machen: Bei unerwarteten Fehlern, unset-Variablen
 # oder fehlschlagenden Pipes soll der Test abbrechen.
 set -euo pipefail

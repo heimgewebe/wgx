@@ -1,5 +1,7 @@
 #!/usr/bin/env bats
 
+load test_helper
+
 setup() {
   export WGX_DIR="$(pwd)"
   export PATH="$WGX_DIR/cli:$PATH"

@@ -1,5 +1,7 @@
 #!/usr/bin/env bats
 
+load test_helper
+
 setup() {
   rm -rf tmprepo remote
 

@@ -1,8 +1,8 @@
 #!/usr/bin/env bats
 
+load test_helper
+
 setup() {
-  load 'test_helper/bats-support/load'
-  load 'test_helper/bats-assert/load'
   local test_dir repo_root
   if [ -n "${BATS_TEST_FILENAME:-}" ]; then
     test_dir="$(cd "$(dirname "${BATS_TEST_FILENAME}")" && pwd)"
