@@ -1,8 +1,8 @@
 #!/usr/bin/env bats
 
+load test_helper
+
 setup() {
-  load 'test_helper/bats-support/load'
-  load 'test_helper/bats-assert/load'
   export WGX_DIR="$(pwd)"
   export PATH="$WGX_DIR/cli:$PATH"
 }
