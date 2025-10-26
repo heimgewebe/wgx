@@ -6,6 +6,9 @@
 .tmp/
 metrics.json
 
+# Local helper state
+/.local/
+
 # Local wgx profiles
 .wgx/profile.yml
 .wgx/profile.yaml
@@ -19,3 +22,6 @@ metrics.json
 /artifacts/readiness.json
 /artifacts/readiness-table.md
 /artifacts/readiness-badge.svg
+
+# Future artifacts cache
+/artifacts/
