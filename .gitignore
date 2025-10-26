@@ -15,7 +15,14 @@ metrics.json
 .wgx/audit/*.sig
 .wgx/audit/ledger.jsonl
 
+# Local cache directory (created by helper scripts)
+/.local/*
+!/.local/README.md
+
 # Generated readiness artifacts (published via CI)
 /artifacts/readiness.json
 /artifacts/readiness-table.md
 /artifacts/readiness-badge.svg
+
+# Generated artifact directory (covers future additions)
+/artifacts/
