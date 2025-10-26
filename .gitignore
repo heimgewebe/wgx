@@ -6,6 +6,9 @@
 .tmp/
 metrics.json
 
+# Local helper state
+/.local/
+
 # Local wgx profiles
 .wgx/profile.yml
 .wgx/profile.yaml
