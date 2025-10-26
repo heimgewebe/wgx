@@ -1,24 +1,15 @@
 # =======================================================================
-#  .wgx/profile.example.yml
-#  WARNUNG: Keine echten Zugangsdaten hier eintragen oder commiten!
+#  .wgx/profile.example.yml  —  CI-Fallback & Strukturhinweis (ohne Secrets)
+#  WARNUNG: Keine echten Zugangsdaten hier eintragen!
 #  ➜ Lokale Nutzung: Kopiere diese Datei zu .wgx/profile.yml
 #     und passe sie NUR lokal an (.wgx/profile.yml ist von Git ignoriert).
-#  ❗ Do not commit .wgx/profile.yml – nur diese Example-Datei gehört ins Repo.
-#  Zweck: CI-Fallback & Strukturhinweis (ohne Secrets).
-#  ➜ Diese Datei MUSS versioniert bleiben, damit die Guard-Jobs laufen.
+#  Diese Example-Datei MUSS versioniert bleiben, damit Guard/CI laufen.
 # =======================================================================
 
 wgx:
-  apiVersion: v1
+  apiVersion: v1.1
   requiredWgx: "^2.0.0"
   repoKind: generic
-
-  env:
-    prefer:
-      - devcontainer
-      - devbox
-      - mise
-      - termux
 
   tooling:
     python:
@@ -28,27 +19,6 @@ wgx:
     shell:
       default: bash
 
+  # Minimaler Task für Smoke-Checks in CI
   tasks:
-    up: "echo bootstrap"
-    lint: "echo lint"
-    test: "echo test"
-    build: "echo build"
-    smoke: "echo smoke"
-    metrics: "scripts/wgx-metrics-snapshot.sh --output metrics.json"
-
-  workflows:
-    pr:
-      steps:
-        - task: lint
-        - task: test
-
-  contracts:
-    ci:
-      template: etc/ci/template.yml
-
-# Hinweise:
-# - `env.prefer`: legt die bevorzugte Reihenfolge der Laufzeitumgebungen fest.
-# - `tasks`: definiert wiederverwendbare Shell-Kommandos bzw. Pipelines.
-# - `workflows`: referenziert Tasks, um CI-Abläufe oder lokale Sequenzen zu beschreiben.
-# Weitere Felder können je nach Repository ergänzt werden, z. B. `topTasks`,
-# zusätzliche `contracts`, oder projektspezifische Tooling-Konfigurationen.
+    smoke: "echo wgx-profile-ok"
