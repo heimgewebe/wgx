@@ -4,6 +4,10 @@ load test_helper
 
 setup() {
   rm -rf tmprepo remote
+
+  local project_root
+  project_root="$(cd "${BATS_TEST_DIRNAME:-$(dirname "${BATS_TEST_FILENAME}")}" && cd .. && pwd)"
+
   git init --initial-branch=main tmprepo >/dev/null
   cd tmprepo || exit 1
   git config user.email "test@example.com"
@@ -15,6 +19,9 @@ setup() {
   mkdir -p ../remote && (cd ../remote && git init --bare --initial-branch=main >/dev/null 2>&1)
   git remote add origin ../remote
   git push -u origin main >/dev/null
+
+  export WGX_DIR="$project_root"
+  export PATH="$WGX_DIR/cli:$PATH"
 }
 
 teardown() {

@@ -98,8 +98,10 @@ PY
 
 profile::_normalize_task_name() {
   local name="$1"
-  name="${name//_/ -}"
-  name="${name// /}"
+  name="${name// /-}"
+  while [[ $name == *--* ]]; do
+    name="${name//--/-}"
+  done
   printf '%s' "${name,,}"
 }
 
