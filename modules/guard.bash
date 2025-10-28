@@ -24,6 +24,15 @@ _guard_require_file() {
   return 1
 }
 
+type _guard_gitgrep_pcre_supported >/dev/null 2>&1 || \
+_guard_gitgrep_pcre_supported() {
+  local rc
+  # 0/1 = Option -P vorhanden (Match egal), 2 = Fehler/fehlendes PCRE
+  git grep -P -n 'a' -- . >/dev/null 2>&1
+  rc=$?
+  [[ $rc -ne 2 ]]
+}
+
 guard_run() {
   local run_lint=0 run_test=0
   while [[ $# -gt 0 ]]; do
@@ -69,28 +78,7 @@ USAGE
     run_test=1
   fi
 
-  # 1. Staged Secrets checken
-  echo "▶ Checking for secrets..."
-  # Scannt den Index (--cached), ignoriert Binärdateien (-I), case-insensitive (-i)
-  # und nutzt ein robusteres Pattern zur Erkennung möglicher Secrets.
-  if git grep --cached -I -n -E -i \
-      -e 'AKIA[0-9A-Z]{16}' \
-      -e 'BEGIN [A-Z ]*PRIVATE KEY' \
-      -e '\b(pass(word)?|secret|api[_-]?key|token|authorization)\b' -- . >/dev/null; then
-    echo "❌ Potentielles Secret im Commit gefunden (Index-Scan)!" >&2
-    echo "   Tipp: Prüfe bewusst, whiteliste ggf. gezielt oder verwende gitleaks." >&2
-    return 1
-  fi
-
-  # 2. Konfliktmarker checken
-  echo "▶ Checking for conflict markers..."
-  # Beschränkt auf getrackte Inhalte via git grep, vermeidet unnötige Scans.
-  if git grep -I -n -E '^(<<<<<<< |=======|>>>>>>> )' -- . >/dev/null 2>&1; then
-    echo "❌ Konfliktmarker in getrackten Dateien gefunden!" >&2
-    return 1
-  fi
-
-  # 3. Bigfiles checken
+  # 1. Bigfiles checken
   local max_bytes="${WGX_GUARD_MAX_BYTES:-1048576}"
   if [[ ! "$max_bytes" =~ ^[0-9]+$ ]]; then
     echo "⚠️ Ungültiger Wert für WGX_GUARD_MAX_BYTES ('$max_bytes'), verwende 1048576." >&2
@@ -111,6 +99,51 @@ USAGE
     exit $found
   ); then
     echo "❌ Zu große Dateien im Repo (≥ ${max_bytes} Bytes):" >&2
+    return 1
+  fi
+
+  # 2. Staged Secrets checken
+  echo "▶ Checking for secrets..."
+  # Scannt den Index (--cached), ignoriert Binärdateien (-I), case-insensitive.
+  # Hinweis: \b ist in -E KEINE Wortgrenze. Prüfe PCRE-Unterstützung (-P); nutze
+  # Lookarounds für Wortgrenzen, ansonsten portable Fallback-Regex.
+  local _secret_hit=1
+  if _guard_gitgrep_pcre_supported; then
+    # PCRE: echte Wortgrenzen gegen [A-Za-z0-9_]
+    git grep --cached -I -n -P -i \
+      -e 'AKIA[0-9A-Z]{16}' \
+      -e 'BEGIN [A-Z ]*PRIVATE KEY' \
+      -e '(?<![A-Za-z0-9_])(pass(?:word)?|secret|api[_-]?key|token|authorization)(?![A-Za-z0-9_])' \
+      -e 'ghp_[0-9A-Za-z]{36}' \
+      -e 'xox[aboprs]-[0-9A-Za-z-]{10,}' \
+      -e 'AIza[0-9A-Za-z_-]{35}' -- . \
+      >/dev/null 2>&1
+    _secret_hit=$?
+  else
+    # Fallback ohne PCRE: simulierte "Begrenzung" über Nicht-Wortzeichen
+    git grep --cached -I -n -E -i \
+      -e 'AKIA[0-9A-Z]{16}' \
+      -e 'BEGIN [A-Z ]*PRIVATE KEY' \
+      -e '(^|[^[:alnum:]_])(pass(word)?|secret|api[_-]?key|token|authorization)([^[:alnum:]_]|$)' \
+      -e 'ghp_[0-9A-Za-z]{36}' \
+      -e 'xox[aboprs]-[0-9A-Za-z-]{10,}' \
+      -e 'AIza[0-9A-Za-z_-]{35}' -- . \
+      >/dev/null 2>&1
+    _secret_hit=$?
+  fi
+
+  if [[ $_secret_hit -eq 0 ]]; then
+    echo "❌ Potentielles Secret im Commit gefunden (Index-Scan)!" >&2
+    echo "   Tipp: Prüfe bewusst, whiteliste ggf. gezielt oder verwende gitleaks." >&2
+    return 1
+  fi
+  unset -v _secret_hit
+
+  # 3. Konfliktmarker checken
+  echo "▶ Checking for conflict markers..."
+  # Beschränkt auf getrackte Inhalte via git grep, vermeidet unnötige Scans.
+  if git grep -I -n -E '^(<<<<<<< |=======|>>>>>>> )' -- . >/dev/null 2>&1; then
+    echo "❌ Konfliktmarker in getrackten Dateien gefunden!" >&2
     return 1
   fi
 

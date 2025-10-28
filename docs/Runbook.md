@@ -13,6 +13,7 @@
 * CI mit shellcheck/shfmt/bats
 * Markdownlint + Vale
 * templates/profile.template.yml vorhanden
+* Guard-Env: `WGX_GUARD_MAX_BYTES` (Bigfile-Schwelle), `WGX_GUARD_CHECKLIST_STRICT` (Warnmodus)
 
 ## Troubleshooting
 * `wgx selftest` starten; Logs unter `~/.local/state/wgx/`.
