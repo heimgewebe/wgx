@@ -48,7 +48,7 @@ load 'test_helper/bats-assert/load'
   local b='{"a":2}'
   run bash -lc 'source tests/test_helper/bats-assert/load; assert_json_equal "$1" "$2"' _ "$a" "$b"
   assert_failure
-  [[ "$output" == *"assert_equal failed"* ]]
+  assert_output --partial "Expected '{\"a\":1}', got '{\"a\":2}'"
 }
 
 @test "assert_json_not_equal succeeds on difference" {
@@ -78,8 +78,8 @@ load 'test_helper/bats-assert/load'
   run bash -lc 'source tests/test_helper/bats-assert/load; _json_normalize <<<"$1"' _ "$j"
   assert_success
   # Keys sorted lexicographically
-  assert_output partial '"a":2'
-  assert_output partial '"z":1'
+  assert_output --partial '"a":2'
+  assert_output --partial '"z":1'
 }
 
 # ------------------------------------------------------------
