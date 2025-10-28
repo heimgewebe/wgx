@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 
 # Guard-Modul: Lint- und Testläufe (aus Monolith portiert)
+# Konfigurierbare Umgebungsvariablen:
+#   WGX_GUARD_MAX_BYTES        Schwelle für Bigfile-Check (Bytes, Default 1048576)
+#   WGX_GUARD_CHECKLIST_STRICT Schaltet Checkliste auf Warnmodus, wenn "0"
 
 _guard_command_available() {
   local name="$1"
@@ -68,37 +71,65 @@ USAGE
 
   # 1. Staged Secrets checken
   echo "▶ Checking for secrets..."
-  if git diff --cached | grep -E "AKIA|SECRET|PASSWORD" >/dev/null; then
-    echo "❌ Potentielles Secret im Commit gefunden!" >&2
+  # Scannt den Index (--cached), ignoriert Binärdateien (-I), case-insensitive (-i)
+  # und nutzt ein robusteres Pattern zur Erkennung möglicher Secrets.
+  if git grep --cached -I -n -E -i \
+      -e 'AKIA[0-9A-Z]{16}' \
+      -e 'BEGIN [A-Z ]*PRIVATE KEY' \
+      -e '\b(pass(word)?|secret|api[_-]?key|token|authorization)\b' -- . >/dev/null; then
+    echo "❌ Potentielles Secret im Commit gefunden (Index-Scan)!" >&2
+    echo "   Tipp: Prüfe bewusst, whiteliste ggf. gezielt oder verwende gitleaks." >&2
     return 1
   fi
 
   # 2. Konfliktmarker checken
   echo "▶ Checking for conflict markers..."
-  if grep -R -E '^(<<<<<<< |=======|>>>>>>> )' . --exclude-dir=.git >/dev/null 2>&1; then
-    echo "❌ Konfliktmarker gefunden!" >&2
+  # Beschränkt auf getrackte Inhalte via git grep, vermeidet unnötige Scans.
+  if git grep -I -n -E '^(<<<<<<< |=======|>>>>>>> )' -- . >/dev/null 2>&1; then
+    echo "❌ Konfliktmarker in getrackten Dateien gefunden!" >&2
     return 1
   fi
 
   # 3. Bigfiles checken
-  echo "▶ Checking for oversized files..."
-  if git ls-files -z |
-    xargs -0 du -sb 2>/dev/null |
-    awk 'BEGIN { found = 0 } $1 >= 1048576 { print; found = 1 } END { exit(found ? 0 : 1) }'; then
-    echo "❌ Zu große Dateien im Repo!" >&2
+  local max_bytes="${WGX_GUARD_MAX_BYTES:-1048576}"
+  if [[ ! "$max_bytes" =~ ^[0-9]+$ ]]; then
+    echo "⚠️ Ungültiger Wert für WGX_GUARD_MAX_BYTES ('$max_bytes'), verwende 1048576." >&2
+    max_bytes=1048576
+  fi
+  echo "▶ Checking for oversized files (≥ ${max_bytes} Bytes)..."
+  # Portabler Check per wc -c; prüft nur getrackte Dateien, Schwelle via WGX_GUARD_MAX_BYTES konfigurierbar.
+  if (
+    found=1
+    while IFS= read -r -d '' f; do
+      [ -e "$f" ] || continue
+      sz=$(wc -c <"$f" 2>/dev/null || echo 0)
+      if [ "$sz" -ge "$max_bytes" ]; then
+        printf '%s\t%s\n' "$sz" "$f"
+        found=0
+      fi
+    done < <(git ls-files -z)
+    exit $found
+  ); then
+    echo "❌ Zu große Dateien im Repo (≥ ${max_bytes} Bytes):" >&2
     return 1
   fi
 
   # 4. Repository Guard-Checks
   echo "▶ Verifying repository guard checklist..."
   local checklist_ok=1
+  # Mit WGX_GUARD_CHECKLIST_STRICT=0 lässt sich ein Warnmodus aktivieren.
+  local checklist_strict="${WGX_GUARD_CHECKLIST_STRICT:-1}"
   _guard_require_file "uv.lock" "uv.lock vorhanden" || checklist_ok=0
   _guard_require_file ".github/workflows/shell-docs.yml" "Shell/Docs CI-Workflow vorhanden" || checklist_ok=0
   _guard_require_file "templates/profile.template.yml" "Profile-Template vorhanden" || checklist_ok=0
   _guard_require_file "docs/Runbook.md" "Runbook dokumentiert" || checklist_ok=0
   if [[ $checklist_ok -eq 0 ]]; then
-    echo "❌ Guard checklist failed." >&2
-    return 1
+    if [[ "$checklist_strict" == "0" ]]; then
+      echo "⚠️ Guard checklist issues detected (non-strict mode)." >&2
+    else
+      echo "❌ Guard checklist failed." >&2
+      return 1
+    fi
   fi
 
   # 5. Lint (wenn gewünscht)
