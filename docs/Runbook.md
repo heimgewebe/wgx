@@ -13,6 +13,7 @@
 * CI mit shellcheck/shfmt/bats
 * Markdownlint + Vale
 * templates/profile.template.yml vorhanden
+* Guard-Env: `WGX_GUARD_MAX_BYTES` (Bigfile-Schwelle), `WGX_GUARD_CHECKLIST_STRICT` (Warnmodus)
 
 ### Guard-Konfiguration
 * `WGX_GUARD_MAX_BYTES` setzt die Bigfile-Schwelle in Bytes (Default: `1048576`).

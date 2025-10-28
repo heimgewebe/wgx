@@ -24,6 +24,15 @@ _guard_require_file() {
   return 1
 }
 
+type _guard_gitgrep_pcre_supported >/dev/null 2>&1 || \
+_guard_gitgrep_pcre_supported() {
+  local rc
+  # 0/1 = Option -P vorhanden (Match egal), 2 = Fehler/fehlendes PCRE
+  git grep -P -n 'a' -- . >/dev/null 2>&1
+  rc=$?
+  [[ $rc -ne 2 ]]
+}
+
 guard_run() {
   local run_lint=0 run_test=0
   while [[ $# -gt 0 ]]; do
@@ -105,27 +114,27 @@ USAGE
     }
 
   local _secret_hit=1
-  if _wgx_guard_gitgrep_has_pcre; then
-    git grep --cached -I -n -P -i \
-      -e 'AKIA[0-9A-Z]{16}' \
-      -e 'BEGIN [A-Z ]*PRIVATE KEY' \
-      -e 'ghp_[A-Za-z0-9]{36}' \
-      -e 'xox[aboprs]-[A-Za-z0-9-]+' \
-      -e 'AIza[0-9A-Za-z_-]{35}' \
-      -e '(?<![A-Za-z0-9_])(pass(?:word)?|secret|api[_-]?key|token|authorization)(?![A-Za-z0-9_])' \
-      -- . >/dev/null 2>&1
-    _secret_hit=$?
-  else
-    git grep --cached -I -n -E -i \
-      -e 'AKIA[0-9A-Z]{16}' \
-      -e 'BEGIN [A-Z ]*PRIVATE KEY' \
-      -e 'ghp_[A-Za-z0-9]{36}' \
-      -e 'xox[aboprs]-[A-Za-z0-9-]+' \
-      -e 'AIza[0-9A-Za-z_-]{35}' \
-      -e '(^|[^[:alnum:]_])(pass(word)?|secret|api[_-]?key|token|authorization)([^[:alnum:]_]|$)' \
-      -- . >/dev/null 2>&1
-    _secret_hit=$?
-  fi
+if _wgx_guard_gitgrep_has_pcre; then
+  git grep --cached -I -n -P -i \
+    -e 'AKIA[0-9A-Z]{16}' \
+    -e 'BEGIN [A-Z ]*PRIVATE KEY' \
+    -e 'ghp_[A-Za-z0-9]{36}' \
+    -e 'xox[aboprs]-[A-Za-z0-9-]{10,}' \
+    -e 'AIza[0-9A-Za-z_-]{35}' \
+    -e '(?<![A-Za-z0-9_])(pass(?:word)?|secret|api[_-]?key|token|authorization)(?![A-Za-z0-9_])' \
+    -- . >/dev/null 2>&1
+  _secret_hit=$?
+else
+  git grep --cached -I -n -E -i \
+    -e 'AKIA[0-9A-Z]{16}' \
+    -e 'BEGIN [A-Z ]*PRIVATE KEY' \
+    -e 'ghp_[A-Za-z0-9]{36}' \
+    -e 'xox[aboprs]-[A-Za-z0-9-]{10,}' \
+    -e 'AIza[0-9A-Za-z_-]{35}' \
+    -e '(^|[^[:alnum:]_])(pass(word)?|secret|api[_-]?key|token|authorization)([^[:alnum:]_]|$)' \
+    -- . >/dev/null 2>&1
+  _secret_hit=$?
+fi
 
   if [[ $_secret_hit -eq 0 ]]; then
     echo "❌ Potentielles Secret im Commit gefunden (Index-Scan)!" >&2
