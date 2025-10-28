@@ -70,6 +70,9 @@ SCRIPT
 }
 
 @test "assertion helper self-tests pass" {
+  if ! command -v bats >/dev/null 2>&1; then
+    skip "bats executable not available"
+  fi
   run bats -r tests/assertions.bats
   assert_success
 }
