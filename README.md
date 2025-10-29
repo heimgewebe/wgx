@@ -86,6 +86,14 @@ CI-Lauf oder lokal nach `./scripts/gen-readiness.sh`; Details stehen in
   shellcheck -S style $(git ls-files '*.sh' '*.bash')
   bats -r tests
   ```
+- Metriken-Flow lokal prüfen:
+
+  ```bash
+  scripts/wgx-metrics-snapshot.sh --json --output metrics.json
+  npx --yes ajv-cli@5 validate \
+    -s "https://raw.githubusercontent.com/heimgewebe/metarepo/contracts-v1/contracts/wgx/metrics.json" \
+    -d metrics.json
+  ```
 - Node.js tooling ist nicht erforderlich; npm-/pnpm-Workflows sind deaktiviert, und es existiert kein `package.json` mehr.
 
 - Mehr Hinweise im [Quickstart](docs/quickstart.md).
