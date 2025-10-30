@@ -4,18 +4,21 @@ repos:
     hooks:
       - id: shellcheck
         args: ["-S", "style"]
-        files: "\\.(sh|bash)$"
+        # Fasse .sh und .bash zuverlässig:
+        # - Eine Gruppe: \.(sh|bash)$
+        # - Oder als Alternativen: \.sh$|\.bash$
+        files: "\.(sh|bash)$"
       - id: shfmt
         args: ["-i", "2", "-ci", "-sr"]
-        files: "\\.(sh|bash)$"
+        files: "\.(sh|bash)$"
   - repo: https://github.com/igorshubovych/markdownlint-cli
     rev: v0.43.0
     hooks:
       - id: markdownlint
-        files: "\\.(md|mdx)$"
+        files: "\.(md|mdx)$"
   - repo: https://github.com/errata-ai/vale
     rev: v3.8.0
     hooks:
       - id: vale
         args: ["--no-exit", "."]
-        files: "\\.(md|mdx)$"
+        files: "\.(md|mdx)$"
