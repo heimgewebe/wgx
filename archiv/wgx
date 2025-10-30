@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck shell=bash
 # wgx – Weltgewebe CLI · Termux/WSL/macOS/Linux · origin-first
 # Version: v2.0.0
 # Lizenz: MIT (projektintern); Autorenteam: weltweberei.org
@@ -15,11 +16,8 @@
 set -e
 set -u
 set -E
-if ! set -o pipefail 2>/dev/null; then
-  if [[ ${WGX_DEBUG:-0} != 0 ]]; then
-    echo "archiv/wgx: 'pipefail' wird nicht unterstützt; fahre ohne fort." >&2
-  fi
-fi
+# pipefail sicher aktivieren (Bash ist garantiert vorhanden wg. Shebang)
+set -o pipefail
 IFS=$'\n\t'
 umask 077
 shopt -s extglob nullglob
@@ -57,7 +55,14 @@ warn()  { _warn "$@"; }
 logv()  { ((VERBOSE)) && printf "… %s\n" "$*"; }
 has()   { command -v "$1" >/dev/null 2>&1; }
 
-trim()     { local s="$*"; s="${s#"${s%%[![:space:]]*}"}"; printf "%s" "${s%"${s##*[![:space:]]}"}"; }
+trim() { # entfernt führende/nachgestellte Spaces
+  # Bewahre Argument-Grenzen; joine kontrolliert
+  local s
+  s="$*"
+  s="${s#"${s%%[![:space:]]*}"}"
+  s="${s%"${s##*[![:space:]]}"}"
+  printf '%s' "$s"
+}
 to_lower() { tr '[:upper:]' '[:lower:]'; }
 
 # Prompt liest vorzugsweise aus TTY (robust in Pipes/CI)
@@ -67,7 +72,8 @@ read_prompt() { # read_prompt var "Frage?" "default"
   local d="${1-}"
   local ans
   if [[ -t 0 && -r /dev/tty ]]; then
-    printf "%s " "$q"
+    # Immer format-sicher ausgeben; Zeilenumbruch explizit
+    printf '%s ' "$q"
     IFS= read -r ans < /dev/tty || ans="$d"
   else
     ans="$d"
