@@ -1,6 +1,8 @@
 name: "📊 Metrics Snapshot & Validation"
 permissions:
-  contents: read
+  contents: read          # Repo lesen, um Skripte auszuführen
+  actions: write          # notwendig für actions/upload-artifact (sonst 403)
+  checks: write           # erlaubt optionale Check-Annotations/Status
 on:
   workflow_dispatch:
   schedule:
@@ -26,7 +28,7 @@ jobs:
       - name: Ensure Node for ajv-cli
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '20'          # Node 20 ist kompatibel mit dem verwendeten ajv-cli.
           # Kein npm-Cache am Repo-Root, da es hier keine package-lock.json gibt.
           # Der Cache würde ohne Lockfile fehlschlagen. Daher bewusst deaktiviert.
 
@@ -49,4 +51,4 @@ jobs:
         with:
           name: metrics-snapshot
           path: metrics.json
-          retention-days: 7
+          retention-days: 7       # Bewusste Aufbewahrung für eine Woche, um Debugging zu erleichtern.
