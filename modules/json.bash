@@ -3,12 +3,14 @@
 # shellcheck shell=bash
 
 json_escape() {
-  local s="${1-}"
+  local s="${1-}" escaped=""
   if command -v python3 >/dev/null 2>&1; then
-    python3 -c 'import json, sys; sys.stdout.write(json.dumps(sys.argv[1])[1:-1])' "$s"
+    escaped="$(printf '%s' "$s" | python3 -c 'import json, sys; sys.stdout.write(json.dumps(sys.stdin.read())[1:-1])')"
+    printf '%s' "$escaped"
     return 0
   elif command -v jq >/dev/null 2>&1; then
-    jq -Rn --arg s "$s" '($s|@json)[1:-1]' -r
+    escaped="$(jq -Rr @json <<<"$s")"
+    printf '%s' "${escaped:1:-1}"
     return 0
   fi
   if command -v die >/dev/null 2>&1; then

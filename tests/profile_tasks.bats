@@ -126,6 +126,12 @@ tasks:
         - --flag
   scalar-cmd:
     cmd: 42
+  single-hash:
+    cmd: echo 'keep # single'
+  double-hash:
+    cmd: "echo \"keep # double\""
+    args:
+      - "#stay literal"
 YAML
 
   helper_script="$BATS_TEST_TMPDIR/check_raw.sh"
@@ -141,6 +147,8 @@ profile::load ".wgx/profile.yml"
 printf 'raw_cmd=%s\n' "${WGX_TASK_CMDS["raw-str"]}"
 printf 'array_cmd=%s\n' "${WGX_TASK_CMDS["array-task"]}"
 printf 'scalar_cmd=%s\n' "${WGX_TASK_CMDS["scalar-cmd"]}"
+printf 'single_hash_cmd=%s\n' "${WGX_TASK_CMDS["single-hash"]}"
+printf 'double_hash_cmd=%s\n' "${WGX_TASK_CMDS["double-hash"]}"
 SH
   chmod +x "$helper_script"
 
@@ -149,4 +157,6 @@ SH
   assert_line --index 0 -- "raw_cmd=STR:echo 'a # b' 'x y'"
   assert_line --index 1 -- "array_cmd=ARRJSON:[\"bash\", \"-lc\", \"echo ok\", \"--flag\"]"
   assert_line --index 2 -- "scalar_cmd=STR:42"
+  assert_line --index 3 -- "single_hash_cmd=STR:echo 'keep # single'"
+  assert_line --index 4 -- "double_hash_cmd=STR:echo \"keep # double\" '#stay literal'"
 }

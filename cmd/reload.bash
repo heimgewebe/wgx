@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -euo pipefail
+
 cmd_reload() {
   local do_snapshot=0 force=0 dry_run=0
 

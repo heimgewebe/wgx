@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -euo pipefail
+
 # Wrapper to expose sync command via cmd/ dispatcher.
 cmd_sync() {
   if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
