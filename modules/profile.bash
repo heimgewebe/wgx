@@ -162,6 +162,45 @@ def _convert_frame(frame: Dict[str, Any], kind: str) -> None:
         frame["type"] = "dict"
 
 
+def _strip_inline_comment(line: str) -> str:
+    result: List[str] = []
+    in_single = False
+    in_double = False
+    i = 0
+    length = len(line)
+    while i < length:
+        ch = line[i]
+        if in_single:
+            result.append(ch)
+            if ch == "'" and (i + 1 >= length or line[i + 1] != "'"):
+                in_single = False
+            elif ch == "'" and i + 1 < length and line[i + 1] == "'":
+                result.append(line[i + 1])
+                i += 1
+            i += 1
+            continue
+        if in_double:
+            result.append(ch)
+            if ch == '"' and (i == 0 or line[i - 1] != "\\"):
+                in_double = False
+            i += 1
+            continue
+        if ch == "'":
+            in_single = True
+            result.append(ch)
+            i += 1
+            continue
+        if ch == '"':
+            in_double = True
+            result.append(ch)
+            i += 1
+            continue
+        if ch == '#':
+            break
+        result.append(ch)
+        i += 1
+    return ''.join(result)
+
 def _parse_simple_yaml(path: str) -> Any:
     root: Dict[str, Any] = {}
     stack: List[Dict[str, Any]] = [
@@ -171,7 +210,7 @@ def _parse_simple_yaml(path: str) -> Any:
     with open(path, "r", encoding="utf-8") as handle:
         for raw_line in handle:
             line = raw_line.rstrip("\n")
-            stripped = line.split("#", 1)[0].rstrip()
+            stripped = _strip_inline_comment(line).rstrip()
             if not stripped:
                 continue
             indent = len(line) - len(line.lstrip(" "))
@@ -561,13 +600,51 @@ for entry in values:
 PY
 }
 
+profile::_strip_inline_comment() {
+  local line="$1" result="" ch prev="" in_single=0 in_double=0 i
+  local length=${#line}
+  for ((i = 0; i < length; i++)); do
+    ch=${line:i:1}
+    if ((in_single)); then
+      if [[ $ch == "'" ]]; then
+        in_single=0
+      fi
+      result+="$ch"
+      prev="$ch"
+      continue
+    fi
+    if ((in_double)); then
+      result+="$ch"
+      if [[ $ch == '"' && $prev != '\\' ]]; then
+        in_double=0
+      fi
+      prev="$ch"
+      continue
+    fi
+    if [[ $ch == "'" ]]; then
+      in_single=1
+      result+="$ch"
+    elif [[ $ch == '"' ]]; then
+      in_double=1
+      result+="$ch"
+    elif [[ $ch == '#' ]]; then
+      break
+    else
+      result+="$ch"
+    fi
+    prev="$ch"
+  done
+  printf '%s' "$result"
+}
+
 profile::_flat_yaml_parse() {
   local file="$1" section="" line key value
   local current_task=""
   declare -A _task_seen=()
 
   while IFS= read -r line || [[ -n $line ]]; do
-    line="$(printf '%s' "$line" | sed 's/#.*$//' | sed 's/[[:space:]]*$//' | sed 's/^[[:space:]]*//')"
+    line="$(profile::_strip_inline_comment "$line")"
+    line="$(printf '%s' "$line" | sed 's/[[:space:]]*$//' | sed 's/^[[:space:]]*//')"
     [[ -z $line ]] && continue
     if [[ $line == wgx:* ]]; then
       section="root"

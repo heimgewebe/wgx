@@ -91,3 +91,20 @@ YAML
   assert_equal "STR:" "${WGX_TASK_CMDS[metadata_only]}"
   assert_equal "Example task" "${WGX_TASK_DESC[metadata_only]}"
 }
+
+@test "flat parser preserves hashes inside quoted strings" {
+  cat >"$WORKDIR/.wgx/profile.yml" <<'YAML'
+wgx:
+  tasks:
+    single:
+      cmd: echo 'keep # single'
+    double:
+      cmd: "echo \"keep # double\""
+YAML
+
+  profile::load "$WORKDIR/.wgx/profile.yml"
+  assert_equal 0 "$?"
+
+  assert_equal "STR:echo 'keep # single'" "${WGX_TASK_CMDS[single]}"
+  assert_equal "STR:echo \"keep # double\"" "${WGX_TASK_CMDS[double]}"
+}

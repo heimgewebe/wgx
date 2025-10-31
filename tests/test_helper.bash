@@ -14,6 +14,13 @@ load 'test_helper/bats-assert/load'
 # oder fehlschlagenden Pipes soll der Test abbrechen.
 set -euo pipefail
 
+# Initialise standard Bats run variables so set -u callers can read them
+# even before invoking `run` in a test case.
+output=""
+stderr=""
+status=0
+lines=()
+
 # Fügt das 'cli'-Verzeichnis zum PATH hinzu, damit die 'wgx'-Befehle in den Tests
 # direkt aufgerufen werden können. Einige Bats-Versionen liefern einen relativen
 # Pfad in BATS_TEST_FILENAME, daher lösen wir zunächst den absoluten Pfad des
