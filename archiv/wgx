@@ -18,7 +18,6 @@ set -u
 set -E
 # pipefail sicher aktivieren (Bash ist garantiert vorhanden wg. Shebang)
 set -o pipefail
-IFS=$'\n\t'
 umask 077
 shopt -s extglob nullglob
 
@@ -293,9 +292,12 @@ compare_url() { # triple-dot base...branch (für github/gitlab/codeberg/gitea)
 git_ahead_behind() {
   local b="${1:-$(git_branch)}"
   ((OFFLINE)) || git fetch -q origin "$b" 2>/dev/null || true
-  local ab; ab="$(git rev-list --left-right --count "origin/$b...$b" 2>/dev/null || echo "0 0")"
-  local behind=0 ahead=0 IFS=' '
-  read -r behind ahead <<<"$ab" || true
+  local ab behind=0 ahead=0
+  ab="$(git rev-list --left-right --count "origin/$b...$b" 2>/dev/null || echo "0 0")"
+  if [[ -n "$ab" ]]; then
+    local IFS=' '
+    read -r behind ahead <<<"$ab" || true
+  fi
   printf "%s %s\n" "${behind:-0}" "${ahead:-0}"
 }
 ab_read() { local ref="$1" ab; ab="$(git_ahead_behind "$ref" 2>/dev/null || echo "0 0")"; set -- $ab; echo "${1:-0} ${2:-0}"; }
@@ -349,7 +351,8 @@ status_cmd() {
   fi
   local br web api behind=0 ahead=0
   br="$(git_branch)"; web="$(detect_web_dir || true)"; api="$(detect_api_dir || true)"
-  local IFS=' '; read -r behind ahead < <(git_ahead_behind "$br") || true
+  local IFS=' '
+  read -r behind ahead < <(git_ahead_behind "$br") || true
   echo "=== wgx status ==="
   echo "root : $ROOT_DIR"
   echo "branch: $br (ahead:$ahead behind:$behind)  base:$WGX_BASE"
@@ -460,7 +463,8 @@ guard_run() {
   fi
   [[ "$br" == "HEAD" ]] && { echo "[WARN] Detached HEAD – Branch anlegen."; (( rc==RC_OK )) && rc=$RC_WARN; }
 
-  local behind=0 ahead=0 IFS=' '
+  local behind=0 ahead=0
+  local IFS=' '
   read -r behind ahead < <(git_ahead_behind "$br") || true
   if (( behind>0 )); then
     echo "[WARN] Branch $behind hinter origin/$br → rebase auf origin/$WGX_BASE"
@@ -1050,7 +1054,8 @@ sync_cmd() {
   fi
 
   ok "Sync erledigt."
-  local behind=0 ahead=0 IFS=' '
+  local behind=0 ahead=0
+  local IFS=' '
   read -r behind ahead < <(git_ahead_behind "$(git_branch)") || true
   info "Upstream: ahead=$ahead behind=$behind"
 }
@@ -1370,6 +1375,7 @@ doctor_cmd() {
       warn "git_ahead_behind fehlgeschlagen: $_ab"
       behind=0; ahead=0
     else
+      local IFS=' '
       read -r behind ahead <<<"$_ab"
       [[ "$behind" =~ ^[0-9]+$ ]] || behind=0
       [[ "$ahead"  =~ ^[0-9]+$ ]] || ahead=0
