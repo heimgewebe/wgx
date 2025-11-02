@@ -154,7 +154,7 @@ jobs:
 
           blocked_file="$(mktemp)"; trap 'rm -f "$blocked_file"' EXIT
 
-          # Direct while loop instead of redundant awk
+          # Use a direct while loop to read git diff output, replacing previous approach that piped through awk for filtering
           while IFS=$'\t' read -r status p1 p2; do
             [[ "$status" =~ ^[DR] ]] || continue
             [[ "$p1" =~ ^(contracts|schemas)/ ]] || continue
