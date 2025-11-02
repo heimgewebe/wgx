@@ -177,7 +177,7 @@ jobs:
             [[ "$p1" =~ ^(contracts|schemas)/ ]] || continue
             case "$status" in
               D)  echo "DELETE: $p1" ;;
-              R*) echo "RENAME: $p1 → ${p2:-?}" ;;
+              R*) echo "RENAME: $p1 → ${p2:-(unknown destination)}" ;;
             esac
           done < <(git diff --name-status --diff-filter=DR "${base}...HEAD") > "$blocked_file"
 
