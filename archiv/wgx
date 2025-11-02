@@ -322,15 +322,15 @@ run_with_files_xargs0() {
 # ─────────────────────────────────────────────────────────────────────────────
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --yes) ASSUME_YES=1 ;;
-    --dry-run) DRYRUN=1 ;;
-    --timeout) shift; [[ "${1-}" =~ ^[0-9]+$ ]] || die "--timeout braucht Zahl"; TIMEOUT="$1" ;;
-    --no-timeout) NOTIMEOUT=1 ;;
-    --verbose) VERBOSE=1 ;;
     --base) shift; WGX_BASE="${1-}" ;;
+    --dry-run) DRYRUN=1 ;;
+    --no-color) : ;; # Emojis → no-op
+    --no-timeout) NOTIMEOUT=1 ;;
     --offline) OFFLINE=1 ;;
-    --no-color) : ;; # wir nutzen Emojis → no-op
-    send|sync|guard|heal|reload|clean|doctor|init|setup|lint|start|release|hooks|version|env|quick|config|test|selftest|help|-h|--help|status)
+    --timeout) shift; [[ "${1-}" =~ ^[0-9]+$ ]] || die "--timeout braucht Zahl"; TIMEOUT="$1" ;;
+    --verbose) VERBOSE=1 ;;
+    --yes) ASSUME_YES=1 ;;
+    clean|config|doctor|env|guard|heal|help|-h|--help|hooks|init|lint|quick|reload|release|run|selftest|send|start|status|sync|tasks|test|version)
       break ;;
     *) warn "Unbekanntes globales Argument ignoriert: $1" ;;
   esac
@@ -1897,6 +1897,8 @@ Kurz:
   wgx selftest              # Basisfunktionsprüfung (Version/Tools)
   wgx config show|set K=V
   wgx clean / lint / doctor / setup / init / reload / heal / test
+  wgx run <task> [args]    # Führt registrierte Tasks / Scripts aus
+  wgx tasks                # Listet verfügbare Tasks auf
 Global:
   --yes  --dry-run  --timeout <s>  --no-timeout  --verbose  --base <branch>  --no-color  --offline  --version
 EOF
