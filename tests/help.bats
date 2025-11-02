@@ -20,3 +20,8 @@ setup() {
   [[ "${output}" =~ "Commands:" ]]
   [[ "${output}" =~ "reload" ]]
 }
+
+@test "wgx setup subcommand dispatches" {
+  run wgx setup -h
+  assert_success
+}

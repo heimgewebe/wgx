@@ -330,7 +330,7 @@ while [[ $# -gt 0 ]]; do
     --timeout) shift; [[ "${1-}" =~ ^[0-9]+$ ]] || die "--timeout braucht Zahl"; TIMEOUT="$1" ;;
     --verbose) VERBOSE=1 ;;
     --yes) ASSUME_YES=1 ;;
-    clean|config|doctor|env|guard|heal|help|-h|--help|hooks|init|lint|quick|reload|release|run|selftest|send|start|status|sync|tasks|test|version)
+    clean|config|doctor|env|guard|heal|help|-h|--help|hooks|init|lint|quick|reload|release|run|selftest|send|setup|start|status|sync|tasks|test|version)
       break ;;
     *) warn "Unbekanntes globales Argument ignoriert: $1" ;;
   esac
