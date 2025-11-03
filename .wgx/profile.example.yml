@@ -1,10 +1,6 @@
-# =======================================================================
-#  .wgx/profile.example.yml  —  CI-Fallback & Strukturhinweis (ohne Secrets)
-#  WARNUNG: Keine echten Zugangsdaten hier eintragen!
-#  ➜ Lokale Nutzung: Kopiere diese Datei zu .wgx/profile.yml
-#     und passe sie NUR lokal an (.wgx/profile.yml ist von Git ignoriert).
-#  Diese Example-Datei MUSS versioniert bleiben, damit Guard/CI laufen.
-# =======================================================================
+# .wgx/profile.example.yml — CI-Fallback & Strukturhinweis (ohne Secrets)
+# WICHTIG: Keine echten Zugangsdaten hier eintragen!
+# ➜ Lokal: als .wgx/profile.yml kopieren und dort anpassen (.gitignored).
 
 wgx:
   apiVersion: v1.1
@@ -12,13 +8,28 @@ wgx:
   repoKind: generic
 
   tooling:
-    python:
-      manager: uv
-      version: "3.12"
-      lockfile: true
-    shell:
-      default: bash
+    python: { manager: uv, version: "3.12", lockfile: true }
+    shell:  { default: bash }
 
-  # Minimaler Task für Smoke-Checks in CI
   tasks:
+    # Minimaler Smoke-Test für CI (keine externen Tools nötig)
     smoke: "echo wgx-profile-ok"
+
+    # Beispieltasks (lokal direkt nutzbar)
+    hello: "echo hi"
+
+    lint:
+      # benötigt: shfmt, shellcheck
+      # benötigt: scripts/lint-shell.sh
+      cmd: [ scripts/lint-shell.sh ]
+      safe: true
+      # Hinweis: Bei plattformspezifischen Toolchains lässt sich cmd auch je OS definieren:
+      #   cmd:
+      #     linux:  [ bash, -lc, "…" ]
+      #     darwin: [ bash, -lc, "…" ]
+      #     win32:  [ pwsh, -NoProfile, -Command, "…" ]
+
+    metrics:
+      # benötigt: scripts/wgx-metrics-snapshot.sh
+      cmd: [ scripts/wgx-metrics-snapshot.sh, --json, --output, metrics.json ]
+      safe: true
