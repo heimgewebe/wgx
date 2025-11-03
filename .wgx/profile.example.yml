@@ -3,7 +3,7 @@
 # ➜ Lokal: als .wgx/profile.yml kopieren und dort anpassen (.gitignored).
 
 wgx:
-  apiVersion: v1
+  apiVersion: v1.1
   requiredWgx: "^2.0.0"
   repoKind: generic
 
