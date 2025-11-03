@@ -1333,7 +1333,7 @@ profile::run_task() {
         printf '%s\n' "$out"
         return 0
       fi
-      ( 
+      (
         ((${#envs[@]})) && export "${envs[@]}"
         exec "${cmd[@]}" "${args[@]}"
       )
