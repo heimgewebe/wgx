@@ -1,0 +1,66 @@
+### 📄 cli/wgx
+
+**Größe:** 2 KB | **md5:** `c58cf13e6ee8801638b8b39bbbfa98e8`
+
+```plaintext
+#!/usr/bin/env bash
+set -e
+set -u
+if ! set -o pipefail 2>/dev/null; then
+  if [[ ${WGX_DEBUG:-0} != 0 ]]; then
+    echo "WGX: 'pipefail' wird von dieser Shell nicht unterstützt; fahre ohne fort." >&2
+  fi
+fi
+
+# WGX_DIR auf Root des Repos setzen – robust MIT Symlink-Auflösung
+# Warum? Wenn cli/wgx als Symlink in ~/.local/bin/wgx landet, zeigt
+# ${BASH_SOURCE[0]} zunächst auf den Symlink-Pfad. Wir folgen allen
+# Symlinks und landen zuverlässig im echten Verzeichnis der Datei.
+SOURCE="${BASH_SOURCE[0]}"
+while [ -h "$SOURCE" ]; do
+  # Verzeichnis des gerade betrachteten Pfades (kann selbst ein Symlink sein)
+  DIR="$(cd -P "$(dirname "$SOURCE")" >/dev/null 2>&1 && pwd)"
+  # Aufgelöstes Ziel des Symlinks holen
+  TARGET="$(readlink "$SOURCE")"
+  # Wenn Ziel ein relativer Pfad ist, relativ zu DIR auflösen
+  [[ "$TARGET" != /* ]] && TARGET="$DIR/$TARGET"
+  SOURCE="$TARGET"
+done
+# Jetzt ist SOURCE eine echte Datei; ihr Verzeichnis ist das cli/-Verzeichnis.
+DIR="$(cd -P "$(dirname "$SOURCE")" >/dev/null 2>&1 && pwd)"
+# WGX_DIR zeigt auf Repo-Root (eine Ebene über cli/)
+WGX_DIR="$(cd -P "$DIR/.." >/dev/null 2>&1 && pwd)"
+export WGX_DIR
+
+# Version anzeigen, bevor weitere Komponenten geladen werden
+__WGX_VERSION__="2.0.3"
+export WGX_VERSION="$__WGX_VERSION__"
+case "${1:-}" in
+--version | -V)
+  echo "wgx ${__WGX_VERSION__}"
+  exit 0
+  ;;
+esac
+
+# libs laden (alphabetisch hält Ordnung)
+if [ -d "$WGX_DIR/lib" ]; then
+  for f in "$WGX_DIR/lib/"*.bash; do
+    if [ -r "$f" ]; then
+      if [[ ${WGX_DEBUG:-0} != 0 ]]; then
+        echo "Loading library: $f" >&2
+      fi
+      if ! source "$f"; then
+        echo "Error: Failed to source library file: $f" >&2
+        exit 1
+      fi
+    fi
+  done
+fi
+
+# Default-Branch / Basis für Reload
+: "${WGX_BASE:=main}"
+
+# Haupteinstieg
+wgx_main "$@"
+```
+
