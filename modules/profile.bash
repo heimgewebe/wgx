@@ -412,7 +412,15 @@ def emit_caps(caps):
 # track if we used any root-level fallback (for a single deprecation note)
 used_root_fallback = False
 
-emit(f"PROFILE_VERSION={shell_quote(str(wgx.get('apiVersion') or ''))}")
+api_version = ''
+if isinstance(wgx, dict):
+    api_version = str(wgx.get('apiVersion') or '')
+if not api_version and isinstance(data, dict):
+    api_version = str(data.get('apiVersion') or '')
+if not api_version:
+    api_version = 'v1'
+
+emit(f"PROFILE_VERSION={shell_quote(api_version)}")
 req = wgx.get('requiredWgx')
 if isinstance(req, str):
     emit(f"WGX_REQUIRED_RANGE={shell_quote(req)}")
@@ -601,92 +609,255 @@ PY
 }
 
 profile::_strip_inline_comment() {
-  local line="$1" result="" ch prev="" in_single=0 in_double=0 i
+  local line="$1" result="" ch
+  local in_single=0 in_double=0 escape=0 i
   local length=${#line}
   for ((i = 0; i < length; i++)); do
     ch=${line:i:1}
+    if ((escape)); then
+      result+="$ch"
+      escape=0
+      continue
+    fi
     if ((in_single)); then
+      result+="$ch"
       if [[ $ch == "'" ]]; then
         in_single=0
       fi
-      result+="$ch"
-      prev="$ch"
       continue
     fi
     if ((in_double)); then
       result+="$ch"
-      if [[ $ch == '"' && $prev != '\\' ]]; then
+      case "$ch" in
+      '\\')
+        escape=1
+        ;;
+      '"')
         in_double=0
-      fi
-      prev="$ch"
+        ;;
+      esac
       continue
     fi
-    if [[ $ch == "'" ]]; then
+    case "$ch" in
+    "'")
       in_single=1
       result+="$ch"
-    elif [[ $ch == '"' ]]; then
+      ;;
+    '"')
       in_double=1
       result+="$ch"
-    elif [[ $ch == '#' ]]; then
+      ;;
+    '#')
       break
-    else
+      ;;
+    '\\')
       result+="$ch"
-    fi
-    prev="$ch"
+      escape=1
+      ;;
+    *)
+      result+="$ch"
+      ;;
+    esac
   done
   printf '%s' "$result"
 }
 
 profile::_flat_yaml_parse() {
-  local file="$1" section="" line key value
+  local file="$1" section="" value=""
   local current_task=""
   declare -A _task_seen=()
 
-  while IFS= read -r line || [[ -n $line ]]; do
-    line="$(profile::_strip_inline_comment "$line")"
-    line="$(printf '%s' "$line" | sed 's/[[:space:]]*$//' | sed 's/^[[:space:]]*//')"
-    [[ -z $line ]] && continue
-    if [[ $line == wgx:* ]]; then
+  local US=$'\x1f'
+  local -A _cmd_kind=()
+  local -A _cmd_value=()
+  local -A _args_value=()
+
+  local -a platform_keys=()
+  profile::_flat_platform_keys platform_keys
+
+  local pending_field="" pending_task="" pending_indent=0 pending_type=""
+  local -a pending_list=()
+  declare -A pending_map=()
+  local pending_variant="" pending_variant_indent=0
+  local -a pending_variant_list=()
+
+  local buffer_active=0 buffered_line="" buffered_indent=0
+
+  exec 3<"$file" || return 1
+
+  while :; do
+    local line indent trimmed raw_line non_ws
+    if ((buffer_active)); then
+      line="$buffered_line"
+      indent=$buffered_indent
+      buffer_active=0
+    else
+      raw_line=
+      if ! IFS= read -r raw_line <&3; then
+        if [[ -z $raw_line ]]; then
+          break
+        fi
+      fi
+      line="$(profile::_strip_inline_comment "$raw_line")"
+      while [[ $line == *$'\r' ]]; do line=${line%$'\r'}; done
+      while [[ $line == *' ' || $line == *$'\t' ]]; do line=${line%?}; done
+      indent=0
+      while [[ ${line:indent:1} == ' ' ]]; do ((indent++)); done
+    fi
+    trimmed="${line:indent}"
+    while [[ ${trimmed:0:1} == $'\t' ]]; do
+      trimmed=${trimmed:1}
+    done
+    non_ws="${trimmed//[[:space:]]/}"
+    if [[ -z $non_ws ]]; then
+      continue
+    fi
+
+    while :; do
+      local changed=0
+      if [[ -n $pending_variant && $indent -le $pending_variant_indent ]]; then
+        pending_map["$pending_variant"]="$(profile::_flat_encode_list "$US" "${pending_variant_list[@]}")"
+        pending_variant=""
+        pending_variant_indent=0
+        pending_variant_list=()
+        changed=1
+      fi
+      if [[ -n $pending_field && $indent -le $pending_indent && -z $pending_variant ]]; then
+        profile::_flat_commit_field "$pending_field" "$pending_task" "$pending_type" "$US" pending_map pending_list platform_keys _cmd_kind _cmd_value _args_value
+        pending_field=""
+        pending_task=""
+        pending_indent=0
+        pending_type=""
+        changed=1
+      fi
+      ((changed)) || break
+    done
+
+    if [[ -n $pending_field ]]; then
+      if [[ -z $pending_type ]]; then
+        if [[ $trimmed =~ ^-[[:space:]]*(.*)$ ]]; then
+          pending_type="list"
+        elif [[ $trimmed =~ ^([A-Za-z0-9_-]+):[[:space:]]*(.*)$ ]]; then
+          pending_type="dict"
+        else
+          pending_type="scalar"
+        fi
+      fi
+      case "$pending_type" in
+      list)
+        if [[ $trimmed =~ ^-[[:space:]]*(.*)$ ]]; then
+          local item="${BASH_REMATCH[1]}"
+          item="$(profile::_yaml_unquote "$item")"
+          pending_list+=("$item")
+          continue
+        fi
+        buffer_active=1
+        buffered_line="$line"
+        buffered_indent=$indent
+        profile::_flat_commit_field "$pending_field" "$pending_task" "$pending_type" "$US" pending_map pending_list platform_keys _cmd_kind _cmd_value _args_value
+        pending_field=""
+        pending_task=""
+        pending_indent=0
+        pending_type=""
+        continue
+        ;;
+      dict)
+        if [[ $trimmed =~ ^([A-Za-z0-9_-]+):[[:space:]]*(.*)$ ]]; then
+          local variant="${BASH_REMATCH[1]}"
+          local rest="${BASH_REMATCH[2]}"
+          if [[ -n $pending_variant ]]; then
+            pending_map["$pending_variant"]="$(profile::_flat_encode_list "$US" "${pending_variant_list[@]}")"
+            pending_variant=""
+            pending_variant_indent=0
+            pending_variant_list=()
+          fi
+          if [[ -n $rest ]]; then
+            rest="$(profile::_yaml_unquote "$rest")"
+            pending_map["$variant"]="scalar${US}${rest}"
+          else
+            pending_variant="$variant"
+            pending_variant_indent=$indent
+            pending_variant_list=()
+          fi
+          continue
+        fi
+        if [[ -n $pending_variant && $trimmed =~ ^-[[:space:]]*(.*)$ ]]; then
+          local item="${BASH_REMATCH[1]}"
+          item="$(profile::_yaml_unquote "$item")"
+          pending_variant_list+=("$item")
+          continue
+        fi
+        if [[ -n $pending_variant ]]; then
+          pending_map["$pending_variant"]="$(profile::_flat_encode_list "$US" "${pending_variant_list[@]}")"
+          pending_variant=""
+          pending_variant_indent=0
+          pending_variant_list=()
+        fi
+        buffer_active=1
+        buffered_line="$line"
+        buffered_indent=$indent
+        profile::_flat_commit_field "$pending_field" "$pending_task" "$pending_type" "$US" pending_map pending_list platform_keys _cmd_kind _cmd_value _args_value
+        pending_field=""
+        pending_task=""
+        pending_indent=0
+        pending_type=""
+        continue
+        ;;
+      scalar)
+        pending_list=("$(profile::_yaml_unquote "$trimmed")")
+        buffer_active=1
+        buffered_line="$line"
+        buffered_indent=$indent
+        profile::_flat_commit_field "$pending_field" "$pending_task" "$pending_type" "$US" pending_map pending_list platform_keys _cmd_kind _cmd_value _args_value
+        pending_field=""
+        pending_task=""
+        pending_indent=0
+        pending_type=""
+        continue
+        ;;
+      esac
+    fi
+
+    if [[ $trimmed == wgx:* ]]; then
       section="root"
       current_task=""
       continue
     fi
-    if [[ $line =~ ^apiVersion:[[:space:]]*(.*)$ ]]; then
+    if [[ $trimmed =~ ^apiVersion:[[:space:]]*(.*)$ ]]; then
       value="${BASH_REMATCH[1]}"
-      value="$(printf '%s' "$value" | sed 's/^"//' | sed 's/"$//')"
+      value="$(profile::_yaml_unquote "$value")"
       PROFILE_VERSION="$value"
       continue
     fi
-    if [[ $line =~ ^requiredWgx:[[:space:]]*(.*)$ ]]; then
+    if [[ $trimmed =~ ^requiredWgx:[[:space:]]*(.*)$ ]]; then
       value="${BASH_REMATCH[1]}"
-      value="$(printf '%s' "$value" | sed 's/^"//' | sed 's/"$//')"
+      value="$(profile::_yaml_unquote "$value")"
       WGX_REQUIRED_RANGE="$value"
       continue
     fi
-    if [[ $line =~ ^repoKind:[[:space:]]*(.*)$ ]]; then
+    if [[ $trimmed =~ ^repoKind:[[:space:]]*(.*)$ ]]; then
       value="${BASH_REMATCH[1]}"
-      value="$(printf '%s' "$value" | sed 's/^"//' | sed 's/"$//')"
-      # shellcheck disable=SC2034
+      value="$(profile::_yaml_unquote "$value")"
       WGX_REPO_KIND="$value"
       continue
     fi
-    if [[ $line == dirs:* ]]; then
+    if [[ $trimmed == dirs:* ]]; then
       section="dirs"
       current_task=""
       continue
     fi
-    if [[ $line == tasks:* ]]; then
+    if [[ $trimmed == tasks:* ]]; then
       section="tasks"
       current_task=""
       continue
     fi
-    if [[ $line == env:* ]]; then
+    if [[ $trimmed == env:* ]]; then
       section="env"
       current_task=""
       continue
     fi
-    if [[ $section == tasks && $line =~ ^([a-zA-Z0-9_-]+):[[:space:]]*$ ]]; then
-      key="${BASH_REMATCH[1]}"
+    if [[ $section == tasks && $trimmed =~ ^([a-zA-Z0-9_-]+):[[:space:]]*$ ]]; then
+      local key="${BASH_REMATCH[1]}"
       key="$(profile::_normalize_task_name "$key")"
       current_task="$key"
       if [[ -z ${_task_seen[$key]:-} ]]; then
@@ -699,31 +870,57 @@ profile::_flat_yaml_parse() {
       [[ -n ${WGX_TASK_SAFE[$key]+_} ]] || WGX_TASK_SAFE["$key"]="0"
       continue
     fi
-    if [[ $section == tasks && $line =~ ^cmd:[[:space:]]*(.*)$ ]]; then
+    if [[ $section == tasks && $trimmed =~ ^cmd:[[:space:]]*(.*)$ ]]; then
       [[ -n $current_task ]] || continue
       value="${BASH_REMATCH[1]}"
-      value="$(printf '%s' "$value" | sed 's/^"//' | sed 's/"$//')"
-      WGX_TASK_CMDS["$current_task"]="STR:${value}"
+      if [[ -n $value ]]; then
+        value="$(profile::_yaml_unquote "$value")"
+        _cmd_kind["$current_task"]="STR"
+        _cmd_value["$current_task"]="$value"
+      else
+        pending_field="cmd"
+        pending_task="$current_task"
+        pending_indent=$indent
+        pending_type=""
+        pending_list=()
+        pending_map=()
+      fi
       continue
     fi
-    if [[ $section == tasks && $line =~ ^desc:[[:space:]]*(.*)$ ]]; then
+    if [[ $section == tasks && $trimmed =~ ^args:[[:space:]]*(.*)$ ]]; then
       [[ -n $current_task ]] || continue
       value="${BASH_REMATCH[1]}"
-      value="$(printf '%s' "$value" | sed 's/^"//' | sed 's/"$//')"
+      if [[ -n $value ]]; then
+        value="$(profile::_yaml_unquote "$value")"
+        _args_value["$current_task"]="$(profile::_flat_encode_list "$US" "$value")"
+      else
+        pending_field="args"
+        pending_task="$current_task"
+        pending_indent=$indent
+        pending_type=""
+        pending_list=()
+        pending_map=()
+      fi
+      continue
+    fi
+    if [[ $section == tasks && $trimmed =~ ^desc:[[:space:]]*(.*)$ ]]; then
+      [[ -n $current_task ]] || continue
+      value="${BASH_REMATCH[1]}"
+      value="$(profile::_yaml_unquote "$value")"
       WGX_TASK_DESC["$current_task"]="$value"
       continue
     fi
-    if [[ $section == tasks && $line =~ ^group:[[:space:]]*(.*)$ ]]; then
+    if [[ $section == tasks && $trimmed =~ ^group:[[:space:]]*(.*)$ ]]; then
       [[ -n $current_task ]] || continue
       value="${BASH_REMATCH[1]}"
-      value="$(printf '%s' "$value" | sed 's/^"//' | sed 's/"$//')"
+      value="$(profile::_yaml_unquote "$value")"
       WGX_TASK_GROUP["$current_task"]="$value"
       continue
     fi
-    if [[ $section == tasks && $line =~ ^safe:[[:space:]]*(.*)$ ]]; then
+    if [[ $section == tasks && $trimmed =~ ^safe:[[:space:]]*(.*)$ ]]; then
       [[ -n $current_task ]] || continue
       value="${BASH_REMATCH[1]}"
-      value="$(printf '%s' "$value" | sed 's/^"//' | sed 's/"$//')"
+      value="$(profile::_yaml_unquote "$value")"
       case "${value,,}" in
       1|true|yes|on)
         WGX_TASK_SAFE["$current_task"]="1"
@@ -734,46 +931,115 @@ profile::_flat_yaml_parse() {
       esac
       continue
     fi
-    if [[ $section == dirs && $line =~ ^([a-zA-Z0-9_-]+):[[:space:]]*(.*)$ ]]; then
-      key="${BASH_REMATCH[1]}"
+    if [[ $section == dirs && $trimmed =~ ^([a-zA-Z0-9_-]+):[[:space:]]*(.*)$ ]]; then
+      local dir_key="${BASH_REMATCH[1]}"
       value="${BASH_REMATCH[2]}"
-      value="$(printf '%s' "$value" | sed 's/^"//' | sed 's/"$//')"
-      # shellcheck disable=SC2034
-      case "$key" in
+      value="$(profile::_yaml_unquote "$value")"
+      case "$dir_key" in
       web) WGX_DIR_WEB="$value" ;;
       api) WGX_DIR_API="$value" ;;
       data) WGX_DIR_DATA="$value" ;;
       esac
       continue
     fi
-    if [[ $section == tasks && $line =~ ^([a-zA-Z0-9_-]+):[[:space:]]*(.*)$ ]]; then
-      key="${BASH_REMATCH[1]}"
+    if [[ $section == tasks && $trimmed =~ ^([a-zA-Z0-9_-]+):[[:space:]]*(.*)$ ]]; then
+      local inline_key="${BASH_REMATCH[1]}"
       value="${BASH_REMATCH[2]}"
-      value="$(printf '%s' "$value" | sed 's/^"//' | sed 's/"$//')"
-      key="$(profile::_normalize_task_name "$key")"
-      current_task="$key"
-      if [[ -z ${_task_seen[$key]:-} ]]; then
-        _task_seen[$key]=1
-        WGX_TASK_ORDER+=("$key")
+      value="$(profile::_yaml_unquote "$value")"
+      inline_key="$(profile::_normalize_task_name "$inline_key")"
+      current_task="$inline_key"
+      if [[ -z ${_task_seen[$inline_key]:-} ]]; then
+        _task_seen[$inline_key]=1
+        WGX_TASK_ORDER+=("$inline_key")
       fi
-      [[ -n ${WGX_TASK_DESC[$key]+_} ]] || WGX_TASK_DESC["$key"]=""
-      [[ -n ${WGX_TASK_GROUP[$key]+_} ]] || WGX_TASK_GROUP["$key"]=""
-      [[ -n ${WGX_TASK_SAFE[$key]+_} ]] || WGX_TASK_SAFE["$key"]="0"
-      [[ -n ${WGX_TASK_CMDS[$key]+_} ]] || WGX_TASK_CMDS["$key"]="STR:"
+      [[ -n ${WGX_TASK_DESC[$inline_key]+_} ]] || WGX_TASK_DESC["$inline_key"]=""
+      [[ -n ${WGX_TASK_GROUP[$inline_key]+_} ]] || WGX_TASK_GROUP["$inline_key"]=""
+      [[ -n ${WGX_TASK_SAFE[$inline_key]+_} ]] || WGX_TASK_SAFE["$inline_key"]="0"
+      [[ -n ${WGX_TASK_CMDS[$inline_key]+_} ]] || WGX_TASK_CMDS["$inline_key"]="STR:"
       if [[ -n $value ]]; then
-        WGX_TASK_CMDS["$key"]="STR:${value}"
+        _cmd_kind["$inline_key"]="STR"
+        _cmd_value["$inline_key"]="$value"
       fi
       continue
     fi
-    if [[ $section == env && $line =~ ^([A-Z0-9_]+):[[:space:]]*(.*)$ ]]; then
-      key="${BASH_REMATCH[1]}"
+    if [[ $section == env && $trimmed =~ ^([A-Z0-9_]+):[[:space:]]*(.*)$ ]]; then
+      local env_key="${BASH_REMATCH[1]}"
       value="${BASH_REMATCH[2]}"
-      value="$(printf '%s' "$value" | sed 's/^"//' | sed 's/"$//')"
-      WGX_ENV_BASE_MAP["$key"]="$value"
+      value="$(profile::_yaml_unquote "$value")"
+      WGX_ENV_BASE_MAP["$env_key"]="$value"
       continue
     fi
-  done <"$file"
+  done
+
+  if [[ -n $pending_variant ]]; then
+    pending_map["$pending_variant"]="$(profile::_flat_encode_list "$US" "${pending_variant_list[@]}")"
+    pending_variant=""
+    pending_variant_indent=0
+    pending_variant_list=()
+  fi
+  if [[ -n $pending_field ]]; then
+    profile::_flat_commit_field "$pending_field" "$pending_task" "$pending_type" "$US" pending_map pending_list platform_keys _cmd_kind _cmd_value _args_value
+  fi
+
+  exec 3<&-
+
   [[ -z $PROFILE_VERSION ]] && PROFILE_VERSION="v1"
+
+  if ! declare -F json_escape >/dev/null 2>&1; then
+    source "${WGX_DIR:-.}/modules/json.bash"
+  fi
+
+  local key
+  for key in "${WGX_TASK_ORDER[@]}"; do
+    local kind="${_cmd_kind[$key]-}"
+    local base="${_cmd_value[$key]-}"
+    local extra="${_args_value[$key]-}"
+    if [[ -n $kind ]]; then
+      if [[ $kind == ARR ]]; then
+        local -a tokens=()
+        profile::_flat_decode_list "$US" "$base" tokens
+        if [[ -n $extra ]]; then
+          local -a append=()
+          profile::_flat_decode_list "$US" "$extra" append
+          tokens+=("${append[@]}")
+        fi
+        local json='['
+        local sep=""
+        local token
+        for token in "${tokens[@]}"; do
+          json+="$sep\"$(json_escape "$token")\""
+          sep="," 
+        done
+        json+=']'
+        WGX_TASK_CMDS["$key"]="ARRJSON:${json}"
+      else
+        local command="$base"
+        if [[ -n $extra ]]; then
+          local -a append=()
+          profile::_flat_decode_list "$US" "$extra" append
+          local arg
+          for arg in "${append[@]}"; do
+            command+=" "
+            command+="$(printf '%q' "$arg")"
+          done
+        fi
+        WGX_TASK_CMDS["$key"]="STR:${command}"
+      fi
+    elif [[ -n $extra ]]; then
+      local -a append=()
+      profile::_flat_decode_list "$US" "$extra" append
+      if ((${#append[@]})); then
+        local command="${WGX_TASK_CMDS[$key]-}"
+        command="${command#STR:}"
+        local arg
+        for arg in "${append[@]}"; do
+          command+=" "
+          command+="$(printf '%q' "$arg")"
+        done
+        WGX_TASK_CMDS["$key"]="STR:${command}"
+      fi
+    fi
+  done
 }
 
 profile::_collect_env_keys() {
@@ -917,6 +1183,19 @@ profile::_task_spec() {
   printf '%s' "${WGX_TASK_CMDS[$key]:-}"
 }
 
+profile::_dry_run_quote() {
+  local value="$1"
+  if [[ -z $value ]]; then
+    printf "''"
+    return
+  fi
+  if [[ $value =~ ^[A-Za-z0-9_@%+=:,./-]+$ ]]; then
+    printf '%s' "$value"
+    return
+  fi
+  printf "'%s'" "${value//\'/\'\\\'\'}"
+}
+
 profile::tasks_json() {
   profile::ensure_loaded || return 1
   local safe_only="${1:-0}" include_groups="${2:-0}"
@@ -983,7 +1262,10 @@ profile::run_task() {
   key="$(profile::_normalize_task_name "$name")"
   local spec
   spec="$(profile::_task_spec "$key")"
-  [[ -n $spec ]] || return 1
+  if [[ -z $spec ]]; then
+    printf 'Task not defined: %s\n' "$key" >&2
+    return 1
+  fi
   local -a envs=()
   mapfile -t envs < <(profile::env_apply)
   local dryrun="${DRYRUN:-0}"
@@ -1006,18 +1288,18 @@ profile::run_task() {
       return 2
     fi
     if ((dryrun)); then
-      printf 'DRY: '
+      local out='[DRY-RUN]'
       local item
       for item in "${envs[@]}"; do
-        printf '%q ' "$item"
+        out+=" $(profile::_dry_run_quote "$item")"
       done
       for item in "${cmd[@]}"; do
-        printf '%q ' "$item"
+        out+=" $(profile::_dry_run_quote "$item")"
       done
       for item in "${args[@]}"; do
-        printf '%q ' "$item"
+        out+=" $(profile::_dry_run_quote "$item")"
       done
-      printf '\n'
+      printf '%s\n' "$out"
       return 0
     fi
     (
@@ -1036,18 +1318,18 @@ profile::run_task() {
       return 2
     fi
     if ((dryrun)); then
-      printf 'DRY: '
+      local out='[DRY-RUN]'
       local item
       for item in "${envs[@]}"; do
-        printf '%q ' "$item"
+        out+=" $(profile::_dry_run_quote "$item")"
       done
       for item in "${cmd[@]}"; do
-        printf '%q ' "$item"
+        out+=" $(profile::_dry_run_quote "$item")"
       done
       for item in "${args[@]}"; do
-        printf '%q ' "$item"
+        out+=" $(profile::_dry_run_quote "$item")"
       done
-      printf '\n'
+      printf '%s\n' "$out"
       return 0
     fi
     (
@@ -1058,16 +1340,18 @@ profile::run_task() {
   STR:*)
     local command="${spec#STR:}"
     if ((dryrun)); then
-      printf 'DRY: '
+      local out='[DRY-RUN]'
       local item
       for item in "${envs[@]}"; do
-        printf '%q ' "$item"
+        out+=" $(profile::_dry_run_quote "$item")"
       done
-      printf '%s' "$command"
+      if [[ -n $command ]]; then
+        out+=" $command"
+      fi
       for item in "${args[@]}"; do
-        printf ' %q' "$item"
+        out+=" $(profile::_dry_run_quote "$item")"
       done
-      printf '\n'
+      printf '%s\n' "$out"
       return 0
     fi
     (
@@ -1159,3 +1443,184 @@ profile::_auto_init() {
 }
 
 profile::_auto_init
+profile::_flat_platform_keys() {
+  local -n _dest=$1
+  local uname_s
+  uname_s="$(uname -s 2>/dev/null || printf 'unknown')"
+  case "${uname_s,,}" in
+  darwin*)
+    _dest+=(darwin)
+    ;;
+  linux*)
+    _dest+=(linux)
+    ;;
+  msys* | mingw* | cygwin* | windows*)
+    _dest+=(win32)
+    ;;
+  esac
+  _dest+=(default)
+}
+
+profile::_flat_encode_list() {
+  local us="$1"
+  shift || true
+  local result="list${us}"
+  local sep="$us"
+  local item
+  for item in "$@"; do
+    result+="$item$sep"
+  done
+  if [[ $result == *$sep ]]; then
+    result=${result%$sep}
+  fi
+  printf '%s' "$result"
+}
+
+profile::_flat_decode_list() {
+  local us="$1" data="$2"
+  local -n _out=$3
+  _out=()
+  if [[ $data == list${us}* ]]; then
+    local payload="${data#list$us}"
+    if [[ $payload == "$us" ]]; then
+      payload=""
+    fi
+    if [[ -n $payload ]]; then
+      IFS="$us" read -r -a _out <<<"$payload"
+    fi
+  fi
+}
+
+profile::_flat_select_variant() {
+  local map_name="$1"
+  shift || true
+  local -n _map_ref="$map_name"
+  local us="$1"
+  shift || true
+  local -a platforms=("$@")
+  local key value
+  for key in "${platforms[@]}"; do
+    value="${_map_ref[$key]-}"
+    if [[ -n $value ]]; then
+      if [[ $value == list${us}* ]]; then
+        if [[ $value != list$us ]]; then
+          printf '%s' "$value"
+          return 0
+        fi
+      elif [[ $value == scalar${us}* ]]; then
+        local payload="${value#scalar$us}"
+        if [[ -n $payload ]]; then
+          printf '%s' "$value"
+          return 0
+        fi
+      else
+        printf '%s' "$value"
+        return 0
+      fi
+    fi
+  done
+  for value in "${_map_ref[@]}"; do
+    if [[ -n $value ]]; then
+      if [[ $value == list${us}* ]]; then
+        if [[ $value != list$us ]]; then
+          printf '%s' "$value"
+          return 0
+        fi
+      elif [[ $value == scalar${us}* ]]; then
+        local payload="${value#scalar$us}"
+        if [[ -n $payload ]]; then
+          printf '%s' "$value"
+          return 0
+        fi
+      else
+        printf '%s' "$value"
+        return 0
+      fi
+    fi
+  done
+  printf '%s' ""
+  return 0
+}
+
+profile::_yaml_unquote() {
+  local value="$1"
+  if [[ ${#value} -ge 2 ]]; then
+    local first="${value:0:1}"
+    local last="${value: -1}"
+    if [[ $first == '"' && $last == '"' ]]; then
+      value="${value:1:-1}"
+      value="${value//\\\n/$'\n'}"
+      value="${value//\\\t/$'\t'}"
+      value="${value//\\\r/$'\r'}"
+      value="${value//\\\"/\"}"
+      value="${value//\\\\/\\}"
+    elif [[ $first == "'" && $last == "'" ]]; then
+      value="${value:1:-1}"
+      value="${value//\'\'/\'}"
+    fi
+  fi
+  printf '%s' "$value"
+}
+
+profile::_flat_commit_field() {
+  local field="$1" task="$2" type="$3" us="$4"
+  local map_name="$5" list_name="$6" platforms_name="$7"
+  local cmd_kind_name="$8" cmd_value_name="$9" args_value_name="${10}"
+  local -n _map_ref="$map_name"
+  local -n _list_ref="$list_name"
+  local -n _platform_ref="$platforms_name"
+  local -n _cmd_kind_ref="$cmd_kind_name"
+  local -n _cmd_value_ref="$cmd_value_name"
+  local -n _args_value_ref="$args_value_name"
+  local encoded selected scalar
+  case "$type" in
+  list)
+    encoded="$(profile::_flat_encode_list "$us" "${_list_ref[@]}")"
+    if [[ $field == cmd ]]; then
+      _cmd_kind_ref["$task"]="ARR"
+      _cmd_value_ref["$task"]="$encoded"
+    else
+      _args_value_ref["$task"]="$encoded"
+    fi
+    ;;
+  dict)
+    selected="$(profile::_flat_select_variant "$map_name" "$us" "${_platform_ref[@]}")"
+    if [[ -n $selected ]]; then
+      if [[ $field == cmd ]]; then
+        if [[ $selected == list${us}* ]]; then
+          _cmd_kind_ref["$task"]="ARR"
+          _cmd_value_ref["$task"]="$selected"
+        elif [[ $selected == scalar${us}* ]]; then
+          scalar="${selected#scalar$us}"
+          _cmd_kind_ref["$task"]="STR"
+          _cmd_value_ref["$task"]="$scalar"
+        else
+          _cmd_kind_ref["$task"]="STR"
+          _cmd_value_ref["$task"]="$selected"
+        fi
+      else
+        if [[ $selected == list${us}* ]]; then
+          _args_value_ref["$task"]="$selected"
+        elif [[ $selected == scalar${us}* ]]; then
+          scalar="${selected#scalar$us}"
+          _args_value_ref["$task"]="$(profile::_flat_encode_list "$us" "$scalar")"
+        else
+          _args_value_ref["$task"]="$(profile::_flat_encode_list "$us" "$selected")"
+        fi
+      fi
+    fi
+    ;;
+  scalar)
+    scalar="${_list_ref[0]-}"
+    if [[ $field == cmd ]]; then
+      _cmd_kind_ref["$task"]="STR"
+      _cmd_value_ref["$task"]="$scalar"
+    else
+      _args_value_ref["$task"]="$(profile::_flat_encode_list "$us" "$scalar")"
+    fi
+    ;;
+  esac
+  _list_ref=()
+  _map_ref=()
+}
+
