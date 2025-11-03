@@ -12,16 +12,12 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Ensure bats is available
+    - name: Ensure bats and other dependencies are available
       shell: bash
       run: |
         set -euo pipefail
-        if command -v bats >/dev/null 2>&1; then
-          echo "Using existing bats: $(bats -v)"
-          exit 0
-        fi
         sudo apt-get update -y
-        sudo apt-get install -y bats
+        sudo apt-get install -y --no-install-recommends bats jq python3
     - name: Install bats helpers
       shell: bash
       working-directory: ${{ inputs.working-directory }}
@@ -41,6 +37,7 @@ runs:
       working-directory: ${{ inputs.working-directory }}
       env:
         BATS_ARGS: ${{ inputs.bats-args }}
+        DRY_RUN: ''
       run: |
         set -euo pipefail
         if [ -n "$BATS_ARGS" ]; then
