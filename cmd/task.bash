@@ -82,7 +82,8 @@ USAGE
   local spec
   spec="$(profile::_task_spec "$key")"
   if [[ -z $spec ]]; then
-    die "Task not defined: $name"
+    warn "Task not defined: $name"
+    exit 1
   fi
 
   local payload_start payload_finish

@@ -52,11 +52,11 @@ USAGE
     printf '{"ok":%s,"errors":[' "$([ $ok -eq 1 ] && echo true || echo false)"
     local i
     for i in "${!_errors[@]}"; do
-      printf '%s"%s"' "$([ $i -gt 0 ] && echo ,)" "${_errors[$i]}"
+      printf '%s"%s"' "$([ "$i" -gt 0 ] && echo ,)" "${_errors[$i]}"
     done
     printf '],"missingCapabilities":['
     for i in "${!_missing[@]}"; do
-      printf '%s"%s"' "$([ $i -gt 0 ] && echo ,)" "${_missing[$i]}"
+      printf '%s"%s"' "$([ "$i" -gt 0 ] && echo ,)" "${_missing[$i]}"
     done
     printf ']}\n'
   else
