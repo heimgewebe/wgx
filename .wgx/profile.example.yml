@@ -20,7 +20,8 @@ wgx:
 
     lint:
       # benötigt: shfmt, shellcheck
-      cmd: [ bash, -lc, "files=\"$(git ls-files '*.sh' '*.bash')\"; [ -z \"$files\" ] || (bash -n $files && shfmt -d $files && shellcheck -S style $files)" ]
+      # benötigt: scripts/lint-shell.sh
+      cmd: [ scripts/lint-shell.sh ]
       safe: true
       # Hinweis: Bei plattformspezifischen Toolchains lässt sich cmd auch je OS definieren:
       #   cmd:
