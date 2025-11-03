@@ -1355,7 +1355,7 @@ profile::run_task() {
         printf '%s\n' "$out"
         return 0
       fi
-      ( 
+      (
         ((${#envs[@]})) && export "${envs[@]}"
         if ((${#args[@]})); then
           local extra=""
