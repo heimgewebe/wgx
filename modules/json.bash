@@ -5,13 +5,20 @@
 json_escape() {
   local s="${1-}" escaped=""
   if command -v python3 >/dev/null 2>&1; then
-    escaped="$(printf '%s' "$s" | python3 -c 'import json, sys; sys.stdout.write(json.dumps(sys.stdin.read())[1:-1])')"
-    printf '%s' "$escaped"
-    return 0
-  elif command -v jq >/dev/null 2>&1; then
-    escaped="$(jq -Rr @json <<<"$s")"
-    printf '%s' "${escaped:1:-1}"
-    return 0
+    if escaped="$(printf '%s' "$s" | python3 -c 'import json, sys; sys.stdout.write(json.dumps(sys.stdin.read())[1:-1])')"; then
+      printf '%s' "$escaped"
+      return 0
+    fi
+  fi
+  if command -v jq >/dev/null 2>&1; then
+    if escaped="$(printf '%s' "$s" | jq -R @json)"; then
+      if ((${#escaped} >= 2)); then
+        printf '%s' "${escaped:1:-1}"
+      else
+        printf ''
+      fi
+      return 0
+    fi
   fi
   if command -v die >/dev/null 2>&1; then
     die "json_escape: requires python3 or jq"

@@ -65,6 +65,35 @@ Falls ein Befehl unbekannt ist, kannst du die verfügbaren Subcommands auflisten
 wgx --list 2>/dev/null || wgx commands 2>/dev/null || ls -1 cmd/
 ```
 
+### `wgx run`
+
+`wgx run` führt Tasks aus, die in `.wgx/profile.yml` hinterlegt sind. Der Aufruf
+ist bewusst deckungsgleich mit den bestehenden Profil-Parsern:
+
+```bash
+wgx run [--dry-run|-n] <task> [--] [args...]
+```
+
+- `--dry-run` zeigt nur an, was ausgeführt würde. Die Ausgabe beginnt mit
+  `[DRY-RUN]` und zitiert Argumente POSIX-kompatibel.
+- Argumente nach einem `--` werden unverändert an den Task weitergegeben.
+- Plattform-Varianten (`linux`, `darwin`, `win32`, `default`) werden automatisch
+  aufgelöst – `wgx run build` nimmt beispielsweise `cmd.linux`, fällt sonst auf
+  `cmd.default` zurück.
+
+Beispiele:
+
+```bash
+# Array-CMD + zusätzliche Argumente
+wgx run lint -- --fix
+
+# Inline-Task aus dem Profil mit Dry-Run-Vorschau
+wgx run --dry-run deploy
+
+# Plattform-Variante, die auf Linux ein anderes Kommando nutzt
+wgx run build
+```
+
 ## WGX Readiness
 
 Der Workflow [`wgx-guard`](.github/workflows/wgx-guard.yml) generiert pro Lauf
