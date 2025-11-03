@@ -37,6 +37,7 @@ runs:
       working-directory: ${{ inputs.working-directory }}
       env:
         BATS_ARGS: ${{ inputs.bats-args }}
+        # DRY_RUN: Set to 'true' to enable dry-run mode in scripts that support it. Expected values: 'true' or '' (default: ''). Currently not used by this workflow, but available for downstream scripts.
         DRY_RUN: ''
       run: |
         set -euo pipefail
