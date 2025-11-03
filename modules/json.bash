@@ -11,7 +11,7 @@ json_escape() {
     fi
   fi
   if command -v jq >/dev/null 2>&1; then
-    if escaped="$(printf '%s' "$s" | jq -Rrs @json)"; then
+    if escaped="$(printf '%s' "$s" | jq -R @json)"; then
       if ((${#escaped} >= 2)); then
         printf '%s' "${escaped:1:-1}"
       else
