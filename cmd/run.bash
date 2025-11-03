@@ -5,6 +5,9 @@ cmd_run() {
     WGX_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
   fi
 
+  # shellcheck disable=SC1091
+  source "$WGX_DIR/lib/core.bash"
+
   if ! declare -F cmd_task >/dev/null 2>&1; then
     # shellcheck disable=SC1090
     source "$WGX_DIR/cmd/task.bash"
@@ -55,14 +58,15 @@ USAGE
   done
 
   if ((${#positionals[@]} == 0)); then
-    cat <<'USAGE' >&2
-Usage:
-  wgx run [--dry-run|-n] <task> [--] [args...]
-USAGE
+    warn "Usage: wgx run <task> [args...]"
     return 1
   fi
 
   local name="${positionals[0]}"
+  if [[ -z "$(profile::_task_spec "$name")" ]]; then
+    warn "Task not defined: $name"
+    return 1
+  fi
   local -a forwarded=()
   if ((${#positionals[@]} > 1)); then
     forwarded=("${positionals[@]:1}")
