@@ -10,7 +10,8 @@ if ! declare -F audit::verify >/dev/null 2>&1; then
 fi
 
 cmd_audit() {
-  local sub="${1:-}"; shift || true
+  local sub="${1:-}"
+  shift || true
   case "$sub" in
     verify)
       local strict=0
@@ -19,7 +20,7 @@ cmd_audit() {
           --strict)
             strict=1
             ;;
-          -h|--help)
+          -h | --help)
             cat <<'USAGE'
 Usage:
   wgx audit verify [--strict]
@@ -50,7 +51,7 @@ USAGE
         audit::verify "$@"
       fi
       ;;
-    -h|--help|help|'')
+    -h | --help | help | '')
       cat <<'USAGE'
 Usage:
   wgx audit verify [--strict]

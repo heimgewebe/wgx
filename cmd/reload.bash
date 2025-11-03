@@ -7,17 +7,17 @@ cmd_reload() {
 
   while [ $# -gt 0 ]; do
     case "$1" in
-    --snapshot)
-      do_snapshot=1
-      ;;
-    --force | -f)
-      force=1
-      ;;
-    --dry-run | -n)
-      dry_run=1
-      ;;
-    -h | --help)
-      cat <<'USAGE'
+      --snapshot)
+        do_snapshot=1
+        ;;
+      --force | -f)
+        force=1
+        ;;
+      --dry-run | -n)
+        dry_run=1
+        ;;
+      -h | --help)
+        cat <<'USAGE'
 Usage:
   wgx reload [--snapshot] [--force] [--dry-run] [<base_branch>]
 
@@ -34,19 +34,19 @@ Options:
   <base_branch> Der Branch, auf den zurückgesetzt werden soll (Standard: $WGX_BASE oder 'main').
   -h, --help    Diese Hilfe anzeigen.
 USAGE
-      return 0
-      ;;
-    --)
-      shift
-      break
-      ;;
-    -*)
-      printf 'unbekannte Option: %s\n' "$1" >&2
-      return 2
-      ;;
-    *)
-      break
-      ;;
+        return 0
+        ;;
+      --)
+        shift
+        break
+        ;;
+      -*)
+        printf 'unbekannte Option: %s\n' "$1" >&2
+        return 2
+        ;;
+      *)
+        break
+        ;;
     esac
     shift
   done

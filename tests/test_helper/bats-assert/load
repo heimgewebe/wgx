@@ -45,7 +45,7 @@ assert_equal() {
       _act="$(mktemp)"
       trap 'rm -f "$_exp" "$_act"; trap - RETURN' RETURN
       printf '%s' "$expected" >"$_exp"
-      printf '%s' "$actual"   >"$_act"
+      printf '%s' "$actual" >"$_act"
       if command -v diff >/dev/null 2>&1; then
         _diff="$(diff -u --label expected --label actual "$_exp" "$_act" 2>/dev/null || true)"
         msg=$'assert_equal failed (multiline)\n'"${_diff}"
@@ -246,7 +246,7 @@ assert_json_equal() {
   _act="$(mktemp)"
   trap 'rm -f "$_exp" "$_act"; trap - RETURN' RETURN
   printf '%s' "$expected_raw" >"$_exp"
-  printf '%s' "$actual_raw"   >"$_act"
+  printf '%s' "$actual_raw" >"$_act"
 
   if ! _norm_exp="$(_json_normalize <"$_exp")"; then
     _assert_fail "assert_json_equal: expected JSON is invalid or normalization failed"

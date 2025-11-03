@@ -71,12 +71,12 @@ for cmd in "${commands[@]}"; do
     fi
   fi
 
-  if (( has_structured_help )); then
+  if ((has_structured_help)); then
     echo '```' >>"$tmp_file"
     printf '%s\n' "$cmd_help" >>"$tmp_file"
     echo '```' >>"$tmp_file"
   else
-    if (( saw_general_help )); then
+    if ((saw_general_help)); then
       echo "_Command does not provide structured --help output._" >>"$tmp_file"
     elif [[ -z "$cmd_help" && $exit_code -eq 0 ]]; then
       echo "_No dedicated --help output available._" >>"$tmp_file"

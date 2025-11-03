@@ -12,8 +12,11 @@ mkdir -p "$PROFILE_DIR"
 if [[ -f "$PROFILE_PATH" ]]; then
   read -rp "Es existiert bereits ein .wgx/profile.yml. Überschreiben? [y/N] " answer
   case "${answer:-}" in
-    y|Y|yes|YES) ;;
-    *) echo "Abgebrochen."; exit 0 ;;
+    y | Y | yes | YES) ;;
+    *)
+      echo "Abgebrochen."
+      exit 0
+      ;;
   esac
 fi
 
@@ -36,7 +39,7 @@ for task in "${default_tasks[@]}"; do
   read -rp "Argumente für '${task}' (Leerzeichen getrennt, leer für keine): " arg_line
   read -rp "Als 'safe' markieren? [Y/n]: " safe_answer
   case "${safe_answer:-}" in
-    n|N|no|NO) safe=false ;;
+    n | N | no | NO) safe=false ;;
     *) safe=true ;;
   esac
   selected_tasks+=("$task")

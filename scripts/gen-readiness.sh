@@ -13,7 +13,8 @@ fi
 ARTIFACT_DIR="$REPO_DIR/artifacts"
 mkdir -p "$ARTIFACT_DIR"
 
-read -r summary_count average < <(python3 - "$REPO_DIR" "$ARTIFACT_DIR" <<'PY'
+read -r summary_count average < <(
+  python3 - "$REPO_DIR" "$ARTIFACT_DIR" <<'PY'
 import json
 import time
 import sys

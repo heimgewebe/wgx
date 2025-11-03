@@ -13,29 +13,29 @@ cmd_sync() {
 
   while [ $# -gt 0 ]; do
     case "$1" in
-    --force | -f)
-      force=1
-      shift
-      ;;
-    --dry-run | -n)
-      dry_run=1
-      shift
-      ;;
-    --base)
-      shift
-      if [ $# -eq 0 ]; then
-        printf 'sync: option --base requires an argument\n' >&2
-        return 2
-      fi
-      base_override="$1"
-      shift
-      ;;
-    --base=*)
-      base_override="${1#--base=}"
-      shift
-      ;;
-    -h | --help)
-      cat <<'USAGE'
+      --force | -f)
+        force=1
+        shift
+        ;;
+      --dry-run | -n)
+        dry_run=1
+        shift
+        ;;
+      --base)
+        shift
+        if [ $# -eq 0 ]; then
+          printf 'sync: option --base requires an argument\n' >&2
+          return 2
+        fi
+        base_override="$1"
+        shift
+        ;;
+      --base=*)
+        base_override="${1#--base=}"
+        shift
+        ;;
+      -h | --help)
+        cat <<'USAGE'
 Usage:
   wgx sync [--force] [--dry-run] [--base <branch>]
 
@@ -51,24 +51,24 @@ Options:
   --base <branch>  Setzt den Fallback-Branch für den Rebase explizit.
   -h, --help       Diese Hilfe anzeigen.
 USAGE
-      return 0
-      ;;
-    --)
-      shift
-      while [ $# -gt 0 ]; do
+        return 0
+        ;;
+      --)
+        shift
+        while [ $# -gt 0 ]; do
+          positional+=("$1")
+          shift
+        done
+        break
+        ;;
+      -*)
+        printf 'sync: unknown option %s\n' "$1" >&2
+        return 2
+        ;;
+      *)
         positional+=("$1")
         shift
-      done
-      break
-      ;;
-    -*)
-      printf 'sync: unknown option %s\n' "$1" >&2
-      return 2
-      ;;
-    *)
-      positional+=("$1")
-      shift
-      ;;
+        ;;
     esac
   done
 

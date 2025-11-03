@@ -18,12 +18,13 @@ cmd_guard() {
   local -a args=("$@")
   local payload_start payload_finish
   if command -v python3 >/dev/null 2>&1; then
-    payload_start=$(python3 - "${args[@]}" <<'PY'
+    payload_start=$(
+      python3 - "${args[@]}" <<'PY'
 import json
 import sys
 print(json.dumps({"args": list(sys.argv[1:]), "phase": "start"}))
 PY
-)
+    )
   else
     payload_start="{\"phase\":\"start\"}"
   fi
@@ -34,12 +35,13 @@ PY
   local rc=$?
 
   if command -v python3 >/dev/null 2>&1; then
-    payload_finish=$(python3 - "$rc" <<'PY'
+    payload_finish=$(
+      python3 - "$rc" <<'PY'
 import json
 import sys
 print(json.dumps({"status": "ok" if int(sys.argv[1]) == 0 else "error", "exit_code": int(sys.argv[1])}))
 PY
-)
+    )
   else
     local status_word
     if ((rc == 0)); then
