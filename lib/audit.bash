@@ -42,11 +42,11 @@ audit::log() {
     prev_line="$(tail -n 1 "$ledger" 2>/dev/null || printf '')"
   fi
   AUDIT_EVENT="$event" \
-  AUDIT_PAYLOAD="$payload" \
-  AUDIT_TIMESTAMP="$timestamp" \
-  AUDIT_SHA="$git_sha" \
-  AUDIT_PREV_LINE="$prev_line" \
-  python3 - "$ledger" <<'PY'
+    AUDIT_PAYLOAD="$payload" \
+    AUDIT_TIMESTAMP="$timestamp" \
+    AUDIT_SHA="$git_sha" \
+    AUDIT_PREV_LINE="$prev_line" \
+    python3 - "$ledger" <<'PY'
 import json
 import os
 import sys
@@ -94,7 +94,7 @@ audit::verify() {
         strict=1
         shift
         ;;
-      --help|-h)
+      --help | -h)
         cat <<'USAGE'
 audit::verify [--strict]
   Prüft die Hash-Kette in .wgx/audit/ledger.jsonl.
@@ -123,7 +123,8 @@ USAGE
     return 0
   fi
   local output
-  if output=$(AUDIT_STRICT_MODE="$strict" python3 - "$ledger" <<'PY'
+  if output=$(
+    AUDIT_STRICT_MODE="$strict" python3 - "$ledger" <<'PY'
 import json
 import os
 import sys
@@ -156,7 +157,7 @@ for raw in ledger_path.read_text(encoding="utf-8").splitlines():
     prev_hash = digest or "0" * 64
 print("OK")
 PY
-); then
+  ); then
     printf '%s\n' "$output"
     return 0
   else

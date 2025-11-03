@@ -9,23 +9,23 @@ cmd_clean() {
 
   local __cmd_clean_restore_errexit=0
   case $- in
-  *e*)
-    __cmd_clean_restore_errexit=1
-    set +e
-    ;;
+    *e*)
+      __cmd_clean_restore_errexit=1
+      set +e
+      ;;
   esac
 
   local dry_run=0 safe=0 build=0 git_cleanup=0 deep=0 force=0
   while [ $# -gt 0 ]; do
     case "$1" in
-    --safe) safe=1 ;;
-    --build) build=1 ;;
-    --git) git_cleanup=1 ;;
-    --deep) deep=1 ;;
-    --dry-run | -n) dry_run=1 ;;
-    --force | -f) force=1 ;;
-    --help | -h)
-      cat <<'USAGE'
+      --safe) safe=1 ;;
+      --build) build=1 ;;
+      --git) git_cleanup=1 ;;
+      --deep) deep=1 ;;
+      --dry-run | -n) dry_run=1 ;;
+      --force | -f) force=1 ;;
+      --help | -h)
+        cat <<'USAGE'
 Usage:
   wgx clean [--safe] [--build] [--git] [--deep] [--dry-run] [--force]
 
@@ -37,27 +37,27 @@ Options:
   --dry-run    Zeigt nur an, was passieren würde.
   --force      Bestätigt destruktive Operationen (für --deep).
 USAGE
-      cd "$oldpwd" >/dev/null 2>&1 || true
-      if [ "$__cmd_clean_restore_errexit" -eq 1 ]; then
-        set -e
-      fi
-      return 0
-      ;;
-    --)
-      shift
-      break
-      ;;
-    -*)
-      warn "Unbekannte Option: $1"
-      cd "$oldpwd" >/dev/null 2>&1 || true
-      if [ "$__cmd_clean_restore_errexit" -eq 1 ]; then
-        set -e
-      fi
-      return 2
-      ;;
-    *)
-      warn "Ignoriere unerwartetes Argument: $1"
-      ;;
+        cd "$oldpwd" >/dev/null 2>&1 || true
+        if [ "$__cmd_clean_restore_errexit" -eq 1 ]; then
+          set -e
+        fi
+        return 0
+        ;;
+      --)
+        shift
+        break
+        ;;
+      -*)
+        warn "Unbekannte Option: $1"
+        cd "$oldpwd" >/dev/null 2>&1 || true
+        if [ "$__cmd_clean_restore_errexit" -eq 1 ]; then
+          set -e
+        fi
+        return 2
+        ;;
+      *)
+        warn "Ignoriere unerwartetes Argument: $1"
+        ;;
     esac
     shift || true
   done

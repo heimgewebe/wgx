@@ -18,11 +18,11 @@ cmd_run() {
 
   while (($#)); do
     case "$1" in
-    --dry-run | -n)
-      dryrun=1
-      ;;
-    -h | --help)
-      cat <<'USAGE'
+      --dry-run | -n)
+        dryrun=1
+        ;;
+      -h | --help)
+        cat <<'USAGE'
 Usage:
   wgx run [--dry-run|-n] <task> [--] [args...]
 
@@ -30,29 +30,29 @@ Description:
   Execute a task defined in the current workspace profile. Additional
   arguments after an optional "--" are forwarded to the task.
 USAGE
-      return 0
-      ;;
-    --)
-      shift
-      while (($#)); do
+        return 0
+        ;;
+      --)
+        shift
+        while (($#)); do
+          positionals+=("$1")
+          shift
+        done
+        break
+        ;;
+      -*)
+        warn "unknown option: $1"
+        return 2
+        ;;
+      *)
         positionals+=("$1")
         shift
-      done
-      break
-      ;;
-    -*)
-      warn "unknown option: $1"
-      return 2
-      ;;
-    *)
-      positionals+=("$1")
-      shift
-      while (($#)); do
-        positionals+=("$1")
-        shift
-      done
-      break
-      ;;
+        while (($#)); do
+          positionals+=("$1")
+          shift
+        done
+        break
+        ;;
     esac
     shift || true
   done
@@ -78,4 +78,3 @@ USAGE
     cmd_task "$name" "${forwarded[@]}"
   fi
 }
-

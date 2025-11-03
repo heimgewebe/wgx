@@ -34,20 +34,20 @@ cmd_quick() {
 
   while (($#)); do
     case "$1" in
-    -i | --interactive)
-      interactive=1
-      ;;
-    -h | --help)
-      _quick_usage
-      return 0
-      ;;
-    --)
-      shift || true
-      break
-      ;;
-    *)
-      die "Usage: wgx quick [-i|--interactive]"
-      ;;
+      -i | --interactive)
+        interactive=1
+        ;;
+      -h | --help)
+        _quick_usage
+        return 0
+        ;;
+      --)
+        shift || true
+        break
+        ;;
+      *)
+        die "Usage: wgx quick [-i|--interactive]"
+        ;;
     esac
     shift || true
   done

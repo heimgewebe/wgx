@@ -25,27 +25,27 @@ EOF
 
 while ((${#})); do
   case "$1" in
-  --json)
-    print_json=1
-    ;;
-  --output)
-    if (($# < 2)); then
-      echo "--output erwartet einen Pfad" >&2
+    --json)
+      print_json=1
+      ;;
+    --output)
+      if (($# < 2)); then
+        echo "--output erwartet einen Pfad" >&2
+        usage >&2
+        exit 1
+      fi
+      output_path=$2
+      shift
+      ;;
+    -h | --help)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "Unbekannte Option: $1" >&2
       usage >&2
       exit 1
-    fi
-    output_path=$2
-    shift
-    ;;
-  -h | --help)
-    usage
-    exit 0
-    ;;
-  *)
-    echo "Unbekannte Option: $1" >&2
-    usage >&2
-    exit 1
-    ;;
+      ;;
   esac
   shift
 done

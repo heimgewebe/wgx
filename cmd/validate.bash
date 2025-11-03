@@ -8,8 +8,11 @@ validate_cmd() {
   while [ $# -gt 0 ]; do
     case "$1" in
       --json) json=1 ;;
-      -h|--help) help=1 ;;
-      --) shift; break ;;
+      -h | --help) help=1 ;;
+      --)
+        shift
+        break
+        ;;
       *) break ;;
     esac
     shift
@@ -77,11 +80,10 @@ USAGE
       fi
     fi
   fi
-  return $(( ok ? 0 : 1 ))
+  return $((ok ? 0 : 1))
 }
 
 # Einheitlicher Einstiegspunkt – wie bei den anderen cmd/*-Skripten
 wgx_command_main() {
   validate_cmd "$@"
 }
-

@@ -93,14 +93,14 @@ env::_doctor_json() {
     if env::_have "$tool"; then
       have="available"
       case "$tool" in
-      git) ver="$(git --version 2>/dev/null | head -n1)" ;;
-      gh) ver="$(gh --version 2>/dev/null | head -n1)" ;;
-      glab) ver="$(glab --version 2>/dev/null | head -n1)" ;;
-      node) ver="$(node --version 2>/dev/null | head -n1)" ;;
-      npm) ver="$(npm --version 2>/dev/null | head -n1)" ;;
-      python3) ver="$(python3 --version 2>/dev/null | head -n1)" ;;
-      uv) ver="$(uv --version 2>/dev/null | head -n1)" ;;
-      docker) ver="$(docker --version 2>/dev/null | head -n1)" ;;
+        git) ver="$(git --version 2>/dev/null | head -n1)" ;;
+        gh) ver="$(gh --version 2>/dev/null | head -n1)" ;;
+        glab) ver="$(glab --version 2>/dev/null | head -n1)" ;;
+        node) ver="$(node --version 2>/dev/null | head -n1)" ;;
+        npm) ver="$(npm --version 2>/dev/null | head -n1)" ;;
+        python3) ver="$(python3 --version 2>/dev/null | head -n1)" ;;
+        uv) ver="$(uv --version 2>/dev/null | head -n1)" ;;
+        docker) ver="$(docker --version 2>/dev/null | head -n1)" ;;
       esac
     fi
     ((first)) || printf ','
@@ -163,35 +163,35 @@ env_cmd() {
 
   while (($#)); do
     case "$1" in
-    doctor)
-      sub="doctor"
-      ;;
-    --fix)
-      fix=1
-      ;;
-    --strict)
-      strict=1
-      ;;
-    --json)
-      json=1
-      ;;
-    -h | --help)
-      cat <<'USAGE'
+      doctor)
+        sub="doctor"
+        ;;
+      --fix)
+        fix=1
+        ;;
+      --strict)
+        strict=1
+        ;;
+      --json)
+        json=1
+        ;;
+      -h | --help)
+        cat <<'USAGE'
 Usage: wgx env doctor [--fix] [--strict] [--json]
   doctor     Inspect the local environment (default)
   --fix      Apply recommended platform specific tweaks (Termux only)
   --strict   Exit non-zero if essential tools are missing (e.g., git)
   --json     Machine-readable output (minimal JSON)
 USAGE
-      return 0
-      ;;
-    --)
-      shift
-      break
-      ;;
-    *)
-      die "Usage: wgx env doctor [--fix] [--strict] [--json]"
-      ;;
+        return 0
+        ;;
+      --)
+        shift
+        break
+        ;;
+      *)
+        die "Usage: wgx env doctor [--fix] [--strict] [--json]"
+        ;;
     esac
     shift
   done
@@ -205,26 +205,26 @@ USAGE
   fi
 
   case "$sub" in
-  doctor)
-    if ((json)); then
-      env::_doctor_json
-    else
-      env::_doctor_report
-    fi
-    if ((apply_fixes)); then
-      env::_apply_fixes || return $?
-    fi
-    if [[ $strict -ne 0 ]]; then
-      if ! env::_have git; then
-        warn "git missing (strict mode)"
-        return 2
+    doctor)
+      if ((json)); then
+        env::_doctor_json
+      else
+        env::_doctor_report
       fi
-    fi
-    return 0
-    ;;
-  *)
-    die "Usage: wgx env doctor [--fix] [--strict] [--json]"
-    ;;
+      if ((apply_fixes)); then
+        env::_apply_fixes || return $?
+      fi
+      if [[ $strict -ne 0 ]]; then
+        if ! env::_have git; then
+          warn "git missing (strict mode)"
+          return 2
+        fi
+      fi
+      return 0
+      ;;
+    *)
+      die "Usage: wgx env doctor [--fix] [--strict] [--json]"
+      ;;
   esac
 }
 

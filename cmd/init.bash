@@ -7,7 +7,7 @@ cmd_init() {
       --wizard)
         wizard=1
         ;;
-      -h|--help)
+      -h | --help)
         cat <<'USAGE'
 Usage:
   wgx init [--wizard]

@@ -88,7 +88,8 @@ USAGE
 
   local payload_start payload_finish
   if command -v python3 >/dev/null 2>&1; then
-    payload_start=$(python3 - "$name" "${forwarded[@]}" <<'PY'
+    payload_start=$(
+      python3 - "$name" "${forwarded[@]}" <<'PY'
 import json
 import sys
 
@@ -96,7 +97,7 @@ task = sys.argv[1]
 args = list(sys.argv[2:])
 print(json.dumps({"task": task, "args": args, "phase": "start"}))
 PY
-)
+    )
   else
     local esc_name
     if type -t json_escape >/dev/null 2>&1; then
@@ -121,17 +122,18 @@ PY
   fi
   profile::run_task "$name" "${forwarded[@]}"
   rc=$?
-  if (( had_errexit )); then
+  if ((had_errexit)); then
     set -o errexit
   fi
-  if (( rc != 0 )); then
+  if ((rc != 0)); then
     if command -v python3 >/dev/null 2>&1; then
-      payload_finish=$(python3 - "$name" "$rc" <<'PY'
+      payload_finish=$(
+        python3 - "$name" "$rc" <<'PY'
 import json
 import sys
 print(json.dumps({"task": sys.argv[1], "status": "error", "exit_code": int(sys.argv[2])}))
 PY
-)
+      )
     else
       local esc
       if type -t json_escape >/dev/null 2>&1; then
@@ -147,12 +149,13 @@ PY
   fi
 
   if command -v python3 >/dev/null 2>&1; then
-    payload_finish=$(python3 - "$name" <<'PY'
+    payload_finish=$(
+      python3 - "$name" <<'PY'
 import json
 import sys
 print(json.dumps({"task": sys.argv[1], "status": "ok", "exit_code": 0}))
 PY
-)
+    )
   else
     local esc
     if type -t json_escape >/dev/null 2>&1; then
