@@ -204,6 +204,16 @@ def _strip_inline_comment(line: str) -> str:
 
 
 def _split_key_value(text: str):
+    """
+    Splits a YAML line on the first unquoted colon.
+
+    Parameters:
+        text (str): The YAML line to parse.
+
+    Returns:
+        tuple[str, str] or None: A tuple of (key, value) if a colon is found outside of quotes,
+        or None if no such colon exists.
+    """
     in_single = False
     in_double = False
     escape = False
