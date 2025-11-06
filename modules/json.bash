@@ -11,20 +11,12 @@ json_escape() {
     fi
   fi
   if command -v jq >/dev/null 2>&1; then
-    if escaped="$(printf '%s' "$s" | jq -R @json)"; then
-      if ((${#escaped} >= 2)); then
-        printf '%s' "${escaped:1:-1}"
-      else
-        printf ''
-      fi
+    if escaped="$(printf '%s' "$s" | jq -Rr '@json | .[1:-1]')"; then
+      printf '%s' "$escaped"
       return 0
     fi
   fi
-  if command -v die >/dev/null 2>&1; then
-    die "json_escape: requires python3 or jq"
-  else
-    printf 'json_escape: requires python3 or jq\n' >&2
-  fi
+  printf 'json_escape: requires python3 or jq\n' >&2
   return 2
 }
 
@@ -33,7 +25,10 @@ json_quote() {
 }
 
 json_bool_value() {
-  [[ $1 == true || $1 == false ]] || die "invalid boolean: $1"
+  if [[ $1 != true && $1 != false ]]; then
+    printf 'invalid boolean: %s\n' "$1" >&2
+    return 2
+  fi
   printf '%s' "$1"
 }
 

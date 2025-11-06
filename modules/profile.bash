@@ -202,6 +202,59 @@ def _strip_inline_comment(line: str) -> str:
         i += 1
     return ''.join(result)
 
+
+def _split_key_value(text: str):
+    """
+    Splits a YAML line on the first unquoted colon.
+
+    Parameters:
+        text (str): The YAML line to parse.
+
+    Returns:
+        tuple[str, str] or None: A tuple of (key, value) if a colon is found outside of quotes,
+        or None if no such colon exists.
+    """
+    in_single = False
+    in_double = False
+    escape = False
+    i = 0
+    length = len(text)
+    while i < length:
+        ch = text[i]
+        if in_single:
+            if ch == "'" and i + 1 < length and text[i + 1] == "'":
+                i += 2
+                continue
+            if ch == "'":
+                in_single = False
+            i += 1
+            continue
+        if in_double:
+            if escape:
+                escape = False
+                i += 1
+                continue
+            if ch == "\\":
+                escape = True
+                i += 1
+                continue
+            if ch == '"':
+                in_double = False
+            i += 1
+            continue
+        if ch == "'":
+            in_single = True
+            i += 1
+            continue
+        if ch == '"':
+            in_double = True
+            i += 1
+            continue
+        if ch == ":":
+            return text[:i], text[i + 1 :]
+        i += 1
+    return None
+
 def _parse_simple_yaml(path: str) -> Any:
     root: Dict[str, Any] = {}
     stack: List[Dict[str, Any]] = [
@@ -240,8 +293,9 @@ def _parse_simple_yaml(path: str) -> Any:
                         }
                     )
                     continue
-                if value_part.endswith(":") or ": " in value_part:
-                    key, rest = value_part.split(":", 1)
+                split = _split_key_value(value_part)
+                if split is not None:
+                    key, rest = split
                     key = key.strip()
                     rest = rest.strip()
                     item: Dict[str, Any] = {}
@@ -271,8 +325,9 @@ def _parse_simple_yaml(path: str) -> Any:
                 container.append(_parse_scalar(value_part))
                 continue
 
-            if content.endswith(":") or ": " in content:
-                key, value_part = content.split(":", 1)
+            split = _split_key_value(content)
+            if split is not None:
+                key, value_part = split
                 key = key.strip()
                 value_part = value_part.strip()
                 _convert_frame(frame, "dict")
@@ -1021,7 +1076,7 @@ profile::_flat_yaml_parse() {
           local arg
           for arg in "${append[@]}"; do
             command+=" "
-            command+="$(printf '%q' "$arg")"
+            command+="$(profile::_shell_quote "$arg")"
           done
         fi
         WGX_TASK_CMDS["$key"]="STR:${command}"
@@ -1035,7 +1090,7 @@ profile::_flat_yaml_parse() {
         local arg
         for arg in "${append[@]}"; do
           command+=" "
-          command+="$(printf '%q' "$arg")"
+          command+="$(profile::_shell_quote "$arg")"
         done
         WGX_TASK_CMDS["$key"]="STR:${command}"
       fi
@@ -1184,7 +1239,7 @@ profile::_task_spec() {
   printf '%s' "${WGX_TASK_CMDS[$key]:-}"
 }
 
-profile::_dry_run_quote() {
+profile::_shell_quote() {
   local value="$1"
   if [[ -z $value ]]; then
     printf "''"
@@ -1195,6 +1250,10 @@ profile::_dry_run_quote() {
     return
   fi
   printf "'%s'" "${value//\'/\'\\\'\'}"
+}
+
+profile::_dry_run_quote() {
+  profile::_shell_quote "$1"
 }
 
 profile::tasks_json() {
