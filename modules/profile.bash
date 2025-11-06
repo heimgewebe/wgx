@@ -1602,8 +1602,8 @@ profile::_yaml_unquote() {
       value="${value//\\\n/$'\n'}"
       value="${value//\\\t/$'\t'}"
       value="${value//\\\r/$'\r'}"
-      value="${value//\\\\/\\}"
       value="${value//\\\"/\"}"
+      value="${value//\\\\/\\}"
     elif [[ $first == "'" && $last == "'" ]]; then
       value="${value:1:-1}"
       value="${value//\'\'/\'}"
