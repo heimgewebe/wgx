@@ -3,7 +3,8 @@
 # Status-Modul: Projektstatus anzeigen
 
 status_cmd() {
-  if [[ "$1" == "-h" || "$1" == "--help" ]]; then
+  local arg="${1-}"
+  if [[ "$arg" == "-h" || "$arg" == "--help" ]]; then
     cat <<'USAGE'
 Usage:
   wgx status
