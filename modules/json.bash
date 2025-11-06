@@ -11,33 +11,7 @@ json_escape() {
     fi
   fi
   if command -v jq >/dev/null 2>&1; then
-    if escaped="$(
-      jq -Rnr --arg s "$s" '
-        def hex_digit: "0123456789abcdef"[.];
-        def hex4:
-          [ (. / 4096 | floor) % 16,
-            (. / 256 | floor) % 16,
-            (. / 16 | floor) % 16,
-            . % 16 ]
-          | map(hex_digit)
-          | join("");
-        $s
-        | explode
-        | map(
-            if . == 34 then "\\\""
-            elif . == 92 then "\\\\"
-            elif . == 8 then "\\b"
-            elif . == 9 then "\\t"
-            elif . == 10 then "\\n"
-            elif . == 12 then "\\f"
-            elif . == 13 then "\\r"
-            elif . < 32 then "\\u" + (.|hex4)
-            else
-              [.] | implode
-            end)
-        | join("")
-      '
-    )"; then
+    if escaped="$(printf '%s' "$s" | jq -Rr '@json | .[1:-1]')"; then
       printf '%s' "$escaped"
       return 0
     fi
