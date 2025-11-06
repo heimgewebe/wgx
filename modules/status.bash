@@ -3,9 +3,9 @@
 # Status-Modul: Projektstatus anzeigen
 
 status_cmd() {
-  local arg="${1-}"
-  if [[ "$arg" == "-h" || "$arg" == "--help" ]]; then
+  if [[ "$1" == "-h" || "$1" == "--help" ]]; then
     cat <<'USAGE'
+Usage:
 Usage:
   wgx status
 
