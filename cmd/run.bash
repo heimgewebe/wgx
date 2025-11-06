@@ -1,5 +1,16 @@
 #!/usr/bin/env bash
 
+run::_print_usage() {
+  cat <<'USAGE'
+Usage:
+  wgx run [--dry-run|-n] <task> [--] [args...]
+
+Description:
+  Execute a task defined in the current workspace profile. Additional
+  arguments after an optional "--" are forwarded to the task.
+USAGE
+}
+
 cmd_run() {
   if [ -z "${WGX_DIR:-}" ]; then
     WGX_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -22,14 +33,7 @@ cmd_run() {
         dryrun=1
         ;;
       -h | --help)
-        cat <<'USAGE'
-Usage:
-  wgx run [--dry-run|-n] <task> [--] [args...]
-
-Description:
-  Execute a task defined in the current workspace profile. Additional
-  arguments after an optional "--" are forwarded to the task.
-USAGE
+        run::_print_usage
         return 0
         ;;
       --)
@@ -58,13 +62,13 @@ USAGE
   done
 
   if ((${#positionals[@]} == 0)); then
-    warn "Usage: wgx run <task> [args...]"
+    run::_print_usage >&2
     return 1
   fi
 
   local name="${positionals[0]}"
   if [[ -z "$(profile::_task_spec "$name")" ]]; then
-    warn "Task not defined: $name"
+    printf 'Task not defined: %s\n' "$name" >&2
     return 1
   fi
   local -a forwarded=()

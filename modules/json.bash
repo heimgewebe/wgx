@@ -11,20 +11,38 @@ json_escape() {
     fi
   fi
   if command -v jq >/dev/null 2>&1; then
-    if escaped="$(printf '%s' "$s" | jq -R @json)"; then
-      if ((${#escaped} >= 2)); then
-        printf '%s' "${escaped:1:-1}"
-      else
-        printf ''
-      fi
+    if escaped="$(
+      jq -Rnr --arg s "$s" '
+        def hex_digit: "0123456789abcdef"[.];
+        def hex4:
+          [ (. / 4096 | floor) % 16,
+            (. / 256 | floor) % 16,
+            (. / 16 | floor) % 16,
+            . % 16 ]
+          | map(hex_digit)
+          | join("");
+        $s
+        | explode
+        | map(
+            if . == 34 then "\\\""
+            elif . == 92 then "\\\\"
+            elif . == 8 then "\\b"
+            elif . == 9 then "\\t"
+            elif . == 10 then "\\n"
+            elif . == 12 then "\\f"
+            elif . == 13 then "\\r"
+            elif . < 32 then "\\u" + (.|hex4)
+            else
+              [.] | implode
+            end)
+        | join("")
+      '
+    )"; then
+      printf '%s' "$escaped"
       return 0
     fi
   fi
-  if command -v die >/dev/null 2>&1; then
-    die "json_escape: requires python3 or jq"
-  else
-    printf 'json_escape: requires python3 or jq\n' >&2
-  fi
+  printf 'json_escape: requires python3 or jq\n' >&2
   return 2
 }
 
@@ -33,7 +51,10 @@ json_quote() {
 }
 
 json_bool_value() {
-  [[ $1 == true || $1 == false ]] || die "invalid boolean: $1"
+  if [[ $1 != true && $1 != false ]]; then
+    printf 'invalid boolean: %s\n' "$1" >&2
+    return 2
+  fi
   printf '%s' "$1"
 }
 
