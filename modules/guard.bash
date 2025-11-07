@@ -34,11 +34,12 @@ type _guard_gitgrep_pcre_supported >/dev/null 2>&1 ||
   }
 
 guard_run() {
-  local run_lint=0 run_test=0
+  local run_lint=0 run_test=0 run_secrets=1
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --lint) run_lint=1 ;;
       --test) run_test=1 ;;
+      --no-secrets) run_secrets=0 ;;
       -h | --help)
         cat <<'USAGE'
 Usage:
@@ -78,6 +79,15 @@ USAGE
     run_test=1
   fi
 
+  # 0. Profile check
+  echo "▶ Checking for wgx profile..."
+  if [[ -f ".wgx/profile.yml" || -f ".wgx/profile.example.yml" ]]; then
+    echo "  • Profile found."
+  else
+    echo "❌ No .wgx/profile.yml or .wgx/profile.example.yml found." >&2
+    return 1
+  fi
+
   # 1. Bigfiles checken (vor dem Secret-Scan, damit große Dateien deterministisch gemeldet werden)
   local max_bytes="${WGX_GUARD_MAX_BYTES:-1048576}"
   if [[ ! "$max_bytes" =~ ^[0-9]+$ ]]; then
@@ -103,7 +113,8 @@ USAGE
   fi
 
   # 2. Staged Secrets checken
-  echo "▶ Checking for secrets..."
+  if [[ $run_secrets -eq 1 ]]; then
+    echo "▶ Checking for secrets..."
   # Scannt den Index (--cached), ignoriert Binärdateien (-I), case-insensitive (-i)
   # und nutzt echte Wortgrenzen, wenn PCRE (-P) verfügbar ist. Fallback simuliert Grenzen.
   type -t _wgx_guard_gitgrep_has_pcre >/dev/null 2>&1 ||
@@ -142,6 +153,7 @@ USAGE
     return 1
   fi
   unset -v _secret_hit
+  fi
 
   # 3. Konfliktmarker checken
   echo "▶ Checking for conflict markers..."
