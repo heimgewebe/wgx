@@ -84,26 +84,28 @@ USAGE
     echo "⚠️ Ungültiger Wert für WGX_GUARD_MAX_BYTES ('$max_bytes'), verwende 1048576." >&2
     max_bytes=1048576
   fi
-  echo "▶ Checking for oversized files (≥ ${max_bytes} Bytes)..."
+  info "Checking for oversized files (≥ ${max_bytes} Bytes)..."
   # Portabler Check per wc -c; prüft nur getrackte Dateien, Schwelle via WGX_GUARD_MAX_BYTES konfigurierbar.
-  if (
-    found=1
-    while IFS= read -r -d '' f; do
+  local oversized
+  oversized=$(
+    git ls-files -z | while IFS= read -r -d '' f; do
       [ -e "$f" ] || continue
+      local sz
       sz=$(wc -c <"$f" 2>/dev/null || echo 0)
       if [ "$sz" -ge "$max_bytes" ]; then
         printf '%s\t%s\n' "$sz" "$f"
-        found=0
       fi
-    done < <(git ls-files -z)
-    exit $found
-  ); then
-    echo "❌ Zu große Dateien im Repo (≥ ${max_bytes} Bytes):" >&2
-    return 1
+    done
+  )
+  if [ -n "$oversized" ]; then
+    # Die Liste der übergroßen Dateien auf STDOUT ausgeben,
+    # die Fehlermeldung selbst geht via die() auf STDERR.
+    echo "$oversized"
+    die "Zu große Dateien im Repo (≥ ${max_bytes} Bytes) gefunden."
   fi
 
   # 2. Staged Secrets checken
-  echo "▶ Checking for secrets..."
+  info "Checking for secrets..."
   # Scannt den Index (--cached), ignoriert Binärdateien (-I), case-insensitive (-i)
   # und nutzt echte Wortgrenzen, wenn PCRE (-P) verfügbar ist. Fallback simuliert Grenzen.
   type -t _wgx_guard_gitgrep_has_pcre >/dev/null 2>&1 ||

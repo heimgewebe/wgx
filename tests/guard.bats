@@ -18,7 +18,8 @@ teardown() {
   truncate -s 1M "$bigfile"
   git add "$bigfile"
 
-  run wgx guard
+  run --separate-stderr wgx guard
   assert_failure
-  assert_output --partial "Zu große Dateien"
+  assert_error --partial "Zu große Dateien im Repo"
+  assert_output --partial "tmp_guard_bigfile"
 }
