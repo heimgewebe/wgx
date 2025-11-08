@@ -11,10 +11,17 @@ dependencies:
   internal:
     - name: metarepo
       relationship: uses
-      interface: knowledge_exports
+      interface:
+        - knowledge_exports
     - name: contracts
       relationship: uses
-      interface: knowledge_graph_schemas
+      interface:
+        - knowledge_graph_schemas
+    - name: vault-gewebe
+      relationship: uses
+      interface:
+        - document_exports
+        - embeddings_source
   external:
     - name: fastapi
     - name: uvicorn
@@ -36,7 +43,7 @@ architecture:
 conventions:
   branching: "main, feature/*"
   commit_prefix: "semantah"
-  ci_platform: "github_actions"
+  ci_platform: github_actions
 
 documentation:
   adr: docs/adr/
@@ -46,4 +53,4 @@ ai_guidance:
   do:
     - store embeddings deterministically for reproducible tests
   dont:
-    - change index params without reindex plan
+    - mix model versions within the same index without tagging

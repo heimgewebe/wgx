@@ -11,10 +11,12 @@ dependencies:
   internal:
     - name: contracts
       relationship: uses
-      interface: audio.events_schema
+      interface:
+        - audio_events_schema
     - name: leitstand
-      relationship: provides
-      interface: audio_events
+      relationship: uses
+      interface:
+        - event_ingest
   external:
     - name: ffmpeg
     - name: whisper.cpp
@@ -34,7 +36,7 @@ architecture:
 conventions:
   branching: "main, feature/*"
   commit_prefix: "hauski-audio"
-  ci_platform: "github_actions"
+  ci_platform: github_actions
 
 documentation:
   runbook: docs/runbook.md
@@ -43,4 +45,4 @@ ai_guidance:
   do:
     - emit small, well-formed JSONL chunks
   dont:
-    - block on long recordings without chunking
+    - buffer giant payloads before send

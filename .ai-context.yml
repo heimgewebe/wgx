@@ -3,7 +3,7 @@ ai_context_version: 1.0
 project:
   name: wgx
   summary: CLI orchestrator for dev/ops tasks and multi-agent flows.
-  role: orchestration_tooling
+  role: tooling_orchestration
   primary_language: bash
   visibility: internal
 
@@ -11,10 +11,12 @@ dependencies:
   internal:
     - name: contracts
       relationship: uses
-      interface: contracts_validation_hooks
+      interface:
+        - validation_hooks
     - name: leitstand
       relationship: uses
-      interface: ci_e2e_orchestration
+      interface:
+        - ci_e2e_orchestration
   external:
     - name: jq
     - name: curl
@@ -27,19 +29,19 @@ architecture:
       purpose: subcommand implementations
   data_flow:
     input: developer commands
-    processing: orchestration fan-out
+    processing: fan-out to repos
     output: reports/metrics
 
 conventions:
   branching: "main, feature/*"
   commit_prefix: "wgx"
-  ci_platform: "github_actions"
+  ci_platform: github_actions
 
 documentation:
   runbook: docs/runbook.md
 
 ai_guidance:
   do:
-    - keep subcommands composable and stateless
+    - compose subcommands; avoid global mutable state
   dont:
-    - introduce hidden global state
+    - hardcode repo-specific paths in core modules

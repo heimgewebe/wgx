@@ -11,10 +11,12 @@ dependencies:
   internal:
     - name: semantah
       relationship: uses
-      interface: search_apis
+      interface:
+        - search_apis
     - name: heimlern
       relationship: uses
-      interface: scores_feedback
+      interface:
+        - scores_feedback
   external:
     - name: react
     - name: vite
@@ -33,13 +35,13 @@ architecture:
 conventions:
   branching: "main, feature/*"
   commit_prefix: "hauski"
-  ci_platform: "github_actions"
+  ci_platform: github_actions
 
 documentation:
   runbook: docs/runbook.md
 
 ai_guidance:
   do:
-    - keep agent IO typed; generate types from contracts when possible
+    - keep agent I/O typed; prefer generated types from contracts
   dont:
-    - bypass policy checks in production builds
+    - call backends without tracing context
