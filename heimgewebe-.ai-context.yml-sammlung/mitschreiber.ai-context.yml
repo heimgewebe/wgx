@@ -3,7 +3,7 @@ ai_context_version: 1.0
 project:
   name: mitschreiber
   summary: Scripted content capture/append utilities (JSONL).
-  role: structured_log_producer
+  role: producer_structured_notes
   primary_language: bash
   visibility: internal
 
@@ -11,10 +11,12 @@ dependencies:
   internal:
     - name: contracts
       relationship: uses
-      interface: jsonl_line_schema
+      interface:
+        - jsonl_line_schema
     - name: leitstand
-      relationship: provides
-      interface: optional_event_feed
+      relationship: uses
+      interface:
+        - http_ingest_optional
   external:
     - name: jq
 
@@ -32,13 +34,13 @@ architecture:
 conventions:
   branching: "main, feature/*"
   commit_prefix: "mitschreiber"
-  ci_platform: "github_actions"
+  ci_platform: github_actions
 
 documentation:
   runbook: docs/runbook.md
 
 ai_guidance:
   do:
-    - ensure each JSONL line is valid standalone JSON
+    - ensure each JSONL line is standalone valid JSON
   dont:
-    - write partial/multiline JSON objects
+    - write partial lines or multi-line JSON

@@ -3,7 +3,7 @@ ai_context_version: 1.0
 project:
   name: leitstand
   summary: Event ingest and processing hub.
-  role: event_store_pipeline
+  role: central_event_store
   primary_language: rust
   visibility: internal
 
@@ -11,17 +11,14 @@ dependencies:
   internal:
     - name: contracts
       relationship: uses
-      interface: json_schema | proto
-    - name: heimlern
-      relationship: provides
-      interface: metrics | reports
-    - name: wgx
-      relationship: consumes
-      interface: orchestration_cli
+      interface:
+        - json_schema
+        - proto
   external:
     - name: tokio
-      version: "^1"
-    - name: serde/serde_json
+      version: "1.x"
+    - name: serde
+    - name: serde_json
     - name: tracing
 
 architecture:
@@ -33,14 +30,14 @@ architecture:
     - path: src/pipeline/
       purpose: event processing
   data_flow:
-    input: "HTTP POST /ingest/*"
-    processing: schema validation then pipelines
+    input: HTTP POST /ingest/*
+    processing: JSON Schema validation + pipelines
     output: storage + metrics
 
 conventions:
-  branching: "main, feature/*, hotfix/*"
+  branching: "main, feature/*"
   commit_prefix: "leitstand"
-  ci_platform: "github_actions"
+  ci_platform: github_actions
 
 documentation:
   adr: docs/adr/
@@ -48,7 +45,7 @@ documentation:
 
 ai_guidance:
   do:
-    - use contracts repo for validation; reject non-conforming events
-    - prefer structured logs via tracing; ensure backpressure handling
+    - pull validation rules from contracts and reject non-conforming events
+    - prefer structured logs via tracing; avoid println! in hot paths
   dont:
-    - introduce println! in hot paths
+    - accept payloads without schema validation

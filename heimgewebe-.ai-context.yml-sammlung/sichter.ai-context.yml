@@ -3,7 +3,7 @@ ai_context_version: 1.0
 project:
   name: sichter
   summary: Review/QA gate for content, policies, and outputs.
-  role: gatekeeper_quality
+  role: gatekeeper_quality_checks
   primary_language: mixed
   visibility: internal
 
@@ -11,13 +11,15 @@ dependencies:
   internal:
     - name: contracts
       relationship: uses
-      interface: policies | validation_schemas
+      interface:
+        - policies
+        - validation_schemas
     - name: heimlern
       relationship: uses
-      interface: quality_scores
+      interface:
+        - quality_scores
   external:
     - name: ajv-cli
-      version: "^5"
 
 architecture:
   entrypoints:
@@ -33,13 +35,13 @@ architecture:
 conventions:
   branching: "main, feature/*"
   commit_prefix: "sichter"
-  ci_platform: "github_actions"
+  ci_platform: github_actions
 
 documentation:
   runbook: docs/runbook.md
 
 ai_guidance:
   do:
-    - emit non-blocking warnings unless contract-violating
+    - prefer warnings unless contracts are violated
   dont:
-    - change policy defaults without ADR
+    - block on stylistic concerns without policy basis
