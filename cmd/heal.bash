@@ -1,29 +1,76 @@
 #!/usr/bin/env bash
 
-cmd_heal() {
-  if [[ "$1" == "-h" || "$1" == "--help" ]]; then
-    cat <<'USAGE'
-Usage:
-  wgx heal [ours|theirs|ff-only|--continue|--abort]
+# heal_cmd (from archiv/wgx)
+heal_cmd() {
+  require_repo
+  local MODE="${1-}"
+  shift || true
+  local STASH=0 CONT=0 ABORT=0 BASE=""
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --stash) STASH=1 ;;
+      --continue) CONT=1 ;;
+      --abort) ABORT=1 ;;
+      --base)
+        if [[ -n "${2-}" ]]; then
+          BASE="$2"
+          shift
+        else
+          die "heal: --base requires an argument."
+        fi
+        ;;
+      *) ;;
+    esac
+    shift || true
+  done
+  [[ -n "$BASE" ]] && WGX_BASE="$BASE"
 
-Description:
-  Hilft bei der Lösung von Merge- oder Rebase-Konflikten.
-  Die vollständige Implementierung dieses Befehls ist noch in Arbeit.
-  Für eine detaillierte Beschreibung der geplanten Funktionalität,
-  siehe 'docs/Command-Reference.de.md'.
-
-Options:
-  -h, --help    Diese Hilfe anzeigen.
-USAGE
-    return 0
+  if ((ABORT)); then
+    if git rebase --abort 2>/dev/null || git merge --abort 2>/dev/null; then
+      ok "Abgebrochen."
+      return 0
+    else
+      warn "Kein Rebase/Merge zum Abbrechen gefunden."
+      return 1
+    fi
   fi
 
-  echo "FEHLER: Der 'heal'-Befehl ist noch nicht vollständig implementiert." >&2
-  echo "Eine Beschreibung der geplanten Funktionalität finden Sie in 'docs/Command-Reference.de.md'." >&2
-  return 1
-  # heal_cmd "$@"
+  ((CONT)) && {
+    git add -A
+    git rebase --continue || die "continue fehlgeschlagen."
+    ok "Rebase fortgesetzt."
+    return 0
+  }
+  ((STASH)) && snapshot_make
+
+  _fetch_guard
+  case "$MODE" in
+    "" | rebase)
+      local base_ref="origin/$WGX_BASE"
+      git rev-parse --verify -q "$base_ref" >/dev/null || base_ref="$WGX_BASE"
+      git rev-parse --verify -q "$base_ref" >/dev/null || die "Basisbranch $WGX_BASE nicht gefunden."
+      git rebase "$base_ref" || {
+        warn "Konflikte. Löse sie, dann: wgx heal --continue | --abort"
+        return 2
+      }
+      ;;
+    ours) git merge -X ours "origin/$WGX_BASE" || {
+      warn "Konflikte. manuell lösen + commit"
+      return 2
+    } ;;
+    theirs) git merge -X theirs "origin/$WGX_BASE" || {
+      warn "Konflikte. manuell lösen + commit"
+      return 2
+    } ;;
+    ff-only) git merge --ff-only "origin/$WGX_BASE" || {
+      warn "Fast-Forward nicht möglich."
+      return 2
+    } ;;
+    *) die "Unbekannter heal-Modus: $MODE" ;;
+  esac
+  ok "Heal erfolgreich."
 }
 
-wgx_command_main() {
-  cmd_heal "$@"
+cmd_heal() {
+    heal_cmd "$@"
 }

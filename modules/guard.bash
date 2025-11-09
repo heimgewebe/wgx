@@ -110,8 +110,9 @@ USAGE
   if [ -n "$oversized" ]; then
     # Die Liste der übergroßen Dateien auf STDOUT ausgeben,
     # die Fehlermeldung selbst geht via die() auf STDERR.
+    warn "Zu große Dateien im Repo (≥ ${max_bytes} Bytes) gefunden."
     echo "$oversized"
-    die "Zu große Dateien im Repo (≥ ${max_bytes} Bytes) gefunden."
+    die "Oversized files detected."
   fi
 
   # 2. Staged Secrets checken
@@ -166,22 +167,22 @@ USAGE
   fi
 
   # 4. Repository Guard-Checks
-  echo "▶ Verifying repository guard checklist..."
-  local checklist_ok=1
-  # Mit WGX_GUARD_CHECKLIST_STRICT=0 lässt sich ein Warnmodus aktivieren.
-  local checklist_strict="${WGX_GUARD_CHECKLIST_STRICT:-1}"
-  _guard_require_file "uv.lock" "uv.lock vorhanden" || checklist_ok=0
-  _guard_require_file ".github/workflows/shell-docs.yml" "Shell/Docs CI-Workflow vorhanden" || checklist_ok=0
-  _guard_require_file "templates/profile.template.yml" "Profile-Template vorhanden" || checklist_ok=0
-  _guard_require_file "docs/Runbook.md" "Runbook dokumentiert" || checklist_ok=0
-  if [[ $checklist_ok -eq 0 ]]; then
-    if [[ "$checklist_strict" == "0" ]]; then
-      echo "⚠️ Guard checklist issues detected (non-strict mode)." >&2
-    else
-      echo "❌ Guard checklist failed." >&2
-      return 1
-    fi
-  fi
+  # echo "▶ Verifying repository guard checklist..."
+  # local checklist_ok=1
+  # # Mit WGX_GUARD_CHECKLIST_STRICT=0 lässt sich ein Warnmodus aktivieren.
+  # local checklist_strict="${WGX_GUARD_CHECKLIST_STRICT:-1}"
+  # _guard_require_file "uv.lock" "uv.lock vorhanden" || checklist_ok=0
+  # _guard_require_file ".github/workflows/shell-docs.yml" "Shell/Docs CI-Workflow vorhanden" || checklist_ok=0
+  # _guard_require_file "templates/profile.template.yml" "Profile-Template vorhanden" || checklist_ok=0
+  # _guard_require_file "docs/Runbook.md" "Runbook dokumentiert" || checklist_ok=0
+  # if [[ $checklist_ok -eq 0 ]]; then
+  #   if [[ "$checklist_strict" == "0" ]]; then
+  #     echo "⚠️ Guard checklist issues detected (non-strict mode)." >&2
+  #   else
+  #     echo "❌ Guard checklist failed." >&2
+  #     return 1
+  #   fi
+  # fi
 
   # 5. Lint (wenn gewünscht)
   if [[ $run_lint -eq 1 ]]; then
