@@ -1,4 +1,6 @@
 name: validate-agent-workflows
+permissions:
+  contents: read
 on:
   pull_request:
     paths:
