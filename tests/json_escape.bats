@@ -11,6 +11,7 @@ load test_helper
 }
 
 @test "json_escape falls back to jq when python3 unavailable" {
+  export value=$'line\nbreak'
   run bash -lc '
 set -euo pipefail
 if ! command -v jq >/dev/null 2>&1; then exit 80; fi
@@ -20,14 +21,13 @@ ln -s "$(command -v jq)" "$tmp/jq"
 PATH="$tmp"
 trap "$rm_bin -rf \"$tmp\"" EXIT
 source modules/json.bash
-value=$'line\nbreak'
 json_escape "$value"
 '
   if [[ "$status" -eq 80 ]]; then
     skip "jq not available"
   fi
   assert_success
-  assert_output 'line\nbreak'
+  assert_output $'line\\nbreak'
 }
 
 @test "json_escape fails loudly without python3 or jq" {
@@ -38,8 +38,8 @@ rm_bin=$(command -v rm)
 PATH="$tmp"
 trap "$rm_bin -rf \"$tmp\"" EXIT
 source modules/json.bash
-json_escape "boom"
+json_escape "boom" 2>&1
 '
   assert_equal "$status" 2
-  assert_equal "$stderr" 'json_escape: requires python3 or jq'
+  assert_equal "$output" 'json_escape: requires python3 or jq'
 }
