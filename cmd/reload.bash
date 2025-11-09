@@ -1,101 +1,45 @@
 #!/usr/bin/env bash
 
-set -euo pipefail
-
-cmd_reload() {
-  local do_snapshot=0 force=0 dry_run=0
-
-  while [ $# -gt 0 ]; do
+# reload_cmd (from archiv/wgx)
+reload_cmd_updated() {
+  local force=0 dry_run=0
+  while [[ $# -gt 0 ]]; do
     case "$1" in
-      --snapshot)
-        do_snapshot=1
-        ;;
-      --force | -f)
+      --force)
         force=1
         ;;
-      --dry-run | -n)
+      --dry-run)
         dry_run=1
         ;;
-      -h | --help)
-        cat <<'USAGE'
-Usage:
-  wgx reload [--snapshot] [--force] [--dry-run] [<base_branch>]
-
-Description:
-  Setzt den Workspace hart auf den Stand des remote 'origin'-Branches zurück.
-  Standardmäßig wird der in der Konfiguration festgelegte Basis-Branch ($WGX_BASE)
-  oder 'main' verwendet.
-  Dies ist ein destruktiver Befehl, der lokale Änderungen verwirft.
-
-Options:
-  --snapshot    Erstellt vor dem Reset einen Git-Stash als Sicherung.
-  --force, -f   Erzwingt den Reset, auch wenn das Arbeitsverzeichnis unsauber ist.
-  --dry-run, -n Zeigt nur die auszuführenden Befehle an, ohne Änderungen vorzunehmen.
-  <base_branch> Der Branch, auf den zurückgesetzt werden soll (Standard: $WGX_BASE oder 'main').
-  -h, --help    Diese Hilfe anzeigen.
-USAGE
-        return 0
-        ;;
-      --)
-        shift
-        break
-        ;;
       -*)
-        printf 'unbekannte Option: %s\n' "$1" >&2
-        return 2
+        die "reload: Unerwartetes Argument '$1'"
         ;;
       *)
-        break
+        # positional args not supported in this version
         ;;
     esac
-    shift
+    shift || true
   done
 
-  if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-    die "Bitte innerhalb eines Git-Repositories ausführen (kein Git-Repository erkannt)."
+  if git_workdir_dirty && ((force == 0)); then
+    die "reload abgebrochen: Arbeitsverzeichnis enthält ungespeicherte Änderungen."
   fi
 
-  local base="${1:-$WGX_BASE}"
-  [ -z "$base" ] && base="main"
-
-  debug "cmd_reload: force=${force} dry_run=${dry_run} snapshot=${do_snapshot} base='${base}'"
-
-  if git_workdir_dirty; then
-    local status
-    status="$(git_workdir_status_short)"
-    if ((force)); then
-      warn "Arbeitsverzeichnis enthält uncommittete Änderungen – --force (-f) aktiv, Änderungen können verloren gehen."
-      if [ -n "$status" ]; then
-        while IFS= read -r line; do
-          printf '    %s\n' "$line" >&2
-        done <<<"$status"
-      fi
-    else
-      warn "Arbeitsverzeichnis enthält uncommittete Änderungen – reload abgebrochen."
-      if [ -n "$status" ]; then
-        while IFS= read -r line; do
-          printf '    %s\n' "$line" >&2
-        done <<<"$status"
-      fi
-      warn "Nutze 'wgx reload --force/-f' (oder sichere mit --snapshot), wenn du wirklich alles verwerfen möchtest."
-      return 1
-    fi
+  if ((dry_run)); then
+    info "[DRY-RUN] Geplante Schritte:"
+    info "[DRY-RUN] git reset --hard origin/$WGX_BASE"
+    info "[DRY-RUN] git clean -fdx"
+    ok "[DRY-RUN] Reload wäre jetzt abgeschlossen."
+    return 0
   fi
 
-  if ((do_snapshot)); then
-    if ((dry_run)); then
-      info "[DRY-RUN] Snapshot (Stash) würde erstellt."
-    else
-      snapshot_make
-    fi
-  fi
+  git_hard_reload
+}
 
-  local rc=0
-  local -a reload_args=()
-  ((dry_run)) && reload_args+=(--dry-run)
+reload_cmd() {
+  reload_cmd_updated "$@"
+}
 
-  git_hard_reload "${reload_args[@]}" "$base"
-  rc=$?
-
-  return $rc
+cmd_reload() {
+    reload_cmd "$@"
 }

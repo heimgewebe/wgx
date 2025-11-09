@@ -159,5 +159,5 @@ YAML
   assert_success
   assert_output --partial "[DRY-RUN] bash -lc"
   assert_output --partial "'and spaces'"
-  assert_output --partial "quote: \"X\""
+  assert_output --partial "quote: \\\"X\\\""
 }

@@ -606,14 +606,13 @@ if isinstance(tasks, dict):
             payload = json.dumps(tokens, ensure_ascii=False)
             emit(f"WGX_TASK_CMDS[{shell_quote(norm)}]={shell_quote('ARRJSON:' + payload)}")
         else:
+            command_parts = []
             if base_cmd is not None:
-                # keep base string as-is; only quote appended args
+                command_parts.append(base_cmd)
                 if appended_args:
-                    command = base_cmd + ' ' + ' '.join(shlex.quote(str(a)) for a in appended_args)
-                else:
-                    command = base_cmd
+                    command_parts.extend(shlex.quote(str(a)) for a in appended_args)
+                command = ' '.join(command_parts)
             else:
-                # no base string; fall back to joined tokens/args
                 all_parts = tokens + appended_args
                 command = ' '.join(shlex.quote(str(p)) for p in all_parts)
             emit(f"WGX_TASK_CMDS[{shell_quote(norm)}]={shell_quote('STR:' + command)}")
