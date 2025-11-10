@@ -45,3 +45,7 @@ contracts action +args:
         exit 1
         ;;
     esac
+default: lint
+lint:
+    bash -n $(git ls-files *.sh *.bash)
+    echo "lint ok"
