@@ -25,6 +25,7 @@ Commands:
   quick
   release
   reload
+  run
   selftest
   send
   setup
@@ -138,19 +139,7 @@ Options:
 
 ### heal
 
-```
-Usage:
-  wgx heal [ours|theirs|ff-only|--continue|--abort]
-
-Description:
-  Hilft bei der Lösung von Merge- oder Rebase-Konflikten.
-  Die vollständige Implementierung dieses Befehls ist noch in Arbeit.
-  Für eine detaillierte Beschreibung der geplanten Funktionalität,
-  siehe 'docs/Command-Reference.de.md'.
-
-Options:
-  -h, --help    Diese Hilfe anzeigen.
-```
+_Command does not provide structured --help output._
 
 ### help
 
@@ -175,6 +164,7 @@ Commands:
   quick
   release
   reload
+  run
   selftest
   send
   setup
@@ -272,23 +262,11 @@ Options:
 
 ### reload
 
-```
-Usage:
-  wgx reload [--snapshot] [--force] [--dry-run] [<base_branch>]
+_Command does not provide structured --help output._
 
-Description:
-  Setzt den Workspace hart auf den Stand des remote 'origin'-Branches zurück.
-  Standardmäßig wird der in der Konfiguration festgelegte Basis-Branch ($WGX_BASE)
-  oder 'main' verwendet.
-  Dies ist ein destruktiver Befehl, der lokale Änderungen verwirft.
+### run
 
-Options:
-  --snapshot    Erstellt vor dem Reset einen Git-Stash als Sicherung.
-  --force, -f   Erzwingt den Reset, auch wenn das Arbeitsverzeichnis unsauber ist.
-  --dry-run, -n Zeigt nur die auszuführenden Befehle an, ohne Änderungen vorzunehmen.
-  <base_branch> Der Branch, auf den zurückgesetzt werden soll (Standard: $WGX_BASE oder 'main').
-  -h, --help    Diese Hilfe anzeigen.
-```
+_Command does not provide structured --help output._
 
 ### selftest
 
@@ -307,25 +285,7 @@ Options:
 
 ### send
 
-```
-Usage:
-  wgx send [--draft] [--title <title>] [--why <reason>] [...]
-
-Description:
-  Erstellt einen Pull/Merge Request (PR/MR) auf GitHub oder GitLab.
-  Vor dem Senden werden 'wgx guard' und 'wgx sync' ausgeführt.
-  Die vollständige Implementierung dieses Befehls ist noch in Arbeit.
-  Für eine detaillierte Beschreibung der geplanten Funktionalität,
-  siehe 'docs/Command-Reference.de.md'.
-
-Options:
-  --draft       Erstellt den PR/MR als Entwurf.
-  --title <t>   Setzt den Titel des PR/MR.
-  --why <r>     Setzt den "Warum"-Teil im PR/MR-Body.
-  --ci          Löst einen CI-Workflow aus (falls konfiguriert).
-  --open        Öffnet den erstellten PR/MR im Browser.
-  -h, --help    Diese Hilfe anzeigen.
-```
+_Command does not provide structured --help output._
 
 ### setup
 
@@ -364,6 +324,7 @@ Options:
 
 ```
 Usage:
+Usage:
   wgx status
 
 Description:
@@ -378,22 +339,7 @@ Options:
 
 ### sync
 
-```
-Usage:
-  wgx sync [--force] [--dry-run] [--base <branch>]
-
-Description:
-  Holt Änderungen vom Remote-Repository. Führt 'git pull --rebase --autostash' aus.
-  Wenn dies fehlschlägt, wird ein Rebase auf den angegebenen Basis-Branch
-  (Standard: $WGX_BASE oder 'main') versucht.
-
-Options:
-  --force, -f      Erzwingt den Sync, auch wenn das Arbeitsverzeichnis unsauber ist
-                   (lokale Änderungen werden temporär gestasht).
-  --dry-run, -n    Zeigt nur die geplanten Git-Befehle an.
-  --base <branch>  Setzt den Fallback-Branch für den Rebase explizit.
-  -h, --help       Diese Hilfe anzeigen.
-```
+_Command does not provide structured --help output._
 
 ### task
 
