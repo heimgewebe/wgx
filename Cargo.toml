@@ -1,0 +1,17 @@
+[package]
+name = "wgx"
+version = "0.0.1-alpha.0"
+edition = "2021"
+license = "MIT"
+description = "Heimgewebe Fleet-Orchestrator (Rust-CLI-Stub für wgx)"
+repository = "https://github.com/heimgewebe/wgx"
+readme = "README.md"
+
+[dependencies]
+anyhow = "1"
+clap = { version = "4", features = ["derive"] }
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "z"
