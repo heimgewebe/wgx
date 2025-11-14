@@ -148,23 +148,23 @@ git_hard_reload() {
   local dry_run=0 base=""
   while [ $# -gt 0 ]; do
     case "$1" in
-      --dry-run | -n)
-        dry_run=1
-        ;;
-      --)
-        shift
-        break
-        ;;
-      -*)
-        die "git_hard_reload: unerwartetes Argument '$1'"
-        ;;
-      *)
-        if [ -z "$base" ]; then
-          base="$1"
-        else
-          die "git_hard_reload: zu viele Argumente"
-        fi
-        ;;
+    --dry-run | -n)
+      dry_run=1
+      ;;
+    --)
+      shift
+      break
+      ;;
+    -*)
+      die "git_hard_reload: unerwartetes Argument '$1'"
+      ;;
+    *)
+      if [ -z "$base" ]; then
+        base="$1"
+      else
+        die "git_hard_reload: zu viele Argumente"
+      fi
+      ;;
     esac
     shift
   done
@@ -311,14 +311,14 @@ wgx_main() {
   shift || true
 
   case "$sub" in
-    help | -h | --help)
-      wgx_usage
-      return 0
-      ;;
-    --list | commands)
-      wgx_available_commands
-      return 0
-      ;;
+  help | -h | --help)
+    wgx_usage
+    return 0
+    ;;
+  --list | commands)
+    wgx_available_commands
+    return 0
+    ;;
   esac
 
   _load_modules

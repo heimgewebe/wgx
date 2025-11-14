@@ -90,26 +90,26 @@ audit::verify() {
   local strict=0
   while [[ $# -gt 0 ]]; do
     case "$1" in
-      --strict)
-        strict=1
-        shift
-        ;;
-      --help | -h)
-        cat <<'USAGE'
+    --strict)
+      strict=1
+      shift
+      ;;
+    --help | -h)
+      cat <<'USAGE'
 audit::verify [--strict]
   Prüft die Hash-Kette in .wgx/audit/ledger.jsonl.
   Rückgabewert 0 bei gültiger Kette.
   Mit --strict (oder AUDIT_VERIFY_STRICT=1) führt eine Verletzung zu exit != 0.
 USAGE
-        return 0
-        ;;
-      --*)
-        printf 'audit::verify: unknown option %s\n' "$1" >&2
-        return 1
-        ;;
-      *)
-        break
-        ;;
+      return 0
+      ;;
+    --*)
+      printf 'audit::verify: unknown option %s\n' "$1" >&2
+      return 1
+      ;;
+    *)
+      break
+      ;;
     esac
   done
   if ! command -v python3 >/dev/null 2>&1; then

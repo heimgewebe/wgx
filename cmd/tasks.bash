@@ -4,22 +4,22 @@ cmd_tasks() {
   local json=0 safe_only=0 include_groups=0
   while (($#)); do
     case "$1" in
-      --json) json=1 ;;
-      --safe) safe_only=1 ;;
-      --groups) include_groups=1 ;;
-      -h | --help)
-        cat <<'USAGE'
+    --json) json=1 ;;
+    --safe) safe_only=1 ;;
+    --groups) include_groups=1 ;;
+    -h | --help)
+      cat <<'USAGE'
 Usage: wgx tasks [--json] [--safe] [--groups]
   --json    Output machine readable JSON
   --safe    Only include tasks marked as safe
   --groups  Include group metadata (JSON) or group headings (text)
 USAGE
-        return 0
-        ;;
-      *)
-        warn "unknown option: $1"
-        return 1
-        ;;
+      return 0
+      ;;
+    *)
+      warn "unknown option: $1"
+      return 1
+      ;;
     esac
     shift
   done

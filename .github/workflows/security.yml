@@ -13,56 +13,26 @@ on:
   workflow_dispatch:
 
 jobs:
-  audit:
+  trivy:
+    name: Trivy fs scan
     runs-on: ubuntu-latest
-    timeout-minutes: 10
-    concurrency:
-      group: security-${{ github.ref }}
-      cancel-in-progress: true
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Locate Cargo manifest
-        id: cargo-manifest
-        run: |
-          manifest=$(find . -name Cargo.toml -print -quit)
-          if [[ -z "$manifest" ]]; then
-            echo "found=false" >>"$GITHUB_OUTPUT"
-            echo "No Cargo.toml found – skipping cargo audit run."
-          else
-            echo "found=true" >>"$GITHUB_OUTPUT"
-            echo "manifest=$manifest" >>"$GITHUB_OUTPUT"
-          fi
-        shell: bash
-
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-
-      # Caches beschleunigen cargo-audit merklich
-      - name: Cache cargo registry + advisory DB
-        if: steps.cargo-manifest.outputs.found == 'true'
-        uses: actions/cache@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            ~/.cargo/advisory-db
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-
+          persist-credentials: false
 
-      - name: Install cargo-audit
-        if: steps.cargo-manifest.outputs.found == 'true'
-        run: cargo install cargo-audit --locked
+      - name: Run Trivy vulnerability scanner in fs mode
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          ignore-unfixed: true
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
 
-      - name: Audit dependencies
-        if: steps.cargo-manifest.outputs.found == 'true'
-        run: cargo audit --manifest-path "${{ steps.cargo-manifest.outputs.manifest }}"
-        timeout-minutes: 5
-
-      - name: Skip audit (no Cargo manifest found)
-        if: steps.cargo-manifest.outputs.found != 'true'
-        run: echo "No Cargo.toml detected in repository; cargo audit skipped."
-      # Optional: falls du ein eigenes DB-Verzeichnis nutzt
-      # - name: Audit with explicit DB path
-      #   run: cargo audit -d ~/.cargo/advisory-db
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-results.sarif'

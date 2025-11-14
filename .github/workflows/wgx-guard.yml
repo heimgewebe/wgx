@@ -10,7 +10,6 @@ on:
       - ".github/workflows/**"
       - "pyproject.toml"
       - "uv.lock"
-      - "Cargo.toml"
   pull_request:
     paths:
       - ".wgx/**"
@@ -18,7 +17,6 @@ on:
       - ".github/workflows/**"
       - "pyproject.toml"
       - "uv.lock"
-      - "Cargo.toml"
   workflow_dispatch:
   
 jobs:
@@ -84,13 +82,6 @@ jobs:
           fi
           echo "ref=${{ github.ref }} sha=${{ github.sha }}"
           test -s README.md || echo "::warning::README.md missing or empty"
-          if [ -f Cargo.toml ]; then
-            if command -v cargo >/dev/null 2>&1; then
-              cargo metadata --no-deps >/dev/null
-            else
-              echo "::notice::Cargo.toml present but 'cargo' not found – skipping Rust smoke"
-            fi
-          fi
           if [ -f pyproject.toml ]; then
             grep -q '^[[:space:]]*\[project\]' pyproject.toml || echo "::warning::[project] section not found in pyproject.toml"
           fi
@@ -238,20 +229,6 @@ jobs:
           echo "Running 'uv sync --frozen' to verify frozen installs..."
           "$HOME/.local/bin/uv" sync --frozen
           echo "uv contracts satisfied ✅"
-
-      - name: Rust manifest check
-        shell: sh
-        run: |
-          set -eu
-          if (set -o pipefail) 2>/dev/null; then
-            set -o pipefail
-          fi
-          if [ -f Cargo.toml ]; then
-            rustup toolchain install stable --profile minimal
-            cargo metadata --no-deps >/dev/null
-          else
-            echo "No Cargo.toml present – skipping."
-          fi
 
       - name: Done
         shell: sh
