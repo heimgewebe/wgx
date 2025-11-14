@@ -14,12 +14,13 @@ Scope: Orchestrierung, nicht Business-Logik
 - spricht mit Templates und Reusable-Workflows aus dem **metarepo**,
 - ist selbst kein Service und macht keine KI-Logik.
 
-Kurz: wgx ist der **Bordcomputer**, der die Flotte bedient – nicht das Gehirn (hausKI) und nicht das Gedächtnis (leitstand).
+Kurz: wgx ist der **Bordcomputer**, der die Flotte bedient – nicht das Gehirn (hausKI) und nicht das Gedächtnis (chronik).
 
 Abgrenzung:
 
 - **hausKI**: orchestriert Denkprozesse und Agenten (Planen, Entscheiden, Reviews anstoßen).
-- **leitstand**: speichert und zeigt Ereignisse (Events, Panels, Metriken).
+- **chronik**: speichert Ereignisse (Events, Audit-Logs).
+- **leitstand**: visualisiert und steuert (UI/Dashboard über chronik, semantAH, hausKI).
 - **wgx**: startet, überprüft, synchronisiert – lokal und in CI.
 
 ---
@@ -189,6 +190,6 @@ ein Bash-CLI, das Repos und Aufgaben orchestriert, ohne selbst ein weiterer komp
 
 ## 10. Kleine Pointe
 
-Wenn hausKI der Denker ist und leitstand das Tagebuch,  
+Wenn hausKI der Denker ist und chronik das Tagebuch,  
 ist wgx derjenige, der morgens den Laden aufsperrt, das Licht anmacht  
 und leise fragt: „Na, wen soll ich heute zuerst antreiben?“
