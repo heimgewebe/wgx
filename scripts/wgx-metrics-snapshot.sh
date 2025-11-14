@@ -25,27 +25,27 @@ EOF
 
 while ((${#})); do
   case "$1" in
-    --json)
-      print_json=1
-      ;;
-    --output)
-      if (($# < 2)); then
-        echo "--output erwartet einen Pfad" >&2
-        usage >&2
-        exit 1
-      fi
-      output_path=$2
-      shift
-      ;;
-    -h | --help)
-      usage
-      exit 0
-      ;;
-    *)
-      echo "Unbekannte Option: $1" >&2
+  --json)
+    print_json=1
+    ;;
+  --output)
+    if (($# < 2)); then
+      echo "--output erwartet einen Pfad" >&2
       usage >&2
       exit 1
-      ;;
+    fi
+    output_path=$2
+    shift
+    ;;
+  -h | --help)
+    usage
+    exit 0
+    ;;
+  *)
+    echo "Unbekannte Option: $1" >&2
+    usage >&2
+    exit 1
+    ;;
   esac
   shift
 done
@@ -73,15 +73,15 @@ updates_flatpak=${UPDATES_FLATPAK:-0}
 
 # Backup-Status (Platzhalter)
 if date -d "yesterday" +%F >/dev/null 2>&1; then
-# Backup-Status konsistent: age_days steuert last_ok
-age_days=${BACKUP_AGE_DAYS:-1}
-if date -d "today" +%F >/dev/null 2>&1; then
-  # GNU date
-  last_ok=$(date -d "${age_days} day ago" +%F)
-else
-  # BSD/macOS date
-  last_ok=$(date -v-"${age_days}"d +%F)
-fi
+  # Backup-Status konsistent: age_days steuert last_ok
+  age_days=${BACKUP_AGE_DAYS:-1}
+  if date -d "today" +%F >/dev/null 2>&1; then
+    # GNU date
+    last_ok=$(date -d "${age_days} day ago" +%F)
+  else
+    # BSD/macOS date
+    last_ok=$(date -v-"${age_days}"d +%F)
+  fi
 else
   last_ok=$(date -v-"${age_days}"d +%F) # BSD/macOS
 fi

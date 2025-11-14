@@ -39,24 +39,24 @@ test_cmd() {
 
   while [ $# -gt 0 ]; do
     case "$1" in
-      -h | --help)
-        _test_usage
-        return 0
-        ;;
-      --list)
-        show_list=1
-        ;;
-      --)
-        shift
-        while [ $# -gt 0 ]; do
-          bats_args+=("$1")
-          shift
-        done
-        break
-        ;;
-      *)
+    -h | --help)
+      _test_usage
+      return 0
+      ;;
+    --list)
+      show_list=1
+      ;;
+    --)
+      shift
+      while [ $# -gt 0 ]; do
         bats_args+=("$1")
-        ;;
+        shift
+      done
+      break
+      ;;
+    *)
+      bats_args+=("$1")
+      ;;
     esac
     shift || true
   done

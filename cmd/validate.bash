@@ -7,13 +7,13 @@ validate_cmd() {
   local json=0 help=0
   while [ $# -gt 0 ]; do
     case "$1" in
-      --json) json=1 ;;
-      -h | --help) help=1 ;;
-      --)
-        shift
-        break
-        ;;
-      *) break ;;
+    --json) json=1 ;;
+    -h | --help) help=1 ;;
+    --)
+      shift
+      break
+      ;;
+    *) break ;;
     esac
     shift
   done

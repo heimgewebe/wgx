@@ -35,10 +35,10 @@ json_escape() {
 
   # Ursprünglichen Shell-Zustand wiederherstellen
   ((_had_pipefail)) && set -o pipefail
-  ((_had_errexit))  && set -e
+  ((_had_errexit)) && set -e
 
   # Ergebnis/Fehlerbehandlung
-  if (( rc == 0 )); then
+  if ((rc == 0)); then
     printf '%s' "$escaped"
     return 0
   fi
