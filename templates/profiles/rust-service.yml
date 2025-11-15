@@ -1,0 +1,7 @@
+# Beispiel: rust-service
+class: rust-service
+tasks:
+  smoke: "just rec-smoke"
+  guard: "gh workflow run wgx-guard.yml"
+  metrics: "gh workflow run metrics.yml"
+  snapshot: "./scripts/wgx-metrics-snapshot.sh --json --output metrics.json"

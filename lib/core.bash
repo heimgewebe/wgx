@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 
+# Rolle: WGX-Kernbibliothek
+# Diese Datei stellt zentrale, von allen Subkommandos genutzte Funktionen
+# bereit. Dazu gehören Logging, Git-Helfer, Environment-Handling und der
+# Dispatcher (`wgx_main`), der die Subkommandos aus `cmd/` aufruft.
+
 # ---------- Logging ----------
 
 : "${WGX_NO_EMOJI:=0}"

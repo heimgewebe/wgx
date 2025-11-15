@@ -8,6 +8,12 @@ if ! set -o pipefail 2>/dev/null; then
 fi
 
 # WGX_DIR auf Root des Repos setzen – robust MIT Symlink-Auflösung
+#
+# Rolle: Zentraler Einstiegspunkt (Dispatcher)
+# Dieses Skript ist der einzige direkte Einstiegspunkt für alle `wgx`-Aufrufe.
+# Es ermittelt das Repo-Root, lädt Bibliotheken aus `lib/` und `modules/`
+# und leitet die Ausführung an das passende Subkommando in `cmd/` weiter.
+#
 # Warum? Wenn cli/wgx als Symlink in ~/.local/bin/wgx landet, zeigt
 # ${BASH_SOURCE[0]} zunächst auf den Symlink-Pfad. Wir folgen allen
 # Symlinks und landen zuverlässig im echten Verzeichnis der Datei.

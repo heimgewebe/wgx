@@ -8,6 +8,32 @@
 - Linting ausführen (auch für Git-Hooks): `wgx lint`
 - Umgebung diagnostizieren: `wgx doctor`
 
+## Fleet-Konvention: `class` und `tasks` im Profil
+
+Die `.wgx/profile.yml` kann optional eine `class`- und `tasks`-Ebene enthalten, um eine leicht lesbare Oberflächen-API für Fleet-Tools und CI-Systeme bereitzustellen. Diese Konvention ergänzt das bestehende `wgx.apiVersion`-Schema, ohne es zu ersetzen.
+
+-   **`class`**: Definiert die Klasse oder den Typ des Repositories (z.B. `rust-service`, `python-service`, `docs-only`).
+-   **`tasks`**: Eine einfache Map von Task-Namen zu Shell-Befehlen, die von externen Tools oder wiederverwendbaren Workflows ausgeführt werden können.
+
+Darunter kann weiterhin ein `wgx.apiVersion: v1|v1.1`-Block existieren, den der `wgx`-Parser für seine eigene Task-Ausführung (`wgx run`) benutzt.
+
+### Beispiel
+
+```yaml
+# Oberflächen-API für Fleet-Tools
+class: rust-service
+tasks:
+  smoke: "just rec-smoke"
+  guard: "gh workflow run wgx-guard.yml"
+  metrics: "gh workflow run metrics.yml"
+  snapshot: "./scripts/wgx-metrics-snapshot.sh --json --output metrics.json"
+
+# WGX-spezifischer Block für `wgx run`
+wgx:
+  apiVersion: v1.1
+  # ... weitere wgx-spezifische Konfigurationen
+```
+
 ## Häufige Fehler und Lösungen
 
 ### `profile.yml` wird nicht gefunden

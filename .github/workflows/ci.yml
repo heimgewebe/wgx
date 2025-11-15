@@ -154,6 +154,23 @@ EOF
             bats-support
             bats-assert
 
+  self_smoke:
+    name: Self-Smoke (CLI + Bats)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Bats
+        uses: bats-core/bats-action@v1.8.0
+        with:
+          helpers: |
+            bats-support
+            bats-assert
+      - name: Run wgx --help
+        run: ./cli/wgx --help
+      - name: Run bats tests
+        run: bats -r tests
+
   docs_lint:
     name: Docs lint (Markdown + Links)
     needs: changes
