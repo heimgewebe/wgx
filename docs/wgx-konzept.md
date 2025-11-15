@@ -104,11 +104,7 @@ Beispielhafte Profil-Information:
 
 ## 5. Abgrenzung: „Rust-wgx“ vs. aktuelles wgx
 
-In manchen CI-Workflows wurde versucht, wgx als Rust-Crate zu installieren:
-
-- `cargo install wgx`  
-oder
-- `cargo install --git https://github.com/heimgewebe/wgx --locked wgx`
+In manchen CI-Workflows wurde versucht, wgx als Rust-Crate zu installieren.
 
 Das führt zu Problemen, weil:
 
