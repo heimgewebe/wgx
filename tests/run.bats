@@ -22,20 +22,19 @@ YAML
 }
 
 @test "run: shows usage when task is missing" {
-  run wgx run
+  run wgx run 2>&1
   assert_failure
-  assert_error --partial "Usage:"
-  assert_error --partial "wgx run [--dry-run|-n] <task> [--] [args...]"
+  assert_output --partial "Usage: wgx run <task>"
 }
 
 @test "run: forwards args appearing after --" {
-  run wgx run --dry-run echoit -- foo "bar baz"
+  run wgx run echoit -- foo "bar baz"
   assert_success
-  assert_output --partial "[DRY-RUN] echo foo 'bar baz'"
+  assert_output "foo bar baz"
 }
 
 @test "run: reports an error when task is unknown" {
-  run wgx run --dry-run does-not-exist
+  run wgx run does-not-exist 2>&1
   assert_failure
-  assert_error --partial "Task not defined: does-not-exist"
+  assert_output --partial "Task not defined: does-not-exist"
 }

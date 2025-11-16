@@ -1152,7 +1152,9 @@ profile::load() {
     fi
   fi
   if ((status != 0)); then
-    profile::_flat_yaml_parse "$file"
+    # The Python parser failed, so we can't continue.
+    # The flat yaml parser has been removed.
+    return 1
   fi
   profile::_collect_env_keys
   WGX_PROFILE_LOADED="$_norm_file"
@@ -1315,8 +1317,14 @@ profile::env_apply() {
 }
 
 profile::run_task() {
-  local name="$1"
+  local name="${1-}"
+  if [[ -z $name ]]; then
+    printf 'Usage: wgx run <task>\n\nAvailable tasks:\n' >&2
+    profile::tasks | sed 's/^/  /' >&2
+    return 1
+  fi
   shift || true
+
   local key
   key="$(profile::_normalize_task_name "$name")"
   local spec
@@ -1329,8 +1337,17 @@ profile::run_task() {
   mapfile -t envs < <(profile::env_apply)
   local dryrun="${DRYRUN:-0}"
   local args=()
+  local passthrough=0
   while (($#)); do
-    args+=("$1")
+    if ((passthrough)); then
+        args+=("$1")
+    else
+        if [[ $1 == -- ]]; then
+            passthrough=1
+        else
+            args+=("$1")
+        fi
+    fi
     shift || true
   done
   case "$spec" in
@@ -1499,186 +1516,4 @@ profile::_auto_init() {
       warn "profile manifest could not be loaded"
     fi
   fi
-}
-
-profile::_auto_init
-profile::_flat_platform_keys() {
-  local -n _dest=$1
-  local uname_s
-  uname_s="$(uname -s 2>/dev/null || printf 'unknown')"
-  case "${uname_s,,}" in
-  darwin*)
-    _dest+=(darwin)
-    ;;
-  linux*)
-    _dest+=(linux)
-    ;;
-  msys* | mingw* | cygwin* | windows*)
-    _dest+=(win32)
-    ;;
-  esac
-  _dest+=(default)
-}
-
-profile::_flat_encode_list() {
-  local us="$1"
-  shift || true
-  local result="list${us}"
-  local sep="$us"
-  local item
-  for item in "$@"; do
-    result+="$item$sep"
-  done
-  if [[ $result == *$sep ]]; then
-    result=${result%$sep}
-  fi
-  printf '%s' "$result"
-}
-
-profile::_flat_decode_list() {
-  local us="$1" data="$2"
-  local -n _out=$3
-  _out=()
-  if [[ $data == list${us}* ]]; then
-    local payload="${data#list$us}"
-    if [[ $payload == "$us" ]]; then
-      payload=""
-    fi
-    if [[ -n $payload ]]; then
-      IFS="$us" read -r -a _out <<<"$payload"
-    fi
-  fi
-}
-
-profile::_flat_select_variant() {
-  local map_name="$1"
-  shift || true
-  local -n _map_ref="$map_name"
-  local us="$1"
-  shift || true
-  local -a platforms=("$@")
-  local key value
-  for key in "${platforms[@]}"; do
-    value="${_map_ref[$key]-}"
-    if [[ -n $value ]]; then
-      if [[ $value == list${us}* ]]; then
-        if [[ $value != list$us ]]; then
-          printf '%s' "$value"
-          return 0
-        fi
-      elif [[ $value == scalar${us}* ]]; then
-        local payload="${value#scalar$us}"
-        if [[ -n $payload ]]; then
-          printf '%s' "$value"
-          return 0
-        fi
-      else
-        printf '%s' "$value"
-        return 0
-      fi
-    fi
-  done
-  for value in "${_map_ref[@]}"; do
-    if [[ -n $value ]]; then
-      if [[ $value == list${us}* ]]; then
-        if [[ $value != list$us ]]; then
-          printf '%s' "$value"
-          return 0
-        fi
-      elif [[ $value == scalar${us}* ]]; then
-        local payload="${value#scalar$us}"
-        if [[ -n $payload ]]; then
-          printf '%s' "$value"
-          return 0
-        fi
-      else
-        printf '%s' "$value"
-        return 0
-      fi
-    fi
-  done
-  printf '%s' ""
-  return 0
-}
-
-profile::_yaml_unquote() {
-  local value="$1"
-  if [[ ${#value} -ge 2 ]]; then
-    local first="${value:0:1}"
-    local last="${value: -1}"
-    if [[ $first == '"' && $last == '"' ]]; then
-      value="${value:1:-1}"
-      value="${value//\\\n/$'\n'}"
-      value="${value//\\\t/$'\t'}"
-      value="${value//\\\r/$'\r'}"
-      value="${value//\\\"/\"}"
-      value="${value//\\\\/\\}"
-    elif [[ $first == "'" && $last == "'" ]]; then
-      value="${value:1:-1}"
-      value="${value//\'\'/\'}"
-    fi
-  fi
-  printf '%s' "$value"
-}
-
-profile::_flat_commit_field() {
-  local field="$1" task="$2" type="$3" us="$4"
-  local map_name="$5" list_name="$6" platforms_name="$7"
-  local cmd_kind_name="$8" cmd_value_name="$9" args_value_name="${10}"
-  local -n _map_ref="$map_name"
-  local -n _list_ref="$list_name"
-  local -n _platform_ref="$platforms_name"
-  local -n _cmd_kind_ref="$cmd_kind_name"
-  local -n _cmd_value_ref="$cmd_value_name"
-  local -n _args_value_ref="$args_value_name"
-  local encoded selected scalar
-  case "$type" in
-  list)
-    encoded="$(profile::_flat_encode_list "$us" "${_list_ref[@]}")"
-    if [[ $field == cmd ]]; then
-      _cmd_kind_ref["$task"]="ARR"
-      _cmd_value_ref["$task"]="$encoded"
-    else
-      _args_value_ref["$task"]="$encoded"
-    fi
-    ;;
-  dict)
-    selected="$(profile::_flat_select_variant "$map_name" "$us" "${_platform_ref[@]}")"
-    if [[ -n $selected ]]; then
-      if [[ $field == cmd ]]; then
-        if [[ $selected == list${us}* ]]; then
-          _cmd_kind_ref["$task"]="ARR"
-          _cmd_value_ref["$task"]="$selected"
-        elif [[ $selected == scalar${us}* ]]; then
-          scalar="${selected#scalar$us}"
-          _cmd_kind_ref["$task"]="STR"
-          _cmd_value_ref["$task"]="$scalar"
-        else
-          _cmd_kind_ref["$task"]="STR"
-          _cmd_value_ref["$task"]="$selected"
-        fi
-      else
-        if [[ $selected == list${us}* ]]; then
-          _args_value_ref["$task"]="$selected"
-        elif [[ $selected == scalar${us}* ]]; then
-          scalar="${selected#scalar$us}"
-          _args_value_ref["$task"]="$(profile::_flat_encode_list "$us" "$scalar")"
-        else
-          _args_value_ref["$task"]="$(profile::_flat_encode_list "$us" "$selected")"
-        fi
-      fi
-    fi
-    ;;
-  scalar)
-    scalar="${_list_ref[0]-}"
-    if [[ $field == cmd ]]; then
-      _cmd_kind_ref["$task"]="STR"
-      _cmd_value_ref["$task"]="$scalar"
-    else
-      _args_value_ref["$task"]="$(profile::_flat_encode_list "$us" "$scalar")"
-    fi
-    ;;
-  esac
-  _list_ref=()
-  _map_ref=()
 }

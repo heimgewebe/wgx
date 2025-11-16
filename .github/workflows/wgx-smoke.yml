@@ -1,0 +1,27 @@
+name: wgx-smoke
+permissions:
+  contents: read
+on:
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  smoke-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout target repo
+        uses: actions/checkout@v4
+
+      - name: Checkout wgx tools
+        uses: actions/checkout@v4
+        with:
+          repository: heimgewebe/wgx
+          path: .wgx-tools
+          ref: main
+
+      - name: Run wgx smoke (Bash v1)
+        run: |
+          chmod +x .wgx-tools/cli/wgx
+          .wgx-tools/cli/wgx run smoke
+        shell: bash

@@ -18,7 +18,8 @@ on:
       - "pyproject.toml"
       - "uv.lock"
   workflow_dispatch:
-  
+  workflow_call:
+
 jobs:
   guard:
     runs-on: ubuntu-latest

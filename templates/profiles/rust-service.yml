@@ -1,0 +1,14 @@
+# Beispiel: rust-service
+class: rust-service
+tasks:
+  smoke: "cargo build --workspace"
+  guard: "cargo fmt --all --check && cargo clippy --all-targets --all-features -- -D warnings"
+  metrics: "# TODO: repo-spezifische Metriken hier ergänzen"
+  snapshot: "# TODO: tiefergehender Test-/Build-Run"
+
+# Alternative (optional, falls just + gh CLI vorhanden sind):
+# tasks:
+#   smoke: "just rec-smoke"
+#   guard: "gh workflow run wgx-guard.yml"
+#   metrics: "gh workflow run metrics.yml"
+#   snapshot: "./scripts/wgx-metrics-snapshot.sh --json --output metrics.json"

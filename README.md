@@ -233,6 +233,47 @@ Der eigentliche Dispatcher liegt unter `cli/wgx`.
 Alle Subcommands werden über die Dateien im Ordner `cmd/` geladen und greifen dabei auf die Bibliotheken in `lib/` zurück.
 Wiederkehrende Helfer (Logging, Git-Hilfen, Environment-Erkennung usw.) sind im Kernmodul `lib/core.bash` gebündelt.
 
+## Architektur v1 (Bash)
+
+Die `v1`-Architektur von WGX ist vollständig auf Bash-Skripten aufgebaut und folgt einer klaren, modularen Struktur, um Wartbarkeit und Erweiterbarkeit zu gewährleisten:
+
+-   **`cli/wgx`**: Der zentrale Einstiegspunkt (Dispatcher). Dieses Skript identifiziert das passende Subkommando und lädt die notwendigen Bibliotheken.
+-   **`cmd/`**: Jedes Subkommando (z.B. `init`, `status`, `test`) ist eine eigenständige `.bash`-Datei in diesem Ordner.
+-   **`lib/`**: Enthält wiederverwendbare Kernbibliotheken. `lib/core.bash` stellt zentrale Funktionen wie Logging, Routing und Git-Helfer bereit.
+-   **`modules/`**: Beinhaltet optional ladbare Module für komplexere, in sich geschlossene Logik (z.B. `profile.bash` für die `.wgx/profile.yml`-Verarbeitung).
+-   **`tests/`**: Alle `bats`-Tests zur Absicherung der Funktionalität.
+
+Alle Skripte nutzen die zentralen Logging-Funktionen (`info`, `ok`, `warn`, `die`) aus `lib/core.bash`, um eine einheitliche und steuerbare Ausgabe zu gewährleisten.
+
+Diese Struktur stellt sicher, dass WGX als reines Bash-Tool ohne externe Abhängigkeiten wie Rust-Crates funktioniert. Die CI testet WGX über Bats-Tests; es wird kein Rust-Crate installiert.
+
+## Reusable-Workflows für andere Repos
+
+Dieses Repository stellt kanonische, wiederverwendbare Workflows bereit, die in anderen Repositories der Heimgewebe-Fleet genutzt werden können, um CI-Prozesse zu standardisieren.
+
+-   **`wgx-guard.yml`**: Führt Linting, Contract-Prüfungen und andere statische Analysen aus.
+-   **`wgx-smoke.yml`**: Führt einen einfachen Smoke-Test aus, der im `tasks.smoke`-Feld des `.wgx/profile.yml` des Ziel-Repos definiert ist.
+
+### Beispiel-Verwendung
+
+Um diese Workflows in einem anderen Repository zu verwenden, erstellen Sie eine `.github/workflows/ci.yml`-Datei mit folgendem Inhalt:
+
+```yaml
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  guard:
+    uses: heimgewebe/wgx/.github/workflows/wgx-guard.yml@main
+
+  smoke:
+    uses: heimgewebe/wgx/.github/workflows/wgx-smoke.yml@main
+```
+
 ## Dokumentation & Referenzen
 
 - **Runbook (DE/EN):** [docs/Runbook.de.md](docs/Runbook.de.md) mit [englischer Kurzfassung](docs/Runbook.en.md) für internationales Onboarding.
