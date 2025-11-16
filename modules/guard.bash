@@ -81,7 +81,7 @@ USAGE
 
   # 0. Profile check
   echo "▶ Checking for wgx profile..."
-  if [[ -f ".wgx/profile.yml" || -f ".wgx/profile.example.yml" ]]; then
+  if profile::has_manifest; then
     echo "  • Profile found."
   else
     echo "❌ No .wgx/profile.yml or .wgx/profile.example.yml found." >&2

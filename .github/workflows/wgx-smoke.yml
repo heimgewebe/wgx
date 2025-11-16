@@ -1,6 +1,5 @@
 name: wgx-smoke
 permissions:
-  id-token: write
   contents: read
 on:
   workflow_dispatch:
@@ -11,19 +10,18 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: Checkout repository
+      - name: Checkout target repo
         uses: actions/checkout@v4
 
-      - name: Read profile for smoke task
-        id: read-profile
-        run: |
-          # Simple YAML parser to find the smoke task
-          SMOKE_TASK=$(grep -A 5 "^tasks:" .wgx/profile.yml | grep "smoke:" | sed 's/smoke:[[:space:]]*//' | tr -d '"')
-          if [ -n "$SMOKE_TASK" ]; then
-            echo "smoke_command=$SMOKE_TASK" >> $GITHUB_OUTPUT
-          else
-            echo "smoke_command=echo 'No smoke task found.'" >> $GITHUB_OUTPUT
-          fi
+      - name: Checkout wgx tools
+        uses: actions/checkout@v4
+        with:
+          repository: heimgewebe/wgx
+          path: .wgx-tools
+          ref: main
 
-      - name: Run smoke test
-        run: ${{ steps.read-profile.outputs.smoke_command }}
+      - name: Run wgx smoke (Bash v1)
+        run: |
+          chmod +x .wgx-tools/cli/wgx
+          .wgx-tools/cli/wgx run smoke
+        shell: bash

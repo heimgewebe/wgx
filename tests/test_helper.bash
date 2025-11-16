@@ -32,9 +32,10 @@ _wgx_project_root="$(cd "$_wgx_test_dir/.." && pwd)"
 PATH="$_wgx_project_root/cli:$PATH"
 export PATH
 
-# Setzt das WGX_DIR, damit die Kern-Bibliotheken gefunden werden
-WGX_DIR="$_wgx_project_root"
-export WGX_DIR
+# WGX_PROJECT_ROOT zeigt auf das Hauptverzeichnis des wgx-Projekts,
+# damit die Bibliotheken gefunden werden können, auch wenn WGX_DIR
+# in Tests auf ein temporäres Verzeichnis umgebogen wird.
+export WGX_PROJECT_ROOT="$_wgx_project_root"
 
 # Unterdrückt Kompatibilitäts-Hinweise in Tests, damit die Ausgaben stabil bleiben
 WGX_PROFILE_DEPRECATION="quiet"
