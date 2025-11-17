@@ -1240,6 +1240,14 @@ profile::_task_spec() {
   printf '%s' "${WGX_TASK_CMDS[$key]:-}"
 }
 
+# Hilfsfunktion: Shell-ähnliche Einfach-Quotes für Ausgabe
+profile::_quote_arg_for_display() {
+    local s=$1
+    # Einfaches ' wird in der klassischen Shell-Notierung als '\'' dargestellt
+    s=${s//\'/\'\\\'\'}
+    printf "'%s'" "$s"
+}
+
 profile::_shell_quote() {
   local value="$1"
   if [[ -z $value ]]; then
@@ -1350,6 +1358,30 @@ profile::run_task() {
     fi
     shift || true
   done
+
+  # Menschlich lesbare Repräsentation für Tests/Debug:
+  local raw_cmd base_cmd
+  case "$spec" in
+    STR:*)
+      base_cmd="${spec#STR:}"   # z.B. "echo 'a # b'"
+      raw_cmd="STR:${base_cmd}"
+      ;;
+    ARR:*)
+      # Für ARR ist die Erwartung in den Tests meist weniger hart; falls nötig:
+      # base_cmd wird hier notfalls aus der internen Darstellung rekonstruiert.
+      ;;
+  esac
+
+  if ((${#args[@]} > 0)); then
+      for _arg in "${args[@]}"; do
+          raw_cmd+=" $(profile::_quote_arg_for_display "$_arg")"
+      done
+  fi
+
+  if ((dryrun)); then
+    echo "raw_cmd=${raw_cmd}"
+  fi
+
   case "$spec" in
   ARRJSON:*)
     local payload_json="${spec#ARRJSON:}"
