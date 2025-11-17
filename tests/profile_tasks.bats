@@ -113,7 +113,7 @@ wgx:
   apiVersion: v1
 tasks:
   raw-str:
-    cmd: echo 'a # b'
+    cmd: "echo 'a # b'"
     args:
       - x y
   array-task:
@@ -127,7 +127,7 @@ tasks:
   scalar-cmd:
     cmd: 42
   single-hash:
-    cmd: echo 'keep # single'
+    cmd: "echo 'keep # single'"
   double-hash:
     cmd: "echo \"keep # double\""
     args:

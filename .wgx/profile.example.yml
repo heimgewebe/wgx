@@ -1,5 +1,3 @@
-# .wgx/profile.example.yml – Beispiel für CI
-wgx:
-  apiVersion: v1
-  tasks:
-    smoke: "echo 'Smoke test from profile passed.'"
+# .wgx/profile.example.yml
+besitzer: weltgewebe
+rolle: test

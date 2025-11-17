@@ -85,9 +85,7 @@ USAGE
   if profile::has_manifest; then
     echo "  • Profile found."
   else
-    echo "❌ No .wgx/profile.yml or .wgx/profile.example.yml found." >&2
-    # Nicht sofort abbrechen – andere Checks (v.a. Oversize) sollen trotzdem laufen.
-    profile_missing=1
+    die "No .wgx/profile.yml or .wgx/profile.example.yml found."
   fi
 
   # 1. Bigfiles checken (vor dem Secret-Scan, damit große Dateien deterministisch gemeldet werden)
@@ -209,11 +207,6 @@ USAGE
     fi
   fi
 
-  # Wenn wir bis hier keinen harten Fehler hatten, aber das Profil fehlt,
-  # schlagen wir jetzt (wie im Test erwartet) mit Status 1 fehl.
-  if (( profile_missing )); then
-    return 1
-  fi
 
   echo "✔ Guard finished successfully."
 }
