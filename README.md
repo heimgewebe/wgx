@@ -205,15 +205,6 @@ Destruktiv: setzt den Workspace hart auf `origin/$WGX_BASE` zurück (`git reset 
 
 **Alias**: `sync-remote`.
 
-### sync
-
-Holt Änderungen vom Remote (`git pull --rebase --autostash --ff-only`). Scheitert das, wird automatisch auf `origin/$WGX_BASE` rebased.
-
-- Schützt vor unbeabsichtigtem Lauf auf einem „dirty“ Working Tree (Abbruch ohne `--force`).
-- `--dry-run` zeigt nur die geplanten Git-Kommandos.
-- Über `--base <branch>` lässt sich der Fallback-Branch für den Rebase explizit setzen.
-- Gibt es zusätzlich ein Positionsargument, hat `--base` Vorrang und weist mit einer Warnung darauf hin.
-
 ## Repository-Layout
 
 ```text
@@ -232,6 +223,68 @@ Holt Änderungen vom Remote (`git pull --rebase --autostash --ff-only`). Scheite
 Der eigentliche Dispatcher liegt unter `cli/wgx`.
 Alle Subcommands werden über die Dateien im Ordner `cmd/` geladen und greifen dabei auf die Bibliotheken in `lib/` zurück.
 Wiederkehrende Helfer (Logging, Git-Hilfen, Environment-Erkennung usw.) sind im Kernmodul `lib/core.bash` gebündelt.
+
+## Architektur v1 (Bash)
+
+Die `v1`-Architektur von WGX ist um einen Bash-Kern herum aufgebaut und folgt einer klaren, modularen Struktur, um Wartbarkeit und Erweiterbarkeit zu gewährleisten:
+
+-   **`cli/wgx`**: Der zentrale Einstiegspunkt (Dispatcher). Dieses Skript identifiziert das passende Subkommando und lädt die notwendigen Bibliotheken.
+-   **`cmd/`**: Jedes Subkommando (z.B. `init`, `status`, `test`) ist eine eigenständige `.bash`-Datei in diesem Ordner.
+-   **`lib/`**: Enthält wiederverwendbare Kernbibliotheken. `lib/core.bash` stellt zentrale Funktionen wie Logging, Routing und Git-Helfer bereit.
+-   **`modules/`**: Beinhaltet optional ladbare Module für komplexere, in sich geschlossene Logik (z.B. `profile.bash` für die `.wgx/profile.yml`-Verarbeitung).
+-   **`tests/`**: Alle `bats`-Tests zur Absicherung der Funktionalität.
+
+Alle Skripte nutzen die zentralen Logging-Funktionen (`info`, `ok`, `warn`, `die`) aus `lib/core.bash`, um eine einheitliche und steuerbare Ausgabe zu gewährleisten.
+
+Diese Struktur stellt sicher, dass WGX als Bash-zentriertes Tool ohne Rust-Crates funktioniert: Die CLI und alle Subkommandos laufen in Bash, für das Parsen von `.wgx/profile.yml` verwendet WGX bewusst Python 3 mit dem `pyyaml`-Modul. Die CI testet WGX über Bats-Tests; ein Rust-Crate wird nicht mehr installiert.
+
+### Laufzeitabhängigkeiten
+
+Für die Nutzung der v1-Architektur gelten zurzeit folgende Mindestvoraussetzungen:
+
+-   **Bash ≥ 4**
+-   **Git** und gängige Coreutils (`sed`, `awk`, `grep`, `find`, …)
+-   **Python 3** mit installiertem `pyyaml`-Modul für das Parsen von `.wgx/profile.yml`
+
+Im Devcontainer und in den CI-Workflows werden diese Abhängigkeiten automatisch installiert (unter Debian/Ubuntu z.B. über das Paket `python3-yaml`).
+Auf lokalen Maschinen müssen Python 3 und `pyyaml` ggf. manuell nachgerüstet werden. Typische Varianten:
+
+-   Debian/Ubuntu: `apt install python3-yaml`
+-   Arch Linux: `pacman -S python-yaml`
+-   macOS mit Homebrew: `brew install python && pip3 install pyyaml`
+
+Ohne funktionsfähiges Python/YAML-Setup können `wgx run` und Profil-basierte Fleet-Tasks nicht ausgeführt werden.
+
+## Reusable-Workflows für andere Repos
+
+Dieses Repository stellt kanonische, wiederverwendbare Workflows bereit, die in anderen Repositories der Heimgewebe-Fleet genutzt werden können, um CI-Prozesse zu standardisieren.
+
+-   **`wgx-guard.yml`**: Führt Linting, Contract-Prüfungen und andere statische Analysen aus.
+-   **`wgx-smoke.yml`**: Führt einen einfachen Smoke-Test aus, der im `tasks.smoke`-Feld des `.wgx/profile.yml` des Ziel-Repos definiert ist.
+
+Diese Workflows nutzen die "Fleet-Konvention" in der `.wgx/profile.yml`:
+-   **`class`**: Definiert die Klasse des Repositories (z.B. `rust-service`, `python-service`).
+-   **`tasks`**: Eine einfache Map von Task-Namen zu Shell-Befehlen, die von externen Tools (wie diesen Workflows) ausgeführt werden können.
+
+### Beispiel-Verwendung
+
+Um diese Workflows in einem anderen Repository zu verwenden, erstellen Sie eine `.github/workflows/ci.yml`-Datei mit folgendem Inhalt:
+
+```yaml
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  guard:
+    uses: heimgewebe/wgx/.github/workflows/wgx-guard.yml@main
+
+  smoke:
+    uses: heimgewebe/wgx/.github/workflows/wgx-smoke.yml@main
+```
 
 ## Dokumentation & Referenzen
 

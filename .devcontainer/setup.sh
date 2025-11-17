@@ -2,7 +2,9 @@
 
 set -euo pipefail
 
-readonly BASE_PACKAGES=(jq moreutils)
+# python3-yaml: stellt das Python-Paket `pyyaml` bereit, das WGX für das Parsen
+# von `.wgx/profile.yml` verwendet.
+readonly BASE_PACKAGES=(jq moreutils python3-yaml)
 readonly OPTIONAL_PACKAGES=(shellcheck shfmt bats)
 
 usage() {

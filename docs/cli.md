@@ -31,7 +31,6 @@ Commands:
   setup
   start
   status
-  sync
   task
   tasks
   test
@@ -170,7 +169,6 @@ Commands:
   setup
   start
   status
-  sync
   task
   tasks
   test
@@ -336,10 +334,6 @@ Description:
 Options:
   -h, --help    Diese Hilfe anzeigen.
 ```
-
-### sync
-
-_Command does not provide structured --help output._
 
 ### task
 

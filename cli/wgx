@@ -7,24 +7,25 @@ if ! set -o pipefail 2>/dev/null; then
   fi
 fi
 
-# WGX_DIR auf Root des Repos setzen – robust MIT Symlink-Auflösung
-# Warum? Wenn cli/wgx als Symlink in ~/.local/bin/wgx landet, zeigt
-# ${BASH_SOURCE[0]} zunächst auf den Symlink-Pfad. Wir folgen allen
-# Symlinks und landen zuverlässig im echten Verzeichnis der Datei.
-SOURCE="${BASH_SOURCE[0]}"
-while [ -h "$SOURCE" ]; do
-  # Verzeichnis des gerade betrachteten Pfades (kann selbst ein Symlink sein)
+# Rolle: Zentraler Einstiegspunkt (Dispatcher)
+# Dieses Skript ist der einzige direkte Einstiegspunkt für alle `wgx`-Aufrufe.
+# Es ermittelt das Repo-Root, lädt Bibliotheken aus `lib/` und `modules/`
+# und leitet die Ausführung an das passende Subkommando in `cmd/` weiter.
+#
+# WGX_DIR auf Root des Repos setzen, falls nicht bereits gesetzt.
+# Das ermöglicht es Tests, das Verzeichnis für eine isolierte Umgebung vorzugeben.
+if [ -z "${WGX_DIR:-}" ]; then
+  # Robuste Symlink-Auflösung
+  SOURCE="${BASH_SOURCE[0]}"
+  while [ -h "$SOURCE" ]; do
+    DIR="$(cd -P "$(dirname "$SOURCE")" >/dev/null 2>&1 && pwd)"
+    TARGET="$(readlink "$SOURCE")"
+    [[ "$TARGET" != /* ]] && TARGET="$DIR/$TARGET"
+    SOURCE="$TARGET"
+  done
   DIR="$(cd -P "$(dirname "$SOURCE")" >/dev/null 2>&1 && pwd)"
-  # Aufgelöstes Ziel des Symlinks holen
-  TARGET="$(readlink "$SOURCE")"
-  # Wenn Ziel ein relativer Pfad ist, relativ zu DIR auflösen
-  [[ "$TARGET" != /* ]] && TARGET="$DIR/$TARGET"
-  SOURCE="$TARGET"
-done
-# Jetzt ist SOURCE eine echte Datei; ihr Verzeichnis ist das cli/-Verzeichnis.
-DIR="$(cd -P "$(dirname "$SOURCE")" >/dev/null 2>&1 && pwd)"
-# WGX_DIR zeigt auf Repo-Root (eine Ebene über cli/)
-WGX_DIR="$(cd -P "$DIR/.." >/dev/null 2>&1 && pwd)"
+  WGX_DIR="$(cd -P "$DIR/.." >/dev/null 2>&1 && pwd)"
+fi
 export WGX_DIR
 
 # Version anzeigen, bevor weitere Komponenten geladen werden
@@ -38,8 +39,11 @@ case "${1:-}" in
 esac
 
 # libs laden (alphabetisch hält Ordnung)
-if [ -d "$WGX_DIR/lib" ]; then
-  for f in "$WGX_DIR/lib/"*.bash; do
+# WGX_PROJECT_ROOT wird in Tests gesetzt, um die Bibliotheken zu finden.
+# Im Normalbetrieb ist es nicht gesetzt und der Fallback auf WGX_DIR wird verwendet.
+LIB_DIR="${WGX_PROJECT_ROOT:-$WGX_DIR}/lib"
+if [ -d "$LIB_DIR" ]; then
+  for f in "$LIB_DIR"/*.bash; do
     if [ -r "$f" ]; then
       if [[ ${WGX_DEBUG:-0} != 0 ]]; then
         echo "Loading library: $f" >&2
@@ -54,6 +58,11 @@ fi
 
 # Default-Branch / Basis für Reload
 : "${WGX_BASE:=main}"
+
+# Initialisiert das Profil-Modul, nachdem alle Bibliotheken geladen wurden
+if declare -F profile::_auto_init >/dev/null 2>&1; then
+  profile::_auto_init
+fi
 
 # Haupteinstieg
 wgx_main "$@"

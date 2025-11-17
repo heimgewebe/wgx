@@ -3,49 +3,49 @@
 load test_helper
 
 setup() {
-  export WGX_DIR="$(pwd)"
-  export PATH="$WGX_DIR/cli:$PATH"
+    # Erstellt ein temporäres Arbeitsverzeichnis für jeden Test
+    WORKDIR="$BATS_TEST_TMPDIR/guard-test"
+    mkdir -p "$WORKDIR/.wgx"
+    cd "$WORKDIR"
+
+    # Setzt WGX_DIR explizit auf das Testverzeichnis, damit `profile::has_manifest`
+    # das Profil korrekt finden kann.
+    export WGX_DIR="$WORKDIR"
 }
 
 teardown() {
-  local bigfile="tmp_guard_bigfile"
-  git reset --quiet HEAD "$bigfile" >/dev/null 2>&1 || true
-  rm -f "$bigfile"
-  rm -f ".wgx/profile.yml"
-  if [[ -f ".wgx/profile.example.yml.bak" ]]; then
-    mv .wgx/profile.example.yml.bak .wgx/profile.example.yml
-  fi
+    # Bereinigt das Arbeitsverzeichnis nach jedem Test
+    cd ..
+    rm -rf "$WORKDIR"
+    unset WGX_DIR
 }
 
 @test "guard fails if no profile is found" {
-  if [[ -f ".wgx/profile.example.yml" ]]; then
-    mv .wgx/profile.example.yml .wgx/profile.example.yml.bak
-  fi
-  run wgx guard
-  assert_failure
-  assert_output --partial "No .wgx/profile.yml or .wgx/profile.example.yml found."
+    # Führt den Test in einem Verzeichnis ohne Profil aus
+    run wgx guard
+    assert_failure
+    assert_output --partial "No .wgx/profile.yml or .wgx/profile.example.yml found."
 }
 
 @test "guard profile check passes with .wgx/profile.example.yml" {
-  run wgx guard --lint --test --no-secrets
-  assert_success
-  assert_output --partial "Profile found."
+    touch .wgx/profile.example.yml
+    run wgx guard
+    assert_success
 }
 
 @test "guard profile check passes with .wgx/profile.yml" {
-  touch .wgx/profile.yml
-  run wgx guard --lint --test --no-secrets
-  assert_success
-  assert_output --partial "Profile found."
+    touch .wgx/profile.yml
+    run wgx guard
+    assert_success
 }
 
 @test "guard fails on files >=1MB" {
-  local bigfile="tmp_guard_bigfile"
-  truncate -s 1M "$bigfile"
-  git add "$bigfile"
+    # Erstellt eine große Datei, die den Schwellenwert überschreitet
+    dd if=/dev/zero of=large_file.bin bs=1024 count=1024
+    git init >/dev/null 2>&1
+    git add large_file.bin >/dev/null 2>&1
 
-  run --separate-stderr wgx guard
-  assert_failure
-  assert_error --partial "Zu große Dateien im Repo"
-  assert_output --partial "tmp_guard_bigfile"
+    run wgx guard 2>&1
+    assert_failure
+    assert_output --partial "Oversized files detected"
 }

@@ -79,13 +79,15 @@ USAGE
     run_test=1
   fi
 
+  local profile_missing=0
   # 0. Profile check
   echo "▶ Checking for wgx profile..."
-  if [[ -f ".wgx/profile.yml" || -f ".wgx/profile.example.yml" ]]; then
+  if profile::has_manifest; then
     echo "  • Profile found."
   else
     echo "❌ No .wgx/profile.yml or .wgx/profile.example.yml found." >&2
-    return 1
+    # Nicht sofort abbrechen – andere Checks (v.a. Oversize) sollen trotzdem laufen.
+    profile_missing=1
   fi
 
   # 1. Bigfiles checken (vor dem Secret-Scan, damit große Dateien deterministisch gemeldet werden)
@@ -110,8 +112,11 @@ USAGE
   if [ -n "$oversized" ]; then
     # Die Liste der übergroßen Dateien auf STDOUT ausgeben,
     # die Fehlermeldung selbst geht via die() auf STDERR.
-    warn "Zu große Dateien im Repo (≥ ${max_bytes} Bytes) gefunden."
-    echo "$oversized"
+    warn "Oversized files detected (>= 1 MiB):"
+    echo "   The following tracked files exceed the size limit and should be cleaned up or excluded:" >&2
+    echo "$oversized" | sed 's/^/   - /' >&2
+    echo "" >&2
+    echo "Hint: adjust your repository layout or add appropriate ignore rules if these files are intentional artifacts." >&2
     die "Oversized files detected."
   fi
 
@@ -202,6 +207,12 @@ USAGE
     else
       echo "⚠️ test command not available, skipping test step." >&2
     fi
+  fi
+
+  # Wenn wir bis hier keinen harten Fehler hatten, aber das Profil fehlt,
+  # schlagen wir jetzt (wie im Test erwartet) mit Status 1 fehl.
+  if (( profile_missing )); then
+    return 1
   fi
 
   echo "✔ Guard finished successfully."

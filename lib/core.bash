@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 
+# Rolle: WGX-Kernbibliothek
+# Diese Datei stellt zentrale, von allen Subkommandos genutzte Funktionen
+# bereit. Dazu gehören Logging, Git-Helfer, Environment-Handling und der
+# Dispatcher (`wgx_main`), der die Subkommandos aus `cmd/` aufruft.
+
 # ---------- Logging ----------
 
 : "${WGX_NO_EMOJI:=0}"
@@ -64,13 +69,9 @@ fi
 
 # ── Module autoload ─────────────────────────────────────────────────────────
 _load_modules() {
-  local base="${WGX_DIR:-}"
-  if [ -z "$base" ]; then
-    base="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-  fi
-  local d="${base}/modules"
-  if [ -d "$d" ]; then
-    for f in "$d"/*.bash; do
+  local MODULE_DIR="${WGX_PROJECT_ROOT:-$WGX_DIR}/modules"
+  if [ -d "$MODULE_DIR" ]; then
+    for f in "$MODULE_DIR"/*.bash; do
       # shellcheck source=/dev/null
       [ -r "$f" ] && source "$f"
     done
@@ -255,8 +256,9 @@ snapshot_make() {
 
 # ---------- Router ----------
 wgx_command_files() {
-  [ -d "$WGX_DIR/cmd" ] || return 0
-  for f in "$WGX_DIR/cmd"/*.bash; do
+  local CMD_DIR="${WGX_PROJECT_ROOT:-$WGX_DIR}/cmd"
+  [ -d "$CMD_DIR" ] || return 0
+  for f in "$CMD_DIR"/*.bash; do
     [ -r "$f" ] || continue
     printf '%s\n' "$f"
   done
@@ -330,7 +332,8 @@ wgx_main() {
   fi
 
   # 2) Datei sourcen und erneut versuchen
-  local f="${WGX_DIR}/cmd/${sub}.bash"
+  local CMD_DIR="${WGX_PROJECT_ROOT:-$WGX_DIR}/cmd"
+  local f="${CMD_DIR}/${sub}.bash"
   if [ -r "$f" ]; then
     # shellcheck source=/dev/null
     source "$f"
