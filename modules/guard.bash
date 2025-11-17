@@ -110,8 +110,11 @@ USAGE
   if [ -n "$oversized" ]; then
     # Die Liste der übergroßen Dateien auf STDOUT ausgeben,
     # die Fehlermeldung selbst geht via die() auf STDERR.
-    warn "Zu große Dateien im Repo (≥ ${max_bytes} Bytes) gefunden."
-    echo "$oversized"
+    warn "Oversized files detected (>= 1 MiB):"
+    echo "   The following tracked files exceed the size limit and should be cleaned up or excluded:" >&2
+    echo "$oversized" | sed 's/^/   - /' >&2
+    echo "" >&2
+    echo "Hint: adjust your repository layout or add appropriate ignore rules if these files are intentional artifacts." >&2
     die "Oversized files detected."
   fi
 
