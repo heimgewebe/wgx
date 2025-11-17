@@ -9,7 +9,6 @@ Diese Übersicht fasst die wichtigsten Subcommands zusammen, inklusive Zweck und
 | Kommando | Kurzbeschreibung |
 | --- | --- |
 | `wgx status` | Zeigt Branch, Ahead/Behind sowie erkannte Projektpfade an. |
-| `wgx sync` | Staged/committet Änderungen, führt Rebase & Push aus. |
 | `wgx send` | Erstellt PR/MR nach Guard-Checks und Sync. |
 | `wgx guard` | Führt Sicherheitsprüfungen (Secrets, Lint, Tests) aus. |
 | `wgx heal` | Räumt Rebase-/Merge-Konflikte auf oder holt Updates nach. |
@@ -29,16 +28,6 @@ Diese Übersicht fasst die wichtigsten Subcommands zusammen, inklusive Zweck und
 ### `wgx status`
 - **Zweck:** Kompakter Snapshot von Branch, Ahead/Behind zum Basis-Branch, erkannte Web/API-Verzeichnisse und globale Flags.
 - **Besonderheiten:** Funktioniert auch außerhalb von Git-Repositories und markiert Offline-Modus.
-
-### `wgx sync`
-- **Zweck:** Bündelt Commit, optionales Signieren, Rebase auf `origin/$WGX_BASE` und Push.
-- **Wichtige Optionen:**
-  - `--staged-only` lässt unstaged Dateien unangetastet.
-  - `--wip` kennzeichnet Commits mit einem WIP-Präfix.
-  - `--amend` hängt an den letzten Commit an.
-  - `--scope <name>` setzt den Prefix im Commit-Subject; Standard ist Auto-Erkennung.
-  - `--sign` erzwingt signierte Commits.
-- **Hinweise:** Offline-Modus überspringt Remote-Operationen und verweist auf `wgx heal`.
 
 ### `wgx send`
 - **Zweck:** Erstellt Pull/Merge Requests inklusive Body-Rendering und Reviewer-/Label-Logik.

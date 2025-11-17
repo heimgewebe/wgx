@@ -3,7 +3,7 @@
 ## Erstlauf
 1. `wgx doctor` ausführen → prüft Umgebung (bash, git, shellcheck, shfmt, bats).
 2. `wgx init` → legt `~/.config/wgx/config` an (aus `etc/config.example`).
-3. `wgx sync` → holt Updates; `wgx send "msg"` → Commit & Push Helper.
+3. `wgx send "msg"` → Commit & Push Helper.
 
 ## Python (uv)
 * `wgx py up` / `wgx py sync --frozen` / `wgx py run <cmd>`

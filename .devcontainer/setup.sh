@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-readonly BASE_PACKAGES=(jq moreutils)
+readonly BASE_PACKAGES=(jq moreutils python3-yaml)
 readonly OPTIONAL_PACKAGES=(shellcheck shfmt bats)
 
 usage() {

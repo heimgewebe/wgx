@@ -205,15 +205,6 @@ Destruktiv: setzt den Workspace hart auf `origin/$WGX_BASE` zurück (`git reset 
 
 **Alias**: `sync-remote`.
 
-### sync
-
-Holt Änderungen vom Remote (`git pull --rebase --autostash --ff-only`). Scheitert das, wird automatisch auf `origin/$WGX_BASE` rebased.
-
-- Schützt vor unbeabsichtigtem Lauf auf einem „dirty“ Working Tree (Abbruch ohne `--force`).
-- `--dry-run` zeigt nur die geplanten Git-Kommandos.
-- Über `--base <branch>` lässt sich der Fallback-Branch für den Rebase explizit setzen.
-- Gibt es zusätzlich ein Positionsargument, hat `--base` Vorrang und weist mit einer Warnung darauf hin.
-
 ## Repository-Layout
 
 ```text
@@ -253,6 +244,10 @@ Dieses Repository stellt kanonische, wiederverwendbare Workflows bereit, die in 
 
 -   **`wgx-guard.yml`**: Führt Linting, Contract-Prüfungen und andere statische Analysen aus.
 -   **`wgx-smoke.yml`**: Führt einen einfachen Smoke-Test aus, der im `tasks.smoke`-Feld des `.wgx/profile.yml` des Ziel-Repos definiert ist.
+
+Diese Workflows nutzen die "Fleet-Konvention" in der `.wgx/profile.yml`:
+-   **`class`**: Definiert die Klasse des Repositories (z.B. `rust-service`, `python-service`).
+-   **`tasks`**: Eine einfache Map von Task-Namen zu Shell-Befehlen, die von externen Tools (wie diesen Workflows) ausgeführt werden können.
 
 ### Beispiel-Verwendung
 
