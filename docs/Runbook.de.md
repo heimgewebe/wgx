@@ -2,6 +2,22 @@
 
 > Englische Version: [Runbook.en.md](Runbook.en.md)
 
+## Laufzeitabhängigkeiten
+
+WGX v1 nutzt Bash als CLI-Kern, setzt für das Parsen von `.wgx/profile.yml` aber bewusst auf Python 3 mit dem `pyyaml`-Modul.
+In der CI und im Devcontainer werden diese Pakete automatisch installiert (z.B. über das Paket `python3-yaml` unter Debian/Ubuntu).
+
+Auf lokalen Maschinen sollten mindestens folgende Komponenten vorhanden sein:
+
+- Bash ≥ 4
+- Git und gängige Coreutils (`sed`, `awk`, `grep`, `find`, …)
+- Python 3 mit `pyyaml`
+
+Beispiele:
+
+- Debian/Ubuntu: `sudo apt install python3-yaml`
+- macOS (Homebrew): `brew install python && pip3 install pyyaml`
+
 ## Quick-Links
 
 - Contract-Kompatibilität prüfen: `wgx validate`

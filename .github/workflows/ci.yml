@@ -148,6 +148,9 @@ EOF
       - uses: actions/checkout@v4
       - name: Install test dependencies
         run: |
+          # python3-yaml: stellt das Python-Paket `pyyaml` bereit,
+          # das von WGX für das Parsen von `.wgx/profile.yml` genutzt wird.
+          # Ohne diese Abhängigkeit schlagen Profil-Tests fehl.
           sudo apt-get update -y
           sudo apt-get install -y python3-yaml
       - name: Run bats test suites

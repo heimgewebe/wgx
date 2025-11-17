@@ -226,7 +226,7 @@ Wiederkehrende Helfer (Logging, Git-Hilfen, Environment-Erkennung usw.) sind im 
 
 ## Architektur v1 (Bash)
 
-Die `v1`-Architektur von WGX ist vollständig auf Bash-Skripten aufgebaut und folgt einer klaren, modularen Struktur, um Wartbarkeit und Erweiterbarkeit zu gewährleisten:
+Die `v1`-Architektur von WGX ist um einen Bash-Kern herum aufgebaut und folgt einer klaren, modularen Struktur, um Wartbarkeit und Erweiterbarkeit zu gewährleisten:
 
 -   **`cli/wgx`**: Der zentrale Einstiegspunkt (Dispatcher). Dieses Skript identifiziert das passende Subkommando und lädt die notwendigen Bibliotheken.
 -   **`cmd/`**: Jedes Subkommando (z.B. `init`, `status`, `test`) ist eine eigenständige `.bash`-Datei in diesem Ordner.
@@ -236,7 +236,24 @@ Die `v1`-Architektur von WGX ist vollständig auf Bash-Skripten aufgebaut und fo
 
 Alle Skripte nutzen die zentralen Logging-Funktionen (`info`, `ok`, `warn`, `die`) aus `lib/core.bash`, um eine einheitliche und steuerbare Ausgabe zu gewährleisten.
 
-Diese Struktur stellt sicher, dass WGX als reines Bash-Tool ohne externe Abhängigkeiten wie Rust-Crates funktioniert. Die CI testet WGX über Bats-Tests; es wird kein Rust-Crate installiert.
+Diese Struktur stellt sicher, dass WGX als Bash-zentriertes Tool ohne Rust-Crates funktioniert: Die CLI und alle Subkommandos laufen in Bash, für das Parsen von `.wgx/profile.yml` verwendet WGX bewusst Python 3 mit dem `pyyaml`-Modul. Die CI testet WGX über Bats-Tests; ein Rust-Crate wird nicht mehr installiert.
+
+### Laufzeitabhängigkeiten
+
+Für die Nutzung der v1-Architektur gelten zurzeit folgende Mindestvoraussetzungen:
+
+-   **Bash ≥ 4**
+-   **Git** und gängige Coreutils (`sed`, `awk`, `grep`, `find`, …)
+-   **Python 3** mit installiertem `pyyaml`-Modul für das Parsen von `.wgx/profile.yml`
+
+Im Devcontainer und in den CI-Workflows werden diese Abhängigkeiten automatisch installiert (unter Debian/Ubuntu z.B. über das Paket `python3-yaml`).
+Auf lokalen Maschinen müssen Python 3 und `pyyaml` ggf. manuell nachgerüstet werden. Typische Varianten:
+
+-   Debian/Ubuntu: `apt install python3-yaml`
+-   Arch Linux: `pacman -S python-yaml`
+-   macOS mit Homebrew: `brew install python && pip3 install pyyaml`
+
+Ohne funktionsfähiges Python/YAML-Setup können `wgx run` und Profil-basierte Fleet-Tasks nicht ausgeführt werden.
 
 ## Reusable-Workflows für andere Repos
 

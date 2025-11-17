@@ -3,10 +3,10 @@
 # Stellt sicher, dass Python und das `yaml`-Modul für die Profil-Verarbeitung verfügbar sind
 _check_python_dependency() {
     if ! command -v python3 >/dev/null 2>&1; then
-        die "Python 3 is required for parsing .wgx/profile.yml but is not installed."
+        die "Python 3 is required for parsing .wgx/profile.yml but is not installed. See README section \"Laufzeitabhängigkeiten\" / \"Runtime dependencies\"."
     fi
     if ! python3 -c "import yaml" >/dev/null 2>&1; then
-        die "The 'pyyaml' Python package is required for parsing .wgx/profile.yml. Please install it."
+        die "The 'pyyaml' Python package is required for parsing .wgx/profile.yml. See README section \"Laufzeitabhängigkeiten\" / \"Runtime dependencies\" for installation hints."
     fi
 }
 

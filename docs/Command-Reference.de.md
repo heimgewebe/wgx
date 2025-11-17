@@ -38,7 +38,7 @@ Diese Übersicht fasst die wichtigsten Subcommands zusammen, inklusive Zweck und
   - `--ci` triggert optionale Workflows (`$WGX_CI_WORKFLOW`).
   - `--open` öffnet den PR/MR im Browser.
   - `--auto-branch` legt bei Bedarf einen Arbeits-Branch auf Basis von `wgx start` an.
-- **Besonderheiten:** Erzwingt vorher `wgx guard` und `wgx sync`; unterstützt GitHub (`gh`) und GitLab (`glab`).
+- **Besonderheiten:** Erzwingt vorher `wgx guard`; unterstützt GitHub (`gh`) und GitLab (`glab`).
 
 ### `wgx guard`
 - **Zweck:** Sicherheitsnetz vor PRs: sucht nach Secrets, Konfliktmarkern, übergroßen Dateien und prüft Pflichtartefakte.

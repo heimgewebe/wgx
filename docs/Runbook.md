@@ -1,5 +1,21 @@
 # WGX Runbook (Kurzfassung)
 
+## Runtime dependencies
+
+WGX v1 uses Bash as the CLI core, but deliberately relies on Python 3 with the `pyyaml` module to parse `.wgx/profile.yml`.
+In CI and in the devcontainer these packages are installed automatically (for Debian/Ubuntu via the `python3-yaml` package).
+
+On local machines you should ensure at least:
+
+- Bash ≥ 4
+- Git and common coreutils (`sed`, `awk`, `grep`, `find`, …)
+- Python 3 with `pyyaml`
+
+Examples:
+
+- Debian/Ubuntu: `sudo apt install python3-yaml`
+- macOS (Homebrew): `brew install python && pip3 install pyyaml`
+
 ## Erstlauf
 1. `wgx doctor` ausführen → prüft Umgebung (bash, git, shellcheck, shfmt, bats).
 2. `wgx init` → legt `~/.config/wgx/config` an (aus `etc/config.example`).
