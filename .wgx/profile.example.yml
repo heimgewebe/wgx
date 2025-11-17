@@ -1,35 +1,5 @@
-# .wgx/profile.example.yml — CI-Fallback & Strukturhinweis (ohne Secrets)
-# WICHTIG: Keine echten Zugangsdaten hier eintragen!
-# ➜ Lokal: als .wgx/profile.yml kopieren und dort anpassen (.gitignored).
-
+# .wgx/profile.example.yml – Beispiel für CI
 wgx:
-  apiVersion: v1.1
-  requiredWgx: "^2.0.0"
-  repoKind: generic
-
-  tooling:
-    python: { manager: uv, version: "3.12", lockfile: true }
-    shell:  { default: bash }
-
+  apiVersion: v1
   tasks:
-    # Minimaler Smoke-Test für CI (keine externen Tools nötig)
-    smoke: "echo wgx-profile-ok"
-
-    # Beispieltasks (lokal direkt nutzbar)
-    hello: "echo hi"
-
-    lint:
-      # benötigt: shfmt, shellcheck
-      # benötigt: scripts/lint-shell.sh
-      cmd: [ scripts/lint-shell.sh ]
-      safe: true
-      # Hinweis: Bei plattformspezifischen Toolchains lässt sich cmd auch je OS definieren:
-      #   cmd:
-      #     linux:  [ bash, -lc, "…" ]
-      #     darwin: [ bash, -lc, "…" ]
-      #     win32:  [ pwsh, -NoProfile, -Command, "…" ]
-
-    metrics:
-      # benötigt: scripts/wgx-metrics-snapshot.sh
-      cmd: [ scripts/wgx-metrics-snapshot.sh, --json, --output, metrics.json ]
-      safe: true
+    smoke: "echo 'Smoke test from profile passed.'"
