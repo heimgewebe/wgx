@@ -260,7 +260,19 @@ Options:
 
 ### reload
 
-_Command does not provide structured --help output._
+```
+Usage:
+  wgx reload [--force] [--dry-run]
+
+Description:
+  Setzt das Arbeitsverzeichnis hart auf den Stand des Upstream-Branches zurück.
+  WARNUNG: Alle lokalen Änderungen, auch ungetrackte Dateien, gehen verloren.
+
+Options:
+  --force       Führt den Reset auch bei ungespeicherten Änderungen aus.
+  --dry-run     Zeigt nur an, was getan würde, ohne Änderungen vorzunehmen.
+  -h, --help    Diese Hilfe anzeigen.
+```
 
 ### run
 
