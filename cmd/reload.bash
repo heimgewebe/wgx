@@ -21,20 +21,21 @@ reload_cmd_updated() {
     shift || true
   done
 
+  if ((dry_run)); then
+    info "[DRY-RUN] Geplante Schritte:"
+    info "[DRY-RUN] git reset --hard origin/$WGX_BASE"
+    info "[DRY-RUN] git clean -fdx"
+    ok "[DRY-RUN] Reload wäre jetzt abgeschlossen."
+    return 0
+  fi
+
   if git_workdir_dirty && ((force == 0)); then
     warn "reload abgebrochen: Arbeitsverzeichnis enthält ungespeicherte Änderungen."
     rc=1
   fi
 
   if ((rc == 0)); then
-    if ((dry_run)); then
-      info "[DRY-RUN] Geplante Schritte:"
-      info "[DRY-RUN] git reset --hard origin/$WGX_BASE"
-      info "[DRY-RUN] git clean -fdx"
-      ok "[DRY-RUN] Reload wäre jetzt abgeschlossen."
-    else
-      git_hard_reload || rc=$?
-    fi
+    git_hard_reload || rc=$?
   fi
 
   return "$rc"
