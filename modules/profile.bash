@@ -55,7 +55,7 @@ profile::_reset() {
 profile::_detect_file() {
   PROFILE_FILE=""
   local base
-  for base in ".wgx/profile.yml" ".wgx/profile.yaml" ".wgx/profile.json"; do
+  for base in ".wgx/profile.yml" ".wgx/profile.yaml" ".wgx/profile.json" ".wgx/profile.example.yml"; do
     if [[ -f $base ]]; then
       PROFILE_FILE="$base"
       return 0
