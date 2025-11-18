@@ -86,9 +86,7 @@ USAGE
     echo "  • Profile found."
   else
     echo "❌ No .wgx/profile.yml or .wgx/profile.example.yml found." >&2
-    # Profil fehlt – aber wir lassen die restlichen Sicherheitschecks
-    # (Oversize, Konfliktmarker, optionale Lints/Tests) weiterlaufen,
-    # damit der Guard auch ohne Profil frühzeitig Probleme findet.
+    # Nicht sofort abbrechen – andere Checks (v.a. Oversize) sollen trotzdem laufen.
     profile_missing=1
   fi
 
@@ -211,9 +209,8 @@ USAGE
     fi
   fi
 
-
-  # Wenn wir bis hier keinen harten Fehler hatten, das Profil aber fehlt,
-  # schlagen wir jetzt – wie ursprünglich vorgesehen – mit Status 1 fehl.
+  # Wenn wir bis hier keinen harten Fehler hatten, aber das Profil fehlt,
+  # schlagen wir jetzt (wie im Test erwartet) mit Status 1 fehl.
   if (( profile_missing )); then
     return 1
   fi
