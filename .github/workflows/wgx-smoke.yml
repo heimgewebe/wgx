@@ -21,7 +21,5 @@ jobs:
           ref: main
 
       - name: Run wgx smoke (Bash v1)
-        run: |
-          chmod +x .wgx-tools/cli/wgx
-          .wgx-tools/cli/wgx run smoke
+        run: chmod +x .wgx-tools/cli/wgx && .wgx-tools/cli/wgx run smoke
         shell: bash
