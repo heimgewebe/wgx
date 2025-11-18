@@ -1,50 +1,51 @@
 #!/usr/bin/env bash
 
-# reload_cmd (from archiv/wgx)
-reload_cmd_updated() {
-  local force=0 dry_run=0 rc=0
+# Vereinfachte 'reload'-Implementierung
+cmd_reload() {
+  local force=0 dry_run=0
   while [[ $# -gt 0 ]]; do
     case "$1" in
-      --force)
-        force=1
-        ;;
-      --dry-run)
-        dry_run=1
-        ;;
-      -*)
-        die "reload: Unerwartetes Argument '$1'"
-        ;;
-      *)
-        # positional args not supported in this version
-        ;;
+    --force)
+      force=1
+      ;;
+    --dry-run)
+      dry_run=1
+      ;;
+    -h | --help)
+      cat <<'USAGE'
+Usage:
+  wgx reload [--force] [--dry-run]
+
+Description:
+  Setzt das Arbeitsverzeichnis hart auf den Stand des Upstream-Branches zurück.
+  WARNUNG: Alle lokalen Änderungen, auch ungetrackte Dateien, gehen verloren.
+
+Options:
+  --force       Führt den Reset auch bei ungespeicherten Änderungen aus.
+  --dry-run     Zeigt nur an, was getan würde, ohne Änderungen vorzunehmen.
+  -h, --help    Diese Hilfe anzeigen.
+USAGE
+      return 0
+      ;;
+    -*)
+      die "reload: Unerwartetes Argument '$1'"
+      ;;
+    *) ;; # Positional args ignorieren
     esac
     shift || true
   done
 
+  # Der Dry-Run wird jetzt direkt von der zugrundeliegenden Git-Funktion
+  # unterstützt, was die Logik hier vereinfacht.
   if ((dry_run)); then
-    info "[DRY-RUN] Geplante Schritte:"
-    info "[DRY-RUN] git reset --hard origin/$WGX_BASE"
-    info "[DRY-RUN] git clean -fdx"
-    ok "[DRY-RUN] Reload wäre jetzt abgeschlossen."
-    return 0
+    git_hard_reload --dry-run
+    return $?
   fi
 
   if git_workdir_dirty && ((force == 0)); then
     warn "reload abgebrochen: Arbeitsverzeichnis enthält ungespeicherte Änderungen."
-    rc=1
+    return 1
   fi
 
-  if ((rc == 0)); then
-    git_hard_reload || rc=$?
-  fi
-
-  return "$rc"
-}
-
-reload_cmd() {
-  reload_cmd_updated "$@"
-}
-
-cmd_reload() {
-    reload_cmd "$@"
+  git_hard_reload
 }

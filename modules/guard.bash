@@ -10,8 +10,10 @@ _guard_command_available() {
   if declare -F "cmd_${name}" >/dev/null 2>&1; then
     return 0
   fi
-  local base_dir="${WGX_DIR:-"$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"}"
-  [[ -r "${base_dir}/cmd/${name}.bash" ]]
+  # Ermittle das Projekt-Root relativ zum Speicherort DIESES Skripts.
+  local project_root
+  project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+  [[ -r "${project_root}/cmd/${name}.bash" ]]
 }
 
 _guard_require_file() {
@@ -110,14 +112,10 @@ USAGE
     done
   )
   if [ -n "$oversized" ]; then
-    # Die Liste der übergroßen Dateien auf STDOUT ausgeben,
-    # die Fehlermeldung selbst geht via die() auf STDERR.
-    warn "Oversized files detected (>= 1 MiB):"
-    echo "   The following tracked files exceed the size limit and should be cleaned up or excluded:" >&2
-    echo "$oversized" | sed 's/^/   - /' >&2
-    echo "" >&2
-    echo "Hint: adjust your repository layout or add appropriate ignore rules if these files are intentional artifacts." >&2
+    # Die Test-Assertion erwartet die exakte Zeichenkette "Oversized files detected" auf STDOUT.
     echo "Oversized files detected"
+    warn "The following tracked files exceed the size limit of ${max_bytes} Bytes:" >&2
+    echo "$oversized" | sed 's/^/   - /' >&2
     return 1
   fi
 
