@@ -21,5 +21,8 @@ jobs:
           ref: main
 
       - name: Run wgx smoke (Bash v1)
-        run: chmod +x .wgx-tools/cli/wgx && .wgx-tools/cli/wgx run smoke
         shell: bash
+        run: |
+          export WGX_TARGET_ROOT="$GITHUB_WORKSPACE"
+          chmod +x .wgx-tools/cli/wgx
+          .wgx-tools/cli/wgx run smoke

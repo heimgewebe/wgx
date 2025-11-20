@@ -54,10 +54,12 @@ profile::_reset() {
 
 profile::_detect_file() {
   PROFILE_FILE=""
+  local root="${WGX_TARGET_ROOT:-.}"
   local base
   for base in ".wgx/profile.yml" ".wgx/profile.yaml" ".wgx/profile.json" ".wgx/profile.example.yml"; do
-    if [[ -f $base ]]; then
-      PROFILE_FILE="$base"
+    local candidate="${root%/}/$base"
+    if [[ -f "$candidate" ]]; then
+      PROFILE_FILE="$candidate"
       return 0
     fi
   done
@@ -1382,6 +1384,9 @@ profile::run_task() {
     echo "raw_cmd=${raw_cmd}"
   fi
 
+  # Respect WGX_TARGET_ROOT as the working directory for the task execution
+  local workdir="${WGX_TARGET_ROOT:-.}"
+
   case "$spec" in
   ARRJSON:*)
     local payload_json="${spec#ARRJSON:}"
@@ -1411,6 +1416,7 @@ profile::run_task() {
       return 0
     fi
     (
+      cd "$workdir" || return 1
       ((${#envs[@]})) && export "${envs[@]}"
       exec "${cmd[@]}" "${args[@]}"
     )
@@ -1441,6 +1447,7 @@ profile::run_task() {
       return 0
     fi
     (
+      cd "$workdir" || return 1
       ((${#envs[@]})) && export "${envs[@]}"
       exec "${cmd[@]}" "${args[@]}"
     )
@@ -1463,6 +1470,7 @@ profile::run_task() {
       return 0
     fi
     (
+      cd "$workdir" || return 1
       ((${#envs[@]})) && export "${envs[@]}"
       if ((${#args[@]})); then
         local extra=""
