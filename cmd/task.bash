@@ -83,7 +83,7 @@ USAGE
   if [[ -z $WGX_PROFILE_LOADED ]]; then
     # Profile loading failed or no profile found
     if ! profile::has_manifest; then
-      die ".wgx/profile.yml not found."
+      die $'No tracked wgx profile found. Commit one of:\n  • .wgx/profile.yml          (preferred for production config)\n  • .wgx/profile.example.yml  (placeholder for CI)'
     fi
   fi
 
