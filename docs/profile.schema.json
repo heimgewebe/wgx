@@ -1,0 +1,57 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": ["profile", "description", "class", "tasks"],
+  "properties": {
+    "profile": {
+      "type": "string",
+      "description": "Logical name of the repository"
+    },
+    "description": {
+      "type": "string",
+      "description": "Human-readable overview"
+    },
+    "class": {
+      "type": "string",
+      "description": "Fleet class (e.g. rust-service)"
+    },
+    "tasks": {
+      "type": "object",
+      "additionalProperties": {
+        "oneOf": [
+          { "type": "string" },
+          {
+            "type": "object",
+            "properties": {
+              "cmd": { "type": ["string", "array"] },
+              "desc": { "type": "string" },
+              "safe": { "type": "boolean" },
+              "group": { "type": "string" }
+            },
+            "required": ["cmd"]
+          }
+        ]
+      }
+    },
+    "requiredWgx": {
+      "oneOf": [
+        { "type": "string" },
+        {
+          "type": "object",
+          "properties": {
+            "range": { "type": "string" },
+            "min": { "type": "string" },
+            "caps": { "type": "array", "items": { "type": "string" } }
+          }
+        }
+      ]
+    },
+    "required-wgx": {
+      "$ref": "#/properties/requiredWgx",
+      "description": "Alias for requiredWgx"
+    },
+    "wgx": {
+      "type": "object"
+    }
+  }
+}
