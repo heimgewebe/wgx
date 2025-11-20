@@ -67,10 +67,9 @@ USAGE
 
   # Ensure required wgx version is satisfied (this will warn or fail depending on implementation)
   if ! profile::ensure_version; then
-    # If it returns non-zero, it means a required version mismatch that is fatal enough
-    # typically ensure_version just warns, but if strict mode was needed, we'd exit.
-    # However, based on logs, it just warns.
-    :
+    # If it returns non-zero, it means a required version mismatch that is fatal enough.
+    # We must abort execution to enforce the version requirement.
+    exit 1
   fi
 
   local name="$1"
