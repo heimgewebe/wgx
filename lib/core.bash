@@ -23,45 +23,35 @@ else
   _DOT="•"
 fi
 
-if ! type -t debug >/dev/null 2>&1; then
-  debug() {
-    [[ ${WGX_DEBUG:-0} != 0 ]] || return 0
-    [[ ${WGX_QUIET:-0} != 0 ]] && return
-    printf 'DEBUG %s\n' "$*" >&2
-  }
-fi
+debug() {
+  [[ ${WGX_DEBUG:-0} != 0 ]] || return 0
+  [[ ${WGX_QUIET:-0} != 0 ]] && return
+  printf 'DEBUG %s\n' "$*" >&2
+}
 
-if ! type -t info >/dev/null 2>&1; then
-  info() {
-    # Default: STDOUT (wie bisher). Für CI/quiet-Logs optional auf STDERR umleitbar.
-    [[ ${WGX_QUIET:-0} != 0 ]] && return
-    if [[ ${WGX_INFO_STDERR:-0} != 0 ]]; then
-      printf '%s %s\n' "$_DOT" "$*" >&2
-    else
-      printf '%s %s\n' "$_DOT" "$*"
-    fi
-  }
-fi
+info() {
+  # Default: STDOUT (wie bisher). Für CI/quiet-Logs optional auf STDERR umleitbar.
+  [[ ${WGX_QUIET:-0} != 0 ]] && return
+  if [[ ${WGX_INFO_STDERR:-0} != 0 ]]; then
+    printf '%s %s\n' "$_DOT" "$*" >&2
+  else
+    printf '%s %s\n' "$_DOT" "$*"
+  fi
+}
 
-if ! type -t ok >/dev/null 2>&1; then
-  ok() {
-    [[ ${WGX_QUIET:-0} != 0 ]] && return
-    printf '%s %s\n' "$_OK" "$*" >&2
-  }
-fi
+ok() {
+  [[ ${WGX_QUIET:-0} != 0 ]] && return
+  printf '%s %s\n' "$_OK" "$*" >&2
+}
 
-if ! type -t warn >/dev/null 2>&1; then
-  warn() {
-    printf '%s %s\n' "$_WARN" "$*" >&2
-  }
-fi
+warn() {
+  printf '%s %s\n' "$_WARN" "$*" >&2
+}
 
-if ! type -t die >/dev/null 2>&1; then
-  die() {
-    printf '%s %s\n' "$_ERR" "$*" >&2
-    exit 1
-  }
-fi
+die() {
+  printf '%s %s\n' "$_ERR" "$*" >&2
+  exit 1
+}
 
 # ---------- Env / Defaults ----------
 : "${WGX_VERSION:=2.0.3}"

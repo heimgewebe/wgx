@@ -480,6 +480,9 @@ if not api_version:
 
 emit(f"PROFILE_VERSION={shell_quote(api_version)}")
 req = wgx.get('requiredWgx')
+if req is None:
+    req = wgx.get('required-wgx')
+
 if isinstance(req, str):
     emit(f"WGX_REQUIRED_RANGE={shell_quote(req)}")
 elif isinstance(req, dict):

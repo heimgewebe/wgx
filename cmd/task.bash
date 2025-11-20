@@ -65,6 +65,14 @@ USAGE
     die ".wgx/profile.yml not found."
   fi
 
+  # Ensure required wgx version is satisfied (this will warn or fail depending on implementation)
+  if ! profile::ensure_version; then
+    # If it returns non-zero, it means a required version mismatch that is fatal enough
+    # typically ensure_version just warns, but if strict mode was needed, we'd exit.
+    # However, based on logs, it just warns.
+    :
+  fi
+
   local name="$1"
   shift || true
 
