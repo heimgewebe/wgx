@@ -1,7 +1,6 @@
 # WGX v1 Profile Specification
 
-This document describes the stable v1 WGX profile format
-used by the fleet, the wgx CLI, and reusable CI workflows.
+This document describes the stable v1 WGX profile format used by the fleet, the wgx CLI, and reusable CI workflows.
 
 ## 1. Required top-level keys
 
@@ -17,7 +16,6 @@ All v1 profiles must contain:
 - `tasks`
   Mapping from task name → shell snippet.
 
-
 ## 2. Optional but recognized keys
 
 These keys are optional but interpreted by fleet tools:
@@ -31,7 +29,6 @@ These keys are optional but interpreted by fleet tools:
 - `wgx.apiVersion`
   Version of the profile schema (`v1` for all current repos).
 
-
 ## 3. requiredWgx / required-wgx
 
 Profiles may indicate a required WGX capability level via:
@@ -43,16 +40,6 @@ Both keys are treated identically.
 
 If omitted, the CLI assumes wide compatibility and logs only a warning.
 
+## CI Contract
 
-## 4. Task format
-
-- Tasks are **simple inline shell snippets**.
-  Multi-step logic should be placed in separate scripts.
-- Allowed top-level task names used by CI:
-  `smoke`, `guard`, `metrics`, `snapshot`.
-
-
-## 5. Compatibility guarantees
-
-- All fleet tools consuming v1 profiles must ignore unknown keys.
-- All v1 profiles must remain valid under future minor CLI updates.
+CI workflows expect a **tracked** `.wgx/profile.yml` (or `.wgx/profile.example.yml` as fallback).

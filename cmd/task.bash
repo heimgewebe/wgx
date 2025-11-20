@@ -61,17 +61,6 @@ USAGE
     return 0
   fi
 
-  if ! profile::ensure_loaded; then
-    die ".wgx/profile.yml not found."
-  fi
-
-  # Ensure required wgx version is satisfied (this will warn or fail depending on implementation)
-  if ! profile::ensure_version; then
-    # If it returns non-zero, it means a required version mismatch that is fatal enough.
-    # We must abort execution to enforce the version requirement.
-    exit 1
-  fi
-
   local name="$1"
   shift || true
 
@@ -82,6 +71,28 @@ USAGE
   local -a forwarded=()
   if (($#)); then
     forwarded=("$@")
+  fi
+
+  # Ensure target root is respected
+  local target_root="${WGX_TARGET_ROOT:-$PWD}"
+  if [[ ! -d "$target_root" ]]; then
+    die "Target root not found: $target_root"
+  fi
+
+  profile::ensure_loaded
+  if [[ -z $WGX_PROFILE_LOADED ]]; then
+    # Profile loading failed or no profile found
+    if ! profile::has_manifest; then
+      die ".wgx/profile.yml not found."
+    fi
+  fi
+
+  # Ensure required wgx version is satisfied.
+  # profile::ensure_version reads WGX_REQUIRED_RANGE / WGX_REQUIRED_MIN from
+  # the parsed profile (including requiredWgx / required-wgx) and returns
+  # non-zero on mismatch.
+  if ! profile::ensure_version; then
+    die "Profile requirements not met (see warnings above)."
   fi
 
   local key

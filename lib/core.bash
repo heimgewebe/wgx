@@ -23,32 +23,30 @@ else
   _DOT="•"
 fi
 
-debug() {
+function debug() {
   [[ ${WGX_DEBUG:-0} != 0 ]] || return 0
   [[ ${WGX_QUIET:-0} != 0 ]] && return
   printf 'DEBUG %s\n' "$*" >&2
 }
 
-info() {
-  # Default: STDOUT (wie bisher). Für CI/quiet-Logs optional auf STDERR umleitbar.
+function info() {
   [[ ${WGX_QUIET:-0} != 0 ]] && return
-  if [[ ${WGX_INFO_STDERR:-0} != 0 ]]; then
-    printf '%s %s\n' "$_DOT" "$*" >&2
-  else
-    printf '%s %s\n' "$_DOT" "$*"
-  fi
+  # Log info to stderr by default to keep stdout clean for pipes/data,
+  # unless specifically asked otherwise (legacy behavior is to stdout, but
+  # let's standardize on stderr for logs).
+  printf '%s %s\n' "$_DOT" "$*" >&2
 }
 
-ok() {
+function ok() {
   [[ ${WGX_QUIET:-0} != 0 ]] && return
   printf '%s %s\n' "$_OK" "$*" >&2
 }
 
-warn() {
+function warn() {
   printf '%s %s\n' "$_WARN" "$*" >&2
 }
 
-die() {
+function die() {
   printf '%s %s\n' "$_ERR" "$*" >&2
   exit 1
 }

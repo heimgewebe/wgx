@@ -1,28 +1,29 @@
-name: wgx-smoke
-permissions:
-  contents: read
+name: WGX Smoke (reusable)
+
 on:
-  workflow_dispatch:
-  workflow_call:
+  workflow_call: {}
 
 jobs:
-  smoke-test:
+  smoke:
+    name: Smoke Test
     runs-on: ubuntu-latest
-    timeout-minutes: 10
     steps:
-      - name: Checkout target repo
+      - name: Checkout Caller Repo
         uses: actions/checkout@v4
 
-      - name: Checkout wgx tools
+      - name: Checkout WGX Tools
         uses: actions/checkout@v4
         with:
           repository: heimgewebe/wgx
           path: .wgx-tools
           ref: main
 
-      - name: Run wgx smoke (Bash v1)
+      - name: Run wgx smoke (Bash v1, central runner)
         shell: bash
         run: |
+          # Make the runner explicitly target the caller repository.
+          # The profile loader and task executor use this as their root.
           export WGX_TARGET_ROOT="$GITHUB_WORKSPACE"
+
           chmod +x .wgx-tools/cli/wgx
           .wgx-tools/cli/wgx run smoke
