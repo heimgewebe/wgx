@@ -2,9 +2,51 @@
 
 # heal_cmd (from archiv/wgx)
 heal_cmd() {
-  require_repo
   local MODE="${1-}"
-  shift || true
+  
+  # Handle help first
+  case "$MODE" in
+    -h | --help | help)
+      cat <<'USAGE'
+Usage:
+  wgx heal [rebase|ours|theirs|ff-only] [--stash] [--continue] [--abort] [--base <branch>]
+
+Description:
+  Löst Konflikte oder führt ein Rebase auf den Basis-Branch durch.
+
+Modes:
+  rebase      Rebase auf origin/$WGX_BASE (Standard)
+  ours        Merge mit --ours Strategie
+  theirs      Merge mit --theirs Strategie
+  ff-only     Fast-Forward only Merge
+
+Options:
+  --stash       Vor dem Heal einen Snapshot (Stash) erstellen
+  --continue    Laufenden Rebase fortsetzen
+  --abort       Laufenden Rebase/Merge abbrechen
+  --base <b>    Alternativen Basis-Branch verwenden
+  -h, --help    Diese Hilfe anzeigen
+USAGE
+      return 0
+      ;;
+  esac
+
+  require_repo
+  
+  # If MODE is a recognized mode, shift it; otherwise, keep it for parsing as an option
+  case "$MODE" in
+    rebase | ours | theirs | ff-only | "")
+      shift || true
+      ;;
+    --*)
+      # MODE is actually an option, leave MODE empty
+      MODE=""
+      ;;
+    *)
+      shift || true
+      ;;
+  esac
+  
   local STASH=0 CONT=0 ABORT=0 BASE=""
   while [[ $# -gt 0 ]]; do
     case "$1" in
