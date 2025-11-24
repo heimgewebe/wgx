@@ -268,7 +268,7 @@ _codeowners_reviewers() {
 
   while IFS= read -r line || [[ -n "$line" ]]; do
     line="$(trim "$line")"
-    [[ -z "$line" || "$line" =~ ^# ]] && continue
+    [[ -z "$line" || "${line:0:1}" == "#" ]] && continue
     line="${line%%#*}"
     line="$(trim "$line")"
     [[ -z "$line" ]] && continue
@@ -349,6 +349,7 @@ EOF
 _WGX_FETCH_DONE=""
 
 # Fetch from origin once per session
+# Uses global OFFLINE variable (defaults to 0, set in env/defaults section)
 _fetch_once() {
   [[ -n "${_WGX_FETCH_DONE-}" ]] && return 0
   ((OFFLINE)) && { debug "offline: skip fetch"; return 0; }

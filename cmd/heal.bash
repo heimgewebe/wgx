@@ -32,7 +32,21 @@ USAGE
   esac
 
   require_repo
-  shift || true
+  
+  # If MODE is a recognized mode, shift it; otherwise, keep it for parsing as an option
+  case "$MODE" in
+    rebase | ours | theirs | ff-only | "")
+      shift || true
+      ;;
+    --*)
+      # MODE is actually an option, leave MODE empty
+      MODE=""
+      ;;
+    *)
+      shift || true
+      ;;
+  esac
+  
   local STASH=0 CONT=0 ABORT=0 BASE=""
   while [[ $# -gt 0 ]]; do
     case "$1" in
