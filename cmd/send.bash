@@ -2,6 +2,39 @@
 
 # send_cmd (from archiv/wgx)
 send_cmd() {
+  # Handle help first
+  case "${1-}" in
+    -h | --help | help)
+      cat <<'USAGE'
+Usage:
+  wgx send [options]
+
+Description:
+  Führt Guard-Checks aus, synchronisiert mit Remote und erstellt einen PR/MR.
+
+Options:
+  --draft           PR als Draft erstellen
+  -i, --interactive PR-Body im Editor bearbeiten
+  --title <text>    PR-Titel überschreiben
+  --why <text>      Begründung für den PR
+  --tests <text>    Beschreibung der durchgeführten Tests
+  --notes <text>    Zusätzliche Notizen
+  --label <name>    Label hinzufügen (mehrfach möglich)
+  --issue <num>     Issue-Nummer verknüpfen
+  --reviewers <u>   Reviewer zuweisen (kommasepariert oder 'auto')
+  --scope <scope>   Scope überschreiben (auto|web|api|infra|devx|docs|meta|repo)
+  --no-sync-first   Sync vor PR überspringen
+  --sign            Commits signieren
+  --base <branch>   Basis-Branch überschreiben
+  --ci              CI-Workflow triggern (falls WGX_CI_WORKFLOW gesetzt)
+  --open            PR nach Erstellung im Browser öffnen
+  --auto-branch     Automatisch Branch erstellen, wenn auf Base
+  -h, --help        Diese Hilfe anzeigen
+USAGE
+      return 0
+      ;;
+  esac
+
   require_repo
   local DRAFT=0 TITLE="" WHY="" TESTS="" NOTES="" SCOPE="auto" LABELS="${WGX_PR_LABELS-}" ISSUE="" BASE="" SYNC_FIRST=1 SIGN=0 INTERACTIVE=0 REVIEWERS="" TRIGGER_CI=0 OPEN_PR=0 AUTO_BRANCH=0
   while [[ $# -gt 0 ]]; do
@@ -75,13 +108,14 @@ send_cmd() {
 
   # Schutz: nicht direkt von Base & kein leeres Diff
   local current
-  current="$(git_branch)"
+  current="$(git_current_branch)"
   local AUTO_BRANCH_FLAG=$((AUTO_BRANCH || ${WGX_AUTO_BRANCH:-0}))
   if [[ "$current" == "$WGX_BASE" ]]; then
     if ((AUTO_BRANCH_FLAG)); then
-      local slug="auto-pr-$(date +%Y%m%d-%H%M%S)"
+      local slug
+      slug="auto-pr-$(date +%Y%m%d-%H%M%S)"
       info "Base-Branch ($WGX_BASE) erkannt → auto Branch: $slug"
-      start_cmd "$slug" || die "auto-branch fehlgeschlagen"
+      git switch -c "$slug" || die "auto-branch fehlgeschlagen"
     else
       die "send: Du stehst auf Base ($WGX_BASE). Erst 'wgx start <slug>' – oder 'wgx send --auto-branch'."
     fi
@@ -129,7 +163,7 @@ send_cmd() {
     gitlab)
       if has glab; then
         glab auth status >/dev/null 2>&1 || warn "glab nicht eingeloggt (glab auth login) – MR könnte scheitern."
-        local args=(mr create --title "$TITLE2" --description "$body" --source-branch "$(git_branch)" --target-branch "$WGX_BASE")
+        local args=(mr create --title "$TITLE2" --description "$body" --source-branch "$(git_current_branch)" --target-branch "$WGX_BASE")
         ((DRAFT)) && args+=(--draft)
         [[ -n "$ISSUE" ]] && args+=(--issue "$ISSUE")
         if [[ -n "$LABELS" ]]; then
