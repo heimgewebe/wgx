@@ -138,7 +138,26 @@ Options:
 
 ### heal
 
-_Command does not provide structured --help output._
+```
+Usage:
+  wgx heal [rebase|ours|theirs|ff-only] [--stash] [--continue] [--abort] [--base <branch>]
+
+Description:
+  Löst Konflikte oder führt ein Rebase auf den Basis-Branch durch.
+
+Modes:
+  rebase      Rebase auf origin/$WGX_BASE (Standard)
+  ours        Merge mit --ours Strategie
+  theirs      Merge mit --theirs Strategie
+  ff-only     Fast-Forward only Merge
+
+Options:
+  --stash       Vor dem Heal einen Snapshot (Stash) erstellen
+  --continue    Laufenden Rebase fortsetzen
+  --abort       Laufenden Rebase/Merge abbrechen
+  --base <b>    Alternativen Basis-Branch verwenden
+  -h, --help    Diese Hilfe anzeigen
+```
 
 ### help
 
@@ -295,7 +314,32 @@ Options:
 
 ### send
 
-_Command does not provide structured --help output._
+```
+Usage:
+  wgx send [options]
+
+Description:
+  Führt Guard-Checks aus, synchronisiert mit Remote und erstellt einen PR/MR.
+
+Options:
+  --draft           PR als Draft erstellen
+  -i, --interactive PR-Body im Editor bearbeiten
+  --title <text>    PR-Titel überschreiben
+  --why <text>      Begründung für den PR
+  --tests <text>    Beschreibung der durchgeführten Tests
+  --notes <text>    Zusätzliche Notizen
+  --label <name>    Label hinzufügen (mehrfach möglich)
+  --issue <num>     Issue-Nummer verknüpfen
+  --reviewers <u>   Reviewer zuweisen (kommasepariert oder 'auto')
+  --scope <scope>   Scope überschreiben (auto|web|api|infra|devx|docs|meta|repo)
+  --no-sync-first   Sync vor PR überspringen
+  --sign            Commits signieren
+  --base <branch>   Basis-Branch überschreiben
+  --ci              CI-Workflow triggern (falls WGX_CI_WORKFLOW gesetzt)
+  --open            PR nach Erstellung im Browser öffnen
+  --auto-branch     Automatisch Branch erstellen, wenn auf Base
+  -h, --help        Diese Hilfe anzeigen
+```
 
 ### setup
 
