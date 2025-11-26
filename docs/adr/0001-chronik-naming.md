@@ -2,7 +2,8 @@
 
 ## Status
 
-Accepted
+Accepted  
+Supersedes: ADR 0001 (rename leitstand to chronik)
 
 ## Context
 
