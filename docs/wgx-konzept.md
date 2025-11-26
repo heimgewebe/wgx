@@ -19,8 +19,7 @@ Kurz: wgx ist der **Bordcomputer**, der die Flotte bedient – nicht das Gehirn 
 Abgrenzung:
 
 - **hausKI**: orchestriert Denkprozesse und Agenten (Planen, Entscheiden, Reviews anstoßen).
-- **chronik**: speichert Ereignisse (Events, Audit-Logs).
-- **leitstand**: visualisiert und steuert (UI/Dashboard über chronik, semantAH, hausKI).
+- **chronik**: speichert Ereignisse (Events, Audit-Logs) und bietet ein Dashboard zur Visualisierung.
 - **wgx**: startet, überprüft, synchronisiert – lokal und in CI.
 
 ---
