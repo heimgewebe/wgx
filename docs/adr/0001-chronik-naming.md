@@ -1,23 +1,25 @@
-# ADR 0001: Standardize chronik naming and introduce chronik UI
+# ADR 0001: chronik and leitstand naming
 
 ## Status
 
-Accepted  
-Supersedes: ADR 0001 (rename leitstand to chronik)
+Accepted
 
 ## Context
 
-The existing `chronik` repository serves as an event-ingest and persistence layer, essentially acting as an event store or "memory" for the Heimgewebe ecosystem. The planned UI/dashboard, which will provide a system overview and control room, will share the `chronik` branding.
+The Heimgewebe ecosystem has two key components for system visibility and control:
 
-This renaming is necessary to align the repositories' names with their semantic roles, improving clarity and maintainability.
+- **chronik**: An event-ingest and persistence layer, essentially acting as an event store or "memory" for the system. It stores events and audit logs.
+- **leitstand**: A UI/dashboard for monitoring and control. It provides a system overview and control room, visualizing data from chronik, semantAH, and hausKI.
+
+This document clarifies the semantic roles and naming of these repositories.
 
 ## Decision
 
-1.  **Standardize the backend repository name:** The backend repository is named `chronik`.
-2.  **Create a new UI repository:** A new repository named `chronik-ui` will be created for the UI/dashboard.
+1.  **chronik repository:** Serves as the backend event store and persistence layer.
+2.  **leitstand repository:** Serves as the UI for monitoring and control (dashboard).
 
 ## Consequences
 
--   All references to the backend repository in documentation, CI/CD pipelines, and `.ai-context.yml` files must use `chronik`.
--   The new `chronik-ui` repository will be established as the central UI for the Heimgewebe ecosystem.
--   This change will introduce a temporary inconsistency during the transition, which will be mitigated by a phased rollout.
+-   All references to the event store/memory in documentation, CI/CD pipelines, and `.ai-context.yml` files use `chronik`.
+-   All references to the UI/dashboard use `leitstand`.
+-   The naming reflects the semantic roles: chronik = chronicle/memory, leitstand = control room.
