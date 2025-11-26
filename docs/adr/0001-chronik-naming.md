@@ -1,25 +1,25 @@
-# ADR 0001: chronik and leitstand naming
+# ADR 0001: chronik naming
 
 ## Status
 
-Accepted
+Accepted (updated)
 
 ## Context
 
-The Heimgewebe ecosystem has two key components for system visibility and control:
+The Heimgewebe ecosystem has a key component for system visibility and event storage:
 
-- **chronik**: An event-ingest and persistence layer, essentially acting as an event store or "memory" for the system. It stores events and audit logs.
-- **leitstand**: A UI/dashboard for monitoring and control. It provides a system overview and control room, visualizing data from chronik, semantAH, and hausKI.
+- **chronik**: An event-ingest, persistence layer, and dashboard. It acts as an event store ("memory") for the system, storing events and audit logs, and provides visualization capabilities.
 
-This document clarifies the semantic roles and naming of these repositories.
+This document clarifies the semantic role and naming of this repository.
+
+Note: The previous "leitstand" repository was merged into chronik. The name "leitstand" is now reserved for a future UI component for controlling operations.
 
 ## Decision
 
-1.  **chronik repository:** Serves as the backend event store and persistence layer.
-2.  **leitstand repository:** Serves as the UI for monitoring and control (dashboard).
+1.  **chronik repository:** Serves as the event store, persistence layer, and dashboard for system visibility.
 
 ## Consequences
 
--   All references to the event store/memory in documentation, CI/CD pipelines, and `.ai-context.yml` files use `chronik`.
--   All references to the UI/dashboard use `leitstand`.
--   The naming reflects the semantic roles: chronik = chronicle/memory, leitstand = control room.
+-   All references to the event store/memory and the associated dashboard in documentation, CI/CD pipelines, and `.ai-context.yml` files use `chronik`.
+-   The name "leitstand" is reserved for a future control UI component.
+-   The naming reflects the semantic role: chronik = chronicle/memory + visualization.
