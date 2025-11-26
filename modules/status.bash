@@ -6,7 +6,6 @@ status_cmd() {
   if [[ "$1" == "-h" || "$1" == "--help" ]]; then
     cat <<'USAGE'
 Usage:
-Usage:
   wgx status
 
 Description:
