@@ -23,8 +23,6 @@ jobs:
       - name: Install deps
         env:
           VALE_VERSION: v3.8.0
-          # SHA256 checksum for vale_3.8.0_Linux_64-bit.tar.gz
-          VALE_SHA256: 17ef3b96fd8e8ce9f3bd78a2c73837f95e36f60b31e90f8e3773f3f3c7d3d68a
         run: |
           export DEBIAN_FRONTEND=noninteractive
           sudo apt-get -yq update
