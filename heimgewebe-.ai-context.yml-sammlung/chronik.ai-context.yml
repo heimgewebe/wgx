@@ -2,7 +2,7 @@ ai_context_version: 1.0
 
 project:
   name: chronik
-  summary: Event ingest and processing hub (formerly leitstand).
+  summary: Event ingest and processing hub.
   role: central_event_store
   primary_language: rust
   visibility: internal
