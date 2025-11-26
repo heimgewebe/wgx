@@ -20,7 +20,7 @@ Abgrenzung:
 
 - **hausKI**: orchestriert Denkprozesse und Agenten (Planen, Entscheiden, Reviews anstoßen).
 - **chronik**: speichert Ereignisse (Events, Audit-Logs).
-- **leitstand**: visualisiert und steuert (UI/Dashboard über chronik, semantAH, hausKI).
+- **chronik UI**: visualisiert und steuert (UI/Dashboard über chronik, semantAH, hausKI).
 - **wgx**: startet, überprüft, synchronisiert – lokal und in CI.
 
 ---
