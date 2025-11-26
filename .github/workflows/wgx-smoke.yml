@@ -3,6 +3,9 @@ name: WGX Smoke (reusable)
 on:
   workflow_call: {}
 
+permissions:
+  contents: read
+
 jobs:
   smoke:
     name: Smoke Test

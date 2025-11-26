@@ -1,7 +1,4 @@
 name: shell-docs
-permissions:
-  contents: read
-  actions: write
 on:
   push:
     branches: [ main ]
@@ -24,14 +21,27 @@ jobs:
           node-version: '20'
           cache: 'npm'
       - name: Install deps
+        env:
+          VALE_VERSION: v3.8.0
+          # SHA256 checksum for vale_3.8.0_Linux_64-bit.tar.gz
+          VALE_SHA256: 17ef3b96fd8e8ce9f3bd78a2c73837f95e36f60b31e90f8e3773f3f3c7d3d68a
         run: |
           export DEBIAN_FRONTEND=noninteractive
           sudo apt-get -yq update
           sudo apt-get -yq install shellcheck shfmt bats
           npm install -g markdownlint-cli@0.43.0
           tmpdir="$(mktemp -d)"
-          curl -Ls https://github.com/errata-ai/vale/releases/download/v3.8.0/vale_3.8.0_Linux_64-bit.tar.gz \
-            | tar xz -C "$tmpdir"
+          curl -fsSL "https://github.com/errata-ai/vale/releases/download/${VALE_VERSION}/vale_${VALE_VERSION#v}_Linux_64-bit.tar.gz" \
+            -o "$tmpdir/vale.tar.gz"
+          curl -fsSL "https://github.com/errata-ai/vale/releases/download/${VALE_VERSION}/vale_${VALE_VERSION#v}_checksums.txt" \
+            -o "$tmpdir/checksums.txt"
+          expected_sha=$(awk '/Linux_64-bit\.tar\.gz$/ {print $1}' "$tmpdir/checksums.txt")
+          actual_sha=$(sha256sum "$tmpdir/vale.tar.gz" | awk '{print $1}')
+          if [ "$expected_sha" != "$actual_sha" ]; then
+            echo "::error::Vale checksum mismatch: expected $expected_sha, got $actual_sha"
+            exit 1
+          fi
+          tar xz -C "$tmpdir" -f "$tmpdir/vale.tar.gz"
           sudo mv "$tmpdir/vale" /usr/local/bin/vale
           rm -rf "$tmpdir"
           vale --version
