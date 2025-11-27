@@ -1,5 +1,11 @@
 # Platzhalter für CI, mit Werten die keine realen Secrets enthalten!
-eventstore_url: "nats://localhost:4222"
-postgres_url: "postgresql://wgx:wgx@localhost:5432/wgx"
-redis_url: "redis://localhost:6379/0"
-signing_key: "testtesttesttesttest"
+wgx:
+  apiVersion: v1
+  repoKind: "generic"
+  envDefaults:
+    EVENTSTORE_URL: "nats://localhost:4222"
+    POSTGRES_URL: "postgresql://wgx:wgx@localhost:5432/wgx"
+    REDIS_URL: "redis://localhost:6379/0"
+    SIGNING_KEY: "testtesttesttesttest"
+  tasks:
+    test: "echo 'No tests defined'"
