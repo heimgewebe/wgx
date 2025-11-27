@@ -378,7 +378,6 @@ Options:
 
 ```
 Usage:
-Usage:
   wgx status
 
 Description:
