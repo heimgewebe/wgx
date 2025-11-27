@@ -2,6 +2,7 @@ name: security
 permissions:
   id-token: write
   contents: read
+  security-events: write
 
 on:
   schedule:
@@ -23,7 +24,7 @@ jobs:
           persist-credentials: false
 
       - name: Run Trivy vulnerability scanner in fs mode
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@0.33.1
         with:
           scan-type: 'fs'
           scan-ref: '.'

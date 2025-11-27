@@ -16,8 +16,10 @@ jobs:
   validate:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@8ade135a242bde00fd19c0e54fb3760beea110ee # v4.1.0
-      - uses: actions/setup-node@5e221d4786ffb21088b21dfc9c80efb16b52cd3b # v4.0.2
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
       - name: Install ajv-cli
         run: npm i -g ajv-cli@5
       - name: Validate agent workflow manifests
