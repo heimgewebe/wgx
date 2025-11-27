@@ -80,7 +80,15 @@ jobs:
       - name: Check for Python project
         id: check-python
         run: |
-          if [ -f uv.lock ] && [ -f pyproject.toml ]; then
+          has_uv_lock=false
+          has_pyproject=false
+          if [ -f uv.lock ]; then
+            has_uv_lock=true
+          fi
+          if find . -name 'pyproject.toml' -type f | grep -q .; then
+            has_pyproject=true
+          fi
+          if [ "$has_uv_lock" = "true" ] && [ "$has_pyproject" = "true" ]; then
             echo "has_python=true" >> "$GITHUB_OUTPUT"
           else
             echo "has_python=false" >> "$GITHUB_OUTPUT"
