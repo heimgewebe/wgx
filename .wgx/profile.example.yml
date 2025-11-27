@@ -1,3 +1,5 @@
-# .wgx/profile.example.yml
-besitzer: weltgewebe
-rolle: test
+# Platzhalter für CI, mit Werten die keine realen Secrets enthalten!
+eventstore_url: "nats://localhost:4222"
+postgres_url: "postgresql://wgx:wgx@localhost:5432/wgx"
+redis_url: "redis://localhost:6379/0"
+signing_key: "testtesttesttesttest"
