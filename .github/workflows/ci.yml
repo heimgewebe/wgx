@@ -355,7 +355,7 @@ PY
       - name: Markdownlint (changed only)
         run: |
           set -euo pipefail
-          npm i -g markdownlint-cli2@0.12.1
+          npm i -g markdownlint-cli2@0.14.0
           ./etc/ci/run-with-files.sh "No Markdown files to lint." markdownlint-cli2 <<'EOF'
 ${{ steps.changed_docs.outputs.markdown_files }}
 EOF

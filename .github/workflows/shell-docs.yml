@@ -27,7 +27,7 @@ jobs:
           export DEBIAN_FRONTEND=noninteractive
           sudo apt-get -yq update
           sudo apt-get -yq install shellcheck shfmt bats
-          npm install -g markdownlint-cli2@0.12.1
+          npm install -g markdownlint-cli2@0.14.0
           tmpdir="$(mktemp -d)"
           curl -fsSL "https://github.com/errata-ai/vale/releases/download/${VALE_VERSION}/vale_${VALE_VERSION#v}_Linux_64-bit.tar.gz" \
             -o "$tmpdir/vale.tar.gz"
