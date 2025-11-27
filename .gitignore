@@ -29,3 +29,4 @@ metrics.json
 
 # Generated artifact directory (covers future additions)
 /artifacts/
+actionlint
