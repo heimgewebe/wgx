@@ -36,12 +36,11 @@ type _guard_gitgrep_pcre_supported >/dev/null 2>&1 ||
   }
 
 guard_run() {
-  local run_lint=0 run_test=0 run_secrets=1
+  local run_lint=0 run_test=0
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --lint) run_lint=1 ;;
       --test) run_test=1 ;;
-      --no-secrets) run_secrets=0 ;;
       -h | --help)
         cat <<'USAGE'
 Usage:
