@@ -27,7 +27,7 @@ jobs:
           export DEBIAN_FRONTEND=noninteractive
           sudo apt-get -yq update
           sudo apt-get -yq install shellcheck shfmt bats
-          npm install -g markdownlint-cli@0.43.0
+          npm install -g markdownlint-cli2@0.14.0
           tmpdir="$(mktemp -d)"
           curl -fsSL "https://github.com/errata-ai/vale/releases/download/${VALE_VERSION}/vale_${VALE_VERSION#v}_Linux_64-bit.tar.gz" \
             -o "$tmpdir/vale.tar.gz"
@@ -69,7 +69,7 @@ jobs:
             echo "No markdown files."
             exit 0
           fi
-          markdownlint "${md_files[@]}"
+          markdownlint-cli2 "${md_files[@]}"
           vale .
 
   python-uv:

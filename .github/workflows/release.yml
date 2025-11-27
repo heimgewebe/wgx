@@ -15,6 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        # Pin to SHA for security - v2.4.2
+        uses: softprops/action-gh-release@5be0e66d93ac7ed76da52eca8bb058f665c3a5fe
         with:
           generate_release_notes: true
