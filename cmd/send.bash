@@ -129,10 +129,12 @@ USAGE
   guard_run
   local rc=$?
   ((rc == 1 && (ASSUME_YES || ${WGX_DRAFT_ON_WARN:-0}))) && DRAFT=1
-  ((SYNC_FIRST)) && cmd_sync ${SIGN:+--sign} --scope "${SCOPE}" --base "$WGX_BASE" || {
-    warn "Sync fehlgeschlagen → PR abgebrochen."
-    return 1
-  }
+  if ((SYNC_FIRST)); then
+    if ! cmd_sync ${SIGN:+--sign} --scope "${SCOPE}" --base "$WGX_BASE"; then
+      warn "Sync fehlgeschlagen → PR abgebrochen."
+      return 1
+    fi
+  fi
 
   local files scope short
   files="$(git diff --name-only "origin/$WGX_BASE"...HEAD 2>/dev/null || true)"
