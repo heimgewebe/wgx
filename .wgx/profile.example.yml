@@ -1,11 +1,3 @@
-# Platzhalter für CI, mit Werten die keine realen Secrets enthalten!
-wgx:
-  apiVersion: v1
-  repoKind: "generic"
-  envDefaults:
-    EVENTSTORE_URL: "nats://localhost:4222"
-    POSTGRES_URL: "postgresql://wgx:wgx@localhost:5432/wgx"
-    REDIS_URL: "redis://localhost:6379/0"
-    SIGNING_KEY: "testtesttesttesttest"
-  tasks:
-    test: "echo 'No tests defined'"
+# Placeholder profile file for CI pipelines
+# Required so WGX guard and smoke workflows can run without error
+profile: ci-placeholder
