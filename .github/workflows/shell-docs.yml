@@ -8,11 +8,11 @@ on:
 
 permissions:
   contents: read
-  actions: write
 
 jobs:
   shell-and-docs:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - name: Setup Node (cache npm)
@@ -74,22 +74,35 @@ jobs:
 
   python-uv:
     runs-on: ubuntu-latest
-    if: ${{ hashFiles('uv.lock') != '' && hashFiles('**/pyproject.toml') != '' }}
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+      - name: Check for Python project
+        id: check-python
+        run: |
+          if [ -f uv.lock ] && [ -f pyproject.toml ]; then
+            echo "has_python=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_python=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::No uv.lock or pyproject.toml found, skipping Python checks"
+          fi
       - name: Install uv
+        if: steps.check-python.outputs.has_python == 'true'
         run: |
           set -euo pipefail
           curl -LsSf https://astral.sh/uv/install.sh | sh
           echo "$HOME/.local/bin" >>"$GITHUB_PATH"
-          uv_version="$($HOME/.local/bin/uv --version | awk '{print $2}')"
-          echo "UV_VERSION=$uv_version" >>"$GITHUB_ENV"
+          uv_version="$("$HOME/.local/bin/uv" --version | awk '{print $2}')"
+          echo "UV_VERSION=${uv_version}" >>"$GITHUB_ENV"
       - name: Cache uv
+        if: steps.check-python.outputs.has_python == 'true'
         uses: actions/cache@v4
         with:
           path: ~/.cache/uv
           key: uv-${{ runner.os }}-${{ env.UV_VERSION || 'latest' }}-${{ hashFiles('**/pyproject.toml', '**/uv.lock') }}
       - name: Sync deps (frozen)
+        if: steps.check-python.outputs.has_python == 'true'
         run: ~/.local/bin/uv sync --frozen
       - name: Smoke run
+        if: steps.check-python.outputs.has_python == 'true'
         run: ~/.local/bin/uv run python -c "print('uv ok')"

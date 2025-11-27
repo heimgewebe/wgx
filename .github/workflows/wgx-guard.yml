@@ -191,8 +191,8 @@ jobs:
           # daher ergänzen wir den PATH zusätzlich für die aktuelle Shell.
           export PATH="$HOME/.local/bin:$PATH"
           echo "$HOME/.local/bin" >>"$GITHUB_PATH"
-          uv_version="$($HOME/.local/bin/uv --version | awk '{print $2}')"
-          echo "UV_VERSION=$uv_version" >>"$GITHUB_ENV"
+          uv_version="$("$HOME/.local/bin/uv" --version | awk '{print $2}')"
+          echo "UV_VERSION=${uv_version}" >>"$GITHUB_ENV"
 
       - name: Cache uv
         if: steps.python-project.outputs.present == 'true'
@@ -200,16 +200,6 @@ jobs:
         with:
           path: ~/.cache/uv
           key: uv-${{ runner.os }}-${{ env.UV_VERSION || 'latest' }}-${{ hashFiles('**/pyproject.toml', '**/uv.lock') }}
-
-      - name: Sync deps (uv)
-        if: steps.python-project.outputs.present == 'true'
-        shell: sh
-        run: |
-          set -eu
-          if (set -o pipefail) 2>/dev/null; then
-            set -o pipefail
-          fi
-          ~/.local/bin/uv sync --frozen
 
       - name: uv contracts (only if pyproject exists)
         if: steps.python-project.outputs.present == 'true'

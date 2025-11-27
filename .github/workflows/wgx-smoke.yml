@@ -10,6 +10,7 @@ jobs:
   smoke:
     name: Smoke Test
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout Caller Repo
         uses: actions/checkout@v4
