@@ -834,10 +834,10 @@ profile::_task_spec() {
 
 # Hilfsfunktion: Shell-ähnliche Einfach-Quotes für Ausgabe
 profile::_quote_arg_for_display() {
-    local s=$1
-    # Einfaches ' wird in der klassischen Shell-Notierung als '\'' dargestellt
-    s=${s//\'/\'\\\'\'}
-    printf "'%s'" "$s"
+  local s=$1
+  # Einfaches ' wird in der klassischen Shell-Notierung als '\'' dargestellt
+  s=${s//\'/\'\\\'\'}
+  printf "'%s'" "$s"
 }
 
 profile::_shell_quote() {
@@ -940,13 +940,13 @@ profile::run_task() {
   local passthrough=0
   while (($#)); do
     if ((passthrough)); then
-        args+=("$1")
+      args+=("$1")
     else
-        if [[ $1 == -- ]]; then
-            passthrough=1
-        else
-            args+=("$1")
-        fi
+      if [[ $1 == -- ]]; then
+        passthrough=1
+      else
+        args+=("$1")
+      fi
     fi
     shift || true
   done
@@ -954,20 +954,20 @@ profile::run_task() {
   # Menschlich lesbare Repräsentation für Tests/Debug:
   local raw_cmd base_cmd
   case "$spec" in
-    STR:*)
-      base_cmd="${spec#STR:}"   # z.B. "echo 'a # b'"
-      raw_cmd="STR:${base_cmd}"
-      ;;
-    ARR:*)
-      # Für ARR ist die Erwartung in den Tests meist weniger hart; falls nötig:
-      # base_cmd wird hier notfalls aus der internen Darstellung rekonstruiert.
-      ;;
+  STR:*)
+    base_cmd="${spec#STR:}" # z.B. "echo 'a # b'"
+    raw_cmd="STR:${base_cmd}"
+    ;;
+  ARR:*)
+    # Für ARR ist die Erwartung in den Tests meist weniger hart; falls nötig:
+    # base_cmd wird hier notfalls aus der internen Darstellung rekonstruiert.
+    ;;
   esac
 
   if ((${#args[@]} > 0)); then
-      for _arg in "${args[@]}"; do
-          raw_cmd+=" $(profile::_quote_arg_for_display "$_arg")"
-      done
+    for _arg in "${args[@]}"; do
+      raw_cmd+=" $(profile::_quote_arg_for_display "$_arg")"
+    done
   fi
 
   if ((dryrun)); then

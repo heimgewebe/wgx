@@ -18,24 +18,24 @@ wgx::_json_escape_fallback() {
   local input="${1:-}" output="" ch
   while IFS= read -r -n1 ch; do
     case "$ch" in
-      \\)
-        output+=$'\\\\'
-        ;;
-      '"')
-        output+=$'\\"'
-        ;;
-      $'\n')
-        output+=$'\\n'
-        ;;
-      $'\r')
-        output+=$'\\r'
-        ;;
-      $'\t')
-        output+=$'\\t'
-        ;;
-      *)
-        output+="$ch"
-        ;;
+    \\)
+      output+=$'\\\\'
+      ;;
+    '"')
+      output+=$'\\"'
+      ;;
+    $'\n')
+      output+=$'\\n'
+      ;;
+    $'\r')
+      output+=$'\\r'
+      ;;
+    $'\t')
+      output+=$'\\t'
+      ;;
+    *)
+      output+="$ch"
+      ;;
     esac
   done <<<"$input"
   printf '%s' "$output"
