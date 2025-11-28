@@ -4,8 +4,8 @@
 send_cmd() {
   # Handle help first
   case "${1-}" in
-    -h | --help | help)
-      cat <<'USAGE'
+  -h | --help | help)
+    cat <<'USAGE'
 Usage:
   wgx send [options]
 
@@ -31,74 +31,74 @@ Options:
   --auto-branch     Automatisch Branch erstellen, wenn auf Base
   -h, --help        Diese Hilfe anzeigen
 USAGE
-      return 0
-      ;;
+    return 0
+    ;;
   esac
 
   require_repo
   local DRAFT=0 TITLE="" WHY="" TESTS="" NOTES="" SCOPE="auto" LABELS="${WGX_PR_LABELS-}" ISSUE="" BASE="" SYNC_FIRST=1 SIGN=0 INTERACTIVE=0 REVIEWERS="" TRIGGER_CI=0 OPEN_PR=0 AUTO_BRANCH=0
   while [[ $# -gt 0 ]]; do
     case "$1" in
-      --draft) DRAFT=1 ;;
-      -i | --interactive) INTERACTIVE=1 ;;
-      --title)
-        if [[ -n "${2-}" ]]; then
-          TITLE="$2"
-          shift
-        fi
-        ;;
-      --why)
-        if [[ -n "${2-}" ]]; then
-          WHY="$2"
-          shift
-        fi
-        ;;
-      --tests)
-        if [[ -n "${2-}" ]]; then
-          TESTS="$2"
-          shift
-        fi
-        ;;
-      --notes)
-        if [[ -n "${2-}" ]]; then
-          NOTES="$2"
-          shift
-        fi
-        ;;
-      --label)
-        if [[ -n "${2-}" ]]; then
-          LABELS="${LABELS:+$LABELS,}$2"
-          shift
-        fi
-        ;;
-      --issue | --issues)
-        if [[ -n "${2-}" ]]; then
-          ISSUE="$2"
-          shift
-        fi
-        ;;
-      --reviewers)
-        if [[ -n "${2-}" ]]; then
-          REVIEWERS="$2"
-          shift
-        fi
-        ;;
-      --scope)
-        if [[ -n "${2-}" ]]; then
-          SCOPE="$2"
-          shift
-        fi
-        ;;
-      --no-sync-first) SYNC_FIRST=0 ;;
-      --sign) SIGN=1 ;;
-      --base)
+    --draft) DRAFT=1 ;;
+    -i | --interactive) INTERACTIVE=1 ;;
+    --title)
+      if [[ -n "${2-}" ]]; then
+        TITLE="$2"
         shift
-        BASE="${1-}"
-        ;;
-      --ci) TRIGGER_CI=1 ;;
-      --open) OPEN_PR=1 ;;
-      --auto-branch) AUTO_BRANCH=1 ;;
-      *) ;;
+      fi
+      ;;
+    --why)
+      if [[ -n "${2-}" ]]; then
+        WHY="$2"
+        shift
+      fi
+      ;;
+    --tests)
+      if [[ -n "${2-}" ]]; then
+        TESTS="$2"
+        shift
+      fi
+      ;;
+    --notes)
+      if [[ -n "${2-}" ]]; then
+        NOTES="$2"
+        shift
+      fi
+      ;;
+    --label)
+      if [[ -n "${2-}" ]]; then
+        LABELS="${LABELS:+$LABELS,}$2"
+        shift
+      fi
+      ;;
+    --issue | --issues)
+      if [[ -n "${2-}" ]]; then
+        ISSUE="$2"
+        shift
+      fi
+      ;;
+    --reviewers)
+      if [[ -n "${2-}" ]]; then
+        REVIEWERS="$2"
+        shift
+      fi
+      ;;
+    --scope)
+      if [[ -n "${2-}" ]]; then
+        SCOPE="$2"
+        shift
+      fi
+      ;;
+    --no-sync-first) SYNC_FIRST=0 ;;
+    --sign) SIGN=1 ;;
+    --base)
+      shift
+      BASE="${1-}"
+      ;;
+    --ci) TRIGGER_CI=1 ;;
+    --open) OPEN_PR=1 ;;
+    --auto-branch) AUTO_BRANCH=1 ;;
+    *) ;;
     esac
     shift || true
   done
@@ -162,94 +162,94 @@ USAGE
   LABELS="$(_sanitize_csv "$LABELS")"
 
   case "$(host_kind)" in
-    gitlab)
-      if has glab; then
-        glab auth status >/dev/null 2>&1 || warn "glab nicht eingeloggt (glab auth login) – MR könnte scheitern."
-        local args=(mr create --title "$TITLE2" --description "$body" --source-branch "$(git_current_branch)" --target-branch "$WGX_BASE")
-        ((DRAFT)) && args+=(--draft)
-        [[ -n "$ISSUE" ]] && args+=(--issue "$ISSUE")
-        if [[ -n "$LABELS" ]]; then
-          IFS=, read -r -a _labels <<<"$LABELS"
-          local _l
-          for _l in "${_labels[@]}"; do
-            _l="$(trim "$_l")"
-            [[ -n "$_l" ]] && args+=(--label "$_l")
-          done
-        fi
-        if [[ "$REVIEWERS" == "auto" ]]; then
-          local rlist="" r
-          rlist="$(printf "%s\n" "$files" | _codeowners_reviewers || true)"
-          [[ -n "$rlist" ]] && {
-            while IFS= read -r r; do [[ -n "$r" ]] && args+=(--reviewer "$r"); done <<<"$rlist"
-            info "Reviewer (auto): $(printf '%s' "$rlist" | tr '\n' ' ')"
-          }
-        elif [[ -n "$REVIEWERS" ]]; then
-          IFS=, read -r -a rv <<<"$REVIEWERS"
-          local r
-          for r in "${rv[@]}"; do
-            r="$(trim "$r")"
-            [[ -n "$r" ]] && args+=(--reviewer "$r")
-          done
-        fi
-        glab "${args[@]}" || die "glab mr create fehlgeschlagen."
-        ok "Merge Request erstellt."
-        ((OPEN_PR)) && glab mr view --web >/dev/null 2>&1 || true
-      else
-        warn "glab CLI nicht gefunden. MR manuell im GitLab anlegen."
-        local url
-        url="$(compare_url)"
-        [[ -n "$url" ]] && echo "Vergleich: $url"
+  gitlab)
+    if has glab; then
+      glab auth status >/dev/null 2>&1 || warn "glab nicht eingeloggt (glab auth login) – MR könnte scheitern."
+      local args=(mr create --title "$TITLE2" --description "$body" --source-branch "$(git_current_branch)" --target-branch "$WGX_BASE")
+      ((DRAFT)) && args+=(--draft)
+      [[ -n "$ISSUE" ]] && args+=(--issue "$ISSUE")
+      if [[ -n "$LABELS" ]]; then
+        IFS=, read -r -a _labels <<<"$LABELS"
+        local _l
+        for _l in "${_labels[@]}"; do
+          _l="$(trim "$_l")"
+          [[ -n "$_l" ]] && args+=(--label "$_l")
+        done
       fi
-      ;;
-    github | *)
-      if has gh; then
-        gh auth status >/dev/null 2>&1 || warn "gh nicht eingeloggt (gh auth login) – PR könnte scheitern."
-        local args=(pr create --title "$TITLE2" --body "$body" --base "$WGX_BASE")
-        ((DRAFT)) && args+=(--draft)
-        if [[ -n "$LABELS" ]]; then
-          IFS=, read -r -a L <<<"$LABELS"
-          local l
-          for l in "${L[@]}"; do
-            l="$(trim "$l")"
-            [[ -n "$l" ]] && args+=(--label "$l")
-          done
-        fi
-        [[ -n "$ISSUE" ]] && args+=(--issue "$ISSUE")
-        if [[ "$REVIEWERS" == "auto" ]]; then
-          local rlist="" r2
-          rlist="$(printf "%s\n" "$files" | _codeowners_reviewers || true)"
-          if [[ -n "$rlist" ]]; then
-            while IFS= read -r r2; do [[ -n "$r2" ]] && args+=(--reviewer "$r2"); done <<<"$rlist"
-            info "Reviewer (auto): $(printf '%s' "$rlist" | tr '\n' ' ')"
-          else warn "CODEOWNERS ohne User-Reviewer."; fi
-        elif [[ -n "$REVIEWERS" ]]; then
-          IFS=, read -r -a rvw2 <<<"$REVIEWERS"
-          local r3
-          for r3 in "${rvw2[@]}"; do
-            r3="$(trim "$r3")"
-            [[ -n "$r3" ]] && args+=(--reviewer "$r3")
-          done
-        fi
-        gh "${args[@]}" || die "gh pr create fehlgeschlagen."
-        local pr_url
-        pr_url="$(gh pr view --json url -q .url 2>/dev/null || true)"
-        [[ -n "$pr_url" ]] && info "PR: $pr_url"
-        ok "PR erstellt."
-        ((TRIGGER_CI)) && [[ -n "${WGX_CI_WORKFLOW-}" ]] && gh workflow run "$WGX_CI_WORKFLOW" >/dev/null 2>&1 || true
-        ((OPEN_PR)) && gh pr view -w >/dev/null 2>&1 || true
-      else
-        local url
-        url="$(compare_url)"
-        echo "gh CLI nicht gefunden. PR manuell anlegen."
-        [[ -n "$url" ]] && echo "URL: $url"
-        echo "Labels: $LABELS"
-        echo "--- PR Text ---"
-        echo "$body"
+      if [[ "$REVIEWERS" == "auto" ]]; then
+        local rlist="" r
+        rlist="$(printf "%s\n" "$files" | _codeowners_reviewers || true)"
+        [[ -n "$rlist" ]] && {
+          while IFS= read -r r; do [[ -n "$r" ]] && args+=(--reviewer "$r"); done <<<"$rlist"
+          info "Reviewer (auto): $(printf '%s' "$rlist" | tr '\n' ' ')"
+        }
+      elif [[ -n "$REVIEWERS" ]]; then
+        IFS=, read -r -a rv <<<"$REVIEWERS"
+        local r
+        for r in "${rv[@]}"; do
+          r="$(trim "$r")"
+          [[ -n "$r" ]] && args+=(--reviewer "$r")
+        done
       fi
-      ;;
+      glab "${args[@]}" || die "glab mr create fehlgeschlagen."
+      ok "Merge Request erstellt."
+      ((OPEN_PR)) && glab mr view --web >/dev/null 2>&1 || true
+    else
+      warn "glab CLI nicht gefunden. MR manuell im GitLab anlegen."
+      local url
+      url="$(compare_url)"
+      [[ -n "$url" ]] && echo "Vergleich: $url"
+    fi
+    ;;
+  github | *)
+    if has gh; then
+      gh auth status >/dev/null 2>&1 || warn "gh nicht eingeloggt (gh auth login) – PR könnte scheitern."
+      local args=(pr create --title "$TITLE2" --body "$body" --base "$WGX_BASE")
+      ((DRAFT)) && args+=(--draft)
+      if [[ -n "$LABELS" ]]; then
+        IFS=, read -r -a L <<<"$LABELS"
+        local l
+        for l in "${L[@]}"; do
+          l="$(trim "$l")"
+          [[ -n "$l" ]] && args+=(--label "$l")
+        done
+      fi
+      [[ -n "$ISSUE" ]] && args+=(--issue "$ISSUE")
+      if [[ "$REVIEWERS" == "auto" ]]; then
+        local rlist="" r2
+        rlist="$(printf "%s\n" "$files" | _codeowners_reviewers || true)"
+        if [[ -n "$rlist" ]]; then
+          while IFS= read -r r2; do [[ -n "$r2" ]] && args+=(--reviewer "$r2"); done <<<"$rlist"
+          info "Reviewer (auto): $(printf '%s' "$rlist" | tr '\n' ' ')"
+        else warn "CODEOWNERS ohne User-Reviewer."; fi
+      elif [[ -n "$REVIEWERS" ]]; then
+        IFS=, read -r -a rvw2 <<<"$REVIEWERS"
+        local r3
+        for r3 in "${rvw2[@]}"; do
+          r3="$(trim "$r3")"
+          [[ -n "$r3" ]] && args+=(--reviewer "$r3")
+        done
+      fi
+      gh "${args[@]}" || die "gh pr create fehlgeschlagen."
+      local pr_url
+      pr_url="$(gh pr view --json url -q .url 2>/dev/null || true)"
+      [[ -n "$pr_url" ]] && info "PR: $pr_url"
+      ok "PR erstellt."
+      ((TRIGGER_CI)) && [[ -n "${WGX_CI_WORKFLOW-}" ]] && gh workflow run "$WGX_CI_WORKFLOW" >/dev/null 2>&1 || true
+      ((OPEN_PR)) && gh pr view -w >/dev/null 2>&1 || true
+    else
+      local url
+      url="$(compare_url)"
+      echo "gh CLI nicht gefunden. PR manuell anlegen."
+      [[ -n "$url" ]] && echo "URL: $url"
+      echo "Labels: $LABELS"
+      echo "--- PR Text ---"
+      echo "$body"
+    fi
+    ;;
   esac
 }
 
 cmd_send() {
-    send_cmd "$@"
+  send_cmd "$@"
 }
