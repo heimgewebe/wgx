@@ -39,10 +39,10 @@ guard_run() {
   local run_lint=0 run_test=0
   while [[ $# -gt 0 ]]; do
     case "$1" in
-      --lint) run_lint=1 ;;
-      --test) run_test=1 ;;
-      -h | --help)
-        cat <<'USAGE'
+    --lint) run_lint=1 ;;
+    --test) run_test=1 ;;
+    -h | --help)
+      cat <<'USAGE'
 Usage:
   wgx guard [--lint] [--test]
 
@@ -64,12 +64,12 @@ Options:
   --test        Nur die Test-Prüfungen ausführen.
   -h, --help    Diese Hilfe anzeigen.
 USAGE
-        return 0
-        ;;
-      *)
-        echo "Unknown option: $1" >&2
-        return 1
-        ;;
+      return 0
+      ;;
+    *)
+      echo "Unknown option: $1" >&2
+      return 1
+      ;;
     esac
     shift
   done
@@ -213,7 +213,7 @@ USAGE
 
   # Wenn wir bis hier keinen harten Fehler hatten, aber das Profil fehlt,
   # schlagen wir jetzt (wie im Test erwartet) mit Status 1 fehl.
-  if (( profile_missing )); then
+  if ((profile_missing)); then
     return 1
   fi
 

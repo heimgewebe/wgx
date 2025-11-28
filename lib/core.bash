@@ -90,29 +90,32 @@ require_repo() {
 remote_host_path() {
   local u
   u="$(git remote get-url origin 2>/dev/null || true)"
-  [[ -z "$u" ]] && { echo ""; return; }
+  [[ -z "$u" ]] && {
+    echo ""
+    return
+  }
   case "$u" in
-    http*://*/*)
-      local rest="${u#*://}"
-      local host="${rest%%/*}"
-      local path="${rest#*/}"
-      echo "$host $path"
-      ;;
-    ssh://git@*/*)
-      local rest="${u#ssh://git@}"
-      local host="${rest%%/*}"
-      local path="${rest#*/}"
-      echo "$host $path"
-      ;;
-    git@*:*/*)
-      local host="${u#git@}"
-      host="${host%%:*}"
-      local path="${u#*:}"
-      echo "$host $path"
-      ;;
-    *)
-      echo ""
-      ;;
+  http*://*/*)
+    local rest="${u#*://}"
+    local host="${rest%%/*}"
+    local path="${rest#*/}"
+    echo "$host $path"
+    ;;
+  ssh://git@*/*)
+    local rest="${u#ssh://git@}"
+    local host="${rest%%/*}"
+    local path="${rest#*/}"
+    echo "$host $path"
+    ;;
+  git@*:*/*)
+    local host="${u#git@}"
+    host="${host%%:*}"
+    local path="${u#*:}"
+    echo "$host $path"
+    ;;
+  *)
+    echo ""
+    ;;
   esac
 }
 
@@ -122,16 +125,16 @@ host_kind() {
   hp="$(remote_host_path || true)"
   host="${hp%% *}"
   case "$host" in
-    github.com) echo "github" ;;
-    gitlab.com) echo "gitlab" ;;
-    codeberg.org) echo "codeberg" ;;
-    *)
-      if [[ "$host" == *gitea* || "$host" == *forgejo* ]]; then
-        echo "gitea"
-      else
-        echo "unknown"
-      fi
-      ;;
+  github.com) echo "github" ;;
+  gitlab.com) echo "gitlab" ;;
+  codeberg.org) echo "codeberg" ;;
+  *)
+    if [[ "$host" == *gitea* || "$host" == *forgejo* ]]; then
+      echo "gitea"
+    else
+      echo "unknown"
+    fi
+    ;;
   esac
 }
 
@@ -139,17 +142,20 @@ host_kind() {
 compare_url() {
   local hp host path
   hp="$(remote_host_path || true)"
-  [[ -z "$hp" ]] && { echo ""; return; }
+  [[ -z "$hp" ]] && {
+    echo ""
+    return
+  }
   host="${hp%% *}"
   path="${hp#* }"
   path="${path%.git}"
   local branch
   branch="$(git_current_branch)"
   case "$(host_kind)" in
-    github) echo "https://$host/$path/compare/${WGX_BASE}...${branch}" ;;
-    gitlab) echo "https://$host/$path/-/compare/${WGX_BASE}...${branch}" ;;
-    codeberg | gitea) echo "https://$host/$path/compare/${WGX_BASE}...${branch}" ;;
-    *) echo "" ;;
+  github) echo "https://$host/$path/compare/${WGX_BASE}...${branch}" ;;
+  gitlab) echo "https://$host/$path/-/compare/${WGX_BASE}...${branch}" ;;
+  codeberg | gitea) echo "https://$host/$path/compare/${WGX_BASE}...${branch}" ;;
+  *) echo "" ;;
   esac
 }
 
@@ -162,20 +168,35 @@ auto_scope() {
     [[ -z "$f" ]] && continue
     ((++total))
     case "$f" in
-      apps/web/*) ((++m_web)) ;;
-      apps/api/* | crates/*) ((++m_api)) ;;
-      infra/* | deploy/*) ((++m_infra)) ;;
-      scripts/* | wgx | .wgx.conf) ((++m_devx)) ;;
-      docs/* | *.md | styles/* | .vale.ini) ((++m_docs)) ;;
+    apps/web/*) ((++m_web)) ;;
+    apps/api/* | crates/*) ((++m_api)) ;;
+    infra/* | deploy/*) ((++m_infra)) ;;
+    scripts/* | wgx | .wgx.conf) ((++m_devx)) ;;
+    docs/* | *.md | styles/* | .vale.ini) ((++m_docs)) ;;
     esac
   done <<<"$files"
-  ((total == 0)) && { echo "repo"; return; }
+  ((total == 0)) && {
+    echo "repo"
+    return
+  }
   local max=$m_docs
   major="docs"
-  ((m_web > max)) && { max=$m_web; major="web"; }
-  ((m_api > max)) && { max=$m_api; major="api"; }
-  ((m_infra > max)) && { max=$m_infra; major="infra"; }
-  ((m_devx > max)) && { max=$m_devx; major="devx"; }
+  ((m_web > max)) && {
+    max=$m_web
+    major="web"
+  }
+  ((m_api > max)) && {
+    max=$m_api
+    major="api"
+  }
+  ((m_infra > max)) && {
+    max=$m_infra
+    major="infra"
+  }
+  ((m_devx > max)) && {
+    max=$m_devx
+    major="devx"
+  }
   ((max * 100 >= 70 * total)) && echo "$major" || echo "meta"
 }
 
@@ -186,24 +207,24 @@ derive_labels() {
   local pref="${branch%%/*}"
   local L=()
   case "$pref" in
-    feat) L+=("feature") ;;
-    fix | hotfix) L+=("bug") ;;
-    docs) L+=("docs") ;;
-    refactor) L+=("refactor") ;;
-    test | tests) L+=("test") ;;
-    ci) L+=("ci") ;;
-    perf) L+=("performance") ;;
-    chore) L+=("chore") ;;
-    build) L+=("build") ;;
+  feat) L+=("feature") ;;
+  fix | hotfix) L+=("bug") ;;
+  docs) L+=("docs") ;;
+  refactor) L+=("refactor") ;;
+  test | tests) L+=("test") ;;
+  ci) L+=("ci") ;;
+  perf) L+=("performance") ;;
+  chore) L+=("chore") ;;
+  build) L+=("build") ;;
   esac
   case "$scope" in
-    web) L+=("area:web") ;;
-    api) L+=("area:api") ;;
-    infra) L+=("area:infra") ;;
-    devx) L+=("area:devx") ;;
-    docs) L+=("area:docs") ;;
-    meta) L+=("area:meta") ;;
-    repo) L+=("area:repo") ;;
+  web) L+=("area:web") ;;
+  api) L+=("area:api") ;;
+  infra) L+=("area:infra") ;;
+  devx) L+=("area:devx") ;;
+  docs) L+=("area:docs") ;;
+  meta) L+=("area:meta") ;;
+  repo) L+=("area:repo") ;;
   esac
   # Add user-specified labels from ENV
   if [[ -n "${WGX_PR_LABELS-}" ]]; then
@@ -304,7 +325,7 @@ _codeowners_reviewers() {
       p="${CODEOWNERS_PATTERNS[$i]}"
       [[ "$p" == /* ]] && p="${p:1}"
       case "$f" in
-        $p) matchOwners="${CODEOWNERS_OWNERS[$i]}" ;;
+      $p) matchOwners="${CODEOWNERS_OWNERS[$i]}" ;;
       esac
     done
     [[ -z "$matchOwners" && ${#default_owners[@]} -gt 0 ]] && matchOwners="$(printf "%s " "${default_owners[@]}")"
@@ -317,7 +338,7 @@ _codeowners_reviewers() {
     done
   done
 
-  if ((! had_globstar)); then shopt -u globstar 2>/dev/null || true; fi
+  if ((!had_globstar)); then shopt -u globstar 2>/dev/null || true; fi
 }
 
 # ---------- PR Body Rendering ----------
@@ -352,7 +373,10 @@ _WGX_FETCH_DONE=""
 # Uses global OFFLINE variable (defaults to 0, set in env/defaults section)
 _fetch_once() {
   [[ -n "${_WGX_FETCH_DONE-}" ]] && return 0
-  ((OFFLINE)) && { debug "offline: skip fetch"; return 0; }
+  ((OFFLINE)) && {
+    debug "offline: skip fetch"
+    return 0
+  }
   if git fetch -q --prune origin 2>/dev/null; then
     _WGX_FETCH_DONE=1
     return 0
@@ -375,10 +399,16 @@ cmd_sync() {
   local sign="" scope="" base="$WGX_BASE"
   while [[ $# -gt 0 ]]; do
     case "$1" in
-      --sign) sign="--gpg-sign" ;;
-      --scope) shift; scope="${1:-}" ;;
-      --base) shift; base="${1:-$WGX_BASE}" ;;
-      *) ;;
+    --sign) sign="--gpg-sign" ;;
+    --scope)
+      shift
+      scope="${1:-}"
+      ;;
+    --base)
+      shift
+      base="${1:-$WGX_BASE}"
+      ;;
+    *) ;;
     esac
     shift || true
   done
