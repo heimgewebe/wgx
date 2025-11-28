@@ -125,29 +125,29 @@ collect_packages() {
   local target
   for target in "$@"; do
     case "$target" in
-      '')
-        continue
-        ;;
-      check)
-        echo "Ignoring 'check' target during installation. Run './.devcontainer/setup.sh check' separately." >&2
-        continue
-        ;;
-      base)
-        _out+=("${BASE_PACKAGES[@]}")
-        ;;
-      optional)
-        _out+=("${OPTIONAL_PACKAGES[@]}")
-        ;;
-      all)
-        _out+=("${BASE_PACKAGES[@]}" "${OPTIONAL_PACKAGES[@]}")
-        ;;
-      jq | moreutils | shellcheck | shfmt | bats)
-        _out+=("$target")
-        ;;
-      *)
-        echo "Unknown install target: $target" >&2
-        return 1
-        ;;
+    '')
+      continue
+      ;;
+    check)
+      echo "Ignoring 'check' target during installation. Run './.devcontainer/setup.sh check' separately." >&2
+      continue
+      ;;
+    base)
+      _out+=("${BASE_PACKAGES[@]}")
+      ;;
+    optional)
+      _out+=("${OPTIONAL_PACKAGES[@]}")
+      ;;
+    all)
+      _out+=("${BASE_PACKAGES[@]}" "${OPTIONAL_PACKAGES[@]}")
+      ;;
+    jq | moreutils | shellcheck | shfmt | bats)
+      _out+=("$target")
+      ;;
+    *)
+      echo "Unknown install target: $target" >&2
+      return 1
+      ;;
     esac
   done
   return 0
@@ -209,30 +209,30 @@ run_install() {
 
 main() {
   case "${1-}" in
-    '')
-      usage
-      exit 1
-      ;;
-    check)
-      run_check
-      ;;
-    install)
-      run_install "$@"
-      ;;
-    base | optional | all | jq | moreutils | shellcheck | shfmt | bats)
-      run_install install "$@"
-      ;;
-    ensure-uv)
-      ensure_uv
-      ;;
-    -h | --help)
-      usage
-      ;;
-    *)
-      echo "Unknown command: $1" >&2
-      usage >&2
-      exit 1
-      ;;
+  '')
+    usage
+    exit 1
+    ;;
+  check)
+    run_check
+    ;;
+  install)
+    run_install "$@"
+    ;;
+  base | optional | all | jq | moreutils | shellcheck | shfmt | bats)
+    run_install install "$@"
+    ;;
+  ensure-uv)
+    ensure_uv
+    ;;
+  -h | --help)
+    usage
+    ;;
+  *)
+    echo "Unknown command: $1" >&2
+    usage >&2
+    exit 1
+    ;;
   esac
 }
 
