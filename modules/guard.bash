@@ -114,7 +114,9 @@ USAGE
     # Die Test-Assertion erwartet die exakte Zeichenkette "Oversized files detected" auf STDOUT.
     echo "Oversized files detected"
     warn "The following tracked files exceed the size limit of ${max_bytes} Bytes:" >&2
-    echo "$oversized" | sed 's/^/   - /' >&2
+    while IFS= read -r line; do
+      echo "   - $line" >&2
+    done <<<"$oversized"
     return 1
   fi
 
