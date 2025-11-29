@@ -32,8 +32,8 @@ USAGE
   else
     while IFS= read -r -d '' file; do
       case "$file" in
-        ./*) shell_files+=("${file#./}") ;;
-        *) shell_files+=("$file") ;;
+      ./*) shell_files+=("${file#./}") ;;
+      *) shell_files+=("$file") ;;
       esac
     done < <(find . -type f \( -name '*.sh' -o -name '*.bash' -o -name 'wgx' -o -path './cli/wgx' \) -print0)
   fi
