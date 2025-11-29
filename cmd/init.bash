@@ -4,11 +4,11 @@ cmd_init() {
   local wizard=0
   while [[ $# -gt 0 ]]; do
     case "$1" in
-      --wizard)
-        wizard=1
-        ;;
-      -h | --help)
-        cat <<'USAGE'
+    --wizard)
+      wizard=1
+      ;;
+    -h | --help)
+      cat <<'USAGE'
 Usage:
   wgx init [--wizard]
 
@@ -20,19 +20,19 @@ Options:
   --wizard      Interaktiven Profil-Wizard starten.
   -h, --help    Diese Hilfe anzeigen.
 USAGE
-        return 0
-        ;;
-      --)
-        shift
-        break
-        ;;
-      --*)
-        printf 'Unknown option: %s\n' "$1" >&2
-        return 1
-        ;;
-      *)
-        break
-        ;;
+      return 0
+      ;;
+    --)
+      shift
+      break
+      ;;
+    --*)
+      printf 'Unknown option: %s\n' "$1" >&2
+      return 1
+      ;;
+    *)
+      break
+      ;;
     esac
     shift || true
   done
