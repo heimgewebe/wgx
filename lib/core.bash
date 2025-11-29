@@ -324,8 +324,8 @@ _codeowners_reviewers() {
     for ((i = 0; i < ${#CODEOWNERS_PATTERNS[@]}; i++)); do
       p="${CODEOWNERS_PATTERNS[$i]}"
       [[ "$p" == /* ]] && p="${p:1}"
-      case "$f" in
       # shellcheck disable=SC2254
+      case "$f" in
       $p) matchOwners="${CODEOWNERS_OWNERS[$i]}" ;;
       esac
     done
