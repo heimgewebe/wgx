@@ -13,6 +13,8 @@ jobs:
   shell-and-docs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      VALE_FALLBACK_VERSION: "v3.5.0"
     steps:
       - uses: actions/checkout@v4
       - name: Setup Node
@@ -27,12 +29,14 @@ jobs:
           npm install -g markdownlint-cli2@0.14.0
 
           # 1. Fetch latest version tag from GitHub API
-          VALE_TAG=$(curl -sL https://api.github.com/repos/errata-ai/vale/releases/latest | jq -r .tag_name)
+          VALE_TAG=$(curl -sL --fail --max-time 30 https://api.github.com/repos/errata-ai/vale/releases/latest | jq -r .tag_name)
           if [[ -z "$VALE_TAG" || "$VALE_TAG" == "null" ]]; then
-            echo "Error: Unable to determine latest Vale version."
-            exit 1
+            # fallback to a pinned Vale version
+            VALE_TAG="${VALE_FALLBACK_VERSION}"
+            echo "Warning: Using fallback Vale version $VALE_TAG."
+          else
+            echo "Detected latest Vale version: $VALE_TAG"
           fi
-          echo "Detected latest Vale version: $VALE_TAG"
 
           # 2. Construct URLs for the latest release
           # Pattern: vale_X.Y.Z_Linux_64-bit.tar.gz and vale_X.Y.Z_checksums.txt
@@ -50,6 +54,7 @@ jobs:
           expected_sha=$(awk '/Linux_64-bit\.tar\.gz$/ {print $1}' "$tmpdir/checksums.txt")
           if [[ -z "$expected_sha" ]]; then
             echo "::error::Failed to extract expected SHA256 from checksums.txt for $VALE_TAG"
+            cat "$tmpdir/checksums.txt"
             exit 1
           fi
 
