@@ -13,6 +13,8 @@ jobs:
   shell-and-docs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      VALE_FALLBACK_VERSION: "v3.5.0"
     steps:
       - uses: actions/checkout@v4
       - name: Setup Node
@@ -27,10 +29,10 @@ jobs:
           npm install -g markdownlint-cli2@0.14.0
 
           # 1. Fetch latest version tag from GitHub API
-          VALE_TAG=$(curl -sL --fail https://api.github.com/repos/errata-ai/vale/releases/latest | jq -r .tag_name)
+          VALE_TAG=$(curl -sL --fail --max-time 30 https://api.github.com/repos/errata-ai/vale/releases/latest | jq -r .tag_name)
           if [[ -z "$VALE_TAG" || "$VALE_TAG" == "null" ]]; then
             # fallback to a pinned Vale version
-            VALE_TAG="v3.5.0"
+            VALE_TAG="${VALE_FALLBACK_VERSION}"
             echo "Warning: Using fallback Vale version $VALE_TAG."
           else
             echo "Detected latest Vale version: $VALE_TAG"
