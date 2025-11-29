@@ -4,7 +4,7 @@
 
 ## Global usage
 
-```
+```text
 wgx — Workspace Helper
 
 Usage:
@@ -42,22 +42,22 @@ Env:
 
 More:
   wgx --list     Nur verfügbare Befehle anzeigen
-```
+```text
 
 ## Commands
 
 ### audit
 
-```
+```text
 Usage:
   wgx audit verify [--strict]
 
 Verwaltet das Audit-Ledger von wgx.
-```
+```text
 
 ### clean
 
-```
+```text
 Usage:
   wgx clean [--safe] [--build] [--git] [--deep] [--dry-run] [--force]
 
@@ -68,11 +68,11 @@ Options:
   --deep       Führt ein destruktives `git clean -xfd` aus (erfordert --force, nur sauberer Git-Tree).
   --dry-run    Zeigt nur an, was passieren würde.
   --force      Bestätigt destruktive Operationen (für --deep).
-```
+```text
 
 ### config
 
-```
+```text
 Usage:
   wgx config [show]
   wgx config set <KEY>=<VALUE>
@@ -84,11 +84,11 @@ Description:
 
 Options:
   -h, --help    Diese Hilfe anzeigen.
-```
+```text
 
 ### doctor
 
-```
+```text
 Usage:
   wgx doctor
 
@@ -99,21 +99,21 @@ Description:
 
 Options:
   -h, --help    Diese Hilfe anzeigen.
-```
+```text
 
 ### env
 
-```
+```text
 Usage: wgx env doctor [--fix] [--strict] [--json]
   doctor     Inspect the local environment (default)
   --fix      Apply recommended platform specific tweaks (Termux only)
   --strict   Exit non-zero if essential tools are missing (e.g., git)
   --json     Machine-readable output (minimal JSON)
-```
+```text
 
 ### guard
 
-```
+```text
 Usage:
   wgx guard [--lint] [--test]
 
@@ -134,11 +134,11 @@ Options:
   --lint        Nur die Linting-Prüfungen ausführen.
   --test        Nur die Test-Prüfungen ausführen.
   -h, --help    Diese Hilfe anzeigen.
-```
+```text
 
 ### heal
 
-```
+```text
 Usage:
   wgx heal [rebase|ours|theirs|ff-only] [--stash] [--continue] [--abort] [--base <branch>]
 
@@ -157,11 +157,11 @@ Options:
   --abort       Laufenden Rebase/Merge abbrechen
   --base <b>    Alternativen Basis-Branch verwenden
   -h, --help    Diese Hilfe anzeigen
-```
+```text
 
 ### help
 
-```
+```text
 wgx — Workspace Helper
 
 Usage:
@@ -199,11 +199,11 @@ Env:
 
 More:
   wgx --list     Nur verfügbare Befehle anzeigen
-```
+```text
 
 ### hooks
 
-```
+```text
 Usage:
   wgx hooks [install]
 
@@ -215,11 +215,11 @@ Description:
 
 Options:
   -h, --help    Diese Hilfe anzeigen.
-```
+```text
 
 ### init
 
-```
+```text
 Usage:
   wgx init [--wizard]
 
@@ -230,11 +230,11 @@ Description:
 Options:
   --wizard      Interaktiven Profil-Wizard starten.
   -h, --help    Diese Hilfe anzeigen.
-```
+```text
 
 ### lint
 
-```
+```text
 Usage:
   wgx lint
 
@@ -245,11 +245,11 @@ Description:
 
 Options:
   -h, --help    Diese Hilfe anzeigen.
-```
+```text
 
 ### quick
 
-```
+```text
 Usage: wgx quick [-i|--interactive] [--help]
 
 Run repository guards (lint + tests) and open the PR/MR helper.
@@ -257,11 +257,11 @@ Run repository guards (lint + tests) and open the PR/MR helper.
 Options:
   -i, --interactive  Open the PR body in $EDITOR before sending
   -h, --help         Show this help message
-```
+```text
 
 ### release
 
-```
+```text
 Usage:
   wgx release [--version <tag>] [--auto-version <bump>] [...]
 
@@ -275,11 +275,11 @@ Options:
   --version <tag>    Die genaue Version für das Release (z.B. v1.2.3).
   --auto-version     Erhöht die Version automatisch (patch, minor, major).
   -h, --help         Diese Hilfe anzeigen.
-```
+```text
 
 ### reload
 
-```
+```text
 Usage:
   wgx reload [--force] [--dry-run]
 
@@ -291,7 +291,7 @@ Options:
   --force       Führt den Reset auch bei ungespeicherten Änderungen aus.
   --dry-run     Zeigt nur an, was getan würde, ohne Änderungen vorzunehmen.
   -h, --help    Diese Hilfe anzeigen.
-```
+```text
 
 ### run
 
@@ -299,7 +299,7 @@ _Command does not provide structured --help output._
 
 ### selftest
 
-```
+```text
 Usage:
   wgx selftest
 
@@ -310,11 +310,11 @@ Description:
 
 Options:
   -h, --help    Diese Hilfe anzeigen.
-```
+```text
 
 ### send
 
-```
+```text
 Usage:
   wgx send [options]
 
@@ -339,11 +339,11 @@ Options:
   --open            PR nach Erstellung im Browser öffnen
   --auto-branch     Automatisch Branch erstellen, wenn auf Base
   -h, --help        Diese Hilfe anzeigen
-```
+```text
 
 ### setup
 
-```
+```text
 Usage:
   wgx setup
 
@@ -356,11 +356,11 @@ Description:
 
 Options:
   -h, --help    Diese Hilfe anzeigen.
-```
+```text
 
 ### start
 
-```
+```text
 Usage:
   wgx start <branch_name>
 
@@ -372,11 +372,11 @@ Description:
 
 Options:
   -h, --help    Diese Hilfe anzeigen.
-```
+```text
 
 ### status
 
-```
+```text
 Usage:
   wgx status
 
@@ -388,11 +388,11 @@ Description:
 
 Options:
   -h, --help    Diese Hilfe anzeigen.
-```
+```text
 
 ### task
 
-```
+```text
 Usage:
   wgx task <name> [--] [args...]
 
@@ -406,20 +406,20 @@ Example:
 
 Options:
   -h, --help    Diese Hilfe anzeigen.
-```
+```text
 
 ### tasks
 
-```
+```text
 Usage: wgx tasks [--json] [--safe] [--groups]
   --json    Output machine readable JSON
   --safe    Only include tasks marked as safe
   --groups  Include group metadata (JSON) or group headings (text)
-```
+```text
 
 ### test
 
-```
+```text
 Usage:
   wgx test [--list] [--] [BATS_ARGS...]
   wgx test --help
@@ -435,11 +435,11 @@ Examples:
   wgx test                 # run all Bats suites
   wgx test -- --filter foo # pass custom flags to bats
   wgx test --list          # list available test files
-```
+```text
 
 ### validate
 
-```
+```text
 Usage:
   wgx validate [--json]
 
@@ -449,11 +449,11 @@ Exit-Status: 0 bei gültigem Manifest, sonst >0.
 Optionen:
   --json   Kompakte maschinenlesbare Ausgabe:
            {"ok":bool,"errors":[...],"missingCapabilities":[...]}
-```
+```text
 
 ### version
 
-```
+```text
 Usage:
   wgx version [bump <level>] [set <version>]
 
@@ -468,5 +468,4 @@ Subcommands:
 
 Options:
   -h, --help     Diese Hilfe anzeigen.
-```
-
+```text

@@ -35,6 +35,7 @@ Halte Änderungen klein, portabel und mit Tests abgesichert.
 - Für neue/geänderte Befehle: Hilfetext + Bats-Test vorhanden.
 
 ## Lokale Checks (Spiegel der CI)
+
 ```bash
 bash -n $(git ls-files "*.sh" "*.bash")
 shfmt -d $(git ls-files "*.sh" "*.bash")

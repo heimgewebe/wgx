@@ -49,6 +49,7 @@ Version: vΩ (2025-10-05) · Status-Legende: 🟢 Core · 🟡 Next · 🔬 Expe
 **Fragmentierung** (Toolzoo, Plattformen), **Unsichtbarkeit** (unklare Policies/Secrets/Abhängigkeiten), **Nicht-Reproduzierbarkeit** (flaky, „läuft nur bei mir“), **Skalierungs-Schmerz** (viele Repos, viele Teams).
 
 **Prinzipien:**
+
 1. **Universal-Knöpfe** statt Tool-Sonderwissen.  
 2. **Contracts first:** Guard, Auto-Fix, Explain.  
 3. **Beweisbarkeit:** Evidence-Packs an PRs.
@@ -61,6 +62,7 @@ Version: vΩ (2025-10-05) · Status-Legende: 🟢 Core · 🟡 Next · 🔬 Expe
 ## 2. Bedienkanon (Kern → „Ultra“)
 
 ### 2.1 Core (heute unverzichtbar)
+
 - `wgx up` – Umgebung erkennen & bereitmachen (Devcontainer/Devbox/mise/direnv Fallback-Logik).  
 - `wgx list` – Tasks autodiscovern (Just/Task/Make/npm/cargo) und taggen (`fast | safe | slow`).  
 - `wgx run <task | freitext>` – Universal-Runner; Freitext→Semantik→Adapter (Alias-Map je Repo).  
@@ -69,34 +71,41 @@ Version: vΩ (2025-10-05) · Status-Legende: 🟢 Core · 🟡 Next · 🔬 Expe
 - `wgx doctor | validate` – Vertrauen in System & Repo (Prereqs, Pfade, Tokens, Profile).
 
 ### 2.2 Orchestrierung & Fluss
+
 - `wgx fleet status|fix` – Multi-Repo Cockpit; parallele Standard-Reparaturen.  
 - `wgx runbook` – klickbare Runbooks aus Markdown (Checks, Prompts, Rollbacks).  
 - `wgx rituals` – goldene Pfade, z. B. `ritual ship-it` (Version→Changelog→Tag→Release Notes→CI-Gates).
 
 ### 2.3 Intelligenz & Lernfähigkeit
+
 - `wgx suggest` – nächste sinnvolle Schritte anhand Diff/Logs/Nutzung.  
 - `wgx profile learn` – Repo-Genome (Top-Tasks, Painpoints, bevorzugte Umgebungen).  
 - `wgx morph` – Repo an WGX-Standards angleichen (Stil, CI, Tasks, Profile).
 
 ### 2.4 Zeit, Budget, Repro
+
 - `wgx chrono` – Night-Queues, CPU-Budget, CI-Minutes-Autopilot.  
 - `wgx timecapsule` – Zeitreise-Runs mit Versions-Pinning (mise/devbox/devcontainer-Metadaten).  
 - `wgx chaos` – Fail-Fast-Sandbox (Low-RAM/Slow-IO) auf wichtigste Pfade.
 
 ### 2.5 Teleport & Ephemeres
+
 - `wgx wormhole` – gleiches Verhalten Pop!_OS ↔ Codespaces ↔ Termux.  
 - `wgx spin #123` – Issue/PR → ephemere Dev-Env (Ports, Seeds, Fixtures).
 
 ### 2.6 Sichtbarkeit & Sicherheit
+
 - `wgx shadowmap` – Repos ↔ Workflows ↔ Secrets ↔ Dienste visualisieren (siehe [Abschnitt 8](#8-sichtbarkeit--evidenz)).
 - `wgx lighthouse` – Policy-Diff erklären + One-Click-Fix; Compliance-Modes (`strict | balanced | fast`).
 - `wgx patchbay` – signierte Mini-PRs; `patchbay guardfix` für Serien-Fixes.
 
 ### 2.7 Brücken & Offline
+
 - `wgx bridge` – HausKI/Codex/NATS-Backchannel (Agenten koordinieren Patches/Reviews).  
 - `wgx phone` – Offline-Bundles für Termux (Docs/Lints/Seeds), später Sync.
 
 ### 2.8 „Ultra“ Module (Visionär, aber konkret anschlussfähig)
+
 - **WGX Studio** (TUI/Web-UI): Tasks, Fleet-Status, Shadowmap, Ritual-Knöpfe.  
 - **Ritual-Recorder → Runbook-Generator**: ausführen, aufzeichnen, wiederholen.  
 - **WGX Registry**: Profile/Rituale als Snippets teilen („Rust-Starter“, „SvelteKit-Docs-Lint“, „Audio-Bitperfect“).  
@@ -111,15 +120,18 @@ Version: vΩ (2025-10-05) · Status-Legende: 🟢 Core · 🟡 Next · 🔬 Expe
 > **Status-Legende:** 🟢 Core · 🟡 Next · 🔬 Experimental
 
 ### 3.1 Erklärbarkeit & Simulation
+
 - **`wgx explain <topic>`** 🟡 – erklärt Aktionen/Fehler/Policies kontextuell; verlinkt Run-Historie & Docs.  
 - **`wgx diff <A>..<B>`** 🟡 – vergleicht Env/Seeds/Artefakte/Timecapsule-Runs/Repos.  
 - **`wgx simulate run <task>`** 🔬 – Kosten-/Fehler-Vorschau (nutzt `chrono` & `smoke`-Historie).
 
 ### 3.2 Repro & Snapshots
+
 - **`wgx checkpoint save|restore <name>`** 🟡 – Ad-hoc-Schnappschüsse (Code, Env, Seeds, Artefakte).  
 - **`wgx timecapsule diff <t1> <t2>`** 🟡 – Tool-/Seed-Änderungen zwischen zwei Runs.
 
 ### 3.3 Fleet & Skalierung
+
 - **`wgx fleet sync`** 🟡 – `.wgx/profile.yml`/`rituals` über Repos synchronisieren (mit Merge-Strategie).  
 - **`wgx fleet benchmark`** 🟡 – vergleicht Smoke-Dauer, CI-Minuten, Flakiness, schlägt Optimierungen vor.  
 - **`wgx fleet ripple`** 🟡 – Änderungs-Ausbreitung (Dependency-Kaskaden) erkennen.  
@@ -127,12 +139,14 @@ Version: vΩ (2025-10-05) · Status-Legende: 🟢 Core · 🟡 Next · 🔬 Expe
 - **`wgx quarantine`** 🟡 – isoliert „rote“ Repos, blockiert sie nicht fleet-weit.
 
 ### 3.4 Vorhersage & Optimierung
+
 - **`wgx preview`** 🟡 – Preflight-Analyse vor PR (Bruchrisiken, Doku-Drift, Downstream-Impact; siehe [Abschnitt 12](#12-onboarding-fahrplan-mvp--next--extended) für MVP-Staffelung).
 - **`wgx forecast`** 🟡 – Flakiness-/Dauer-/Risikoprognose (historische Muster).  
 - **`wgx optimize`** 🟡 – Vorschläge: Parallelisierung, Caches, geänderte Testpfade; misst Einsparungen.  
 - **`wgx fuel --show|--limit`** 🟡 – Ressourcen/„Kosten“ (CI-Minuten, Spin-Runtime, Cache-Größe) sichtbar begrenzen.
 
 ### 3.5 Sichtbarkeit, Sicherheit & Compliance
+
 - **`wgx audit`** 🟡 – Security/Compliance-Report (veraltete Secrets, ungenutzte Tokens, Scope-Drift).  
 - **`wgx shadowmap --interactive`** 🟡 – interaktive TUI/Web-UI für Abhängigkeits-Graph.  
 - **Secret-Rotation-Trigger** 🟡 – `lighthouse` empfiehlt Rotation (Alter, Wiederverwendung, Scope).  
@@ -141,16 +155,19 @@ Version: vΩ (2025-10-05) · Status-Legende: 🟢 Core · 🟡 Next · 🔬 Expe
 - **`wgx audit trail`** 🔬 – forensische Nachvollziehbarkeit aller WGX-Aktionen.
 
 ### 3.6 Offline & Mobility
+
 - **`wgx phone mirror`** 🟡 – Delta-Sync von Memory/Artefakten/Runbooks auf Termux (sparsam).  
 - **`wgx phone suggest`** 🟡 – komprimierter Offline-Speicher mit lokalen Vorschlägen.  
 - **`wgx bundle export|import`** 🟡 – komplette WGX-Umgebung paketieren/transferieren.
 
 ### 3.7 Community & Registry
+
 - **WGX Registry (Marketplace)** 🟡 – Snippets/„Community Rituals“ mit Ratings & Kompatibilitäts-Tags.
 - **`wgx federate`** 🔬 – Multi-Org-Fleet-Status koordinieren (Partner-Teams).  
 - **`wgx vendor`** 🟡 – Dependency-Scanner/Advisories in WGX-Flows integriert.
 
 ### 3.8 Developer Experience
+
 - **`wgx undo`** 🟡 – Transaktions-Wrapper für schreibende Aktionen (`guardfix`, `morph`, `patchbay`).  
 - **`wgx shell`** 🟡 – interaktive REPL-ähnliche Shell mit Kontext/Autovervollständigung.  
 - **`wgx aliases learn`** 🟡 – beobachtet Muster/Tippfehler, schlägt personalisierte Aliase vor.  
@@ -159,16 +176,19 @@ Version: vΩ (2025-10-05) · Status-Legende: 🟢 Core · 🟡 Next · 🔬 Expe
 - **Gamification (`wgx stats`)** 🔬 – zeigt Einsparungen/Erfolge, motiviert „Goldene Pfade“.
 
 ### 3.9 Automation & Resilienz
+
 - **`wgx autopilot`** 🔬 – supervised Mode; Routine-Tasks selbständig, nur bei Anomalien prompten.  
 - **`wgx scheduler cron`** 🟡 – zeitgesteuerte Fleet-Operationen (z. B. wöchentliche Smoke-Orchard).  
 - **`wgx emergency`** 🔬 – Incident-Protokoll: Auto-Rollback, Benachrichtigungen, Berichte.
 
 ### 3.10 Visualisierung (weitere)
+
 - **`wgx topology`** 🔬 – 2D/3D-Dependency-Maps, Critical-Path-Highlighting.  
 - **`wgx heatmap realtime`** 🔬 – Live-Dashboard (Last, Flakiness, Deploy-Status).  
 - **`wgx story`** 🟡 – Release Notes aus Git/PR/Evidence generieren.
 
 ### 3.11 Advanced & Experimental
+
 - **`wgx ai pair`** 🔬 – Code-Assistenz mit WGX-Kontext.  
 - **`wgx quantum test`** 🔬 – probabilistischer Readiness-Score.  
 - **`wgx blockchain evidence`** 🔬 – unveränderliche Evidence-Packs (High-Assurance-Umgebungen).
@@ -178,6 +198,7 @@ Version: vΩ (2025-10-05) · Status-Legende: 🟢 Core · 🟡 Next · 🔬 Expe
 ## 4. HausKI-Memory (Gedächtnis-Ops)
 
 ### 4.1 Wirkung (auf Kommandos gemappt)
+
 - `up` – **Device-Profile** laden; bewährte Toolchains/Flags pro Gerät.  
 - `list | run` – **semantisches Aliasing** je Repo („docs prüfen“ → `vale+cspell+linkcheck`).  
 - `guard` – **Policy-Historie** priorisiert häufige Verstöße + direkte Fix-Shortcuts.  
@@ -188,6 +209,7 @@ Version: vΩ (2025-10-05) · Status-Legende: 🟢 Core · 🟡 Next · 🔬 Expe
 - `fleet` – **Trends/Heatmaps/Budget** aus Fleet-Gedächtnis.
 
 ### 4.2 Minimal-Datenmodell (vereinfachte Entitäten)
+
 - **repo**: id, url, tags, default_tasks  
 - **env**: os, cpu/gpu, toolversions, devcontainer_hash  
 - **run**: ts, task, args, duration, exit, artefacts[], logs_hash  
@@ -198,7 +220,8 @@ Version: vΩ (2025-10-05) · Status-Legende: 🟢 Core · 🟡 Next · 🔬 Expe
 - **preference**: key→value („prefer_nextest“, „db_light“)
 
 ### 4.3 On-Disk (git-freundlich, lokal)
-```
+
+```text
 .hauski/
   memory.sqlite          # Runs, Policies, Prefs
   vector/                # Textindex (Logs/Docs)
@@ -209,10 +232,12 @@ Version: vΩ (2025-10-05) · Status-Legende: 🟢 Core · 🟡 Next · 🔬 Expe
 ```
 
 ### 4.4 Security
+
 - **Keine Klartext-Secrets.** Nur **secret_ref** (sops/age/Provider-IDs).  
 - Policies prüfen Vorhandensein/Konfiguration, **nie** Inhalte.
 
 ### 4.5 API-Kleber
+
 - local-first Dienst: `hauski-memoryd` (HTTP/NATS).  
 - WGX spricht via `wgx … --use-memory` (RW).  
 - Sync als **Memory Packs** (`zip/tar`, ohne Secrets) für Transfer/Git/rsync.
@@ -281,6 +306,7 @@ Version: vΩ (2025-10-05) · Status-Legende: 🟢 Core · 🟡 Next · 🔬 Expe
 ## 6. Profile v1 / v1.1 (Minimal → Reich)
 
 **Minimal v1**
+
 ```yaml
 # .wgx/profile.yml
 wgx:
@@ -297,6 +323,7 @@ alias:
 ```
 
 **Erweitert v1.1**
+
 ```yaml
 wgx:
   apiVersion: v1.1
@@ -381,6 +408,7 @@ Extended   → chrono · timecapsule · chaos · spin · lighthouse · shadowmap
 ```
 
 **Done-Kriterien (Kern):**  
+
 - `wgx run` mappt Just/Task/npm/cargo und propagiert Exit-Codes korrekt.  
 - `guard` mit ≥3 Auto-Fix-Typen (fmt/lint/docs) + Explain-Links.  
 - `smoke` ≤90 s, klarer Ampel-Status.  

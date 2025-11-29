@@ -122,4 +122,5 @@ Beispiele:
   ]
 }
 ```
+
 - Nutze `.devcontainer/setup.sh ensure-uv`, damit uv nach dem Container-Start verfügbar ist (inklusive PATH-Anpassung).

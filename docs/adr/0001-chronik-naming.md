@@ -16,10 +16,10 @@ Note: The previous "leitstand" repository was merged into chronik. The name "lei
 
 ## Decision
 
-1.  **chronik repository:** Serves as the event store, persistence layer, and dashboard for system visibility.
+1. **chronik repository:** Serves as the event store, persistence layer, and dashboard for system visibility.
 
 ## Consequences
 
--   All references to the event store/memory and the associated dashboard in documentation, CI/CD pipelines, and `.ai-context.yml` files use `chronik`.
--   The name "leitstand" is reserved for a future control UI component.
--   The naming reflects the semantic role: chronik = chronicle/memory + visualization.
+- All references to the event store/memory and the associated dashboard in documentation, CI/CD pipelines, and `.ai-context.yml` files use `chronik`.
+- The name "leitstand" is reserved for a future control UI component.
+- The naming reflects the semantic role: chronik = chronicle/memory + visualization.
