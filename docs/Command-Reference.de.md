@@ -109,7 +109,7 @@ Diese Übersicht fasst die wichtigsten Subcommands zusammen, inklusive Zweck und
 - **Besonderheiten:** Normalisiert Sonderzeichen, schützt gegen Base-Branch-Missbrauch und fetches vorher den Basisbranch (sofern nicht offline).
 
 ### `wgx release`
->
+
 > **Status:** Funktionsumfang wird aktuell neu strukturiert (Release-Workflows sind im Aufbau).
 
 - **Zweck:** Erstellt SemVer-Tags und (optional) Releases auf GitHub/GitLab.

@@ -42,7 +42,7 @@ Env:
 
 More:
   wgx --list     Nur verfügbare Befehle anzeigen
-```text
+```
 
 ## Commands
 
@@ -53,7 +53,7 @@ Usage:
   wgx audit verify [--strict]
 
 Verwaltet das Audit-Ledger von wgx.
-```text
+```
 
 ### clean
 
@@ -68,7 +68,7 @@ Options:
   --deep       Führt ein destruktives `git clean -xfd` aus (erfordert --force, nur sauberer Git-Tree).
   --dry-run    Zeigt nur an, was passieren würde.
   --force      Bestätigt destruktive Operationen (für --deep).
-```text
+```
 
 ### config
 
@@ -84,7 +84,7 @@ Description:
 
 Options:
   -h, --help    Diese Hilfe anzeigen.
-```text
+```
 
 ### doctor
 
@@ -99,7 +99,7 @@ Description:
 
 Options:
   -h, --help    Diese Hilfe anzeigen.
-```text
+```
 
 ### env
 
@@ -109,7 +109,7 @@ Usage: wgx env doctor [--fix] [--strict] [--json]
   --fix      Apply recommended platform specific tweaks (Termux only)
   --strict   Exit non-zero if essential tools are missing (e.g., git)
   --json     Machine-readable output (minimal JSON)
-```text
+```
 
 ### guard
 
@@ -134,7 +134,7 @@ Options:
   --lint        Nur die Linting-Prüfungen ausführen.
   --test        Nur die Test-Prüfungen ausführen.
   -h, --help    Diese Hilfe anzeigen.
-```text
+```
 
 ### heal
 
@@ -157,7 +157,7 @@ Options:
   --abort       Laufenden Rebase/Merge abbrechen
   --base <b>    Alternativen Basis-Branch verwenden
   -h, --help    Diese Hilfe anzeigen
-```text
+```
 
 ### help
 
@@ -199,7 +199,7 @@ Env:
 
 More:
   wgx --list     Nur verfügbare Befehle anzeigen
-```text
+```
 
 ### hooks
 
@@ -215,7 +215,7 @@ Description:
 
 Options:
   -h, --help    Diese Hilfe anzeigen.
-```text
+```
 
 ### init
 
@@ -230,7 +230,7 @@ Description:
 Options:
   --wizard      Interaktiven Profil-Wizard starten.
   -h, --help    Diese Hilfe anzeigen.
-```text
+```
 
 ### lint
 
@@ -245,7 +245,7 @@ Description:
 
 Options:
   -h, --help    Diese Hilfe anzeigen.
-```text
+```
 
 ### quick
 
@@ -257,7 +257,7 @@ Run repository guards (lint + tests) and open the PR/MR helper.
 Options:
   -i, --interactive  Open the PR body in $EDITOR before sending
   -h, --help         Show this help message
-```text
+```
 
 ### release
 
@@ -275,7 +275,7 @@ Options:
   --version <tag>    Die genaue Version für das Release (z.B. v1.2.3).
   --auto-version     Erhöht die Version automatisch (patch, minor, major).
   -h, --help         Diese Hilfe anzeigen.
-```text
+```
 
 ### reload
 
@@ -291,7 +291,7 @@ Options:
   --force       Führt den Reset auch bei ungespeicherten Änderungen aus.
   --dry-run     Zeigt nur an, was getan würde, ohne Änderungen vorzunehmen.
   -h, --help    Diese Hilfe anzeigen.
-```text
+```
 
 ### run
 
@@ -310,7 +310,7 @@ Description:
 
 Options:
   -h, --help    Diese Hilfe anzeigen.
-```text
+```
 
 ### send
 
@@ -339,7 +339,7 @@ Options:
   --open            PR nach Erstellung im Browser öffnen
   --auto-branch     Automatisch Branch erstellen, wenn auf Base
   -h, --help        Diese Hilfe anzeigen
-```text
+```
 
 ### setup
 
@@ -356,7 +356,7 @@ Description:
 
 Options:
   -h, --help    Diese Hilfe anzeigen.
-```text
+```
 
 ### start
 
@@ -372,7 +372,7 @@ Description:
 
 Options:
   -h, --help    Diese Hilfe anzeigen.
-```text
+```
 
 ### status
 
@@ -388,7 +388,7 @@ Description:
 
 Options:
   -h, --help    Diese Hilfe anzeigen.
-```text
+```
 
 ### task
 
@@ -406,7 +406,7 @@ Example:
 
 Options:
   -h, --help    Diese Hilfe anzeigen.
-```text
+```
 
 ### tasks
 
@@ -415,7 +415,7 @@ Usage: wgx tasks [--json] [--safe] [--groups]
   --json    Output machine readable JSON
   --safe    Only include tasks marked as safe
   --groups  Include group metadata (JSON) or group headings (text)
-```text
+```
 
 ### test
 
@@ -435,7 +435,7 @@ Examples:
   wgx test                 # run all Bats suites
   wgx test -- --filter foo # pass custom flags to bats
   wgx test --list          # list available test files
-```text
+```
 
 ### validate
 
@@ -449,7 +449,7 @@ Exit-Status: 0 bei gültigem Manifest, sonst >0.
 Optionen:
   --json   Kompakte maschinenlesbare Ausgabe:
            {"ok":bool,"errors":[...],"missingCapabilities":[...]}
-```text
+```
 
 ### version
 
@@ -468,4 +468,4 @@ Subcommands:
 
 Options:
   -h, --help     Diese Hilfe anzeigen.
-```text
+```
