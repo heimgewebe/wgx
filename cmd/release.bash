@@ -15,7 +15,7 @@ if ! declare -F hauski::emit >/dev/null 2>&1; then
 fi
 
 cmd_release() {
-  if [[ "$1" == "-h" || "$1" == "--help" ]]; then
+  if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
     cat <<'USAGE'
 Usage:
   wgx release [--version <tag>] [--auto-version <bump>] [...]

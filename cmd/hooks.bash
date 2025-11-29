@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 cmd_hooks() {
-  if [[ "$1" == "-h" || "$1" == "--help" ]]; then
+  if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
     cat <<'USAGE'
 Usage:
   wgx hooks [install]
