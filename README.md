@@ -2,7 +2,8 @@
 
 # wgx – Weltgewebe CLI
 
-Eigenständiges CLI für Git-/Repo-Workflows (Termux, WSL, Linux, macOS). License: MIT; intended for internal use but repository is publicly visible.
+Eigenständiges CLI für Git-/Repo-Workflows (Termux, WSL, Linux, macOS). License: MIT; intended for internal use
+but repository is publicly visible.
 
 ## Lizenz & Nutzung
 
@@ -50,14 +51,16 @@ wgx send "feat: initial test run"
 
 ### `wgx clean`
 
-`wgx clean` räumt temporäre Dateien im Workspace auf. Standardmäßig werden nur sichere Caches entfernt (`--safe`). Weitere Modi lassen sich kombinieren:
+`wgx clean` räumt temporäre Dateien im Workspace auf. Standardmäßig werden nur sichere Caches entfernt
+(`--safe`). Weitere Modi lassen sich kombinieren:
 
 - `--build` löscht Build-Artefakte wie `dist/`, `build/`, `.venv/`, `.uv/` usw.
 - `--git` räumt gemergte Branches sowie Remote-Referenzen auf. Funktioniert nur in einem sauberen Git-Arbeitsverzeichnis.
 - `--deep` führt ein destruktives `git clean -xfd` aus und benötigt zusätzlich `--force`. Ein sauberer Git-Tree ist Pflicht.
 - `--dry-run` zeigt alle Schritte nur an – ideal, um vor destruktiven Varianten zu prüfen, was passieren würde.
 
-💡 Tipp: `wgx clean --dry-run --git` hilft beim schnellen Check, welche Git-Aufräumarbeiten anstehen. Sobald der Tree sauber ist, kann `wgx clean --git` (oder `--deep --force`) sicher laufen.
+💡 Tipp: `wgx clean --dry-run --git` hilft beim schnellen Check, welche Git-Aufräumarbeiten anstehen.
+Sobald der Tree sauber ist, kann `wgx clean --git` (oder `--deep --force`) sicher laufen.
 
 Falls ein Befehl unbekannt ist, kannst du die verfügbaren Subcommands auflisten:
 
@@ -191,9 +194,11 @@ CI-Lauf oder lokal nach `./scripts/gen-readiness.sh`; Details stehen in
   wgx py run pytest -q
   ```
 
-- Devcontainer-Hinweis: kombiniere die Installation mit dem Sync, z. B. `"postCreateCommand": "bash -lc '.devcontainer/setup.sh ensure-uv && ~/.local/bin/uv sync'"`.
+- Devcontainer-Hinweis: kombiniere die Installation mit dem Sync, z. B.
+  `"postCreateCommand": "bash -lc '.devcontainer/setup.sh ensure-uv && ~/.local/bin/uv sync'"`.
 - Für regulierte Umgebungen kann die Installation statt `curl | sh` über gepinnte Paketquellen erfolgen.
-- Weitere Hintergründe stehen in [docs/ADR-0002__python-env-manager-uv.de.md](docs/ADR-0002__python-env-manager-uv.de.md) und im [Runbook](docs/Runbook.de.md#leitfaden-von-requirementstxt-zu-uv).
+- Weitere Hintergründe stehen in [docs/ADR-0002__python-env-manager-uv.de.md](docs/ADR-0002__python-env-manager-uv.de.md)
+  und im [Runbook](docs/Runbook.de.md#leitfaden-von-requirementstxt-zu-uv).
 
 ## Kommandos
 
@@ -238,7 +243,9 @@ Die `v1`-Architektur von WGX ist um einen Bash-Kern herum aufgebaut und folgt ei
 
 Alle Skripte nutzen die zentralen Logging-Funktionen (`info`, `ok`, `warn`, `die`) aus `lib/core.bash`, um eine einheitliche und steuerbare Ausgabe zu gewährleisten.
 
-Diese Struktur stellt sicher, dass WGX als Bash-zentriertes Tool ohne Rust-Crates funktioniert: Die CLI und alle Subkommandos laufen in Bash, für das Parsen von `.wgx/profile.yml` verwendet WGX bewusst Python 3 mit dem `pyyaml`-Modul. Die CI testet WGX über Bats-Tests; ein Rust-Crate wird nicht mehr installiert.
+Diese Struktur stellt sicher, dass WGX als Bash-zentriertes Tool ohne Rust-Crates funktioniert: Die CLI und alle
+Subkommandos laufen in Bash, für das Parsen von `.wgx/profile.yml` verwendet WGX bewusst Python 3 mit dem
+`pyyaml`-Modul. Die CI testet WGX über Bats-Tests; ein Rust-Crate wird nicht mehr installiert.
 
 ### Laufzeitabhängigkeiten
 
