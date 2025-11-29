@@ -51,7 +51,7 @@ jobs:
           curl -fsSL "${BASE_URL}/${SUM_NAME}" -o "$tmpdir/checksums.txt"
 
           # 3. Verify Checksum
-          expected_sha=$(awk '/Linux_64-bit\.tar\.gz$/ {print $1}' "$tmpdir/checksums.txt")
+          expected_sha=$(awk -v tar="$TAR_NAME" '$2 == tar {print $1}' "$tmpdir/checksums.txt")
           if [[ -z "$expected_sha" ]]; then
             echo "::error::Failed to extract expected SHA256 from checksums.txt for $VALE_TAG"
             cat "$tmpdir/checksums.txt"
