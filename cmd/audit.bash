@@ -13,15 +13,15 @@ cmd_audit() {
   local sub="${1:-}"
   shift || true
   case "$sub" in
-    verify)
-      local strict=0
-      while [[ $# -gt 0 ]]; do
-        case "$1" in
-          --strict)
-            strict=1
-            ;;
-          -h | --help)
-            cat <<'USAGE'
+  verify)
+    local strict=0
+    while [[ $# -gt 0 ]]; do
+      case "$1" in
+      --strict)
+        strict=1
+        ;;
+      -h | --help)
+        cat <<'USAGE'
 Usage:
   wgx audit verify [--strict]
 
@@ -29,40 +29,40 @@ Prüft die Audit-Log-Kette (.wgx/audit/ledger.jsonl). Standardmäßig wird
 nur eine Warnung ausgegeben, wenn die Kette beschädigt ist. Mit --strict
 (oder AUDIT_VERIFY_STRICT=1) führt eine Verletzung zu einem Fehlercode.
 USAGE
-            return 0
-            ;;
-          --)
-            shift
-            break
-            ;;
-          --*)
-            printf 'wgx audit verify: unknown option %s\n' "$1" >&2
-            return 1
-            ;;
-          *)
-            break
-            ;;
-        esac
-        shift || true
-      done
-      if ((strict)); then
-        audit::verify --strict "$@"
-      else
-        audit::verify "$@"
-      fi
-      ;;
-    -h | --help | help | '')
-      cat <<'USAGE'
+        return 0
+        ;;
+      --)
+        shift
+        break
+        ;;
+      --*)
+        printf 'wgx audit verify: unknown option %s\n' "$1" >&2
+        return 1
+        ;;
+      *)
+        break
+        ;;
+      esac
+      shift || true
+    done
+    if ((strict)); then
+      audit::verify --strict "$@"
+    else
+      audit::verify "$@"
+    fi
+    ;;
+  -h | --help | help | '')
+    cat <<'USAGE'
 Usage:
   wgx audit verify [--strict]
 
 Verwaltet das Audit-Ledger von wgx.
 USAGE
-      ;;
-    *)
-      printf 'wgx audit: unknown subcommand %s\n' "$sub" >&2
-      return 1
-      ;;
+    ;;
+  *)
+    printf 'wgx audit: unknown subcommand %s\n' "$sub" >&2
+    return 1
+    ;;
   esac
 }
 
