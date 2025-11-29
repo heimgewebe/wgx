@@ -1,5 +1,6 @@
 # Placeholder profile file for CI pipelines
 # Required so WGX guard and smoke workflows can run without error
+# Keep this file tracked in git so workflows that require a manifest can detect it.
 profile: ci-placeholder
 wgx:
   apiVersion: v1

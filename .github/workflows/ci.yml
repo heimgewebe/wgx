@@ -236,6 +236,7 @@ EOF
           VALE_VERSION: latest
         run: |
           set -euo pipefail
+          set -x  # Enable debug output to see API responses
           owner="errata-ai"
           repo="vale"
           version="${VALE_VERSION:-latest}"
@@ -266,24 +267,47 @@ EOF
           fi
 
           if [[ -z "${release_json}" ]]; then
-            release_json=$(curl --retry 5 --retry-all-errors -fsSL \
+            echo "Fetching latest Vale release from GitHub API..." >&2
+            if ! release_json=$(curl --retry 5 --retry-all-errors -fsSL \
               "${curl_headers[@]}" \
-              "https://api.github.com/repos/${owner}/${repo}/releases/latest")
-            version=$(printf '%s' "${release_json}" | python3 - <<'PY'
+              "https://api.github.com/repos/${owner}/${repo}/releases/latest"); then
+              echo "ERROR: Failed to fetch release metadata from GitHub API" >&2
+              echo "This may be caused by API rate limits or network issues" >&2
+              exit 1
+            fi
+
+            # Validate that we got valid JSON and extract version
+            if ! version=$(printf '%s' "${release_json}" | python3 - <<'PY'
 import json, sys
-data = json.load(sys.stdin)
-tag = data.get('tag_name')
-if not tag:
-    raise SystemExit('Latest release tag_name not found')
-print(tag)
+try:
+    data = json.load(sys.stdin)
+    tag = data.get('tag_name')
+    if not tag:
+        sys.stderr.write('ERROR: tag_name is null or missing in API response\n')
+        sys.stderr.write('API response keys: ' + ', '.join(data.keys()) + '\n')
+        raise SystemExit(1)
+    print(tag)
+except json.JSONDecodeError as e:
+    sys.stderr.write(f'ERROR: Invalid JSON from API: {e}\n')
+    raise SystemExit(1)
 PY
-)
+); then
+              echo "ERROR: Failed to parse release metadata" >&2
+              exit 1
+            fi
           fi
 
           if [[ -z "${release_json}" ]]; then
-            echo "Failed to retrieve release metadata for Vale" >&2
+            echo "ERROR: release_json is empty after API fetch" >&2
             exit 1
           fi
+
+          if [[ -z "${version}" ]]; then
+            echo "ERROR: version could not be determined" >&2
+            exit 1
+          fi
+
+          echo "Using Vale version: ${version}" >&2
 
           readarray -t asset_info < <(printf '%s' "${release_json}" | python3 - <<'PY'
 import json, sys
@@ -328,14 +352,21 @@ raise SystemExit('checksums.txt not found in release assets')
 PY
 )
 
+          echo "Downloading Vale tarball: ${asset_url}" >&2
           curl --retry 5 --retry-all-errors -fsSL "${asset_url}" -o vale.tar.gz
+
+          echo "Downloading checksums: ${checksums_url}" >&2
           curl --retry 5 --retry-all-errors -fsSL "${checksums_url}" -o checksums.txt
 
           EXPECTED_SHA256=$(awk -v file="${asset_name}" '$2 == file {print $1; exit}' checksums.txt)
           if [[ -z "${EXPECTED_SHA256:-}" ]]; then
-            echo "Unable to determine expected checksum for ${asset_name}" >&2
+            echo "ERROR: Unable to determine expected checksum for ${asset_name}" >&2
+            echo "Available checksums:" >&2
+            cat checksums.txt >&2
             exit 1
           fi
+
+          echo "Expected SHA256: ${EXPECTED_SHA256}" >&2
 
           ACTUAL_SHA256=$(sha256sum vale.tar.gz | awk '{print $1}')
           if [[ "${EXPECTED_SHA256}" != "${ACTUAL_SHA256}" ]]; then
