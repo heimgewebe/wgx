@@ -6,11 +6,12 @@ PROFILE_FILE=""
 PROFILE_VERSION=""
 WGX_REQUIRED_RANGE=""
 WGX_REQUIRED_MIN=""
-WGX_REPO_KIND=""
-WGX_DIR_WEB=""
-WGX_DIR_API=""
-WGX_DIR_DATA=""
 WGX_PROFILE_LOADED=""
+
+export WGX_REPO_KIND=""
+export WGX_DIR_WEB=""
+export WGX_DIR_API=""
+export WGX_DIR_DATA=""
 
 # shellcheck disable=SC2034
 WGX_AVAILABLE_CAPS=(task-array status-dirs tasks-json validate env-defaults env-overrides workflows)
@@ -22,6 +23,7 @@ declare -gA WGX_ENV_BASE_MAP=()
 declare -gA WGX_ENV_DEFAULT_MAP=()
 declare -gA WGX_ENV_OVERRIDE_MAP=()
 
+# shellcheck disable=SC2034
 declare -ga WGX_TASK_ORDER=()
 declare -gA WGX_TASK_CMDS=()
 declare -gA WGX_TASK_DESC=()
@@ -40,6 +42,7 @@ profile::_reset() {
   WGX_DIR_DATA=""
   WGX_REQUIRED_CAPS=()
   WGX_ENV_KEYS=()
+  # shellcheck disable=SC2034
   WGX_TASK_ORDER=()
   WGX_ENV_BASE_MAP=()
   WGX_ENV_DEFAULT_MAP=()

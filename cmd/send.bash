@@ -138,7 +138,11 @@ USAGE
 
   local files scope short
   files="$(git diff --name-only "origin/$WGX_BASE"...HEAD 2>/dev/null || true)"
-  scope="$([[ "$SCOPE" == "auto" ]] && (auto_scope "$files" || echo "repo") || echo "$SCOPE")"
+  if [[ "$SCOPE" == "auto" ]]; then
+    scope="$(auto_scope "$files" || echo "repo")"
+  else
+    scope="$SCOPE"
+  fi
   local last_subject
   last_subject="$(git log -1 --pretty=%s 2>/dev/null || true)"
   short="${TITLE:-${last_subject:-"Änderungen an ${scope}"}}"
@@ -193,7 +197,9 @@ USAGE
       fi
       glab "${args[@]}" || die "glab mr create fehlgeschlagen."
       ok "Merge Request erstellt."
-      ((OPEN_PR)) && glab mr view --web >/dev/null 2>&1 || true
+      if ((OPEN_PR)); then
+        glab mr view --web >/dev/null 2>&1 || true
+      fi
     else
       warn "glab CLI nicht gefunden. MR manuell im GitLab anlegen."
       local url
@@ -235,8 +241,12 @@ USAGE
       pr_url="$(gh pr view --json url -q .url 2>/dev/null || true)"
       [[ -n "$pr_url" ]] && info "PR: $pr_url"
       ok "PR erstellt."
-      ((TRIGGER_CI)) && [[ -n "${WGX_CI_WORKFLOW-}" ]] && gh workflow run "$WGX_CI_WORKFLOW" >/dev/null 2>&1 || true
-      ((OPEN_PR)) && gh pr view -w >/dev/null 2>&1 || true
+      if ((TRIGGER_CI)) && [[ -n "${WGX_CI_WORKFLOW-}" ]]; then
+        gh workflow run "$WGX_CI_WORKFLOW" >/dev/null 2>&1 || true
+      fi
+      if ((OPEN_PR)); then
+        gh pr view -w >/dev/null 2>&1 || true
+      fi
     else
       local url
       url="$(compare_url)"
