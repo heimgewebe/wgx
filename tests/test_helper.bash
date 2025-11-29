@@ -16,9 +16,13 @@ set -euo pipefail
 
 # Initialise standard Bats run variables so set -u callers can read them
 # even before invoking `run` in a test case.
+# shellcheck disable=SC2034
 output=""
+# shellcheck disable=SC2034
 stderr=""
+# shellcheck disable=SC2034
 status=0
+# shellcheck disable=SC2034
 lines=()
 
 # Fügt das 'cli'-Verzeichnis zum PATH hinzu, damit die 'wgx'-Befehle in den Tests
