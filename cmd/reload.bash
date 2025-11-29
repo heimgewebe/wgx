@@ -2,7 +2,7 @@
 
 # Vereinfachte 'reload'-Implementierung
 cmd_reload() {
-  local force=0 dry_run=0
+  local force=0 dry_run=0 snapshot=0
   while [[ $# -gt 0 ]]; do
     case "$1" in
     --force)
@@ -11,10 +11,13 @@ cmd_reload() {
     --dry-run)
       dry_run=1
       ;;
+    --snapshot)
+      snapshot=1
+      ;;
     -h | --help)
       cat <<'USAGE'
 Usage:
-  wgx reload [--force] [--dry-run]
+  wgx reload [--force] [--dry-run] [--snapshot]
 
 Description:
   Setzt das Arbeitsverzeichnis hart auf den Stand des Upstream-Branches zurück.
@@ -23,6 +26,7 @@ Description:
 Options:
   --force       Führt den Reset auch bei ungespeicherten Änderungen aus.
   --dry-run     Zeigt nur an, was getan würde, ohne Änderungen vorzunehmen.
+  --snapshot    Erstellt vorher einen Git-Stash als Sicherheitskopie.
   -h, --help    Diese Hilfe anzeigen.
 USAGE
       return 0
@@ -38,6 +42,9 @@ USAGE
   # Der Dry-Run wird jetzt direkt von der zugrundeliegenden Git-Funktion
   # unterstützt, was die Logik hier vereinfacht.
   if ((dry_run)); then
+    if ((snapshot)); then
+      info "[DRY-RUN] Würde Snapshot (Stash) erstellen."
+    fi
     git_hard_reload --dry-run
     return $?
   fi
@@ -45,6 +52,11 @@ USAGE
   if git_workdir_dirty && ((force == 0)); then
     warn "reload abgebrochen: Arbeitsverzeichnis enthält ungespeicherte Änderungen."
     return 1
+  fi
+
+  # Erstelle optional einen Snapshot (Stash) vor dem Reset
+  if ((snapshot)); then
+    snapshot_make
   fi
 
   git_hard_reload
