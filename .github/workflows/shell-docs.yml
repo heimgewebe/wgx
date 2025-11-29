@@ -48,8 +48,12 @@ jobs:
 
           # 3. Verify Checksum
           expected_sha=$(awk '/Linux_64-bit\.tar\.gz$/ {print $1}' "$tmpdir/checksums.txt")
-          actual_sha=$(sha256sum "$tmpdir/vale.tar.gz" | awk '{print $1}')
+          if [[ -z "$expected_sha" ]]; then
+            echo "::error::Failed to extract expected SHA256 from checksums.txt for $VALE_TAG"
+            exit 1
+          fi
 
+          actual_sha=$(sha256sum "$tmpdir/vale.tar.gz" | awk '{print $1}')
           if [ "$expected_sha" != "$actual_sha" ]; then
             echo "::error::Vale checksum mismatch: expected $expected_sha, got $actual_sha"
             exit 1
