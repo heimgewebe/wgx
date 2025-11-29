@@ -51,12 +51,21 @@ jobs:
           curl -fsSL "${BASE_URL}/${SUM_NAME}" -o "$tmpdir/checksums.txt"
 
           # 3. Verify Checksum
+          echo "Looking for checksum of: $TAR_NAME"
+          echo "Contents of checksums.txt:"
+          cat "$tmpdir/checksums.txt"
           expected_sha=$(awk -v tar="$TAR_NAME" '$2 == tar {print $1}' "$tmpdir/checksums.txt")
           if [[ -z "$expected_sha" ]]; then
+            echo "::warning::Exact match not found. Trying partial match..."
+            # Try partial match in case filename format differs slightly
+            expected_sha=$(awk -v tar="$TAR_NAME" 'index($2, tar) || index($0, tar) {print $1}' "$tmpdir/checksums.txt" | head -1)
+          fi
+          if [[ -z "$expected_sha" ]]; then
             echo "::error::Failed to extract expected SHA256 from checksums.txt for $VALE_TAG"
-            cat "$tmpdir/checksums.txt"
+            echo "Searched for: $TAR_NAME"
             exit 1
           fi
+          echo "Found expected SHA256: $expected_sha"
 
           actual_sha=$(sha256sum "$tmpdir/vale.tar.gz" | awk '{print $1}')
           if [ "$expected_sha" != "$actual_sha" ]; then
