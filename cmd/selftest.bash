@@ -34,7 +34,7 @@ selftest_check_bins() {
 }
 
 cmd_selftest() {
-  if [[ "$1" == "-h" || "$1" == "--help" ]]; then
+  if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
     cat <<'USAGE'
 Usage:
   wgx selftest
