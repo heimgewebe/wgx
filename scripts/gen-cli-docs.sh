@@ -72,9 +72,11 @@ for cmd in "${commands[@]}"; do
   fi
 
   if ((has_structured_help)); then
-    echo '```' >>"$tmp_file"
-    printf '%s\n' "$cmd_help" >>"$tmp_file"
-    echo '```' >>"$tmp_file"
+    {
+      echo '```'
+      printf '%s\n' "$cmd_help"
+      echo '```'
+    } >>"$tmp_file"
   else
     if ((saw_general_help)); then
       echo "_Command does not provide structured --help output._" >>"$tmp_file"
@@ -85,10 +87,12 @@ for cmd in "${commands[@]}"; do
     else
       echo "_Failed to capture --help output (exit ${exit_code})._" >>"$tmp_file"
       if [[ -n "$cmd_help" ]]; then
-        echo >>"$tmp_file"
-        echo '```' >>"$tmp_file"
-        printf '%s\n' "$cmd_help" >>"$tmp_file"
-        echo '```' >>"$tmp_file"
+        {
+          echo
+          echo '```'
+          printf '%s\n' "$cmd_help"
+          echo '```'
+        } >>"$tmp_file"
       fi
     fi
   fi
