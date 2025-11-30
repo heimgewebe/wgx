@@ -115,7 +115,7 @@ USAGE
     warn "The following tracked files exceed the size limit of ${max_bytes} Bytes:" >&2
     while IFS= read -r line; do
       echo "   - $line" >&2
-    done <<< "$oversized"
+    done <<<"$oversized"
     return 1
   fi
 

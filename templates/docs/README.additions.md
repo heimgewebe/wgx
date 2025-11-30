@@ -1,4 +1,5 @@
 # Für Dummies – Was macht dieses Repo?
+
 Dieses Projekt nutzt **WGX** als schlanken Helfer: ein paar Standard-Kommandos (up | list | run | doctor | validate | smoke)
 machen Arbeiten im Terminal einfacher. Du musst nicht „programmieren“ können – du führst nur Kommandos aus.
 
@@ -6,6 +7,7 @@ machen Arbeiten im Terminal einfacher. Du musst nicht „programmieren“ könne
 WGX liest das ein und führt passende Aufgaben aus (z. B. Format, Lint, Tests).
 
 ## WGX-Kurzstart
+
 ```bash
 wgx --help
 wgx doctor     # prüft Umgebung

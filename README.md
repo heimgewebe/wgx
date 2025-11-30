@@ -2,7 +2,8 @@
 
 # wgx – Weltgewebe CLI
 
-Eigenständiges CLI für Git-/Repo-Workflows (Termux, WSL, Linux, macOS). License: MIT; intended for internal use but repository is publicly visible.
+Eigenständiges CLI für Git-/Repo-Workflows (Termux, WSL, Linux, macOS). License: MIT; intended for internal use
+but repository is publicly visible.
 
 ## Lizenz & Nutzung
 
@@ -17,7 +18,7 @@ Transparenz bezüglich Support-Erwartungen und Projektfokus.
 **Hinweis für Beiträge/Dateiköpfe:** In neuen Dateien bitte nach Möglichkeit den
 SPDX-Kurzidentifier verwenden, z. B.:
 
-```
+```text
 # SPDX-License-Identifier: MIT
 ```
 
@@ -50,14 +51,16 @@ wgx send "feat: initial test run"
 
 ### `wgx clean`
 
-`wgx clean` räumt temporäre Dateien im Workspace auf. Standardmäßig werden nur sichere Caches entfernt (`--safe`). Weitere Modi lassen sich kombinieren:
+`wgx clean` räumt temporäre Dateien im Workspace auf. Standardmäßig werden nur sichere Caches entfernt
+(`--safe`). Weitere Modi lassen sich kombinieren:
 
 - `--build` löscht Build-Artefakte wie `dist/`, `build/`, `.venv/`, `.uv/` usw.
 - `--git` räumt gemergte Branches sowie Remote-Referenzen auf. Funktioniert nur in einem sauberen Git-Arbeitsverzeichnis.
 - `--deep` führt ein destruktives `git clean -xfd` aus und benötigt zusätzlich `--force`. Ein sauberer Git-Tree ist Pflicht.
 - `--dry-run` zeigt alle Schritte nur an – ideal, um vor destruktiven Varianten zu prüfen, was passieren würde.
 
-💡 Tipp: `wgx clean --dry-run --git` hilft beim schnellen Check, welche Git-Aufräumarbeiten anstehen. Sobald der Tree sauber ist, kann `wgx clean --git` (oder `--deep --force`) sicher laufen.
+💡 Tipp: `wgx clean --dry-run --git` hilft beim schnellen Check, welche Git-Aufräumarbeiten anstehen.
+Sobald der Tree sauber ist, kann `wgx clean --git` (oder `--deep --force`) sicher laufen.
 
 Falls ein Befehl unbekannt ist, kannst du die verfügbaren Subcommands auflisten:
 
@@ -115,6 +118,7 @@ CI-Lauf oder lokal nach `./scripts/gen-readiness.sh`; Details stehen in
   shellcheck -S style $(git ls-files '*.sh' '*.bash')
   bats -r tests
   ```
+
 - Metriken-Flow lokal prüfen:
 
   ```bash
@@ -123,6 +127,7 @@ CI-Lauf oder lokal nach `./scripts/gen-readiness.sh`; Details stehen in
     -s "https://raw.githubusercontent.com/heimgewebe/metarepo/contracts-v1/contracts/wgx/metrics.json" \
     -d metrics.json
   ```
+
 - Node.js tooling ist nicht erforderlich; npm-/pnpm-Workflows sind deaktiviert, und es existiert kein `package.json` mehr.
 
 - Mehr Hinweise im [Quickstart](docs/quickstart.md).
@@ -189,9 +194,11 @@ CI-Lauf oder lokal nach `./scripts/gen-readiness.sh`; Details stehen in
   wgx py run pytest -q
   ```
 
-- Devcontainer-Hinweis: kombiniere die Installation mit dem Sync, z. B. `"postCreateCommand": "bash -lc '.devcontainer/setup.sh ensure-uv && ~/.local/bin/uv sync'"`.
+- Devcontainer-Hinweis: kombiniere die Installation mit dem Sync, z. B.
+  `"postCreateCommand": "bash -lc '.devcontainer/setup.sh ensure-uv && ~/.local/bin/uv sync'"`.
 - Für regulierte Umgebungen kann die Installation statt `curl | sh` über gepinnte Paketquellen erfolgen.
-- Weitere Hintergründe stehen in [docs/ADR-0002__python-env-manager-uv.de.md](docs/ADR-0002__python-env-manager-uv.de.md) und im [Runbook](docs/Runbook.de.md#leitfaden-von-requirementstxt-zu-uv).
+- Weitere Hintergründe stehen in [docs/ADR-0002__python-env-manager-uv.de.md](docs/ADR-0002__python-env-manager-uv.de.md)
+  und im [Runbook](docs/Runbook.de.md#leitfaden-von-requirementstxt-zu-uv).
 
 ## Kommandos
 
@@ -228,30 +235,32 @@ Wiederkehrende Helfer (Logging, Git-Hilfen, Environment-Erkennung usw.) sind im 
 
 Die `v1`-Architektur von WGX ist um einen Bash-Kern herum aufgebaut und folgt einer klaren, modularen Struktur, um Wartbarkeit und Erweiterbarkeit zu gewährleisten:
 
--   **`cli/wgx`**: Der zentrale Einstiegspunkt (Dispatcher). Dieses Skript identifiziert das passende Subkommando und lädt die notwendigen Bibliotheken.
--   **`cmd/`**: Jedes Subkommando (z.B. `init`, `status`, `test`) ist eine eigenständige `.bash`-Datei in diesem Ordner.
--   **`lib/`**: Enthält wiederverwendbare Kernbibliotheken. `lib/core.bash` stellt zentrale Funktionen wie Logging, Routing und Git-Helfer bereit.
--   **`modules/`**: Beinhaltet optional ladbare Module für komplexere, in sich geschlossene Logik (z.B. `profile.bash` für die `.wgx/profile.yml`-Verarbeitung).
--   **`tests/`**: Alle `bats`-Tests zur Absicherung der Funktionalität.
+- **`cli/wgx`**: Der zentrale Einstiegspunkt (Dispatcher). Dieses Skript identifiziert das passende Subkommando und lädt die notwendigen Bibliotheken.
+- **`cmd/`**: Jedes Subkommando (z.B. `init`, `status`, `test`) ist eine eigenständige `.bash`-Datei in diesem Ordner.
+- **`lib/`**: Enthält wiederverwendbare Kernbibliotheken. `lib/core.bash` stellt zentrale Funktionen wie Logging, Routing und Git-Helfer bereit.
+- **`modules/`**: Beinhaltet optional ladbare Module für komplexere, in sich geschlossene Logik (z.B. `profile.bash` für die `.wgx/profile.yml`-Verarbeitung).
+- **`tests/`**: Alle `bats`-Tests zur Absicherung der Funktionalität.
 
 Alle Skripte nutzen die zentralen Logging-Funktionen (`info`, `ok`, `warn`, `die`) aus `lib/core.bash`, um eine einheitliche und steuerbare Ausgabe zu gewährleisten.
 
-Diese Struktur stellt sicher, dass WGX als Bash-zentriertes Tool ohne Rust-Crates funktioniert: Die CLI und alle Subkommandos laufen in Bash, für das Parsen von `.wgx/profile.yml` verwendet WGX bewusst Python 3 mit dem `pyyaml`-Modul. Die CI testet WGX über Bats-Tests; ein Rust-Crate wird nicht mehr installiert.
+Diese Struktur stellt sicher, dass WGX als Bash-zentriertes Tool ohne Rust-Crates funktioniert: Die CLI und alle
+Subkommandos laufen in Bash, für das Parsen von `.wgx/profile.yml` verwendet WGX bewusst Python 3 mit dem
+`pyyaml`-Modul. Die CI testet WGX über Bats-Tests; ein Rust-Crate wird nicht mehr installiert.
 
 ### Laufzeitabhängigkeiten
 
 Für die Nutzung der v1-Architektur gelten zurzeit folgende Mindestvoraussetzungen:
 
--   **Bash ≥ 4**
--   **Git** und gängige Coreutils (`sed`, `awk`, `grep`, `find`, …)
--   **Python 3** mit installiertem `pyyaml`-Modul für das Parsen von `.wgx/profile.yml`
+- **Bash ≥ 4**
+- **Git** und gängige Coreutils (`sed`, `awk`, `grep`, `find`, …)
+- **Python 3** mit installiertem `pyyaml`-Modul für das Parsen von `.wgx/profile.yml`
 
 Im Devcontainer und in den CI-Workflows werden diese Abhängigkeiten automatisch installiert (unter Debian/Ubuntu z.B. über das Paket `python3-yaml`).
 Auf lokalen Maschinen müssen Python 3 und `pyyaml` ggf. manuell nachgerüstet werden. Typische Varianten:
 
--   Debian/Ubuntu: `apt install python3-yaml`
--   Arch Linux: `pacman -S python-yaml`
--   macOS mit Homebrew: `brew install python && pip3 install pyyaml`
+- Debian/Ubuntu: `apt install python3-yaml`
+- Arch Linux: `pacman -S python-yaml`
+- macOS mit Homebrew: `brew install python && pip3 install pyyaml`
 
 Ohne funktionsfähiges Python/YAML-Setup können `wgx run` und Profil-basierte Fleet-Tasks nicht ausgeführt werden.
 
@@ -259,12 +268,13 @@ Ohne funktionsfähiges Python/YAML-Setup können `wgx run` und Profil-basierte F
 
 Dieses Repository stellt kanonische, wiederverwendbare Workflows bereit, die in anderen Repositories der Heimgewebe-Fleet genutzt werden können, um CI-Prozesse zu standardisieren.
 
--   **`wgx-guard.yml`**: Führt Linting, Contract-Prüfungen und andere statische Analysen aus.
--   **`wgx-smoke.yml`**: Führt einen einfachen Smoke-Test aus, der im `tasks.smoke`-Feld des `.wgx/profile.yml` des Ziel-Repos definiert ist.
+- **`wgx-guard.yml`**: Führt Linting, Contract-Prüfungen und andere statische Analysen aus.
+- **`wgx-smoke.yml`**: Führt einen einfachen Smoke-Test aus, der im `tasks.smoke`-Feld des `.wgx/profile.yml` des Ziel-Repos definiert ist.
 
 Diese Workflows nutzen die "Fleet-Konvention" in der `.wgx/profile.yml`:
--   **`class`**: Definiert die Klasse des Repositories (z.B. `rust-service`, `python-service`).
--   **`tasks`**: Eine einfache Map von Task-Namen zu Shell-Befehlen, die von externen Tools (wie diesen Workflows) ausgeführt werden können.
+
+- **`class`**: Definiert die Klasse des Repositories (z.B. `rust-service`, `python-service`).
+- **`tasks`**: Eine einfache Map von Task-Namen zu Shell-Befehlen, die von externen Tools (wie diesen Workflows) ausgeführt werden können.
 
 ### Beispiel-Verwendung
 
