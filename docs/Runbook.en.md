@@ -25,7 +25,8 @@
 
 ### `sudo apt-get update -y` fails with “unsigned/403 responses”
 
-- This often happens in locked down networks or after adding external repositories. Confirm that the system clock is correct and whether a proxy/TLS interceptor is used (`echo $https_proxy`).
+- This often happens in locked down networks or after adding external repositories. Confirm that the system clock is
+  correct and whether a proxy/TLS interceptor is used (`echo $https_proxy`).
 - Remove cached package lists before retrying:
 
   ```bash
@@ -45,7 +46,8 @@
   # Adjust the repository URL, distribution ("jammy") and components ("stable") to your target platform.
   ```
 
-- If the problem persists, inspect `/var/log/apt/term.log`. HTTP 403 responses are often resolved by switching mirrors or by pruning stale entries in `/etc/apt/sources.list.d/`.
+- If the problem persists, inspect `/var/log/apt/term.log`. HTTP 403 responses are often resolved by switching
+  mirrors or by pruning stale entries in `/etc/apt/sources.list.d/`.
 
 ### Git hooks block commits
 
@@ -89,7 +91,8 @@
 ## CI with uv (quick reference)
 
 - Install uv (e.g. `curl -LsSf https://astral.sh/uv/install.sh | sh`).
-- Cache the global uv cache: `~/.cache/uv` with a key derived from the uv version (`uv --version | awk '{print $2}'`) plus `pyproject.toml` and `uv.lock`.
+- Cache the global uv cache: `~/.cache/uv` with a key derived from the uv version (`uv --version | awk '{print $2}'`)
+  plus `pyproject.toml` and `uv.lock`.
 - Install dependencies strictly via `uv sync --frozen`.
 - Execute tests with `uv run …` (e.g. `uv run pytest -q`).
 
@@ -107,4 +110,5 @@
 }
 ```
 
-- Use `.devcontainer/setup.sh ensure-uv` to guarantee that uv is available (including PATH adjustments) after the container starts.
+- Use `.devcontainer/setup.sh ensure-uv` to guarantee that uv is available (including PATH adjustments) after the
+  container starts.
