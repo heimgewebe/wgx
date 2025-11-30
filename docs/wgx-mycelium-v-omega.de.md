@@ -259,13 +259,13 @@ Teams).
 |---|---|:---:|---|
 | Core | `up` | 🟢 | Umgebung erkennen & fertig machen |
 | Core | `list` | 🟢 | Tasks autodiscovern & taggen |
-| Core | `run <task|text>` | 🟢 | Intent → richtiges Kommando |
+| Core | `run <task\|text>` | 🟢 | Intent → richtiges Kommando |
 | Core | `guard` | 🟢 | Contracts prüfen + auto-fix |
 | Core | `smoke` | 🟢 | 30–90s Gesundheitscheck |
-| Core | `doctor | validate` | 🟢 | System/Repo-Diagnose |
+| Core | `doctor \| validate` | 🟢 | System/Repo-Diagnose |
 | Flow | `runbook` | 🟡 | Klickbare Abläufe aus Markdown |
 | Flow | `rituals` | 🟡 | Goldene Pfade (Release etc.) |
-| Fleet | `fleet status|fix` | 🟡 | Multi-Repo-Cockpit |
+| Fleet | `fleet status\|fix` | 🟡 | Multi-Repo-Cockpit |
 | Fleet | `fleet benchmark` | 🟡 | Dauer/Flake/CI-Vergleich |
 | Fleet | `fleet ripple` | 🟡 | Abhängigkeits-Kaskaden |
 | Fleet | `convoy` | 🔬 | Koordinierte Releases |
@@ -314,7 +314,7 @@ Teams).
 
 ## 6. Profile v1 / v1.1 (Minimal → Reich)
 
-**Minimal v1**
+### Minimal v1
 
 ```yaml
 # .wgx/profile.yml
