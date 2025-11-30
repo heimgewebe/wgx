@@ -29,7 +29,7 @@ mapfile -t commands < <(./wgx --list | grep -v '^[[:space:]]*$' | sort -u)
   echo
   echo "## Global usage"
   echo
-  echo '```'
+  echo '```sh'
   printf '%s\n' "$top_help"
   echo '```'
   echo
@@ -73,7 +73,7 @@ for cmd in "${commands[@]}"; do
 
   if ((has_structured_help)); then
     {
-      echo '```'
+      echo '```sh'
       printf '%s\n' "$cmd_help"
       echo '```'
     } >>"$tmp_file"
@@ -89,7 +89,7 @@ for cmd in "${commands[@]}"; do
       if [[ -n "$cmd_help" ]]; then
         {
           echo
-          echo '```'
+          echo '```sh'
           printf '%s\n' "$cmd_help"
           echo '```'
         } >>"$tmp_file"
@@ -99,5 +99,8 @@ for cmd in "${commands[@]}"; do
 
   echo >>"$tmp_file"
 done
+
+# Remove trailing blank line to avoid MD012 linting errors
+sed -i '${/^$/d;}' "$tmp_file"
 
 mv "$tmp_file" "$out_file"

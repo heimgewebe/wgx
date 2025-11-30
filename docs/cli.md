@@ -4,7 +4,7 @@
 
 ## Global usage
 
-```
+```sh
 wgx — Workspace Helper
 
 Usage:
@@ -49,7 +49,7 @@ More:
 
 ### audit
 
-```
+```sh
 Usage:
   wgx audit verify [--strict]
 
@@ -58,7 +58,7 @@ Verwaltet das Audit-Ledger von wgx.
 
 ### clean
 
-```
+```sh
 Usage:
   wgx clean [--safe] [--build] [--git] [--deep] [--dry-run] [--force]
 
@@ -74,7 +74,7 @@ Options:
 
 ### config
 
-```
+```sh
 Usage:
   wgx config [show]
   wgx config set <KEY>=<VALUE>
@@ -90,7 +90,7 @@ Options:
 
 ### doctor
 
-```
+```sh
 Usage:
   wgx doctor
 
@@ -105,7 +105,7 @@ Options:
 
 ### env
 
-```
+```sh
 Usage: wgx env doctor [--fix] [--strict] [--json]
   doctor     Inspect the local environment (default)
   --fix      Apply recommended platform specific tweaks (Termux only)
@@ -115,7 +115,7 @@ Usage: wgx env doctor [--fix] [--strict] [--json]
 
 ### guard
 
-```
+```sh
 Usage:
   wgx guard [--lint] [--test]
 
@@ -139,7 +139,7 @@ Options:
 
 ### heal
 
-```
+```sh
 Usage:
   wgx heal [rebase|ours|theirs|ff-only] [--stash] [--continue] [--abort] [--base <branch>]
 
@@ -162,7 +162,7 @@ Options:
 
 ### help
 
-```
+```sh
 wgx — Workspace Helper
 
 Usage:
@@ -205,7 +205,7 @@ More:
 
 ### hooks
 
-```
+```sh
 Usage:
   wgx hooks [install]
 
@@ -221,7 +221,7 @@ Options:
 
 ### init
 
-```
+```sh
 Usage:
   wgx init [--wizard]
 
@@ -236,7 +236,7 @@ Options:
 
 ### lint
 
-```
+```sh
 Usage:
   wgx lint
 
@@ -251,7 +251,7 @@ Options:
 
 ### quick
 
-```
+```sh
 Usage: wgx quick [-i|--interactive] [--help]
 
 Run repository guards (lint + tests) and open the PR/MR helper.
@@ -263,7 +263,7 @@ Options:
 
 ### release
 
-```
+```sh
 Usage:
   wgx release [--version <tag>] [--auto-version <bump>] [...]
 
@@ -281,7 +281,7 @@ Options:
 
 ### reload
 
-```
+```sh
 Usage:
   wgx reload [--force] [--dry-run] [--snapshot]
 
@@ -302,7 +302,7 @@ _Command does not provide structured --help output._
 
 ### selftest
 
-```
+```sh
 Usage:
   wgx selftest
 
@@ -317,7 +317,7 @@ Options:
 
 ### send
 
-```
+```sh
 Usage:
   wgx send [options]
 
@@ -346,7 +346,7 @@ Options:
 
 ### setup
 
-```
+```sh
 Usage:
   wgx setup
 
@@ -363,7 +363,7 @@ Options:
 
 ### start
 
-```
+```sh
 Usage:
   wgx start <branch_name>
 
@@ -379,7 +379,7 @@ Options:
 
 ### status
 
-```
+```sh
 Usage:
   wgx status
 
@@ -395,7 +395,7 @@ Options:
 
 ### sync-remote
 
-```
+```sh
 Usage:
   wgx reload [--force] [--dry-run] [--snapshot]
 
@@ -412,7 +412,7 @@ Options:
 
 ### task
 
-```
+```sh
 Usage:
   wgx task <name> [--] [args...]
 
@@ -430,7 +430,7 @@ Options:
 
 ### tasks
 
-```
+```sh
 Usage: wgx tasks [--json] [--safe] [--groups]
   --json    Output machine readable JSON
   --safe    Only include tasks marked as safe
@@ -439,7 +439,7 @@ Usage: wgx tasks [--json] [--safe] [--groups]
 
 ### test
 
-```
+```sh
 Usage:
   wgx test [--list] [--] [BATS_ARGS...]
   wgx test --help
@@ -459,7 +459,7 @@ Examples:
 
 ### validate
 
-```
+```sh
 Usage:
   wgx validate [--json]
 
@@ -473,7 +473,7 @@ Optionen:
 
 ### version
 
-```
+```sh
 Usage:
   wgx version [bump <level>] [set <version>]
 
@@ -489,4 +489,3 @@ Subcommands:
 Options:
   -h, --help     Diese Hilfe anzeigen.
 ```
-
