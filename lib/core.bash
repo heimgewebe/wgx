@@ -387,11 +387,6 @@ _fetch_once() {
   fi
 }
 
-# Guard function for fetch (alias for _fetch_once)
-_fetch_guard() {
-  _fetch_once
-}
-
 # ---------- Sync Command ----------
 
 # Sync local branch with remote (pull --rebase)

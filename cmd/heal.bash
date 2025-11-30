@@ -85,7 +85,7 @@ USAGE
   }
   ((STASH)) && snapshot_make
 
-  _fetch_guard
+  _fetch_once
   case "$MODE" in
   "" | rebase)
     local base_ref="origin/$WGX_BASE"

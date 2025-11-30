@@ -1,6 +1,6 @@
 set shell := ["bash", "-eu", "-o", "pipefail", "-c"]
 
-default: devcontainer-check
+default: lint
 
 devcontainer-check:
     .devcontainer/setup.sh check
@@ -45,7 +45,6 @@ contracts action +args:
         exit 1
         ;;
     esac
-default: lint
 
 # Lokaler Helper: Schnelltests & Linter – sicher mit Null-Trennung und Quoting
 lint:
