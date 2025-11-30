@@ -1,6 +1,7 @@
 # Module & Hilfsbibliotheken
 
-Kurze Übersicht über die wichtigsten Dateien in `modules/`, `lib/`, `etc/` und `templates/`, damit Beitragende schneller die richtigen Einstiegspunkte finden.
+Kurze Übersicht über die wichtigsten Dateien in `modules/`, `lib/`, `etc/` und `templates/`, damit Beitragende
+schneller die richtigen Einstiegspunkte finden.
 
 ## `modules/`
 

@@ -2,9 +2,9 @@
 
 ## Aktueller Stand
 
-- Die README bewirbt uv als Standard für Python-Laufzeiten, Lockfiles und Tooling und verweist auf Wrapper-Kommandos
-  wie `wgx py up`, `wgx py sync` sowie `wgx tool add`. Damit werden klare Erwartungen an das CLI
-  kommuniziert.[README.md (L50–L110)](./README.md#L50-L110)
+- Die README bewirbt uv als Standard für Python-Laufzeiten, Lockfiles und Tooling und verweist auf
+  Wrapper-Kommandos wie `wgx py up`, `wgx py sync` sowie `wgx tool add`. Damit werden klare Erwartungen an das CLI
+  kommuniziert.[README.md (L50–L110)](./README.md#L50-L110)
 - Das Devcontainer-Skript `.devcontainer/setup.sh` bringt einen automatisierten Installer (`setup.sh ensure-uv`)
   mit, der uv bei Bedarf nachzieht und `$HOME/.local/bin` dauerhaft in die Shell-Profile schreibt. So steht das
   Binary in Container-Umgebungen zuverlässig zur Verfügung.【F:.devcontainer/setup.sh†L1-L120】
