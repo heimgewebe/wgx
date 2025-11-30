@@ -28,102 +28,117 @@ jobs:
           sudo apt-get -yq install shellcheck shfmt bats jq
           npm install -g markdownlint-cli2@0.14.0
 
-          # 1. Fetch latest version tag from GitHub API
-          VALE_TAG=$(curl -sL --fail --max-time 30 https://api.github.com/repos/errata-ai/vale/releases/latest | jq -r .tag_name)
-          if [[ -z "$VALE_TAG" || "$VALE_TAG" == "null" ]]; then
-            # fallback to a pinned Vale version
-            VALE_TAG="${VALE_FALLBACK_VERSION}"
-            echo "Warning: Using fallback Vale version $VALE_TAG."
-          else
+          # Function to attempt installation of a specific version
+          install_vale() {
+            local version_tag="$1"
+            echo "Attempting to install Vale ${version_tag}..."
+
+            local version_num="${version_tag#v}"
+            local base_url="https://github.com/errata-ai/vale/releases/download/${version_tag}"
+            local sum_name="vale_${version_num}_checksums.txt"
+            local tmpdir
+            tmpdir="$(mktemp -d)"
+
+            # Try multiple naming patterns for Linux x86_64
+            local tar_names=(
+              "vale_${version_num}_Linux_64-bit.tar.gz"
+              "vale_${version_num}_Linux_x86_64.tar.gz"
+              "vale_${version_num}_linux_amd64.tar.gz"
+            )
+
+            # 1. Download checksums
+            echo "Downloading $sum_name..."
+            if ! curl -fsSL "${base_url}/${sum_name}" -o "$tmpdir/checksums.txt"; then
+              echo "Failed to download checksums file for ${version_tag}"
+              rm -rf "$tmpdir"
+              return 1
+            fi
+
+            # 2. Determine tarball name
+            local tar_name=""
+            for candidate in "${tar_names[@]}"; do
+              if grep -q "$candidate" "$tmpdir/checksums.txt"; then
+                tar_name="$candidate"
+                echo "Found matching tarball name: $tar_name"
+                break
+              fi
+            done
+
+            if [[ -z "$tar_name" ]]; then
+              echo "No exact match found in predefined names. Searching in checksums.txt..."
+              tar_name=$(grep -iE 'Linux.*(64-bit|x86_64|amd64).*\.tar\.gz' "$tmpdir/checksums.txt" | awk '{print $2}' | head -1)
+              if [[ -n "$tar_name" ]]; then
+                echo "Auto-detected tarball name: $tar_name"
+              fi
+            fi
+
+            if [[ -z "$tar_name" ]]; then
+              echo "Could not determine Vale tarball name for ${version_tag}"
+              rm -rf "$tmpdir"
+              return 1
+            fi
+
+            # 3. Download tarball
+            echo "Downloading $tar_name..."
+            if ! curl -fsSL "${base_url}/${tar_name}" -o "$tmpdir/vale.tar.gz"; then
+              echo "Failed to download $tar_name"
+              rm -rf "$tmpdir"
+              return 1
+            fi
+
+            # 4. Verify Checksum
+            echo "Looking for checksum of: $tar_name"
+            local expected_sha
+            expected_sha=$(awk -v tar="$tar_name" '$2 == tar {print $1}' "$tmpdir/checksums.txt")
+            if [[ -z "$expected_sha" ]]; then
+              echo "Exact match not found. Trying partial match..."
+              expected_sha=$(awk -v tar="$tar_name" 'index($2, tar) || index($0, tar) {print $1}' "$tmpdir/checksums.txt" | head -1)
+            fi
+            if [[ -z "$expected_sha" ]]; then
+              echo "Failed to extract expected SHA256 from checksums.txt for ${version_tag}"
+              rm -rf "$tmpdir"
+              return 1
+            fi
+
+            local actual_sha
+            actual_sha=$(sha256sum "$tmpdir/vale.tar.gz" | awk '{print $1}')
+            if [ "$expected_sha" != "$actual_sha" ]; then
+              echo "Vale checksum mismatch: expected $expected_sha, got $actual_sha"
+              rm -rf "$tmpdir"
+              return 1
+            fi
+
+            # 5. Install
+            tar xz -C "$tmpdir" -f "$tmpdir/vale.tar.gz"
+            sudo mv "$tmpdir/vale" /usr/local/bin/vale
+            rm -rf "$tmpdir"
+            return 0
+          }
+
+          # Try latest version first
+          echo "Fetching latest Vale version tag..."
+          VALE_TAG=$(curl -sL --fail --max-time 30 https://api.github.com/repos/errata-ai/vale/releases/latest | jq -r .tag_name || echo "")
+
+          INSTALLED=false
+          if [[ -n "$VALE_TAG" && "$VALE_TAG" != "null" ]]; then
             echo "Detected latest Vale version: $VALE_TAG"
-          fi
-
-          # 2. Construct URLs for the latest release
-          # Pattern: vale_X.Y.Z_Linux_64-bit.tar.gz and vale_X.Y.Z_checksums.txt
-          VERSION_NUM="${VALE_TAG#v}"
-          BASE_URL="https://github.com/errata-ai/vale/releases/download/${VALE_TAG}"
-          
-          # Try multiple naming patterns for Linux x86_64
-          TAR_NAMES=(
-            "vale_${VERSION_NUM}_Linux_64-bit.tar.gz"
-            "vale_${VERSION_NUM}_Linux_x86_64.tar.gz"
-            "vale_${VERSION_NUM}_linux_amd64.tar.gz"
-          )
-          SUM_NAME="vale_${VERSION_NUM}_checksums.txt"
-
-          tmpdir="$(mktemp -d)"
-          
-          # Download checksums first to determine correct filename
-          echo "Downloading $SUM_NAME..."
-          if ! curl -fsSL "${BASE_URL}/${SUM_NAME}" -o "$tmpdir/checksums.txt"; then
-            echo "::error::Failed to download checksums file"
-            rm -rf "$tmpdir"
-            exit 1
-          fi
-          
-          echo "Contents of checksums.txt:"
-          cat "$tmpdir/checksums.txt"
-          
-          # Find the correct Linux x86_64 tarball name from checksums
-          TAR_NAME=""
-          for candidate in "${TAR_NAMES[@]}"; do
-            if grep -q "$candidate" "$tmpdir/checksums.txt"; then
-              TAR_NAME="$candidate"
-              echo "Found matching tarball name: $TAR_NAME"
-              break
+            if install_vale "$VALE_TAG"; then
+              INSTALLED=true
+            else
+              echo "Warning: Failed to install latest version $VALE_TAG. Falling back..."
             fi
-          done
-          
-          # If no exact match, try to extract from checksums.txt
-          if [[ -z "$TAR_NAME" ]]; then
-            echo "::warning::No exact match found in predefined names. Searching in checksums.txt..."
-            TAR_NAME=$(grep -iE 'Linux.*(64-bit|x86_64|amd64).*\.tar\.gz' "$tmpdir/checksums.txt" | awk '{print $2}' | head -1)
-            if [[ -n "$TAR_NAME" ]]; then
-              echo "Auto-detected tarball name: $TAR_NAME"
+          else
+            echo "Warning: Failed to fetch latest Vale version tag. Falling back..."
+          fi
+
+          if [ "$INSTALLED" = "false" ]; then
+            echo "Installing pinned fallback version: $VALE_FALLBACK_VERSION"
+            if ! install_vale "$VALE_FALLBACK_VERSION"; then
+               echo "::error::Failed to install fallback version $VALE_FALLBACK_VERSION"
+               exit 1
             fi
           fi
-          
-          if [[ -z "$TAR_NAME" ]]; then
-            echo "::error::Could not determine Vale tarball name for Linux x86_64"
-            echo "Available files in checksums.txt:"
-            cat "$tmpdir/checksums.txt"
-            rm -rf "$tmpdir"
-            exit 1
-          fi
-          
-          echo "Downloading $TAR_NAME..."
-          if ! curl -fsSL "${BASE_URL}/${TAR_NAME}" -o "$tmpdir/vale.tar.gz"; then
-            echo "::error::Failed to download $TAR_NAME"
-            rm -rf "$tmpdir"
-            exit 1
-          fi
 
-          # 3. Verify Checksum
-          echo "Looking for checksum of: $TAR_NAME"
-          expected_sha=$(awk -v tar="$TAR_NAME" '$2 == tar {print $1}' "$tmpdir/checksums.txt")
-          if [[ -z "$expected_sha" ]]; then
-            echo "::warning::Exact match not found. Trying partial match..."
-            # Try partial match in case filename format differs slightly
-            expected_sha=$(awk -v tar="$TAR_NAME" 'index($2, tar) || index($0, tar) {print $1}' "$tmpdir/checksums.txt" | head -1)
-          fi
-          if [[ -z "$expected_sha" ]]; then
-            echo "::error::Failed to extract expected SHA256 from checksums.txt for $VALE_TAG"
-            echo "Searched for: $TAR_NAME"
-            rm -rf "$tmpdir"
-            exit 1
-          fi
-          echo "Found expected SHA256: $expected_sha"
-
-          actual_sha=$(sha256sum "$tmpdir/vale.tar.gz" | awk '{print $1}')
-          if [ "$expected_sha" != "$actual_sha" ]; then
-            echo "::error::Vale checksum mismatch: expected $expected_sha, got $actual_sha"
-            exit 1
-          fi
-
-          # 4. Install
-          tar xz -C "$tmpdir" -f "$tmpdir/vale.tar.gz"
-          sudo mv "$tmpdir/vale" /usr/local/bin/vale
-          rm -rf "$tmpdir"
           vale --version
       - name: Lint shells
         run: |
