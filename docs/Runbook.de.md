@@ -36,12 +36,14 @@ Beispiele:
 
 - `wgx py up` ausführen, damit uv die im Profil hinterlegte Python-Version bereitstellt.
 - `wgx py sync` starten, um Abhängigkeiten anhand des `uv.lock`-Files konsistent zu installieren.
-- Falls ein Repository noch kein Lockfile besitzt, `uv pip sync requirements.txt` verwenden und anschließend `wgx py sync` etablieren.
+- Falls ein Repository noch kein Lockfile besitzt, `uv pip sync requirements.txt` verwenden und anschließend
+  `wgx py sync` etablieren.
 - Bei globaler Installation prüfen, ob Version mit zentralem Contract kompatibel ist.
 
 ### `sudo apt-get update -y` schlägt mit „unsigned/403 responses" fehl
 
-- Tritt häufig in abgeschotteten Netzen oder nach dem Hinzufügen externer Repositories auf. Prüfe zunächst die Systemzeit und ob ein Proxy/TLS-Intercepter im Einsatz ist (`echo $https_proxy`).
+- Tritt häufig in abgeschotteten Netzen oder nach dem Hinzufügen externer Repositories auf. Prüfe zunächst die
+  Systemzeit und ob ein Proxy/TLS-Intercepter im Einsatz ist (`echo $https_proxy`).
 - Alte Paketlisten entfernen und neu herunterladen:
 
   ```bash
@@ -50,7 +52,8 @@ Beispiele:
   sudo apt-get update
   ```
 
-- Für zusätzliche Repositories sicherstellen, dass der passende Signatur-Schlüssel hinterlegt ist (statt `apt-key` den neuen Keyring-Weg nutzen):
+- Für zusätzliche Repositories sicherstellen, dass der passende Signatur-Schlüssel hinterlegt ist (statt `apt-key`
+  den neuen Keyring-Weg nutzen):
 
   ```bash
   # Beispiel: Docker-Repository hinzufügen
@@ -61,7 +64,8 @@ Beispiele:
   # Ersetze ggf. 'docker', die URL, 'jammy' (Distribution) und 'stable' (Komponenten) entsprechend deiner Quelle.
   ```
 
-- Bleibt der Fehler bestehen, das Log (`/var/log/apt/term.log`) prüfen. Bei 403-Antworten hilft oft ein Mirror-Wechsel oder das Entfernen veralteter Einträge in `/etc/apt/sources.list.d/`.
+- Bleibt der Fehler bestehen, das Log (`/var/log/apt/term.log`) prüfen. Bei 403-Antworten hilft oft ein
+  Mirror-Wechsel oder das Entfernen veralteter Einträge in `/etc/apt/sources.list.d/`.
 
 ### Git-Hooks blockieren Commits
 
@@ -105,7 +109,8 @@ Beispiele:
 ## CI mit uv (Kurzüberblick)
 
 - uv installieren (z. B. per `curl -LsSf https://astral.sh/uv/install.sh | sh`).
-- Globalen Cache cachen: `~/.cache/uv` mit einem Key aus uv-Version (`uv --version | awk '{print $2}'`) sowie `pyproject.toml` + `uv.lock`.
+- Globalen Cache cachen: `~/.cache/uv` mit einem Key aus uv-Version (`uv --version | awk '{print $2}'`) sowie
+  `pyproject.toml` + `uv.lock`.
 - Abhängigkeiten strikt via `uv sync --frozen` installieren.
 - Tests mit `uv run …` starten (z. B. `uv run pytest -q`).
 
