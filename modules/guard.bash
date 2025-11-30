@@ -52,10 +52,9 @@ Description:
   Standardmäßig werden sowohl Linting als auch Tests ausgeführt.
 
 Checks:
-  - Sucht nach potentiellen Secrets im Staging-Bereich.
+  - Prüft auf das Vorhandensein eines .wgx/profile.yml.
   - Sucht nach verbleibenden Konfliktmarkern im Code.
-  - Prüft auf übergroße Dateien (>= 1MB).
-  - Verifiziert das Vorhandensein von wichtigen Repository-Dateien (z.B. uv.lock).
+  - Prüft auf übergroße Dateien (>= 1MB, konfigurierbar via WGX_GUARD_MAX_BYTES).
   - Führt 'wgx lint' aus (falls --lint angegeben oder Standard).
   - Führt 'wgx test' aus (falls --test angegeben oder Standard).
 
