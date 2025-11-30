@@ -27,26 +27,34 @@ Version: vΩ (2025-10-05) · Status-Legende: 🟢 Core · 🟡 Next · 🔬 Expe
 - [20. Anhang: Kommandokarte als Einzeiler (Merkliste)](#20-anhang-kommandokarte-als-einzeiler-merkliste)
 
 > **Leitbild:** Ein Knopf. Ein Vokabular. Ein Cockpit. Ein Gedächtnis.  
-> **WGX** ist das **Repo-Betriebssystem**: vereinheitlichte Bedienung über alle Repositories und Geräte (Pop!_OS, Codespaces, Termux) – verstärkt durch **HausKI-Memory** für Personalisierung, Reproduzierbarkeit, Evidenz und Fleet-Orchestrierung.
+> **WGX** ist das **Repo-Betriebssystem**: vereinheitlichte Bedienung über alle Repositories und Geräte
+> (Pop!_OS, Codespaces, Termux) – verstärkt durch **HausKI-Memory** für Personalisierung,
+> Reproduzierbarkeit, Evidenz und Fleet-Orchestrierung.
 
 ---
 
 ## 0. Executive Summary (Kurzfassung)
 
-- **WGX normalisiert Bedienung:** immer dieselben Knöpfe (`up | list | run | guard | smoke | doctor`), egal ob Just/Task/Make/npm/cargo.  
+- **WGX normalisiert Bedienung:** immer dieselben Knöpfe (`up | list | run | guard | smoke | doctor`),
+  egal ob Just/Task/Make/npm/cargo.  
 - **WGX härtet Qualität:** Contracts, Auto-Fixes, schnelle Sanity-Checks, Policy-Explain.  
-- **WGX sieht Zusammenhänge:** Shadowmap (Repos ↔ Workflows ↔ Secrets ↔ Dienste), Lighthouse (Policies), Evidence-Packs für PRs.  
-- **WGX lernt & erinnert:** Memory speichert Runs, Policies, Seeds, Artefakte; `suggest`, `optimize`, `forecast`, `preview`.  
+- **WGX sieht Zusammenhänge:** Shadowmap (Repos ↔ Workflows ↔ Secrets ↔ Dienste), Lighthouse
+  (Policies), Evidence-Packs für PRs.  
+- **WGX lernt & erinnert:** Memory speichert Runs, Policies, Seeds, Artefakte; `suggest`, `optimize`,
+  `forecast`, `preview`.  
 - **WGX skaliert:** Fleet-Kommandos für viele Repos; Budget-Steuerung, Quarantäne, Konvois, Benchmarking.  
 - **WGX bleibt portabel:** Teleport zwischen Pop!_OS, Codespaces, Termux; Offline-Bundles und Delta-Sync.
 
-**Essenz:** Ein Bedienkanon + Policies + Sichtbarkeit + Gedächtnis ⇒ **schnellere, sichere, reproduzierbare Entwicklung** – vom Ein-Repo bis zur Fleet.
+**Essenz:** Ein Bedienkanon + Policies + Sichtbarkeit + Gedächtnis ⇒ **schnellere, sichere,
+reproduzierbare Entwicklung** – vom Ein-Repo bis zur Fleet.
 
 ---
 
 ## 1. Problem → Prinzipien
 
-**Fragmentierung** (Toolzoo, Plattformen), **Unsichtbarkeit** (unklare Policies/Secrets/Abhängigkeiten), **Nicht-Reproduzierbarkeit** (flaky, „läuft nur bei mir“), **Skalierungs-Schmerz** (viele Repos, viele Teams).
+**Fragmentierung** (Toolzoo, Plattformen), **Unsichtbarkeit** (unklare Policies/Secrets/Abhängigkeiten),
+**Nicht-Reproduzierbarkeit** (flaky, „läuft nur bei mir"), **Skalierungs-Schmerz** (viele Repos, viele
+Teams).
 
 **Prinzipien:**
 
@@ -140,7 +148,8 @@ Version: vΩ (2025-10-05) · Status-Legende: 🟢 Core · 🟡 Next · 🔬 Expe
 
 ### 3.4 Vorhersage & Optimierung
 
-- **`wgx preview`** 🟡 – Preflight-Analyse vor PR (Bruchrisiken, Doku-Drift, Downstream-Impact; siehe [Abschnitt 12](#12-onboarding-fahrplan-mvp--next--extended) für MVP-Staffelung).
+- **`wgx preview`** 🟡 – Preflight-Analyse vor PR (Bruchrisiken, Doku-Drift, Downstream-Impact; siehe
+  [Abschnitt 12](#12-onboarding-fahrplan-mvp--next--extended) für MVP-Staffelung).
 - **`wgx forecast`** 🟡 – Flakiness-/Dauer-/Risikoprognose (historische Muster).  
 - **`wgx optimize`** 🟡 – Vorschläge: Parallelisierung, Caches, geänderte Testpfade; misst Einsparungen.  
 - **`wgx fuel --show|--limit`** 🟡 – Ressourcen/„Kosten“ (CI-Minuten, Spin-Runtime, Cache-Größe) sichtbar begrenzen.
@@ -322,7 +331,7 @@ alias:
   "docs prüfen": ["vale", "cspell", "linkcheck"]
 ```
 
-**Erweitert v1.1**
+#### Erweitert v1.1
 
 ```yaml
 wgx:
@@ -404,7 +413,8 @@ wgx:
 ```text
 MVP Woche 1 → up · list · run · guard · smoke · doctor|validate + .wgx/profile.yml (v1)
 Next Ring  → fleet status|fix · rituals ship-it · runbook · suggest · checkpoint · optimize
-Extended   → chrono · timecapsule · chaos · spin · lighthouse · shadowmap · patchbay · phone · audit · fuel · forecast · preview
+Extended   → chrono · timecapsule · chaos · spin · lighthouse · shadowmap · patchbay · phone · audit ·
+             fuel · forecast · preview
 ```
 
 **Done-Kriterien (Kern):**  
@@ -437,7 +447,11 @@ Extended   → chrono · timecapsule · chaos · spin · lighthouse · shadowmap
 
 ## 15. Für Dummies (ein Absatz)
 
-**WGX ist deine Universalfernbedienung fürs Coden.** Du merkst dir drei Knöpfe: `wgx up` (Bühne hinstellen), `wgx list` (Knöpfe anzeigen), `wgx run <…>` (richtig ausführen). `guard` räumt automatisch Kleinkram weg, `smoke` prüft fix, ob alles gesund ist. WGX merkt sich, was bei **dir** funktioniert, erklärt Fehler und liefert Belege für PRs. Läuft am Laptop, im Browser (Codespaces) und auf dem Handy (Termux).
+**WGX ist deine Universalfernbedienung fürs Coden.** Du merkst dir drei Knöpfe: `wgx up` (Bühne
+hinstellen), `wgx list` (Knöpfe anzeigen), `wgx run <…>` (richtig ausführen). `guard` räumt automatisch
+Kleinkram weg, `smoke` prüft fix, ob alles gesund ist. WGX merkt sich, was bei **dir** funktioniert,
+erklärt Fehler und liefert Belege für PRs. Läuft am Laptop, im Browser (Codespaces) und auf dem Handy
+(Termux).
 
 ---
 
@@ -466,7 +480,8 @@ WGX **spielt** sie – mit Applaus-Knopf: `ritual ship-it`. 🎬
 ## 19. ∴fores Ungewissheit
 
 **Grad:** ▮▮▮▯▯ ≈ 35–40 %  
-**Ursachen:** Adapter-Feinheiten (npm/just/task/cargo), sauberes Versions-Pinning, Seed-Governance, sops/age-Schlüssel, Offline-Sync-Konflikte, Fleet-Semantik in Edge-Fällen.  
+**Ursachen:** Adapter-Feinheiten (npm/just/task/cargo), sauberes Versions-Pinning, Seed-Governance,
+sops/age-Schlüssel, Offline-Sync-Konflikte, Fleet-Semantik in Edge-Fällen.  
 **Charakter:** **produktive** Unschärfe → optimal für MVP-Spikes mit echten Repos/PRs; modular ausbaubar.
 
 ---
