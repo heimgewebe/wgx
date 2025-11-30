@@ -31,6 +31,7 @@ Commands:
   setup
   start
   status
+  sync-remote
   task
   tasks
   test
@@ -123,10 +124,9 @@ Description:
   Standardmäßig werden sowohl Linting als auch Tests ausgeführt.
 
 Checks:
-  - Sucht nach potentiellen Secrets im Staging-Bereich.
+  - Prüft auf das Vorhandensein eines .wgx/profile.yml.
   - Sucht nach verbleibenden Konfliktmarkern im Code.
-  - Prüft auf übergroße Dateien (>= 1MB).
-  - Verifiziert das Vorhandensein von wichtigen Repository-Dateien (z.B. uv.lock).
+  - Prüft auf übergroße Dateien (>= 1MB, konfigurierbar via WGX_GUARD_MAX_BYTES).
   - Führt 'wgx lint' aus (falls --lint angegeben oder Standard).
   - Führt 'wgx test' aus (falls --test angegeben oder Standard).
 
@@ -188,6 +188,7 @@ Commands:
   setup
   start
   status
+  sync-remote
   task
   tasks
   test
@@ -281,7 +282,7 @@ Options:
 
 ```
 Usage:
-  wgx reload [--force] [--dry-run]
+  wgx reload [--force] [--dry-run] [--snapshot]
 
 Description:
   Setzt das Arbeitsverzeichnis hart auf den Stand des Upstream-Branches zurück.
@@ -290,6 +291,7 @@ Description:
 Options:
   --force       Führt den Reset auch bei ungespeicherten Änderungen aus.
   --dry-run     Zeigt nur an, was getan würde, ohne Änderungen vorzunehmen.
+  --snapshot    Erstellt vorher einen Git-Stash als Sicherheitskopie.
   -h, --help    Diese Hilfe anzeigen.
 ```
 
@@ -387,6 +389,23 @@ Description:
   globale Flags wie den OFFLINE-Modus.
 
 Options:
+  -h, --help    Diese Hilfe anzeigen.
+```
+
+### sync-remote
+
+```
+Usage:
+  wgx reload [--force] [--dry-run] [--snapshot]
+
+Description:
+  Setzt das Arbeitsverzeichnis hart auf den Stand des Upstream-Branches zurück.
+  WARNUNG: Alle lokalen Änderungen, auch ungetrackte Dateien, gehen verloren.
+
+Options:
+  --force       Führt den Reset auch bei ungespeicherten Änderungen aus.
+  --dry-run     Zeigt nur an, was getan würde, ohne Änderungen vorzunehmen.
+  --snapshot    Erstellt vorher einen Git-Stash als Sicherheitskopie.
   -h, --help    Diese Hilfe anzeigen.
 ```
 
