@@ -126,6 +126,17 @@ USAGE
     git diff --quiet "origin/$WGX_BASE"...HEAD && die "send: Kein Diff zu origin/$WGX_BASE → Nichts zu senden."
   fi
 
+  # Stellt sicher, dass das guard-Modul geladen ist
+  if ! declare -F guard_run >/dev/null 2>&1; then
+    local module_path="${WGX_PROJECT_ROOT:-$WGX_DIR}/modules/guard.bash"
+    if [[ -r "$module_path" ]]; then
+      # shellcheck source=/dev/null
+      source "$module_path"
+    else
+      die "Guard module not found at: $module_path"
+    fi
+  fi
+
   guard_run
   local rc=$?
   ((rc == 1 && (ASSUME_YES || ${WGX_DRAFT_ON_WARN:-0}))) && DRAFT=1
