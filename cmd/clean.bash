@@ -276,11 +276,3 @@ USAGE
   fi
   _cleanup_and_return "$rc"
 }
-
-clean_cmd() {
-  cmd_clean "$@"
-}
-
-wgx_command_main() {
-  cmd_clean "$@"
-}

@@ -3,7 +3,7 @@
 # wgx validate — prüft das .wgx/profile.* Manifest
 #
 
-validate_cmd() {
+cmd_validate() {
   local json=0 help=0
   while [ $# -gt 0 ]; do
     case "$1" in
@@ -81,9 +81,4 @@ USAGE
     fi
   fi
   return $((ok ? 0 : 1))
-}
-
-# Einheitlicher Einstiegspunkt – wie bei den anderen cmd/*-Skripten
-wgx_command_main() {
-  validate_cmd "$@"
 }
