@@ -1,8 +1,13 @@
 # Befehlsreferenz für `wgx`
 
-Diese Übersicht fasst die wichtigsten Subcommands zusammen, inklusive Zweck und zentraler Optionen. Die Beschreibungen basieren auf dem aktuellen Stand der Skripte unter `cmd/` sowie den portierten Funktionen aus `archiv/wgx`.
+Diese Übersicht fasst die wichtigsten Subcommands zusammen, inklusive Zweck und zentraler Optionen. Die
+Beschreibungen basieren auf dem aktuellen Stand der Skripte unter `cmd/` sowie den portierten Funktionen aus
+`archiv/wgx`.
 
-> ⚠️ **Umbau-Hinweis:** Einige Kommandos – insbesondere `wgx quick`, `wgx hooks` sowie der `wgx version`/`wgx release`-Pfad – befinden sich in aktiver Überarbeitung. Sie sind funktional, können aber kurzfristig Breaking Changes oder erweiterte Optionen erhalten. Kennzeichnungen erfolgen in den jeweiligen Abschnitten.
+> ⚠️ **Umbau-Hinweis:** Einige Kommandos – insbesondere `wgx quick`, `wgx hooks` sowie der
+> `wgx version`/`wgx release`-Pfad – befinden sich in aktiver Überarbeitung. Sie sind funktional, können aber
+> kurzfristig Breaking Changes oder erweiterte Optionen erhalten. Kennzeichnungen erfolgen in den jeweiligen
+> Abschnitten.
 
 ## Schnellüberblick
 
@@ -27,7 +32,8 @@ Diese Übersicht fasst die wichtigsten Subcommands zusammen, inklusive Zweck und
 
 ### `wgx status`
 
-- **Zweck:** Kompakter Snapshot von Branch, Ahead/Behind zum Basis-Branch, erkannte Web/API-Verzeichnisse und globale Flags.
+- **Zweck:** Kompakter Snapshot von Branch, Ahead/Behind zum Basis-Branch, erkannte Web/API-Verzeichnisse und
+  globale Flags.
 - **Besonderheiten:** Funktioniert auch außerhalb von Git-Repositories und markiert Offline-Modus.
 
 ### `wgx send`
@@ -44,7 +50,8 @@ Diese Übersicht fasst die wichtigsten Subcommands zusammen, inklusive Zweck und
 
 ### `wgx guard`
 
-- **Zweck:** Sicherheitsnetz vor PRs: sucht nach Secrets, Konfliktmarkern, übergroßen Dateien und prüft Pflichtartefakte.
+- **Zweck:** Sicherheitsnetz vor PRs: sucht nach Secrets, Konfliktmarkern, übergroßen Dateien und prüft
+  Pflichtartefakte.
 - **Wichtige Optionen:**
   - `--lint` bzw. `--test` lassen sich einzeln aktivieren; Standard ist beides.
 - **Besonderheiten:** Ruft `wgx lint`/`wgx test` nur auf, wenn die Kommandos verfügbar sind.
@@ -91,22 +98,27 @@ Diese Übersicht fasst die wichtigsten Subcommands zusammen, inklusive Zweck und
 ### `wgx setup`
 
 - **Zweck:** Hilft bei der Erstinstallation – insbesondere unter Termux.
-- **Verhalten:** Installiert/prüft Kernpakete (git, gh, glab, jq, vale …) und weist auf fehlende Tools hin; außerhalb Termux dient der Befehl als Checkliste.
+- **Verhalten:** Installiert/prüft Kernpakete (git, gh, glab, jq, vale …) und weist auf fehlende Tools hin;
+  außerhalb Termux dient der Befehl als Checkliste.
 
 ### `wgx lint`
 
-- **Zweck:** Aggregiertes Linting für Markdown, Vale, Frontend (Prettier/ESLint), Rust, Shell, Dockerfiles und GitHub Actions.
-- **Besonderheiten:** Erkennt Paketmanager automatisch, versucht Offline-Fallbacks, kennzeichnet fehlende Tools als Warnungen.
+- **Zweck:** Aggregiertes Linting für Markdown, Vale, Frontend (Prettier/ESLint), Rust, Shell, Dockerfiles und
+  GitHub Actions.
+- **Besonderheiten:** Erkennt Paketmanager automatisch, versucht Offline-Fallbacks, kennzeichnet fehlende Tools
+  als Warnungen.
 
 ### `wgx test`
 
-- **Zweck:** Führt parallele Web-Tests (npm/pnpm/yarn) und Rust-Tests (`cargo test`) aus, sofern Verzeichnisse erkannt werden.
+- **Zweck:** Führt parallele Web-Tests (npm/pnpm/yarn) und Rust-Tests (`cargo test`) aus, sofern Verzeichnisse
+  erkannt werden.
 - **Hinweis:** Aggregiert Exit-Codes und meldet getrennt Web-/Rust-Fehler.
 
 ### `wgx start`
 
 - **Zweck:** Erstellt neue Feature-Branches nach validiertem Slug, optional mit Issue-Präfix.
-- **Besonderheiten:** Normalisiert Sonderzeichen, schützt gegen Base-Branch-Missbrauch und fetches vorher den Basisbranch (sofern nicht offline).
+- **Besonderheiten:** Normalisiert Sonderzeichen, schützt gegen Base-Branch-Missbrauch und fetches vorher den
+  Basisbranch (sofern nicht offline).
 
 ### `wgx release`
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-# heal_cmd (from archiv/wgx)
-heal_cmd() {
+# cmd_heal (standardized naming convention)
+cmd_heal() {
   local MODE="${1-}"
 
   # Handle help first
@@ -111,8 +111,4 @@ USAGE
   *) die "Unbekannter heal-Modus: $MODE" ;;
   esac
   ok "Heal erfolgreich."
-}
-
-cmd_heal() {
-  heal_cmd "$@"
 }

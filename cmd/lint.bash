@@ -78,11 +78,3 @@ USAGE
   cd "$oldpwd" >/dev/null 2>&1 || true
   return $rc
 }
-
-lint_cmd() {
-  cmd_lint "$@"
-}
-
-wgx_command_main() {
-  cmd_lint "$@"
-}

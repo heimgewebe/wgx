@@ -69,6 +69,7 @@ Options:
   --deep       Führt ein destruktives `git clean -xfd` aus (erfordert --force, nur sauberer Git-Tree).
   --dry-run    Zeigt nur an, was passieren würde.
   --force      Bestätigt destruktive Operationen (für --deep).
+• Nichts zu tun.
 ```
 
 ### config
@@ -394,7 +395,7 @@ Options:
 
 ### sync-remote
 
-```
+```text
 Usage:
   wgx reload [--force] [--dry-run] [--snapshot]
 
@@ -488,3 +489,4 @@ Subcommands:
 Options:
   -h, --help     Diese Hilfe anzeigen.
 ```
+

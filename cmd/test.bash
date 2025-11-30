@@ -31,7 +31,7 @@ _test_collect_files() {
   find "$dir" -maxdepth 1 -type f -name '*.bats' -print0 | sort -z
 }
 
-test_cmd() {
+cmd_test() {
   local base_dir="${WGX_DIR:-"$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"}"
   local tests_dir="${base_dir}/tests"
   local show_list=0
@@ -87,8 +87,4 @@ test_cmd() {
 
   info "Starting Bats tests..."
   bats "${bats_args[@]}" "${test_files[@]}"
-}
-
-wgx_command_main() {
-  test_cmd "$@"
 }

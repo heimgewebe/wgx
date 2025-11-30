@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-# send_cmd (from archiv/wgx)
-send_cmd() {
+# cmd_send (standardized naming convention)
+cmd_send() {
   # Handle help first
   case "${1-}" in
   -h | --help | help)
@@ -258,8 +258,4 @@ USAGE
     fi
     ;;
   esac
-}
-
-cmd_send() {
-  send_cmd "$@"
 }

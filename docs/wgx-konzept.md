@@ -14,7 +14,8 @@ Scope: Orchestrierung, nicht Business-Logik
 - spricht mit Templates und Reusable-Workflows aus dem **metarepo**,
 - ist selbst kein Service und macht keine KI-Logik.
 
-Kurz: wgx ist der **Bordcomputer**, der die Flotte bedient – nicht das Gehirn (hausKI) und nicht das Gedächtnis (chronik).
+Kurz: wgx ist der **Bordcomputer**, der die Flotte bedient – nicht das Gehirn (hausKI) und nicht das Gedächtnis
+(chronik).
 
 Abgrenzung:
 
@@ -77,7 +78,8 @@ wgx wird in CI-Jobs eingesetzt, um:
 - bestimmte wiederkehrende Aktionen einheitlich auszuführen.
 
 Wichtig:  
-wgx selbst ist aktuell kein Rust-Projekt. CI, die versucht, ein Rust-`wgx` zu installieren, ist fehlkonfiguriert und soll bereinigt werden.
+wgx selbst ist aktuell kein Rust-Projekt. CI, die versucht, ein Rust-`wgx` zu installieren, ist fehlkonfiguriert
+und soll bereinigt werden.
 
 ---
 
@@ -147,14 +149,17 @@ Mögliche Features einer späteren v2:
 - direkte Anbindung an semantAH (z. B. wgx weiß, welche Repos logisch zusammengehören).
 
 Wichtig:  
-Solange diese Anforderungen nicht wirklich anstehen, bleibt wgx bewusst in der Bash-Welt – einfacher zu pflegen, gut sichtbar, leicht zu debuggen.
+Solange diese Anforderungen nicht wirklich anstehen, bleibt wgx bewusst in der Bash-Welt – einfacher zu
+pflegen, gut sichtbar, leicht zu debuggen.
 
 ---
 
 ## 7. „Für Dummies“ – wgx in einem Absatz
 
-wgx ist ein kleines Programm für das Terminal, mit dem du alle deine Heimgewebe-Repos über dieselben Befehle steuern kannst.  
-Statt in jedem Repo eigene Skripte zu merken, sagst du einfach `wgx doctor` oder `wgx smoke`, und wgx führt die passenden Kommandos pro Repo aus.  
+wgx ist ein kleines Programm für das Terminal, mit dem du alle deine Heimgewebe-Repos über dieselben Befehle
+steuern kannst.  
+Statt in jedem Repo eigene Skripte zu merken, sagst du einfach `wgx doctor` oder `wgx smoke`, und wgx führt
+die passenden Kommandos pro Repo aus.  
 Es ist kein Zauber, eher eine gut sortierte Werkzeugkiste für wiederkehrende Aufgaben.
 
 ---
@@ -163,16 +168,19 @@ Es ist kein Zauber, eher eine gut sortierte Werkzeugkiste für wiederkehrende Au
 
 Quellen der Ungewissheit:
 
-- **Übergangsphase:** Einige Repos und CI-Jobs sind noch nicht vollständig auf einheitliche wgx-/Profile-Konventionen umgestellt.
+- **Übergangsphase:** Einige Repos und CI-Jobs sind noch nicht vollständig auf einheitliche
+  wgx-/Profile-Konventionen umgestellt.
 - **Zukunft von wgx:** Noch nicht klar, ob und wann ein Rust-basiertes wgx v2 wirklich nötig ist.
 - **Komplexität der Fleet:** Zahl und Vielfalt der Repos kann wachsen, Anforderungen können sich ändern.
 
 Einschätzung:
 
 - Unsicherheitsgrad zur aktuellen Rolle von wgx: niedrig (≈ 0,2) – wgx ist klar als Bash-CLI definiert.
-- Unsicherheitsgrad zur langfristigen Ausrichtung (Bash vs. Rust): mittel (≈ 0,5) – hängt von zukünftigen Anforderungen ab.
+- Unsicherheitsgrad zur langfristigen Ausrichtung (Bash vs. Rust): mittel (≈ 0,5) – hängt von zukünftigen
+  Anforderungen ab.
 
-Diese Ungewissheit ist weitgehend **produktive Unschärfe**: sie erlaubt, wgx pragmatisch weiterzuentwickeln, ohne sich zu früh auf eine schwere Architektur festzulegen.
+Diese Ungewissheit ist weitgehend **produktive Unschärfe**: sie erlaubt, wgx pragmatisch weiterzuentwickeln,
+ohne sich zu früh auf eine schwere Architektur festzulegen.
 
 ---
 
