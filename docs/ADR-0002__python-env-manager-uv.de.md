@@ -20,7 +20,9 @@ Wir setzen [uv](https://docs.astral.sh/uv/) als standardmäßigen Python-Manager
 - Tool-Installation via `uv tool install`, womit `pipx` entfällt.
 - Sehr schnelle Installationszeiten dank nativer Builds und globalem Cache.
 
-wgx bietet dafür Wrapper-Kommandos (`wgx py up`, `wgx py sync`, `wgx py run`, `wgx tool add`). Repository-Profile können per `.wgx/profile.yml` alternative Manager deklarieren, fallen aber standardmäßig auf uv zurück.
+wgx bietet dafür Wrapper-Kommandos (`wgx py up`, `wgx py sync`, `wgx py run`, `wgx tool add`).
+Repository-Profile können per `.wgx/profile.yml` alternative Manager deklarieren, fallen aber
+standardmäßig auf uv zurück.
 
 ## Konsequenzen
 
@@ -31,6 +33,8 @@ wgx bietet dafür Wrapper-Kommandos (`wgx py up`, `wgx py sync`, `wgx py run`, `
 
 ## Risiken / Mitigations
 
-- **Disziplin beim Lockfile**: Änderungen müssen via `wgx py sync` und committedem `uv.lock` erfolgen. wgx-Contracts prüfen dies.
-- **Koexistenz mit Legacy-Tools**: uv überschreibt keine Fremdinstallationen ohne `--force`. Dokumentation weist auf uv als Owner hin.
+- **Disziplin beim Lockfile**: Änderungen müssen via `wgx py sync` und committedem `uv.lock` erfolgen.
+  wgx-Contracts prüfen dies.
+- **Koexistenz mit Legacy-Tools**: uv überschreibt keine Fremdinstallationen ohne `--force`.
+  Dokumentation weist auf uv als Owner hin.
 - **Schulungsbedarf**: Kurzreferenzen in README/Runbook erläutern neue Kommandos und Migrationspfade.

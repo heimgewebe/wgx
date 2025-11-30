@@ -4,7 +4,7 @@
 
 ## Global usage
 
-```text
+```
 wgx — Workspace Helper
 
 Usage:
@@ -49,7 +49,7 @@ More:
 
 ### audit
 
-```text
+```
 Usage:
   wgx audit verify [--strict]
 
@@ -58,7 +58,7 @@ Verwaltet das Audit-Ledger von wgx.
 
 ### clean
 
-```text
+```
 Usage:
   wgx clean [--safe] [--build] [--git] [--deep] [--dry-run] [--force]
 
@@ -69,11 +69,12 @@ Options:
   --deep       Führt ein destruktives `git clean -xfd` aus (erfordert --force, nur sauberer Git-Tree).
   --dry-run    Zeigt nur an, was passieren würde.
   --force      Bestätigt destruktive Operationen (für --deep).
+• Nichts zu tun.
 ```
 
 ### config
 
-```text
+```
 Usage:
   wgx config [show]
   wgx config set <KEY>=<VALUE>
@@ -89,7 +90,7 @@ Options:
 
 ### doctor
 
-```text
+```
 Usage:
   wgx doctor
 
@@ -104,7 +105,7 @@ Options:
 
 ### env
 
-```text
+```
 Usage: wgx env doctor [--fix] [--strict] [--json]
   doctor     Inspect the local environment (default)
   --fix      Apply recommended platform specific tweaks (Termux only)
@@ -114,7 +115,7 @@ Usage: wgx env doctor [--fix] [--strict] [--json]
 
 ### guard
 
-```text
+```
 Usage:
   wgx guard [--lint] [--test]
 
@@ -138,7 +139,7 @@ Options:
 
 ### heal
 
-```text
+```
 Usage:
   wgx heal [rebase|ours|theirs|ff-only] [--stash] [--continue] [--abort] [--base <branch>]
 
@@ -161,7 +162,7 @@ Options:
 
 ### help
 
-```text
+```
 wgx — Workspace Helper
 
 Usage:
@@ -204,7 +205,7 @@ More:
 
 ### hooks
 
-```text
+```
 Usage:
   wgx hooks [install]
 
@@ -220,7 +221,7 @@ Options:
 
 ### init
 
-```text
+```
 Usage:
   wgx init [--wizard]
 
@@ -235,7 +236,7 @@ Options:
 
 ### lint
 
-```text
+```
 Usage:
   wgx lint
 
@@ -250,7 +251,7 @@ Options:
 
 ### quick
 
-```text
+```
 Usage: wgx quick [-i|--interactive] [--help]
 
 Run repository guards (lint + tests) and open the PR/MR helper.
@@ -262,7 +263,7 @@ Options:
 
 ### release
 
-```text
+```
 Usage:
   wgx release [--version <tag>] [--auto-version <bump>] [...]
 
@@ -280,7 +281,7 @@ Options:
 
 ### reload
 
-```text
+```
 Usage:
   wgx reload [--force] [--dry-run] [--snapshot]
 
@@ -301,7 +302,7 @@ _Command does not provide structured --help output._
 
 ### selftest
 
-```text
+```
 Usage:
   wgx selftest
 
@@ -316,7 +317,7 @@ Options:
 
 ### send
 
-```text
+```
 Usage:
   wgx send [options]
 
@@ -345,7 +346,7 @@ Options:
 
 ### setup
 
-```text
+```
 Usage:
   wgx setup
 
@@ -362,7 +363,7 @@ Options:
 
 ### start
 
-```text
+```
 Usage:
   wgx start <branch_name>
 
@@ -378,7 +379,7 @@ Options:
 
 ### status
 
-```text
+```
 Usage:
   wgx status
 
@@ -411,7 +412,7 @@ Options:
 
 ### task
 
-```text
+```
 Usage:
   wgx task <name> [--] [args...]
 
@@ -429,7 +430,7 @@ Options:
 
 ### tasks
 
-```text
+```
 Usage: wgx tasks [--json] [--safe] [--groups]
   --json    Output machine readable JSON
   --safe    Only include tasks marked as safe
@@ -438,7 +439,7 @@ Usage: wgx tasks [--json] [--safe] [--groups]
 
 ### test
 
-```text
+```
 Usage:
   wgx test [--list] [--] [BATS_ARGS...]
   wgx test --help
@@ -458,7 +459,7 @@ Examples:
 
 ### validate
 
-```text
+```
 Usage:
   wgx validate [--json]
 
@@ -472,7 +473,7 @@ Optionen:
 
 ### version
 
-```text
+```
 Usage:
   wgx version [bump <level>] [set <version>]
 
@@ -488,3 +489,4 @@ Subcommands:
 Options:
   -h, --help     Diese Hilfe anzeigen.
 ```
+

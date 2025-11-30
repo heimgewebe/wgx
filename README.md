@@ -25,7 +25,8 @@ SPDX-Kurzidentifier verwenden, z. B.:
 ## Schnellstart
 
 > 📘 **Sprach-Policy:** Neue Beiträge sollen derzeit deutschsprachige, benutzernahe Texte verwenden.
-> Details stehen in [docs/Language-Policy.md](docs/Language-Policy.md); eine spätere Umstellung auf Englisch ist dort skizziert.
+> Details stehen in [docs/Language-Policy.md](docs/Language-Policy.md); eine spätere Umstellung auf
+> Englisch ist dort skizziert.
 
 ```bash
 git clone <DEIN-REPO>.git wgx
@@ -55,8 +56,10 @@ wgx send "feat: initial test run"
 (`--safe`). Weitere Modi lassen sich kombinieren:
 
 - `--build` löscht Build-Artefakte wie `dist/`, `build/`, `.venv/`, `.uv/` usw.
-- `--git` räumt gemergte Branches sowie Remote-Referenzen auf. Funktioniert nur in einem sauberen Git-Arbeitsverzeichnis.
-- `--deep` führt ein destruktives `git clean -xfd` aus und benötigt zusätzlich `--force`. Ein sauberer Git-Tree ist Pflicht.
+- `--git` räumt gemergte Branches sowie Remote-Referenzen auf. Funktioniert nur in einem sauberen
+  Git-Arbeitsverzeichnis.
+- `--deep` führt ein destruktives `git clean -xfd` aus und benötigt zusätzlich `--force`. Ein sauberer
+  Git-Tree ist Pflicht.
 - `--dry-run` zeigt alle Schritte nur an – ideal, um vor destruktiven Varianten zu prüfen, was passieren würde.
 
 💡 Tipp: `wgx clean --dry-run --git` hilft beim schnellen Check, welche Git-Aufräumarbeiten anstehen.
@@ -128,7 +131,8 @@ CI-Lauf oder lokal nach `./scripts/gen-readiness.sh`; Details stehen in
     -d metrics.json
   ```
 
-- Node.js tooling ist nicht erforderlich; npm-/pnpm-Workflows sind deaktiviert, und es existiert kein `package.json` mehr.
+- Node.js tooling ist nicht erforderlich; npm-/pnpm-Workflows sind deaktiviert, und es existiert kein
+  `package.json` mehr.
 
 - Mehr Hinweise im [Quickstart](docs/quickstart.md).
 
@@ -197,8 +201,9 @@ CI-Lauf oder lokal nach `./scripts/gen-readiness.sh`; Details stehen in
 - Devcontainer-Hinweis: kombiniere die Installation mit dem Sync, z. B.
   `"postCreateCommand": "bash -lc '.devcontainer/setup.sh ensure-uv && ~/.local/bin/uv sync'"`.
 - Für regulierte Umgebungen kann die Installation statt `curl | sh` über gepinnte Paketquellen erfolgen.
-- Weitere Hintergründe stehen in [docs/ADR-0002__python-env-manager-uv.de.md](docs/ADR-0002__python-env-manager-uv.de.md)
-  und im [Runbook](docs/Runbook.de.md#leitfaden-von-requirementstxt-zu-uv).
+- Weitere Hintergründe stehen in
+  [docs/ADR-0002__python-env-manager-uv.de.md](docs/ADR-0002__python-env-manager-uv.de.md) und im
+  [Runbook](docs/Runbook.de.md#leitfaden-von-requirementstxt-zu-uv).
 
 ## Kommandos
 
@@ -228,20 +233,26 @@ Destruktiv: setzt den Workspace hart auf `origin/$WGX_BASE` zurück (`git reset 
 ```
 
 Der eigentliche Dispatcher liegt unter `cli/wgx`.
-Alle Subcommands werden über die Dateien im Ordner `cmd/` geladen und greifen dabei auf die Bibliotheken in `lib/` zurück.
-Wiederkehrende Helfer (Logging, Git-Hilfen, Environment-Erkennung usw.) sind im Kernmodul `lib/core.bash` gebündelt.
+Alle Subcommands werden über die Dateien im Ordner `cmd/` geladen und greifen dabei auf die Bibliotheken
+in `lib/` zurück. Wiederkehrende Helfer (Logging, Git-Hilfen, Environment-Erkennung usw.) sind im
+Kernmodul `lib/core.bash` gebündelt.
 
 ## Architektur v1 (Bash)
 
-Die `v1`-Architektur von WGX ist um einen Bash-Kern herum aufgebaut und folgt einer klaren, modularen Struktur, um Wartbarkeit und Erweiterbarkeit zu gewährleisten:
+Die `v1`-Architektur von WGX ist um einen Bash-Kern herum aufgebaut und folgt einer klaren, modularen
+Struktur, um Wartbarkeit und Erweiterbarkeit zu gewährleisten:
 
-- **`cli/wgx`**: Der zentrale Einstiegspunkt (Dispatcher). Dieses Skript identifiziert das passende Subkommando und lädt die notwendigen Bibliotheken.
+- **`cli/wgx`**: Der zentrale Einstiegspunkt (Dispatcher). Dieses Skript identifiziert das passende
+  Subkommando und lädt die notwendigen Bibliotheken.
 - **`cmd/`**: Jedes Subkommando (z.B. `init`, `status`, `test`) ist eine eigenständige `.bash`-Datei in diesem Ordner.
-- **`lib/`**: Enthält wiederverwendbare Kernbibliotheken. `lib/core.bash` stellt zentrale Funktionen wie Logging, Routing und Git-Helfer bereit.
-- **`modules/`**: Beinhaltet optional ladbare Module für komplexere, in sich geschlossene Logik (z.B. `profile.bash` für die `.wgx/profile.yml`-Verarbeitung).
+- **`lib/`**: Enthält wiederverwendbare Kernbibliotheken. `lib/core.bash` stellt zentrale Funktionen wie
+  Logging, Routing und Git-Helfer bereit.
+- **`modules/`**: Beinhaltet optional ladbare Module für komplexere, in sich geschlossene Logik (z.B.
+  `profile.bash` für die `.wgx/profile.yml`-Verarbeitung).
 - **`tests/`**: Alle `bats`-Tests zur Absicherung der Funktionalität.
 
-Alle Skripte nutzen die zentralen Logging-Funktionen (`info`, `ok`, `warn`, `die`) aus `lib/core.bash`, um eine einheitliche und steuerbare Ausgabe zu gewährleisten.
+Alle Skripte nutzen die zentralen Logging-Funktionen (`info`, `ok`, `warn`, `die`) aus `lib/core.bash`,
+um eine einheitliche und steuerbare Ausgabe zu gewährleisten.
 
 Diese Struktur stellt sicher, dass WGX als Bash-zentriertes Tool ohne Rust-Crates funktioniert: Die CLI und alle
 Subkommandos laufen in Bash, für das Parsen von `.wgx/profile.yml` verwendet WGX bewusst Python 3 mit dem
@@ -255,7 +266,8 @@ Für die Nutzung der v1-Architektur gelten zurzeit folgende Mindestvoraussetzung
 - **Git** und gängige Coreutils (`sed`, `awk`, `grep`, `find`, …)
 - **Python 3** mit installiertem `pyyaml`-Modul für das Parsen von `.wgx/profile.yml`
 
-Im Devcontainer und in den CI-Workflows werden diese Abhängigkeiten automatisch installiert (unter Debian/Ubuntu z.B. über das Paket `python3-yaml`).
+Im Devcontainer und in den CI-Workflows werden diese Abhängigkeiten automatisch installiert (unter
+Debian/Ubuntu z.B. über das Paket `python3-yaml`).
 Auf lokalen Maschinen müssen Python 3 und `pyyaml` ggf. manuell nachgerüstet werden. Typische Varianten:
 
 - Debian/Ubuntu: `apt install python3-yaml`
@@ -266,19 +278,23 @@ Ohne funktionsfähiges Python/YAML-Setup können `wgx run` und Profil-basierte F
 
 ## Reusable-Workflows für andere Repos
 
-Dieses Repository stellt kanonische, wiederverwendbare Workflows bereit, die in anderen Repositories der Heimgewebe-Fleet genutzt werden können, um CI-Prozesse zu standardisieren.
+Dieses Repository stellt kanonische, wiederverwendbare Workflows bereit, die in anderen Repositories der
+Heimgewebe-Fleet genutzt werden können, um CI-Prozesse zu standardisieren.
 
 - **`wgx-guard.yml`**: Führt Linting, Contract-Prüfungen und andere statische Analysen aus.
-- **`wgx-smoke.yml`**: Führt einen einfachen Smoke-Test aus, der im `tasks.smoke`-Feld des `.wgx/profile.yml` des Ziel-Repos definiert ist.
+- **`wgx-smoke.yml`**: Führt einen einfachen Smoke-Test aus, der im `tasks.smoke`-Feld des
+  `.wgx/profile.yml` des Ziel-Repos definiert ist.
 
 Diese Workflows nutzen die "Fleet-Konvention" in der `.wgx/profile.yml`:
 
 - **`class`**: Definiert die Klasse des Repositories (z.B. `rust-service`, `python-service`).
-- **`tasks`**: Eine einfache Map von Task-Namen zu Shell-Befehlen, die von externen Tools (wie diesen Workflows) ausgeführt werden können.
+- **`tasks`**: Eine einfache Map von Task-Namen zu Shell-Befehlen, die von externen Tools (wie diesen
+  Workflows) ausgeführt werden können.
 
 ### Beispiel-Verwendung
 
-Um diese Workflows in einem anderen Repository zu verwenden, erstellen Sie eine `.github/workflows/ci.yml`-Datei mit folgendem Inhalt:
+Um diese Workflows in einem anderen Repository zu verwenden, erstellen Sie eine
+`.github/workflows/ci.yml`-Datei mit folgendem Inhalt:
 
 ```yaml
 name: CI
@@ -298,10 +314,14 @@ jobs:
 
 ## Dokumentation & Referenzen
 
-- **Runbook (DE/EN):** [docs/Runbook.de.md](docs/Runbook.de.md) mit [englischer Kurzfassung](docs/Runbook.en.md) für internationales Onboarding.
-- **Glossar (DE/EN):** [docs/Glossar.de.md](docs/Glossar.de.md) sowie [docs/Glossary.en.md](docs/Glossary.en.md) erklären Schlüsselbegriffe.
-- **Befehlsreferenz:** [docs/Command-Reference.de.md](docs/Command-Reference.de.md) listet alle `wgx`-Subcommands samt Optionen.
-- **Module & Vorlagen:** [docs/Module-Uebersicht.de.md](docs/Module-Uebersicht.de.md) beschreibt Aufbau und Zweck von `modules/`, `lib/`, `etc/` und `templates/`.
+- **Runbook (DE/EN):** [docs/Runbook.de.md](docs/Runbook.de.md) mit
+  [englischer Kurzfassung](docs/Runbook.en.md) für internationales Onboarding.
+- **Glossar (DE/EN):** [docs/Glossar.de.md](docs/Glossar.de.md) sowie
+  [docs/Glossary.en.md](docs/Glossary.en.md) erklären Schlüsselbegriffe.
+- **Befehlsreferenz:** [docs/Command-Reference.de.md](docs/Command-Reference.de.md) listet alle
+  `wgx`-Subcommands samt Optionen.
+- **Module & Vorlagen:** [docs/Module-Uebersicht.de.md](docs/Module-Uebersicht.de.md) beschreibt Aufbau
+  und Zweck von `modules/`, `lib/`, `etc/` und `templates/`.
 
 ## Vision & Manifest
 
@@ -319,12 +339,17 @@ Anschließend kannst du sie dort projektspezifisch anpassen.
 ## .wgx/profile (v1 / v1.1)
 
 - **Datei**: `.wgx/profile.yml` (oder `.yaml` / `.json`)
-- **Fallback**: Falls keine `.wgx/profile.yml` eingecheckt ist, nutzt CI die versionierte `.wgx/profile.example.yml` als Vorlage – sie muss daher im Repository bleiben.
-- **Hinweis**: Lokale Profile im Arbeitsbaum sind per `.gitignore` ausgeschlossen. Hinterlegt daher ein Beispielprofil (z.B. `profile.example.yml`) im Repo, wenn die Guard-Jobs ein manifestiertes Profil erwarten.
-- **Details**: Kapitel [6. Profile v1 / v1.1](docs/wgx-mycelium-v-omega.de.md#6-profile-v1--v11-minimal--reich) im Mycelium-Manifest erläutert Struktur, Defaults und Erweiterungen.
+- **Fallback**: Falls keine `.wgx/profile.yml` eingecheckt ist, nutzt CI die versionierte
+  `.wgx/profile.example.yml` als Vorlage – sie muss daher im Repository bleiben.
+- **Hinweis**: Lokale Profile im Arbeitsbaum sind per `.gitignore` ausgeschlossen. Hinterlegt daher ein
+  Beispielprofil (z.B. `profile.example.yml`) im Repo, wenn die Guard-Jobs ein manifestiertes Profil
+  erwarten.
+- **Details**: Kapitel [6. Profile v1 / v1.1](docs/wgx-mycelium-v-omega.de.md#6-profile-v1--v11-minimal--reich)
+  im Mycelium-Manifest erläutert Struktur, Defaults und Erweiterungen.
 - **apiVersion**:
   - `v1`: einfache Strings für `tasks.<name>`
-  - `v1.1`: reichere Spezifikation (Arrays, desc/group/safe, envDefaults/Overrides, requiredWgx-Objekt)
+  - `v1.1`: reichere Spezifikation (Arrays, desc/group/safe, envDefaults/Overrides,
+    requiredWgx-Objekt)
 
 ### Minimales Beispiel (v1)
 
