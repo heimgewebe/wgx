@@ -489,4 +489,3 @@ Subcommands:
 Options:
   -h, --help     Diese Hilfe anzeigen.
 ```
-
