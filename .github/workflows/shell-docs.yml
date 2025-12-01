@@ -46,6 +46,9 @@ jobs:
               "vale_${version_num}_linux_amd64.tar.gz"
               "vale_${version_num}_Linux_amd64.tar.gz"
               "vale_${version_num}_linux_64-bit.tar.gz"
+              "vale_${version_num}_linux_x86_64.tar.gz"
+              "vale_${version_num}_Linux_x86-64.tar.gz"
+              "vale_${version_num}_linux_x86-64.tar.gz"
             )
 
             # 1. Download checksums
@@ -75,7 +78,7 @@ jobs:
 
             if [[ -z "$tar_name" ]]; then
               echo "No exact match found in predefined names. Searching in checksums.txt..."
-              tar_name=$(grep -iE 'Linux.*(64-bit|x86_64|amd64).*\.tar\.gz' "$tmpdir/checksums.txt" | awk '{print $2}' | head -1)
+              tar_name=$(grep -iE 'Linux.*(64-bit|x86_64|x86-64|amd64).*\.tar\.gz' "$tmpdir/checksums.txt" | awk '{print $2}' | head -1)
               if [[ -n "$tar_name" ]]; then
                 echo "Auto-detected tarball name: $tar_name"
               fi
