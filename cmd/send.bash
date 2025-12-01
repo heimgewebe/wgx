@@ -105,7 +105,7 @@ USAGE
   ((OFFLINE)) && die "send: Offline – PR/MR kann nicht erstellt werden."
 
   # Lokales --sign: reaktiviert Signierung, falls global ausgeschaltet
-  if (( SIGN )); then
+  if [[ "${SIGN:-0}" =~ ^[0-9]+$ ]] && (( SIGN )); then
     if [[ "${WGX_SIGNING:-auto}" == "off" ]]; then
       WGX_SIGNING="auto"
     fi
