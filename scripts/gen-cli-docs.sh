@@ -29,7 +29,7 @@ mapfile -t commands < <(./wgx --list | grep -v '^[[:space:]]*$' | sort -u)
   echo
   echo "## Global usage"
   echo
-  echo '```'
+  echo '```text'
   printf '%s\n' "$top_help"
   echo '```'
   echo
@@ -37,7 +37,10 @@ mapfile -t commands < <(./wgx --list | grep -v '^[[:space:]]*$' | sort -u)
   echo
 } >"$tmp_file"
 
+cmd_count="${#commands[@]}"
+cmd_idx=0
 for cmd in "${commands[@]}"; do
+  cmd_idx=$((cmd_idx + 1))
   echo "### ${cmd}" >>"$tmp_file"
   echo >>"$tmp_file"
 
@@ -73,7 +76,7 @@ for cmd in "${commands[@]}"; do
 
   if ((has_structured_help)); then
     {
-      echo '```'
+      echo '```text'
       printf '%s\n' "$cmd_help"
       echo '```'
     } >>"$tmp_file"
@@ -89,7 +92,7 @@ for cmd in "${commands[@]}"; do
       if [[ -n "$cmd_help" ]]; then
         {
           echo
-          echo '```'
+          echo '```text'
           printf '%s\n' "$cmd_help"
           echo '```'
         } >>"$tmp_file"
@@ -97,7 +100,10 @@ for cmd in "${commands[@]}"; do
     fi
   fi
 
-  echo >>"$tmp_file"
+  # Only add blank line if not the last command
+  if ((cmd_idx < cmd_count)); then
+    echo >>"$tmp_file"
+  fi
 done
 
 mv "$tmp_file" "$out_file"
