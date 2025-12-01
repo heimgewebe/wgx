@@ -104,6 +104,13 @@ USAGE
 
   ((OFFLINE)) && die "send: Offline – PR/MR kann nicht erstellt werden."
 
+  # Lokales --sign: reaktiviert Signierung, falls global ausgeschaltet
+  if (( SIGN )); then
+    if [[ "${WGX_SIGNING:-auto}" == "off" ]]; then
+      WGX_SIGNING="auto"
+    fi
+  fi
+
   # Schutz: nicht direkt von Base & kein leeres Diff
   local current
   current="$(git_current_branch)"
