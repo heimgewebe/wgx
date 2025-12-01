@@ -23,7 +23,6 @@ Options:
   --issue <num>     Issue-Nummer verknüpfen
   --reviewers <u>   Reviewer zuweisen (kommasepariert oder 'auto')
   --scope <scope>   Scope überschreiben (auto|web|api|infra|devx|docs|meta|repo)
-  --no-sync-first   Sync vor PR überspringen
   --sign            Commits signieren
   --base <branch>   Basis-Branch überschreiben
   --ci              CI-Workflow triggern (falls WGX_CI_WORKFLOW gesetzt)
@@ -36,7 +35,7 @@ USAGE
   esac
 
   require_repo
-  local DRAFT=0 TITLE="" WHY="" TESTS="" NOTES="" SCOPE="auto" LABELS="${WGX_PR_LABELS-}" ISSUE="" BASE="" SYNC_FIRST=1 SIGN=0 INTERACTIVE=0 REVIEWERS="" TRIGGER_CI=0 OPEN_PR=0 AUTO_BRANCH=0
+  local DRAFT=0 TITLE="" WHY="" TESTS="" NOTES="" SCOPE="auto" LABELS="${WGX_PR_LABELS-}" ISSUE="" BASE="" SIGN=0 INTERACTIVE=0 REVIEWERS="" TRIGGER_CI=0 OPEN_PR=0 AUTO_BRANCH=0
   while [[ $# -gt 0 ]]; do
     case "$1" in
     --draft) DRAFT=1 ;;
@@ -89,7 +88,6 @@ USAGE
         shift
       fi
       ;;
-    --no-sync-first) SYNC_FIRST=0 ;;
     --sign) SIGN=1 ;;
     --base)
       shift
@@ -140,12 +138,6 @@ USAGE
   guard_run
   local rc=$?
   ((rc == 1 && (ASSUME_YES || ${WGX_DRAFT_ON_WARN:-0}))) && DRAFT=1
-  if ((SYNC_FIRST)); then
-    if ! cmd_sync ${SIGN:+--sign} --scope "${SCOPE}" --base "$WGX_BASE"; then
-      warn "Sync fehlgeschlagen → PR abgebrochen."
-      return 1
-    fi
-  fi
 
   local files scope short
   files="$(git diff --name-only "origin/$WGX_BASE"...HEAD 2>/dev/null || true)"
