@@ -48,6 +48,10 @@ jobs:
               "vale_${version_num}_linux_64-bit.tar.gz"
             )
 
+            # 0. Check connectivity (Debug)
+            echo "Checking connectivity to ${base_url}/${sum_name}"
+            curl -v -o /dev/null "${base_url}/${sum_name}" || { echo "Cannot reach ${base_url}/${sum_name}"; return 1; }
+
             # 1. Download checksums
             echo "Downloading from: ${base_url}/${sum_name}"
             if ! curl --retry 3 --retry-delay 5 -fsSL "${base_url}/${sum_name}" -o "$tmpdir/checksums.txt"; then
@@ -86,6 +90,10 @@ jobs:
               rm -rf "$tmpdir"
               return 1
             fi
+
+            # Debug connectivity
+            echo "Checking connectivity to ${base_url}/${tar_name}"
+            curl -v -o /dev/null "${base_url}/${tar_name}" || { echo "Cannot reach ${base_url}/${tar_name}"; return 1; }
 
             # 3. Download tarball
             echo "Downloading from: ${base_url}/${tar_name}"
