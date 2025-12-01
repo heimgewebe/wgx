@@ -126,10 +126,10 @@ env::_termux_fixups() {
   fi
 
   if git config --global --get core.filemode >/dev/null 2>&1; then
-    log_info "git core.filemode already configured."
+    info "git core.filemode already configured."
   else
     if git config --global core.filemode false >/dev/null 2>&1; then
-      log_info "Configured git core.filemode=false for Termux."
+      info "Configured git core.filemode=false for Termux."
     else
       warn "Failed to configure git core.filemode for Termux."
       rc=1
