@@ -335,7 +335,6 @@ Options:
   --issue <num>     Issue-Nummer verknüpfen
   --reviewers <u>   Reviewer zuweisen (kommasepariert oder 'auto')
   --scope <scope>   Scope überschreiben (auto|web|api|infra|devx|docs|meta|repo)
-  --no-sync-first   Sync vor PR überspringen
   --sign            Commits signieren
   --base <branch>   Basis-Branch überschreiben
   --ci              CI-Workflow triggern (falls WGX_CI_WORKFLOW gesetzt)
