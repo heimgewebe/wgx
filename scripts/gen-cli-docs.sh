@@ -40,7 +40,7 @@ mapfile -t commands < <(./wgx --list | grep -v '^[[:space:]]*$' | sort -u)
 cmd_count="${#commands[@]}"
 cmd_idx=0
 for cmd in "${commands[@]}"; do
-  ((cmd_idx++))
+  cmd_idx=$((cmd_idx + 1))
   echo "### ${cmd}" >>"$tmp_file"
   echo >>"$tmp_file"
 
@@ -105,23 +105,5 @@ for cmd in "${commands[@]}"; do
     echo >>"$tmp_file"
   fi
 done
-
-# Ensure file doesn't end with blank lines
-# Count trailing blank lines and remove them
-trailing_blanks=0
-while IFS= read -r line || [ -n "$line" ]; do
-  if [ -z "$line" ]; then
-    trailing_blanks=$((trailing_blanks + 1))
-  else
-    trailing_blanks=0
-  fi
-done < "$tmp_file"
-
-# If there are trailing blanks, remove them
-if [ "$trailing_blanks" -gt 0 ]; then
-  tmp_file2="$(mktemp)"
-  head -n -"$trailing_blanks" "$tmp_file" > "$tmp_file2"
-  mv "$tmp_file2" "$tmp_file"
-fi
 
 mv "$tmp_file" "$out_file"
