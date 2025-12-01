@@ -81,7 +81,7 @@ jobs:
             # 3. Download tarball
             echo "Downloading from: ${base_url}/${tar_name}"
             if ! curl -fsSL "${base_url}/${tar_name}" -o "$tmpdir/vale.tar.gz"; then
-              echo "Failed to download $tar_name from ${base_url}/${tar_name}"
+              echo "Failed to download from ${base_url}/${tar_name}"
               rm -rf "$tmpdir"
               return 1
             fi
@@ -96,8 +96,10 @@ jobs:
             fi
             if [[ -z "$expected_sha" ]]; then
               echo "Failed to extract expected SHA256 from checksums.txt for ${version_tag}"
-              echo "Available checksums in file:"
-              cat "$tmpdir/checksums.txt"
+              if [[ -f "$tmpdir/checksums.txt" ]]; then
+                echo "Available checksums in file:"
+                cat "$tmpdir/checksums.txt"
+              fi
               rm -rf "$tmpdir"
               return 1
             fi
