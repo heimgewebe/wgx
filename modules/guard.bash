@@ -81,11 +81,12 @@ USAGE
 
   local profile_missing=0
   # 0. Profile check
-  echo "▶ Checking for wgx profile..."
+  info "Checking for wgx profile..."
   if profile::has_manifest; then
-    echo "  • Profile found."
+    # We use indented info for substeps
+    printf '  • %s\n' "Profile found." >&2
   else
-    echo "❌ No .wgx/profile.yml or .wgx/profile.example.yml found." >&2
+    warn "No .wgx/profile.yml or .wgx/profile.example.yml found."
     # Nicht sofort abbrechen – andere Checks (v.a. Oversize) sollen trotzdem laufen.
     profile_missing=1
   fi
@@ -93,7 +94,7 @@ USAGE
   # 1. Bigfiles checken (vor dem Secret-Scan, damit große Dateien deterministisch gemeldet werden)
   local max_bytes="${WGX_GUARD_MAX_BYTES:-1048576}"
   if [[ ! "$max_bytes" =~ ^[0-9]+$ ]]; then
-    echo "⚠️ Ungültiger Wert für WGX_GUARD_MAX_BYTES ('$max_bytes'), verwende 1048576." >&2
+    warn "Ungültiger Wert für WGX_GUARD_MAX_BYTES ('$max_bytes'), verwende 1048576."
     max_bytes=1048576
   fi
   info "Checking for oversized files (≥ ${max_bytes} Bytes)..."
@@ -112,83 +113,22 @@ USAGE
   if [ -n "$oversized" ]; then
     # Die Test-Assertion erwartet die exakte Zeichenkette "Oversized files detected" auf STDOUT.
     echo "Oversized files detected"
-    warn "The following tracked files exceed the size limit of ${max_bytes} Bytes:" >&2
+    warn "The following tracked files exceed the size limit of ${max_bytes} Bytes:"
     while IFS= read -r line; do
-      echo "   - $line" >&2
+      printf '   - %s\n' "$line" >&2
     done <<<"$oversized"
     return 1
   fi
 
-  # 2. Staged Secrets checken
-  # if [[ $run_secrets -eq 1 ]]; then
-  #   echo "▶ Checking for secrets..."
-  #   # Scannt den Index (--cached), ignoriert Binärdateien (-I), case-insensitive (-i)
-  #   # und nutzt echte Wortgrenzen, wenn PCRE (-P) verfügbar ist. Fallback simuliert Grenzen.
-  #   type -t _wgx_guard_gitgrep_has_pcre >/dev/null 2>&1 ||
-  #     _wgx_guard_gitgrep_has_pcre() {
-  #       git grep -P -n 'a' -- . >/dev/null 2>&1
-  #       local rc=$?
-  #       [[ $rc -ne 2 ]]
-  #     }
-
-  #   local _secret_hit=1
-  #   if _wgx_guard_gitgrep_has_pcre; then
-  #     git grep --cached -I -n -P -i \
-  #       -e 'AKIA[0-9A-Z]{16}' \
-  #       -e 'BEGIN [A-Z ]*PRIVATE KEY' \
-  #       -e 'ghp_[A-Za-z0-9]{36}' \
-  #       -e 'xox[aboprs]-[A-Za-z0-9-]{10,}' \
-  #       -e 'AIza[0-9A-Za-z_-]{35}' \
-  #       -e '(?<![A-Za-z0-9_])(pass(?:word)?|secret|api[_-]?key|token|authorization)(?![A-Za-z0-9_])' \
-  #       -- . >/dev/null 2>&1
-  #     _secret_hit=$?
-  #   else
-  #     git grep --cached -I -n -E -i \
-  #       -e 'AKIA[0-9A-Z]{16}' \
-  #       -e 'BEGIN [A-Z ]*PRIVATE KEY' \
-  #       -e 'ghp_[A-Za-z0-9]{36}' \
-  #       -e 'xox[aboprs]-[A-Za-z0-9-]{10,}' \
-  #       -e 'AIza[0-9A-Za-z_-]{35}' \
-  #       -e '(^|[^[:alnum:]_])(pass(word)?|secret|api[_-]?key|token|authorization)([^[:alnum:]_]|$)' \
-  #       -- . >/dev/null 2>&1
-  #     _secret_hit=$?
-  #   fi
-
-  #   if [[ $_secret_hit -eq 0 ]]; then
-  #     echo "❌ Potentielles Secret im Commit gefunden (Index-Scan)!" >&2
-  #     echo "   Tipp: Prüfe bewusst, whiteliste ggf. gezielt oder verwende gitleaks." >&2
-  #     return 1
-  #   fi
-  #   unset -v _secret_hit
-  # fi
-
-  # 3. Konfliktmarker checken
-  echo "▶ Checking for conflict markers..."
+  # 2. Konfliktmarker checken
+  info "Checking for conflict markers..."
   # Beschränkt auf getrackte Inhalte via git grep, vermeidet unnötige Scans.
   if git grep -I -n -E '^(<<<<<<< |=======|>>>>>>> )' -- . >/dev/null 2>&1; then
-    echo "❌ Konfliktmarker in getrackten Dateien gefunden!" >&2
+    die "Konfliktmarker in getrackten Dateien gefunden!"
     return 1
   fi
 
-  # 4. Repository Guard-Checks
-  # echo "▶ Verifying repository guard checklist..."
-  # local checklist_ok=1
-  # # Mit WGX_GUARD_CHECKLIST_STRICT=0 lässt sich ein Warnmodus aktivieren.
-  # local checklist_strict="${WGX_GUARD_CHECKLIST_STRICT:-1}"
-  # _guard_require_file "uv.lock" "uv.lock vorhanden" || checklist_ok=0
-  # _guard_require_file ".github/workflows/shell-docs.yml" "Shell/Docs CI-Workflow vorhanden" || checklist_ok=0
-  # _guard_require_file "templates/profile.template.yml" "Profile-Template vorhanden" || checklist_ok=0
-  # _guard_require_file "docs/Runbook.md" "Runbook dokumentiert" || checklist_ok=0
-  # if [[ $checklist_ok -eq 0 ]]; then
-  #   if [[ "$checklist_strict" == "0" ]]; then
-  #     echo "⚠️ Guard checklist issues detected (non-strict mode)." >&2
-  #   else
-  #     echo "❌ Guard checklist failed." >&2
-  #     return 1
-  #   fi
-  # fi
-
-  # 5. Lint (wenn gewünscht)
+  # 3. Lint (wenn gewünscht)
   if [[ $run_lint -eq 1 ]]; then
     if [[ -n "${BATS_TEST_FILENAME:-}" ]]; then
       info "bats context detected, skipping 'wgx lint' run."
