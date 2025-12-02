@@ -48,6 +48,7 @@ if [ -d "$LIB_DIR" ]; then
       if [[ ${WGX_DEBUG:-0} != 0 ]]; then
         echo "Loading library: $f" >&2
       fi
+      # shellcheck source=/dev/null
       if ! source "$f"; then
         echo "Error: Failed to source library file: $f" >&2
         exit 1
