@@ -11,6 +11,28 @@ _check_python_dependency() {
 }
 
 cmd_run() {
+  if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+    cat <<'USAGE'
+Usage:
+  wgx run <task> [args...]
+
+Description:
+  Führt einen definierten Task aus der .wgx/profile.yml Konfiguration aus.
+  Argumente nach dem Task-Namen werden an den Task weitergegeben.
+  Verwendet '--', um Argumente explizit vom Task zu trennen.
+
+Options:
+  -h, --help    Diese Hilfe anzeigen.
+  --dry-run     Zeigt an, was ausgeführt würde, ohne es zu tun.
+
+Examples:
+  wgx run test
+  wgx run lint -- --fix
+  wgx run --dry-run deploy
+USAGE
+    return 0
+  fi
+
   _check_python_dependency
 
   # Prüft, ob ein Profil existiert, bevor der Task ausgeführt wird
