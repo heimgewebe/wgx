@@ -31,10 +31,20 @@ jobs:
           # Function to attempt installation of a specific version
           install_vale() {
             local version_tag="$1"
+            
+            # Validate version_tag is not empty
+            if [[ -z "$version_tag" ]]; then
+              echo "::error::Vale version tag is empty. Aborting."
+              return 1
+            fi
+            
             echo "Attempting to install Vale ${version_tag}..."
 
             local version_num="${version_tag#v}"
             local base_url="https://github.com/errata-ai/vale/releases/download/${version_tag}"
+            
+            # Validate base_url is set
+            : "${base_url:?base_url not set}"
             local sum_name="vale_${version_num}_checksums.txt"
             local tmpdir
             tmpdir="$(mktemp -d)"
@@ -54,7 +64,9 @@ jobs:
             # 1. Download checksums
             echo "Downloading from: ${base_url}/${sum_name}"
             if ! curl --retry 3 --retry-delay 5 -fsSL "${base_url}/${sum_name}" -o "$tmpdir/checksums.txt"; then
-              echo "Failed to download checksums file from ${base_url}/${sum_name}"
+              local curl_exit_code=$?
+              echo "::error::Curl failed with exit code $curl_exit_code"
+              echo "::error::Failed to download checksums file from ${base_url}/${sum_name}"
               rm -rf "$tmpdir"
               return 1
             fi
@@ -93,7 +105,9 @@ jobs:
             # 3. Download tarball
             echo "Downloading from: ${base_url}/${tar_name}"
             if ! curl --retry 3 --retry-delay 5 -fsSL "${base_url}/${tar_name}" -o "$tmpdir/vale.tar.gz"; then
-              echo "Failed to download from ${base_url}/${tar_name}"
+              local curl_exit_code=$?
+              echo "::error::Curl failed with exit code $curl_exit_code"
+              echo "::error::Failed to download tarball from ${base_url}/${tar_name}"
               rm -rf "$tmpdir"
               return 1
             fi
@@ -148,6 +162,9 @@ jobs:
           fi
 
           if [ "$INSTALLED" = "false" ]; then
+            # Validate VALE_FALLBACK_VERSION is set and not empty
+            : "${VALE_FALLBACK_VERSION:?Fallback version for Vale not set or empty}"
+            
             echo "Installing pinned fallback version: $VALE_FALLBACK_VERSION"
             if ! install_vale "$VALE_FALLBACK_VERSION"; then
                echo "::error::Failed to install fallback version $VALE_FALLBACK_VERSION"
