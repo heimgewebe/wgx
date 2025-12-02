@@ -42,9 +42,6 @@ jobs:
 
             local version_num="${version_tag#v}"
             local base_url="https://github.com/errata-ai/vale/releases/download/${version_tag}"
-            
-            # Validate base_url is set
-            : "${base_url:?base_url not set}"
             local sum_name="vale_${version_num}_checksums.txt"
             local tmpdir
             tmpdir="$(mktemp -d)"
