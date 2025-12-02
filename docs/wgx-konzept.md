@@ -1,6 +1,6 @@
 ﻿# wgx – Flottenmotor des Heimgewebes
 
-Status: Konzept v1 (Bash-CLI, kein Rust-Crate)  
+Status: Konzept v1 (Bash-CLI, kein Rust-Crate)
 Scope: Orchestrierung, nicht Business-Logik
 
 ---
@@ -41,9 +41,9 @@ Aktueller Stand (v1):
 
 wgx reiht sich da ein:
 
-- `wgx doctor` – Zustand der Fleet prüfen  
-- `wgx smoke` – schnelle Checks in allen Repos  
-- `wgx metrics snapshot` – Metriken einsammeln  
+- `wgx doctor` – Zustand der Fleet prüfen
+- `wgx smoke` – schnelle Checks in allen Repos
+- `wgx metrics snapshot` – Metriken einsammeln
 
 ---
 
@@ -55,8 +55,8 @@ wgx sorgt dafür, dass alle Repos nach denselben Mustern bedient werden können:
 
 - einheitliche Tasks (z. B. `smoke`, `metrics`, `lint`) über `.wgx/profile.yml`,
 - zentrale Befehle wie:
-  - `wgx run --all just smoke`
-  - `wgx metrics snapshot`
+  - `wgx run --all just smoke`
+  - `wgx metrics snapshot`
 - optionaler Dry-Run-Modus, damit größere Änderungen erst simuliert werden.
 
 ### 3.2 Brücke zum metarepo
@@ -66,8 +66,8 @@ wgx arbeitet eng mit dem metarepo zusammen:
 - metarepo liefert Templates und Reusable-Workflows,
 - wgx hilft, diese in die Ziel-Repos auszurollen oder zu prüfen,
 - typische Kombination:
-  - `just up` (aus metarepo) → Templates verteilen,
-  - `wgx smoke` → prüfen, ob alles noch konsistent ist.
+  - `just up` (aus metarepo) → Templates verteilen,
+  - `wgx smoke` → prüfen, ob alles noch konsistent ist.
 
 ### 3.3 CI-Unterstützung
 
@@ -77,7 +77,7 @@ wgx wird in CI-Jobs eingesetzt, um:
 - Metriken zu erfassen (`metrics.snapshot`),
 - bestimmte wiederkehrende Aktionen einheitlich auszuführen.
 
-Wichtig:  
+Wichtig:
 wgx selbst ist aktuell kein Rust-Projekt. CI, die versucht, ein Rust-`wgx` zu installieren, ist fehlkonfiguriert
 und soll bereinigt werden.
 
@@ -91,9 +91,9 @@ Bausteine:
 - `cmd/` – Unterbefehle (z. B. `metrics`, `run`, `doctor`)
 - `lib/` – Hilfsfunktionen (Logging, Parallelisierung, JSONL-Helfer)
 - `.wgx/profile.yml` im Repo – beschreibt:
-  - Namen und Klasse des Repos,
-  - welche Tasks verfügbar sind,
-  - wie Standard-Tasks auszuführen sind.
+  - Namen und Klasse des Repos,
+  - welche Tasks verfügbar sind,
+  - wie Standard-Tasks auszuführen sind.
 
 Beispielhafte Profil-Information:
 
@@ -148,7 +148,7 @@ Mögliche Features einer späteren v2:
 - feingranulare Parallelisierung und Priorisierung,
 - direkte Anbindung an semantAH (z. B. wgx weiß, welche Repos logisch zusammengehören).
 
-Wichtig:  
+Wichtig:
 Solange diese Anforderungen nicht wirklich anstehen, bleibt wgx bewusst in der Bash-Welt – einfacher zu
 pflegen, gut sichtbar, leicht zu debuggen.
 
@@ -157,9 +157,9 @@ pflegen, gut sichtbar, leicht zu debuggen.
 ## 7. „Für Dummies“ – wgx in einem Absatz
 
 wgx ist ein kleines Programm für das Terminal, mit dem du alle deine Heimgewebe-Repos über dieselben Befehle
-steuern kannst.  
+steuern kannst.
 Statt in jedem Repo eigene Skripte zu merken, sagst du einfach `wgx doctor` oder `wgx smoke`, und wgx führt
-die passenden Kommandos pro Repo aus.  
+die passenden Kommandos pro Repo aus.
 Es ist kein Zauber, eher eine gut sortierte Werkzeugkiste für wiederkehrende Aufgaben.
 
 ---
@@ -186,13 +186,13 @@ ohne sich zu früh auf eine schwere Architektur festzulegen.
 
 ## 9. Essenz
 
-wgx ist der pragmatische Flottenmotor des Heimgewebes:  
+wgx ist der pragmatische Flottenmotor des Heimgewebes:
 ein Bash-CLI, das Repos und Aufgaben orchestriert, ohne selbst ein weiterer komplexer Dienst zu werden.
 
 ---
 
 ## 10. Kleine Pointe
 
-Wenn hausKI der Denker ist und chronik das Tagebuch,  
-ist wgx derjenige, der morgens den Laden aufsperrt, das Licht anmacht  
+Wenn hausKI der Denker ist und chronik das Tagebuch,
+ist wgx derjenige, der morgens den Laden aufsperrt, das Licht anmacht
 und leise fragt: „Na, wen soll ich heute zuerst antreiben?“

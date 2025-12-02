@@ -298,7 +298,24 @@ Options:
 
 ### run
 
-_Command does not provide structured --help output._
+```text
+Usage:
+  wgx run <task> [args...]
+
+Description:
+  Führt einen definierten Task aus der .wgx/profile.yml Konfiguration aus.
+  Argumente nach dem Task-Namen werden an den Task weitergegeben.
+  Verwendet '--', um Argumente explizit vom Task zu trennen.
+
+Options:
+  -h, --help    Diese Hilfe anzeigen.
+  --dry-run     Zeigt an, was ausgeführt würde, ohne es zu tun.
+
+Examples:
+  wgx run test
+  wgx run lint -- --fix
+  wgx run --dry-run deploy
+```
 
 ### selftest
 
