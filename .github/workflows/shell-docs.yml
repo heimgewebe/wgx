@@ -15,7 +15,7 @@ jobs:
     timeout-minutes: 15
     env:
       # Pinned to a known-good version to ensure reliable CI builds
-      VALE_VERSION: "v3.5.0"
+      VALE_VERSION: "3.7.0"
     steps:
       - uses: actions/checkout@v4
       - name: Setup Node
@@ -34,12 +34,18 @@ jobs:
 
           # Function to attempt installation of a specific version
           install_vale() {
-            local version_tag="$1"
+            local version_input="$1"
             
-            # Validate version_tag is not empty
-            if [[ -z "$version_tag" ]]; then
-              echo "::error::Vale version tag is empty. Aborting."
+            # Validate version_input is not empty
+            if [[ -z "$version_input" ]]; then
+              echo "::error::Vale version is empty. Aborting."
               return 1
+            fi
+            
+            # Ensure version has 'v' prefix for GitHub release tag
+            local version_tag="$version_input"
+            if [[ ! "$version_tag" =~ ^v ]]; then
+              version_tag="v${version_tag}"
             fi
             
             echo "Attempting to install Vale ${version_tag}..."
