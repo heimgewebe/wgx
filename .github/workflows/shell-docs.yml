@@ -153,8 +153,8 @@ jobs:
           
           echo "Installing pinned Vale version: $VALE_VERSION"
           if ! install_vale "$VALE_VERSION"; then
-             echo "::error::Failed to install Vale version $VALE_VERSION"
-             exit 1
+            echo "::error::Failed to install Vale version $VALE_VERSION"
+            exit 1
           fi
 
           vale --version
