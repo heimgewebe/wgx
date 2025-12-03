@@ -29,6 +29,9 @@ jobs:
           sudo apt-get -yq install shellcheck shfmt bats jq
           npm install -g markdownlint-cli2@0.14.0
 
+          # Debug: Verify VALE_VERSION is available
+          echo "DEBUG: VALE_VERSION from environment: '${VALE_VERSION:-<not set>}'"
+
           # Function to attempt installation of a specific version
           install_vale() {
             local version_tag="$1"
@@ -150,7 +153,11 @@ jobs:
           }
 
           # Ensure VALE_VERSION is set and not empty
-          : "${VALE_VERSION:?Vale version not set or empty}"
+          if [[ -z "${VALE_VERSION:-}" ]]; then
+            echo "::error::VALE_VERSION environment variable is not set or empty"
+            echo "::error::Expected VALE_VERSION to be set at job level in workflow"
+            exit 1
+          fi
           
           echo "Installing pinned Vale version: $VALE_VERSION"
           if ! install_vale "$VALE_VERSION"; then
