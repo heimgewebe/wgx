@@ -97,8 +97,8 @@ jobs:
 
             if [[ -z "$tar_name" ]]; then
               echo "::error::Could not determine Vale tarball name for ${version_tag}"
-              echo "Available files in checksums.txt:"
-              cat "$tmpdir/checksums.txt"
+              echo "Available files in checksums.txt (first 20 lines):"
+              head -20 "$tmpdir/checksums.txt"
               rm -rf "$tmpdir"
               return 1
             fi
@@ -124,8 +124,8 @@ jobs:
             fi
             if [[ -z "$expected_sha" ]]; then
               echo "::error::Failed to extract expected SHA256 from checksums.txt for ${version_tag}"
-              echo "Available checksums in file:"
-              cat "$tmpdir/checksums.txt"
+              echo "Available checksums in file (first 20 lines):"
+              head -20 "$tmpdir/checksums.txt"
               rm -rf "$tmpdir"
               return 1
             fi
