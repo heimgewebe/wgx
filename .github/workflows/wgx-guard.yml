@@ -136,14 +136,24 @@ jobs:
           # Debug: Show what files exist in .wgx/ (regardless of tracking status)
           if [ -d .wgx ]; then
             echo "::debug::.wgx directory contents:"
-            ls -la .wgx/ 2>/dev/null | sed 's/^/::debug::  /' || echo "::debug::  (unable to list)"
+            if ls_output="$(ls -la .wgx/ 2>&1)"; then
+              printf '%s\n' "$ls_output" | while IFS= read -r line; do
+                echo "::debug::  $line"
+              done
+            else
+              echo "::debug::  (unable to list directory)"
+            fi
           else
             echo "::debug::.wgx directory does not exist"
           fi
           
           # Check for tracked profile files
-          files="$(git ls-files -- .wgx/profile.yml .wgx/profile.example.yml)" || files=""
-          echo "::debug::git ls-files output: ${files:-<empty>}"
+          if files="$(git ls-files -- .wgx/profile.yml .wgx/profile.example.yml 2>&1)"; then
+            echo "::debug::git ls-files output: ${files:-<empty>}"
+          else
+            echo "::debug::git ls-files failed with exit code $?"
+            files=""
+          fi
           
           if [ -n "$files" ]; then
             echo "OK: tracked wgx profile(s) found:"
