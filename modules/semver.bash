@@ -71,3 +71,39 @@ semver_in_caret_range() {
 
   semver_ge "$have" "$lower" && semver_lt "$have" "$upper"
 }
+
+semver_validate() {
+  local v="${1#v}"
+  [[ "$v" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+}
+
+semver_bump() {
+  local v="${1#v}"
+  local level="$2"
+  local major minor patch
+  IFS='.' read -r major minor patch <<<"$v"
+
+  # Ensure integer values
+  major=${major:-0}
+  minor=${minor:-0}
+  patch=${patch:-0}
+
+  case "$level" in
+  major)
+    major=$((major + 1))
+    minor=0
+    patch=0
+    ;;
+  minor)
+    minor=$((minor + 1))
+    patch=0
+    ;;
+  patch)
+    patch=$((patch + 1))
+    ;;
+  *)
+    return 1
+    ;;
+  esac
+  printf '%s.%s.%s' "$major" "$minor" "$patch"
+}

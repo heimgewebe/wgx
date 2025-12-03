@@ -121,20 +121,64 @@ jobs:
         run: |
           set -eu
           (set -o pipefail) 2>/dev/null && set -o pipefail || true
+          
+          # Debug: Log context information
+          echo "::debug::Checking for wgx profile files..."
+          echo "::debug::Current ref: ${{ github.ref }}"
+          echo "::debug::Current SHA: ${{ github.sha }}"
+          echo "::debug::Working directory: $(pwd)"
+          
           if [ "${WGX_ALLOW_NO_PROFILE:-}" = "1" ]; then
             echo "::warning::Skipping profile check due to WGX_ALLOW_NO_PROFILE=1"
             exit 0
           fi
-          if files="$(git ls-files -- .wgx/profile.yml .wgx/profile.example.yml)"; then
-            if [ -n "$files" ]; then
-              echo "OK: tracked wgx profile(s):"
-              printf '%s\n' "$files"
-              exit 0
+          
+          # Debug: Show what files exist in .wgx/ (regardless of tracking status)
+          if [ -d .wgx ]; then
+            echo "::debug::.wgx directory contents:"
+            if ls_output="$(ls -la .wgx/ 2>&1)"; then
+              printf '%s\n' "$ls_output" | while IFS= read -r line; do
+                echo "::debug::  $line"
+              done
+            else
+              echo "::debug::  (unable to list directory)"
             fi
+          else
+            echo "::debug::.wgx directory does not exist"
           fi
+          
+          # Check for tracked profile files (capture exit code immediately after command)
+          files="$(git ls-files -- .wgx/profile.yml .wgx/profile.example.yml 2>/dev/null)"; git_exit_code=$?
+          if [ $git_exit_code -eq 0 ]; then
+            echo "::debug::git ls-files output: ${files:-<empty>}"
+          else
+            echo "::debug::git ls-files failed with exit code $git_exit_code"
+            files=""
+          fi
+          
+          if [ -n "$files" ]; then
+            echo "OK: tracked wgx profile(s) found:"
+            printf '%s\n' "$files"
+            exit 0
+          fi
+          
+          # No tracked files - provide detailed error
           echo "::error::No tracked wgx profile found. Commit one of:"
           echo "::error::  • .wgx/profile.yml   (preferred for production config)"
           echo "::error::  • .wgx/profile.example.yml   (placeholder for CI)"
+          echo "::error::"
+          echo "::error::Debug info for this failure:"
+          echo "::error::  - Repository: ${{ github.repository }}"
+          echo "::error::  - Branch/Ref: ${{ github.ref }}"
+          echo "::error::  - Commit SHA: ${{ github.sha }}"
+          
+          # Show if files exist but are not tracked
+          for profile_file in .wgx/profile.yml .wgx/profile.example.yml; do
+            if [ -f "$profile_file" ]; then
+              echo "::error::  - $profile_file exists but is NOT tracked (add it with git add)"
+            fi
+          done
+          
           echo
           echo "If you intended to use the example, run:"
           echo "  git add .wgx/profile.example.yml && git commit -m 'Add example profile for CI'"
