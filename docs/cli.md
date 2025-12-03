@@ -491,17 +491,19 @@ Optionen:
 
 ```text
 Usage:
-  wgx version [bump <level>] [set <version>]
+  wgx version
+  wgx version bump <level>
+  wgx version set <version>
 
 Description:
-  Zeigt die aktuelle Version von 'wgx' an oder manipuliert die Version
-  in Projektdateien wie 'package.json' oder 'Cargo.toml'.
-  Die Implementierung der Unterbefehle 'bump' und 'set' ist noch in Arbeit.
+  Reads or modifies the project version.
+  Supported files: VERSION, package.json, Cargo.toml.
 
 Subcommands:
-  bump <level>   Erhöht die Version ('patch', 'minor', 'major').
-  set <version>  Setzt die Version auf einen exakten Wert.
+  (none)         Show current version.
+  bump <level>   Bump version (patch, minor, major).
+  set <version>  Set exact version.
 
 Options:
-  -h, --help     Diese Hilfe anzeigen.
+  -h, --help     Show this help.
 ```
