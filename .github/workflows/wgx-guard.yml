@@ -121,20 +121,54 @@ jobs:
         run: |
           set -eu
           (set -o pipefail) 2>/dev/null && set -o pipefail || true
+          
+          # Debug: Log context information
+          echo "::debug::Checking for wgx profile files..."
+          echo "::debug::Current ref: ${{ github.ref }}"
+          echo "::debug::Current SHA: ${{ github.sha }}"
+          echo "::debug::Working directory: $(pwd)"
+          
           if [ "${WGX_ALLOW_NO_PROFILE:-}" = "1" ]; then
             echo "::warning::Skipping profile check due to WGX_ALLOW_NO_PROFILE=1"
             exit 0
           fi
-          if files="$(git ls-files -- .wgx/profile.yml .wgx/profile.example.yml)"; then
-            if [ -n "$files" ]; then
-              echo "OK: tracked wgx profile(s):"
-              printf '%s\n' "$files"
-              exit 0
-            fi
+          
+          # Debug: Show what files exist in .wgx/ (regardless of tracking status)
+          if [ -d .wgx ]; then
+            echo "::debug::.wgx directory contents:"
+            ls -la .wgx/ 2>/dev/null | sed 's/^/::debug::  /' || echo "::debug::  (unable to list)"
+          else
+            echo "::debug::.wgx directory does not exist"
           fi
+          
+          # Check for tracked profile files
+          files="$(git ls-files -- .wgx/profile.yml .wgx/profile.example.yml)" || files=""
+          echo "::debug::git ls-files output: ${files:-<empty>}"
+          
+          if [ -n "$files" ]; then
+            echo "OK: tracked wgx profile(s) found:"
+            printf '%s\n' "$files"
+            exit 0
+          fi
+          
+          # No tracked files - provide detailed error
           echo "::error::No tracked wgx profile found. Commit one of:"
           echo "::error::  • .wgx/profile.yml   (preferred for production config)"
           echo "::error::  • .wgx/profile.example.yml   (placeholder for CI)"
+          echo "::error::"
+          echo "::error::Debug info for this failure:"
+          echo "::error::  - Repository: ${{ github.repository }}"
+          echo "::error::  - Branch/Ref: ${{ github.ref }}"
+          echo "::error::  - Commit SHA: ${{ github.sha }}"
+          
+          # Show if files exist but are not tracked
+          if [ -f .wgx/profile.yml ]; then
+            echo "::error::  - .wgx/profile.yml exists but is NOT tracked (add it with git add)"
+          fi
+          if [ -f .wgx/profile.example.yml ]; then
+            echo "::error::  - .wgx/profile.example.yml exists but is NOT tracked (add it with git add)"
+          fi
+          
           echo
           echo "If you intended to use the example, run:"
           echo "  git add .wgx/profile.example.yml && git commit -m 'Add example profile for CI'"
