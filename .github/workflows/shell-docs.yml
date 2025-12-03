@@ -14,7 +14,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
-      VALE_FALLBACK_VERSION: "v3.5.0"
+      # Pinned to a known-good version to ensure reliable CI builds
+      VALE_VERSION: "v3.5.0"
     steps:
       - uses: actions/checkout@v4
       - name: Setup Node
@@ -58,12 +59,9 @@ jobs:
               "vale_${version_num}_linux_x86-64.tar.gz"
             )
 
-            # 0. Check connectivity (Debug)
-            echo "Checking connectivity to ${base_url}/${sum_name}"
-            curl -v -o /dev/null "${base_url}/${sum_name}" || { echo "Cannot reach ${base_url}/${sum_name}"; return 1; }
-
             # 1. Download checksums
-            echo "Downloading from: ${base_url}/${sum_name}"
+            echo "Vale release base URL: ${base_url}"
+            echo "Downloading checksums from: ${base_url}/${sum_name}"
             if ! curl --retry 3 --retry-delay 5 -fsSL "${base_url}/${sum_name}" -o "$tmpdir/checksums.txt"; then
               local curl_exit_code=$?
               echo "::error::Curl failed with exit code $curl_exit_code"
@@ -74,10 +72,11 @@ jobs:
 
             # Validate checksums file was actually downloaded and is not empty
             if [[ ! -s "$tmpdir/checksums.txt" ]]; then
-              echo "Checksums file is empty or missing - URL may be incorrect"
+              echo "::error::Checksums file is empty or missing - URL may be incorrect"
               rm -rf "$tmpdir"
               return 1
             fi
+            echo "Checksums file downloaded successfully"
 
             # 2. Determine tarball name
             local tar_name=""
@@ -98,17 +97,15 @@ jobs:
             fi
 
             if [[ -z "$tar_name" ]]; then
-              echo "Could not determine Vale tarball name for ${version_tag}"
+              echo "::error::Could not determine Vale tarball name for ${version_tag}"
+              echo "Available files in checksums.txt (first 20 lines):"
+              head -20 "$tmpdir/checksums.txt"
               rm -rf "$tmpdir"
               return 1
             fi
 
-            # Debug connectivity
-            echo "Checking connectivity to ${base_url}/${tar_name}"
-            curl -v -o /dev/null "${base_url}/${tar_name}" || { echo "Cannot reach ${base_url}/${tar_name}"; return 1; }
-
             # 3. Download tarball
-            echo "Downloading from: ${base_url}/${tar_name}"
+            echo "Downloading tarball from: ${base_url}/${tar_name}"
             if ! curl --retry 3 --retry-delay 5 -fsSL "${base_url}/${tar_name}" -o "$tmpdir/vale.tar.gz"; then
               local curl_exit_code=$?
               echo "::error::Curl failed with exit code $curl_exit_code"
@@ -116,6 +113,7 @@ jobs:
               rm -rf "$tmpdir"
               return 1
             fi
+            echo "Tarball downloaded successfully"
 
             # 4. Verify Checksum
             echo "Looking for checksum of: $tar_name"
@@ -126,11 +124,9 @@ jobs:
               expected_sha=$(awk -v tar="$tar_name" 'index($2, tar) || index($0, tar) {print $1}' "$tmpdir/checksums.txt" | head -1)
             fi
             if [[ -z "$expected_sha" ]]; then
-              echo "Failed to extract expected SHA256 from checksums.txt for ${version_tag}"
-              if [[ -f "$tmpdir/checksums.txt" ]]; then
-                echo "Available checksums in file:"
-                cat "$tmpdir/checksums.txt"
-              fi
+              echo "::error::Failed to extract expected SHA256 from checksums.txt for ${version_tag}"
+              echo "Available checksums in file (first 20 lines):"
+              head -20 "$tmpdir/checksums.txt"
               rm -rf "$tmpdir"
               return 1
             fi
@@ -138,43 +134,28 @@ jobs:
             local actual_sha=""
             actual_sha=$(sha256sum "$tmpdir/vale.tar.gz" | awk '{print $1}')
             if [ "$expected_sha" != "$actual_sha" ]; then
-              echo "Vale checksum mismatch: expected $expected_sha, got $actual_sha"
+              echo "::error::Vale checksum mismatch: expected $expected_sha, got $actual_sha"
               rm -rf "$tmpdir"
               return 1
             fi
+            echo "Checksum verified successfully"
 
             # 5. Install
+            echo "Extracting and installing Vale..."
             tar xz -C "$tmpdir" -f "$tmpdir/vale.tar.gz"
             sudo mv "$tmpdir/vale" /usr/local/bin/vale
             rm -rf "$tmpdir"
+            echo "Vale ${version_tag} installed successfully"
             return 0
           }
 
-          # Try latest version first
-          echo "Fetching latest Vale version tag..."
-          VALE_TAG=$(curl -sL --fail --max-time 30 https://api.github.com/repos/errata-ai/vale/releases/latest | jq -r .tag_name || echo "")
-
-          INSTALLED=false
-          if [[ -n "$VALE_TAG" && "$VALE_TAG" != "null" ]]; then
-            echo "Detected latest Vale version: $VALE_TAG"
-            if install_vale "$VALE_TAG"; then
-              INSTALLED=true
-            else
-              echo "Warning: Failed to install latest version $VALE_TAG. Falling back..."
-            fi
-          else
-            echo "Warning: Failed to fetch latest Vale version tag. Falling back..."
-          fi
-
-          if [ "$INSTALLED" = "false" ]; then
-            # Validate VALE_FALLBACK_VERSION is set and not empty
-            : "${VALE_FALLBACK_VERSION:?Fallback version for Vale not set or empty}"
-            
-            echo "Installing pinned fallback version: $VALE_FALLBACK_VERSION"
-            if ! install_vale "$VALE_FALLBACK_VERSION"; then
-               echo "::error::Failed to install fallback version $VALE_FALLBACK_VERSION"
-               exit 1
-            fi
+          # Ensure VALE_VERSION is set and not empty
+          : "${VALE_VERSION:?Vale version not set or empty}"
+          
+          echo "Installing pinned Vale version: $VALE_VERSION"
+          if ! install_vale "$VALE_VERSION"; then
+            echo "::error::Failed to install Vale version $VALE_VERSION"
+            exit 1
           fi
 
           vale --version
