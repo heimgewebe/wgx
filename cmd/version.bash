@@ -121,18 +121,18 @@ USAGE
 
     # Load semver module if not already loaded (defensive)
     if ! declare -f semver_bump >/dev/null; then
-       # Attempt to locate module relative to this file or WGX_DIR
-       # But since this is run by cli/wgx which loads libs, it should be fine.
-       # If semver functions are in modules/semver.bash, we might need to source it.
-       # cli/wgx only sources lib/*.bash by default. modules/ are usually on demand?
-       # Let's try to source it if needed.
-       local mod_path="${WGX_DIR}/modules/semver.bash"
-       if [ -f "$mod_path" ]; then
-         # shellcheck disable=SC1090
-         source "$mod_path"
-       else
-          die "Module semver.bash not found."
-       fi
+      # Attempt to locate module relative to this file or WGX_DIR
+      # But since this is run by cli/wgx which loads libs, it should be fine.
+      # If semver functions are in modules/semver.bash, we might need to source it.
+      # cli/wgx only sources lib/*.bash by default. modules/ are usually on demand?
+      # Let's try to source it if needed.
+      local mod_path="${WGX_DIR}/modules/semver.bash"
+      if [ -f "$mod_path" ]; then
+        # shellcheck disable=SC1090
+        source "$mod_path"
+      else
+        die "Module semver.bash not found."
+      fi
     fi
 
     if ! semver_validate "$current"; then
