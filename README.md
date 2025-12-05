@@ -255,8 +255,9 @@ Alle Skripte nutzen die zentralen Logging-Funktionen (`info`, `ok`, `warn`, `die
 um eine einheitliche und steuerbare Ausgabe zu gewährleisten.
 
 Diese Struktur stellt sicher, dass WGX als Bash-zentriertes Tool ohne Rust-Crates funktioniert: Die CLI und alle
-Subkommandos laufen in Bash, für das Parsen von `.wgx/profile.yml` verwendet WGX bewusst Python 3 mit dem
-`pyyaml`-Modul. Die CI testet WGX über Bats-Tests; ein Rust-Crate wird nicht mehr installiert.
+Subkommandos laufen in Bash, für das Parsen von `.wgx/profile.yml` verwendet WGX bewusst Python 3.
+PyYAML wird bevorzugt, aber bei fehlender Installation greift WGX auf einen eingebauten Parser zurück.
+Die CI testet WGX über Bats-Tests; ein Rust-Crate wird nicht mehr installiert.
 
 ### Laufzeitabhängigkeiten
 
@@ -264,17 +265,21 @@ Für die Nutzung der v1-Architektur gelten zurzeit folgende Mindestvoraussetzung
 
 - **Bash ≥ 4**
 - **Git** und gängige Coreutils (`sed`, `awk`, `grep`, `find`, …)
-- **Python 3** mit installiertem `pyyaml`-Modul für das Parsen von `.wgx/profile.yml`
+- **Python 3** für das Parsen von `.wgx/profile.yml`
+- Optional: **PyYAML**, falls du den nativen Parser nutzen möchtest (ansonsten fällt WGX auf den eingebauten Parser zurück)
 
 Im Devcontainer und in den CI-Workflows werden diese Abhängigkeiten automatisch installiert (unter
 Debian/Ubuntu z.B. über das Paket `python3-yaml`).
-Auf lokalen Maschinen müssen Python 3 und `pyyaml` ggf. manuell nachgerüstet werden. Typische Varianten:
+Auf lokalen Maschinen muss Python 3 ggf. manuell nachgerüstet werden; PyYAML ist optional, aber empfohlen
+für die vollständigste YAML-Unterstützung. Typische Varianten:
 
-- Debian/Ubuntu: `apt install python3-yaml`
-- Arch Linux: `pacman -S python-yaml`
-- macOS mit Homebrew: `brew install python && pip3 install pyyaml`
+- Debian/Ubuntu: `apt install python3` (optional: `python3-yaml`)
+- Arch Linux: `pacman -S python` (optional: `python-yaml`)
+- macOS mit Homebrew: `brew install python` (optional: `pip3 install pyyaml`)
 
-Ohne funktionsfähiges Python/YAML-Setup können `wgx run` und Profil-basierte Fleet-Tasks nicht ausgeführt werden.
+Ohne funktionsfähiges Python-Setup können `wgx run` und Profil-basierte Fleet-Tasks nicht ausgeführt werden.
+Fehlt PyYAML, meldet WGX im Debug-Modus den Rückfall auf den eingebauten Parser, der einfache YAML-Strukturen
+abdeckt.
 
 ## Reusable-Workflows für andere Repos
 

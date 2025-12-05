@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
 
-# Stellt sicher, dass Python und das `yaml`-Modul für die Profil-Verarbeitung verfügbar sind
-_check_python_dependency() {
+# Stellt sicher, dass Python 3 verfügbar ist; PyYAML ist optional und wird nur im Debug-Modus geprüft
+_check_python_runtime() {
   if ! command -v python3 >/dev/null 2>&1; then
     die "Python 3 is required for parsing .wgx/profile.yml but is not installed. See README section \"Laufzeitabhängigkeiten\" / \"Runtime dependencies\"."
   fi
-  if ! python3 -c "import yaml" >/dev/null 2>&1; then
-    die "The 'pyyaml' Python package is required for parsing .wgx/profile.yml. See README section \"Laufzeitabhängigkeiten\" / \"Runtime dependencies\" for installation hints."
+  if [[ ${WGX_DEBUG:-0} != 0 ]]; then
+    if ! python3 -c "import yaml" >/dev/null 2>&1; then
+      echo "WGX: PyYAML not available; falling back to built-in YAML parser." >&2
+    fi
   fi
 }
 
@@ -33,7 +35,7 @@ USAGE
     return 0
   fi
 
-  _check_python_dependency
+  _check_python_runtime
 
   # Prüft, ob ein Profil existiert, bevor der Task ausgeführt wird
   if ! profile::has_manifest; then
