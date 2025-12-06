@@ -21,6 +21,7 @@ _version_read() {
 # Helper to write version to supported files
 _version_write() {
   local new_ver="$1"
+  local allow_create="${2:-0}"
   local updated=0
 
   if [ -f "VERSION" ]; then
@@ -58,7 +59,16 @@ _version_write() {
   fi
 
   if [ "$updated" -eq 0 ]; then
-    die "No supported version file found (VERSION, package.json, Cargo.toml)."
+    if [ "$allow_create" -eq 1 ]; then
+      if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+        echo "$new_ver" >VERSION
+        info "Created VERSION with $new_ver"
+      else
+        die "No supported version file found (VERSION, package.json, Cargo.toml). Refusing to create VERSION outside a git repository."
+      fi
+    else
+      die "No supported version file found (VERSION, package.json, Cargo.toml)."
+    fi
   fi
 }
 
@@ -141,7 +151,7 @@ USAGE
 
     local new_ver
     new_ver="$(semver_bump "$current" "$level")" || die "Invalid bump level: $level"
-    _version_write "$new_ver"
+    _version_write "$new_ver" 0
     ;;
 
   set)
@@ -149,7 +159,7 @@ USAGE
     if [[ -z "$new_ver" ]]; then
       die "Usage: wgx version set <version>"
     fi
-    _version_write "$new_ver"
+    _version_write "$new_ver" 1
     ;;
 
   *)
