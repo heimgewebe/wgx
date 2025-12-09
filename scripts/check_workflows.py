@@ -7,7 +7,8 @@ except ImportError:
     print("Error: PyYAML is required but not installed.")
     sys.exit(1)
 
-files = list(glob.glob('.github/workflows/*.yml'))
+files = list(glob.glob('.github/workflows/*.yml')) + \
+        list(glob.glob('.github/workflows/*.yaml'))
 if not files:
     print("No workflows found, skipping.")
     sys.exit(0)
