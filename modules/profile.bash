@@ -73,10 +73,14 @@ profile::_have_cmd() {
   command -v "$1" >/dev/null 2>&1
 }
 
+profile::_module_dir() {
+  cd "$(dirname "${BASH_SOURCE[0]}")" && pwd
+}
+
 profile::_abspath() {
   local p="$1" resolved=""
   local module_dir
-  module_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  module_dir="$(profile::_module_dir)"
   if profile::_have_cmd python3; then
     if resolved="$(python3 "${module_dir}/abspath.py" "$p" 2>/dev/null)"; then
       if [[ -n $resolved ]]; then
@@ -109,7 +113,7 @@ profile::_normalize_task_name() {
 profile::_python_parse() {
   local file="$1" output
   local module_dir
-  module_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  module_dir="$(profile::_module_dir)"
   profile::_have_cmd python3 || return 1
   output="$(python3 "${module_dir}/profile_parser.py" "$file")"
   local status=$?
@@ -133,7 +137,7 @@ profile::_python_parse() {
 profile::_decode_json_array() {
   local json_payload="$1"
   local module_dir
-  module_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  module_dir="$(profile::_module_dir)"
   profile::_have_cmd python3 || return 1
   python3 "${module_dir}/json_decode.py" "$json_payload"
 }
@@ -589,7 +593,7 @@ profile::validate_manifest() {
 
 profile::check_workflows() {
   local module_dir
-  module_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  module_dir="$(profile::_module_dir)"
   local script_path="${module_dir}/../scripts/check_workflows.py"
   if [[ -f "$script_path" ]]; then
     profile::_have_cmd python3 || return 1
