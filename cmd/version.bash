@@ -39,7 +39,12 @@ _version_write() {
       updated=1
     else
       # Fallback sed replacement (risky but better than nothing for basic files)
-      sed -i "s/\"version\": \".*\"/\"version\": \"$new_ver\"/" package.json
+      # Handle macOS/BSD sed (requires empty string backup extension) and GNU sed.
+      if [[ "$OSTYPE" == "darwin"* ]]; then
+        sed -i '' "s/\"version\": \".*\"/\"version\": \"$new_ver\"/" package.json
+      else
+        sed -i "s/\"version\": \".*\"/\"version\": \"$new_ver\"/" package.json
+      fi
       info "Updated package.json to $new_ver (via sed)"
       updated=1
     fi
