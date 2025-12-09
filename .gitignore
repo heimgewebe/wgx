@@ -6,6 +6,10 @@
 .tmp/
 metrics.json
 
+# Python cache
+__pycache__/
+*.pyc
+
 # Local helper state
 /.local/
 
