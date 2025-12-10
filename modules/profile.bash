@@ -594,14 +594,32 @@ profile::validate_manifest() {
 profile::check_workflows() {
   local module_dir
   module_dir="$(profile::_module_dir)"
-  local script_path="${module_dir}/../scripts/check_workflows.py"
-  if [[ -f "$script_path" ]]; then
-    profile::_have_cmd python3 || return 1
-    python3 "$script_path"
-  else
-    warn "check_workflows.py not found at $script_path"
+  local script_path="${module_dir}/../scripts/validate_workflow.py"
+  if [[ ! -f "$script_path" ]]; then
+    warn "validate_workflow.py not found at $script_path"
     return 1
   fi
+  profile::_have_cmd python3 || return 1
+
+  # Working directory logic matches existing usage: glob relative to CWD
+  # (which is set to WGX_TARGET_ROOT by caller if needed, or current dir)
+  local found=0
+  local f
+  # Iterate over both .yml and .yaml
+  for f in .github/workflows/*.yml .github/workflows/*.yaml; do
+    [[ -e "$f" ]] || continue
+    found=1
+    if ! python3 "$script_path" "$f"; then
+      return 1
+    fi
+  done
+
+  if ((found == 0)); then
+    echo "No workflows found, skipping."
+    return 0
+  fi
+  echo "All workflows valid."
+  return 0
 }
 
 profile::_auto_init() {

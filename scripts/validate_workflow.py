@@ -1,0 +1,14 @@
+#!/usr/bin/env python3
+import sys
+import yaml
+from pathlib import Path
+
+f = sys.argv[1]
+try:
+    data = yaml.safe_load(Path(f).read_text(encoding="utf-8"))
+    if not isinstance(data, dict):
+        raise TypeError("workflow root must be a mapping")
+    print(f"OK   {f}")
+except Exception as e:
+    print(f"FAIL {f}: {e}")
+    sys.exit(1)
