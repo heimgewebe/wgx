@@ -104,7 +104,7 @@ profile::_abspath() {
 profile::_normalize_task_name() {
   local name="$1"
   if [[ -z "$name" ]]; then
-    echo "Error: 'name' variable is empty or unset" >&2
+    echo "Error: task name is empty or unset" >&2
     return 1
   fi
   name="${name// /}"      # remove spaces entirely to match manifest parser
