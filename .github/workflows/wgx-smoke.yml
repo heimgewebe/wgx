@@ -1,33 +1,15 @@
-name: WGX Smoke (reusable)
+---
+name: wgx-smoke
 
-on:
-  workflow_call: {}
-
-permissions:
-  contents: read
+"on":
+  workflow_dispatch:
+  push:
+    paths:
+      - ".wgx/**"
+      - "docs/wgx-konzept.md"
 
 jobs:
   smoke:
-    name: Smoke Test
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - name: Checkout Caller Repo
-        uses: actions/checkout@v4
-
-      - name: Checkout WGX Tools
-        uses: actions/checkout@v4
-        with:
-          repository: heimgewebe/wgx
-          path: .wgx-tools
-          ref: main
-
-      - name: Run wgx smoke (Bash v1, central runner)
-        shell: bash
-        run: |
-          # Make the runner explicitly target the caller repository.
-          # The profile loader and task executor use this as their root.
-          export WGX_TARGET_ROOT="$GITHUB_WORKSPACE"
-
-          chmod +x .wgx-tools/cli/wgx
-          .wgx-tools/cli/wgx run smoke
+    # auch hier: statt eigener CI-Logik nur noch Forwarder auf das
+    # kanonische wgx-Workflow-Repo.
+    uses: heimgewebe/wgx/.github/workflows/wgx-smoke.yml@main
