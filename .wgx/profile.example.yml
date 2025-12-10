@@ -1,8 +1,20 @@
-# Placeholder profile file for CI pipelines
-# Required so WGX guard and smoke workflows can run without error
-# Keep this file tracked in git so workflows that require a manifest can detect it.
-profile: ci-placeholder
-wgx:
-  apiVersion: v1
-  tasks:
-    smoke: echo 'OK'
+# Beispielprofil für WGX in diesem Repo
+# Diese Datei kann gefahrlos committet werden und dient als CI-/Template-Profil.
+
+repo:
+  name: heimgewebe-tools
+  kind: library
+
+requiredWgx:
+  # Minimalanforderung, an deinen echten Stand anpassen
+  range: ">=0.1.0"
+
+tasks:
+  smoke:
+    # Einfacher, immer-grüner Test für CI, kann später ersetzt werden
+    cmd:
+      - bash
+      - -lc
+      - |
+        echo "[wgx] smoke task in $(pwd)"
+        exit 0

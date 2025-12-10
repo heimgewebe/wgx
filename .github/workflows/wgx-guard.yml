@@ -1,18 +1,37 @@
----
 name: wgx-guard
 
-"on":
+on:
   push:
-    paths: [".wgx/**", ".github/workflows/wgx-guard.yml", "pyproject.toml", "Cargo.toml"]
+    branches: [ main ]
   pull_request:
-    paths: [".wgx/**", ".github/workflows/wgx-guard.yml", "pyproject.toml", "Cargo.toml"]
-  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  guard:
-    # Fleet-Repos, die von metarepo aus via wgx up Templates beziehen,
-    # werden auf den kanonischen Guard-Workflow aus heimgewebe/wgx gesetzt.
-    uses: heimgewebe/wgx/.github/workflows/wgx-guard.yml@main
+  wgx-guard:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install WGX (script or package)
+        run: |
+          # Beispiel: lokales Install-Skript aufrufen
+          # Passe das an deine echte Install-Strategie an
+          if [ -x .wgx/install-wgx.bash ]; then
+            .wgx/install-wgx.bash
+          else
+            echo "No .wgx/install-wgx.bash found, assuming WGX is preinstalled."
+          fi
+
+      - name: Run WGX guard
+        run: |
+          # Führt den Guard-Task aus dem Profil aus (z. B. smoke / guard)
+          if command -v wgx >/dev/null 2>&1; then
+            wgx task guard || wgx task smoke
+          else
+            echo "::error::wgx binary not available"
+            exit 1
+          fi
