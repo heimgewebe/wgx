@@ -32,9 +32,11 @@ jobs:
       - name: Run WGX guard
         run: |
           # Run guard task if available, fallback to smoke
-          if wgx tasks --json | grep -q '"name":"guard"'; then
+          tasks_json=$(wgx tasks --json 2>/dev/null || echo '{"tasks":[]}')
+          
+          if echo "$tasks_json" | jq -e '.tasks[] | select(.name == "guard")' >/dev/null 2>&1; then
             wgx task guard
-          elif wgx tasks --json | grep -q '"name":"smoke"'; then
+          elif echo "$tasks_json" | jq -e '.tasks[] | select(.name == "smoke")' >/dev/null 2>&1; then
             wgx task smoke
           else
             echo "::warning::Neither guard nor smoke task found in profile"
