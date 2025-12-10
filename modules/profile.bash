@@ -112,6 +112,10 @@ profile::_normalize_task_name() {
   while [[ "$name" == *--* ]]; do
     name="${name//--/-}"
   done
+  if [[ -z "$name" ]]; then
+    echo "Error: task name is empty after normalization" >&2
+    return 1
+  fi
   printf '%s' "${name,,}"
 }
 
