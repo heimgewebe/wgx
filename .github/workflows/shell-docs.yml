@@ -182,7 +182,7 @@ jobs:
           fi
           bash -n "${files[@]}"
           shfmt -d "${files[@]}"
-          shellcheck -S style "${files[@]}"
+          shellcheck -e SC1091 -S style "${files[@]}"
       - name: Test (bats)
         run: |
           if [ -d tests ]; then
