@@ -16,22 +16,27 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install WGX (script or package)
+      - name: Make wgx available in PATH
         run: |
-          # Beispiel: lokales Install-Skript aufrufen
-          # Passe das an deine echte Install-Strategie an
-          if [ -x .wgx/install-wgx.bash ]; then
-            .wgx/install-wgx.bash
-          else
-            echo "No .wgx/install-wgx.bash found, assuming WGX is preinstalled."
+          chmod +x ./wgx
+          echo "${PWD}" >> "$GITHUB_PATH"
+
+      - name: Verify wgx is available
+        run: |
+          if ! command -v wgx >/dev/null 2>&1; then
+            echo "::error::wgx binary not available"
+            exit 1
           fi
+          wgx version || true
 
       - name: Run WGX guard
         run: |
-          # Führt den Guard-Task aus dem Profil aus (z. B. smoke / guard)
-          if command -v wgx >/dev/null 2>&1; then
-            wgx task guard || wgx task smoke
+          # Run guard task if available, fallback to smoke
+          if wgx tasks --json | grep -q '"name":"guard"'; then
+            wgx task guard
+          elif wgx tasks --json | grep -q '"name":"smoke"'; then
+            wgx task smoke
           else
-            echo "::error::wgx binary not available"
-            exit 1
+            echo "::warning::Neither guard nor smoke task found in profile"
+            exit 0
           fi

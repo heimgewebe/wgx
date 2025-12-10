@@ -105,9 +105,7 @@ profile::_normalize_task_name() {
   local name="${1:-}"
   name="${name// /}"        # remove spaces
   name="${name//_/-}"       # mirror parser underscore normalization
-  while [[ $name == *--* ]]; do # collapse repeated dashes
-    name="${name//--/-}"
-  done
+  name="$(printf '%s' "$name" | tr -s '-')"  # collapse repeated dashes
   printf '%s' "${name,,}"
 }
 
