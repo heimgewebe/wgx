@@ -155,8 +155,8 @@ EOF
           sudo apt-get update -y
           sudo apt-get install -y python3-yaml
       - name: Run bats test suites
-        # Pin to v1.8.0, the latest published release of bats-core/bats-action.
-        uses: bats-core/bats-action@v1.8.0
+        # Pin to 2.0.0, a stable published release of bats-core/bats-action.
+        uses: bats-core/bats-action@2.0.0
         with:
           helpers: |
             bats-support
