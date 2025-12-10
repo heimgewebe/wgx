@@ -103,7 +103,8 @@ profile::_abspath() {
 
 profile::_normalize_task_name() {
   local name="$1"
-  name="${name// /-}"
+  name="${name// /}"      # remove spaces entirely to match manifest parser
+  name="${name//_/-}"     # align underscores with parser normalization
   while [[ $name == *--* ]]; do
     name="${name//--/-}"
   done
