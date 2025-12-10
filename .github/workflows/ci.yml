@@ -110,21 +110,21 @@ jobs:
       - name: bash -n (syntax check)
         run: |
           set -euo pipefail
-          ./etc/ci/run-with-files.sh --per-file "No shell files to check." bash -n <<'EOF'
-${{ steps.shell_files.outputs.files }}
-EOF
+          ./etc/ci/run-with-files.sh --per-file "No shell files to check." bash -n <<-'EOF'
+          ${{ steps.shell_files.outputs.files }}
+          EOF
       - name: shfmt (check)
         run: |
           set -euo pipefail
-          ./etc/ci/run-with-files.sh "No shell files to format." shfmt -d <<'EOF'
-${{ steps.shell_files.outputs.files }}
-EOF
+          ./etc/ci/run-with-files.sh "No shell files to format." shfmt -d <<-'EOF'
+          ${{ steps.shell_files.outputs.files }}
+          EOF
       - name: shellcheck
         run: |
           set -euo pipefail
-          ./etc/ci/run-with-files.sh "No shell files to lint." shellcheck -S style <<'EOF'
-${{ steps.shell_files.outputs.files }}
-EOF
+          ./etc/ci/run-with-files.sh "No shell files to lint." shellcheck -S style <<-'EOF'
+          ${{ steps.shell_files.outputs.files }}
+          EOF
 
   bats_tests:
     name: Bats tests
@@ -277,21 +277,21 @@ EOF
             fi
 
             # Validate that we got valid JSON and extract version
-            if ! version=$(printf '%s' "${release_json}" | python3 - <<'PY'
-import json, sys
-try:
-    data = json.load(sys.stdin)
-    tag = data.get('tag_name')
-    if not tag:
-        sys.stderr.write('ERROR: tag_name is null or missing in API response\n')
-        sys.stderr.write('API response keys: ' + ', '.join(data.keys()) + '\n')
-        raise SystemExit(1)
-    print(tag)
-except json.JSONDecodeError as e:
-    sys.stderr.write(f'ERROR: Invalid JSON from API: {e}\n')
-    raise SystemExit(1)
-PY
-); then
+            if ! version=$(printf '%s' "${release_json}" | python3 - <<-'PY'
+            import json, sys
+            try:
+                data = json.load(sys.stdin)
+                tag = data.get('tag_name')
+                if not tag:
+                    sys.stderr.write('ERROR: tag_name is null or missing in API response\n')
+                    sys.stderr.write('API response keys: ' + ', '.join(data.keys()) + '\n')
+                    raise SystemExit(1)
+                print(tag)
+            except json.JSONDecodeError as e:
+                sys.stderr.write(f'ERROR: Invalid JSON from API: {e}\n')
+                raise SystemExit(1)
+            PY
+            ); then
               echo "ERROR: Failed to parse release metadata" >&2
               exit 1
             fi
@@ -309,26 +309,26 @@ PY
 
           echo "Using Vale version: ${version}" >&2
 
-          readarray -t asset_info < <(printf '%s' "${release_json}" | python3 - <<'PY'
-import json, sys
+          readarray -t asset_info < <(printf '%s' "${release_json}" | python3 - <<-'PY'
+          import json, sys
 
-data = json.load(sys.stdin)
-preferred_suffixes = (
-    'Linux_64-bit.tar.gz',
-    'Linux_amd64.tar.gz',
-)
+          data = json.load(sys.stdin)
+          preferred_suffixes = (
+              'Linux_64-bit.tar.gz',
+              'Linux_amd64.tar.gz',
+          )
 
-for suffix in preferred_suffixes:
-    for asset in data.get('assets', []):
-        name = asset.get('name') or ''
-        if name.endswith(suffix):
-            print(name)
-            print(asset.get('browser_download_url') or '')
-            sys.exit(0)
+          for suffix in preferred_suffixes:
+              for asset in data.get('assets', []):
+                  name = asset.get('name') or ''
+                  if name.endswith(suffix):
+                      print(name)
+                      print(asset.get('browser_download_url') or '')
+                      sys.exit(0)
 
-raise SystemExit('No suitable Linux tarball found in release assets')
-PY
-)
+          raise SystemExit('No suitable Linux tarball found in release assets')
+          PY
+          )
 
           if [[ "${#asset_info[@]}" -lt 2 ]]; then
             echo "Failed to determine Vale asset download information" >&2
@@ -338,19 +338,19 @@ PY
           asset_name="${asset_info[0]}"
           asset_url="${asset_info[1]}"
 
-          checksums_url=$(printf '%s' "${release_json}" | python3 - <<'PY'
-import json, sys
+          checksums_url=$(printf '%s' "${release_json}" | python3 - <<-'PY'
+          import json, sys
 
-data = json.load(sys.stdin)
-for asset in data.get('assets', []):
-    name = asset.get('name') or ''
-    if name.endswith('checksums.txt'):
-        print(asset.get('browser_download_url') or '')
-        sys.exit(0)
+          data = json.load(sys.stdin)
+          for asset in data.get('assets', []):
+              name = asset.get('name') or ''
+              if name.endswith('checksums.txt'):
+                  print(asset.get('browser_download_url') or '')
+                  sys.exit(0)
 
-raise SystemExit('checksums.txt not found in release assets')
-PY
-)
+          raise SystemExit('checksums.txt not found in release assets')
+          PY
+          )
 
           echo "Downloading Vale tarball: ${asset_url}" >&2
           curl --retry 5 --retry-all-errors -fsSL "${asset_url}" -o vale.tar.gz
@@ -386,15 +386,15 @@ PY
         run: |
           set -euo pipefail
           npm i -g markdownlint-cli2@0.14.0
-          ./etc/ci/run-with-files.sh "No Markdown files to lint." markdownlint-cli2 <<'EOF'
-${{ steps.changed_docs.outputs.markdown_files }}
-EOF
+          ./etc/ci/run-with-files.sh "No Markdown files to lint." markdownlint-cli2 <<-'EOF'
+          ${{ steps.changed_docs.outputs.markdown_files }}
+          EOF
       - name: Vale lint (changed only)
         run: |
           set -euo pipefail
-          ./etc/ci/run-with-files.sh "No files for Vale." vale --minAlertLevel=warning <<'EOF'
-${{ steps.changed_docs.outputs.vale_files }}
-EOF
+          ./etc/ci/run-with-files.sh "No files for Vale." vale --minAlertLevel=warning <<-'EOF'
+          ${{ steps.changed_docs.outputs.vale_files }}
+          EOF
       - name: Link check (Lychee)
         if: steps.changed_docs.outputs.markdown_files != ''
         # Pin to SHA for security - v2.7.0
