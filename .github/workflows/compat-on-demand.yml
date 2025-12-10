@@ -58,10 +58,10 @@ jobs:
         shell: bash
         run: |
           def='[{"repo":"heimgewebe/hausKI","ref":"main"},{"repo":"heimgewebe/weltgewebe","ref":"main"}]'
-          inp=$(cat <<'JSON'
-${{ github.event.inputs.targets_json }}
-JSON
-)
+          inp=$(cat <<-'JSON'
+          ${{ github.event.inputs.targets_json }}
+          JSON
+          )
           # Fallback auf Default, wenn Input leer/ungültig
           if jq -e type >/dev/null 2>&1 <<<"$inp"; then echo "matrix=$inp" >> $GITHUB_OUTPUT
           else echo "matrix=$def" >> $GITHUB_OUTPUT; fi
