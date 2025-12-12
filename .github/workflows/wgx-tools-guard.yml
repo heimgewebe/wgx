@@ -1,4 +1,6 @@
 name: wgx-tools-guard
+permissions:
+  contents: read
 
 on:
   push:
