@@ -4,9 +4,19 @@ set -euo pipefail
 SCHEMA_REF="${SCHEMA_REF:-contracts-v1}"
 SCHEMA_URL="https://raw.githubusercontent.com/heimgewebe/metarepo/${SCHEMA_REF}/contracts/agent.workflow.schema.json"
 
-if ! command -v ajv >/dev/null 2>&1; then
-  npm i -g ajv-cli@5 >/dev/null
-fi
+ajv_validate() {
+  # Prefer an installed ajv (global/local); otherwise fall back to npx without requiring global install.
+  if command -v ajv >/dev/null 2>&1; then
+    ajv validate "$@"
+    return
+  fi
+  if command -v npx >/dev/null 2>&1; then
+    npx --yes ajv-cli@5 validate "$@"
+    return
+  fi
+  echo "::error::ajv not found and npx not available. Install Node.js (for npx) or ajv-cli." >&2
+  return 127
+}
 
 if [[ "$#" -eq 0 ]]; then
   echo "usage: $0 <file>..."
@@ -25,7 +35,7 @@ for f in "$@"; do
     continue
   }
   echo "→ validate $f"
-  if ! ajv validate --spec=draft2020 --strict=true --validate-formats=true -s "$tmp" -d "$f"; then
+  if ! ajv_validate --spec=draft2020 --strict=true --validate-formats=true -s "$tmp" -d "$f"; then
     fail=1
   fi
 done
