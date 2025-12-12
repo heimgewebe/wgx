@@ -18,7 +18,18 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Check for shell scripts
+        id: check_scripts
+        run: |
+          if find .wgx-tools/modules -name "*.sh" -o -name "*.bash" | grep -q .; then
+            echo "has_scripts=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_scripts=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::No shell scripts found in .wgx-tools/modules, skipping shellcheck"
+          fi
+
       - name: Run ShellCheck
+        if: steps.check_scripts.outputs.has_scripts == 'true'
         uses: ludeeus/action-shellcheck@2.0.0
         with:
           scandir: '.wgx-tools/modules'
