@@ -263,275 +263,289 @@ def _load_manifest(path: str) -> Any:
         return json.load(handle) or {}
 
 
-path = sys.argv[1]
-data = _load_manifest(path) or {}
+def main(argv: List[str]) -> int:
+    if len(argv) < 2:
+        print('usage: profile_parser.py <manifest>', file=sys.stderr)
+        return 1
+    path = argv[1]
+    data = _load_manifest(path) or {}
 
-wgx = data.get('wgx')
-if not isinstance(wgx, dict):
-    wgx = {}
+    wgx = data.get('wgx')
+    if not isinstance(wgx, dict):
+        wgx = {}
 
-# Backwards compatibility: allow certain keys (e.g. tasks) at the top level.
-# Older profiles stored "tasks" directly on the root object. Newer profiles nest
-# them inside the "wgx" block. We support both to avoid breaking existing
-# repositories.
-root_tasks = data.get('tasks') if isinstance(data, dict) else None
-root_repo_kind = data.get('repoKind') if isinstance(data, dict) else None
-root_dirs = data.get('dirs') if isinstance(data, dict) else None
-root_env = data.get('env') if isinstance(data, dict) else None
-root_env_defaults = data.get('envDefaults') if isinstance(data, dict) else None
-root_env_overrides = data.get('envOverrides') if isinstance(data, dict) else None
-root_workflows = data.get('workflows') if isinstance(data, dict) else None
+    # Backwards compatibility: allow certain keys (e.g. tasks) at the top level.
+    # Older profiles stored "tasks" directly on the root object. Newer profiles nest
+    # them inside the "wgx" block. We support both to avoid breaking existing
+    # repositories.
+    root_tasks = data.get('tasks') if isinstance(data, dict) else None
+    root_repo_kind = data.get('repoKind') if isinstance(data, dict) else None
+    root_dirs = data.get('dirs') if isinstance(data, dict) else None
+    root_env = data.get('env') if isinstance(data, dict) else None
+    root_env_defaults = data.get('envDefaults') if isinstance(data, dict) else None
+    root_env_overrides = data.get('envOverrides') if isinstance(data, dict) else None
+    root_workflows = data.get('workflows') if isinstance(data, dict) else None
 
-platform_keys = []
-plat = sys.platform
-if plat.startswith('darwin'):
-    platform_keys.append('darwin')
-elif plat.startswith('linux'):
-    platform_keys.append('linux')
-elif plat.startswith('win'):
-    platform_keys.append('win32')
-elif plat.startswith('cygwin') or plat.startswith('msys'):
-    platform_keys.append('win32')
-platform_keys.append('default')
+    platform_keys = []
+    plat = sys.platform
+    if plat.startswith('darwin'):
+        platform_keys.append('darwin')
+    elif plat.startswith('linux'):
+        platform_keys.append('linux')
+    elif plat.startswith('win'):
+        platform_keys.append('win32')
+    elif plat.startswith('cygwin') or plat.startswith('msys'):
+        platform_keys.append('win32')
+    platform_keys.append('default')
 
-def select_variant(value):
-    if isinstance(value, dict):
-        for key in platform_keys:
-            if key in value and value[key] not in (None, ''):
-                return value[key]
-        for entry in value.values():
-            if entry not in (None, ''):
-                return entry
-        return None
-    return value
-
-def as_bool(value):
-    if isinstance(value, bool):
+    def select_variant(value):
+        if isinstance(value, dict):
+            for key in platform_keys:
+                if key in value and value[key] not in (None, ''):
+                    return value[key]
+            for entry in value.values():
+                if entry not in (None, ''):
+                    return entry
+            return None
         return value
-    if isinstance(value, int):
-        return value != 0
-    if isinstance(value, str):
-        return value.strip().lower() in ("1", "true", "yes", "on")
-    return False
 
-def normalize_list(value):
-    if value is None:
-        return []
-    if isinstance(value, (list, tuple)):
-        return [str(item) for item in value]
-    if isinstance(value, dict):
-        selected = select_variant(value)
-        if isinstance(selected, (list, tuple)):
-            return [str(item) for item in selected]
-        if selected is None:
+    def as_bool(value):
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, int):
+            return value != 0
+        if isinstance(value, str):
+            return value.strip().lower() in ("1", "true", "yes", "on")
+        return False
+
+    def normalize_list(value):
+        if value is None:
             return []
-        return [str(selected)]
-    return [str(value)]
+        if isinstance(value, (list, tuple)):
+            return [str(item) for item in value]
+        if isinstance(value, dict):
+            selected = select_variant(value)
+            if isinstance(selected, (list, tuple)):
+                return [str(item) for item in selected]
+            if selected is None:
+                return []
+            return [str(selected)]
+        return [str(value)]
 
-def emit(line: str) -> None:
-    sys.stdout.write(f"{line}\n")
+    def emit(line: str) -> None:
+        sys.stdout.write(f"{line}\n")
 
-def shell_quote(value: str) -> str:
-    return shlex.quote(value)
+    def shell_quote(value: str) -> str:
+        return shlex.quote(value)
 
-def emit_env(prefix: str, mapping):
-    if not isinstance(mapping, dict):
-        return
-    for key, val in mapping.items():
-        if key is None:
-            continue
-        # env base/overrides werden 1:1 als STR übernommen
-        skey = str(key)
-        sval = '' if val is None else str(val)
-        emit(f"{prefix}[{shell_quote(skey)}]={shell_quote(sval)}")
+    def emit_env(prefix: str, mapping):
+        if not isinstance(mapping, dict):
+            return
+        for key, val in mapping.items():
+            if key is None:
+                continue
+            # env base/overrides werden 1:1 als STR übernommen
+            skey = str(key)
+            sval = '' if val is None else str(val)
+            emit(f"{prefix}[{shell_quote(skey)}]={shell_quote(sval)}")
 
-def emit_caps(caps):
-    if not isinstance(caps, (list, tuple)):
-        return
-    for cap in caps:
-        if cap is None:
-            continue
-        emit(f"WGX_REQUIRED_CAPS+=({shell_quote(str(cap))})")
+    def emit_caps(caps):
+        if not isinstance(caps, (list, tuple)):
+            return
+        for cap in caps:
+            if cap is None:
+                continue
+            emit(f"WGX_REQUIRED_CAPS+=({shell_quote(str(cap))})")
 
-# track if we used any root-level fallback (for a single deprecation note)
-used_root_fallback = False
+    # track if we used any root-level fallback (for a single deprecation note)
+    used_root_fallback = False
 
-api_version = ''
-if isinstance(wgx, dict):
-    api_version = str(wgx.get('apiVersion') or '')
-if not api_version and isinstance(data, dict):
-    api_version = str(data.get('apiVersion') or '')
-if not api_version:
-    api_version = 'v1'
+    api_version = ''
+    if isinstance(wgx, dict):
+        api_version = str(wgx.get('apiVersion') or '')
+    if not api_version and isinstance(data, dict):
+        api_version = str(data.get('apiVersion') or '')
+    if not api_version:
+        api_version = 'v1'
 
-emit(f"PROFILE_VERSION={shell_quote(api_version)}")
-req = wgx.get('requiredWgx')
+    emit(f"PROFILE_VERSION={shell_quote(api_version)}")
+    req_candidates: List[Dict[str, Any]] = []
+    if isinstance(wgx, dict):
+        req_candidates.extend(
+            [
+                {"value": wgx.get('requiredWgx'), "from_root": False},
+                {"value": wgx.get('required-wgx'), "from_root": False},
+            ]
+        )
+    if isinstance(data, dict):
+        req_candidates.extend(
+            [
+                {"value": data.get('requiredWgx'), "from_root": True},
+                {"value": data.get('required-wgx'), "from_root": True},
+            ]
+        )
 
-# Fallback: check root 'requiredWgx' or 'required-wgx' if not in wgx block
-if req is None and isinstance(data, dict):
-    req = data.get('requiredWgx')
+    # First non-empty candidate wins; prefer the nested wgx.* values over root-level fallbacks.
+    # A dict is accepted here so the caller can pass structured constraints (range/min/caps).
+    req_value, req_from_root = next(
+        (
+            (candidate['value'], candidate['from_root'])
+            for candidate in req_candidates
+            if candidate['value'] not in (None, '')
+        ),
+        (None, False),
+    )
 
-if req is None and isinstance(data, dict):
-    req = data.get('required-wgx')
+    if isinstance(req_value, str):
+        emit(f"WGX_REQUIRED_RANGE={shell_quote(req_value)}")
+    elif isinstance(req_value, dict):
+        rng = req_value.get('range')
+        if rng:
+            emit(f"WGX_REQUIRED_RANGE={shell_quote(str(rng))}")
+        minimum = req_value.get('min')
+        if minimum:
+            emit(f"WGX_REQUIRED_MIN={shell_quote(str(minimum))}")
+        emit_caps(req_value.get('caps'))
+    else:
+        emit_caps([])
 
-# Also check wgx['required-wgx'] specifically (alias inside wgx block)
-if req is None and isinstance(wgx, dict):
-    req = wgx.get('required-wgx')
-
-# One final check for the legacy top-level alias if strictly nothing found yet
-if req is None and isinstance(data, dict):
-    req = data.get('required-wgx')
-
-# Ensure we handle the case where both keys might exist but one is None/Empty
-# Priority: wgx.requiredWgx > wgx.required-wgx > root.requiredWgx > root.required-wgx
-# (The above logic roughly implements a "first found wins" strategy)
-
-# One final check for the legacy top-level alias if strictly nothing found yet
-if req is None and isinstance(data, dict):
-    req = data.get('required-wgx')
-
-if isinstance(req, str):
-    emit(f"WGX_REQUIRED_RANGE={shell_quote(req)}")
-elif isinstance(req, dict):
-    rng = req.get('range')
-    if rng:
-        emit(f"WGX_REQUIRED_RANGE={shell_quote(str(rng))}")
-    minimum = req.get('min')
-    if minimum:
-        emit(f"WGX_REQUIRED_MIN={shell_quote(str(minimum))}")
-    emit_caps(req.get('caps'))
-else:
-    emit_caps([])
-
-repo_kind = wgx.get('repoKind') if isinstance(wgx, dict) else None
-if repo_kind is None:
-    repo_kind = root_repo_kind
-    if repo_kind is not None:
+    if req_from_root:
         used_root_fallback = True
-emit(f"WGX_REPO_KIND={shell_quote(str(repo_kind or ''))}")
 
-dirs = wgx.get('dirs') if isinstance(wgx, dict) else None
-if not isinstance(dirs, dict):
-    dirs = root_dirs if isinstance(root_dirs, dict) else {}
-    if dirs:
-        used_root_fallback = True
-emit(f"WGX_DIR_WEB={shell_quote(str(dirs.get('web') or ''))}")
-emit(f"WGX_DIR_API={shell_quote(str(dirs.get('api') or ''))}")
-emit(f"WGX_DIR_DATA={shell_quote(str(dirs.get('data') or ''))}")
+    repo_kind = wgx.get('repoKind') if isinstance(wgx, dict) else None
+    if repo_kind is None:
+        repo_kind = root_repo_kind
+        if repo_kind is not None:
+            used_root_fallback = True
+    emit(f"WGX_REPO_KIND={shell_quote(str(repo_kind or ''))}")
 
-env_defaults = wgx.get('envDefaults') if isinstance(wgx, dict) else None
-if not isinstance(env_defaults, dict):
-    env_defaults = root_env_defaults if isinstance(root_env_defaults, dict) else {}
-    if env_defaults:
-        used_root_fallback = True
-emit_env('WGX_ENV_DEFAULT_MAP', env_defaults)
+    dirs = wgx.get('dirs') if isinstance(wgx, dict) else None
+    if not isinstance(dirs, dict):
+        dirs = root_dirs if isinstance(root_dirs, dict) else {}
+        if dirs:
+            used_root_fallback = True
+    emit(f"WGX_DIR_WEB={shell_quote(str(dirs.get('web') or ''))}")
+    emit(f"WGX_DIR_API={shell_quote(str(dirs.get('api') or ''))}")
+    emit(f"WGX_DIR_DATA={shell_quote(str(dirs.get('data') or ''))}")
 
-env_base = wgx.get('env') if isinstance(wgx, dict) else None
-if not isinstance(env_base, dict):
-    env_base = root_env if isinstance(root_env, dict) else {}
-    if env_base:
-        used_root_fallback = True
-emit_env('WGX_ENV_BASE_MAP', env_base)
+    env_defaults = wgx.get('envDefaults') if isinstance(wgx, dict) else None
+    if not isinstance(env_defaults, dict):
+        env_defaults = root_env_defaults if isinstance(root_env_defaults, dict) else {}
+        if env_defaults:
+            used_root_fallback = True
+    emit_env('WGX_ENV_DEFAULT_MAP', env_defaults)
 
-env_overrides = wgx.get('envOverrides') if isinstance(wgx, dict) else None
-if not isinstance(env_overrides, dict):
-    env_overrides = root_env_overrides if isinstance(root_env_overrides, dict) else {}
-    if env_overrides:
-        used_root_fallback = True
-emit_env('WGX_ENV_OVERRIDE_MAP', env_overrides)
+    env_base = wgx.get('env') if isinstance(wgx, dict) else None
+    if not isinstance(env_base, dict):
+        env_base = root_env if isinstance(root_env, dict) else {}
+        if env_base:
+            used_root_fallback = True
+    emit_env('WGX_ENV_BASE_MAP', env_base)
 
-workflows = wgx.get('workflows') if isinstance(wgx, dict) else None
-if not isinstance(workflows, dict):
-    workflows = root_workflows if isinstance(root_workflows, dict) else {}
-    if workflows:
-        used_root_fallback = True
-if isinstance(workflows, dict):
-    for wf_name, wf_spec in workflows.items():
-        steps = []
-        if isinstance(wf_spec, dict):
-            for step in wf_spec.get('steps') or []:
-                if isinstance(step, dict):
-                    task_name = step.get('task')
-                    if task_name:
-                        steps.append(str(task_name))
-        emit(f"WGX_WORKFLOW_TASKS[{shell_quote(str(wf_name))}]={shell_quote(' '.join(steps))}")
+    env_overrides = wgx.get('envOverrides') if isinstance(wgx, dict) else None
+    if not isinstance(env_overrides, dict):
+        env_overrides = root_env_overrides if isinstance(root_env_overrides, dict) else {}
+        if env_overrides:
+            used_root_fallback = True
+    emit_env('WGX_ENV_OVERRIDE_MAP', env_overrides)
 
-tasks = wgx.get('tasks') if isinstance(wgx, dict) else None
-if not isinstance(tasks, dict) or not tasks:
-    tasks = root_tasks if isinstance(root_tasks, dict) else {}
-    if tasks:
-        used_root_fallback = True
-if isinstance(tasks, dict):
-    seen_task_order = set()
-    for raw_name, spec in tasks.items():
-        name = str(raw_name)
-        norm = name.replace(' ', '').replace('_', '-').lower()
-        if norm not in seen_task_order:
-            emit(f"WGX_TASK_ORDER+=({shell_quote(norm)})")
-            seen_task_order.add(norm)
-        desc = ''
-        group = ''
-        safe = False
-        cmd_value = spec
-        args_value = None
-        if isinstance(spec, dict):
-            desc = spec.get('desc') or ''
-            group = spec.get('group') or ''
-            safe = as_bool(spec.get('safe'))
-            cmd_value = spec.get('cmd')
-            args_value = spec.get('args')
-        selected_cmd = select_variant(cmd_value)
-        #
-        # Build command preserving semantics:
-        # - If manifest provided a STRING: keep it as-is (no re-quoting/splitting).
-        #   Only append args (quoted) if present.
-        # - If manifest provided an ARRAY: emit ARRJSON (and extend with args).
-        # - Otherwise: coerce to string sensibly.
-        #
-        base_cmd = None
-        tokens = []
-        use_array_format = False
+    workflows = wgx.get('workflows') if isinstance(wgx, dict) else None
+    if not isinstance(workflows, dict):
+        workflows = root_workflows if isinstance(root_workflows, dict) else {}
+        if workflows:
+            used_root_fallback = True
+    if isinstance(workflows, dict):
+        for wf_name, wf_spec in workflows.items():
+            steps = []
+            if isinstance(wf_spec, dict):
+                for step in wf_spec.get('steps') or []:
+                    if isinstance(step, dict):
+                        task_name = step.get('task')
+                        if task_name:
+                            steps.append(str(task_name))
+            emit(f"WGX_WORKFLOW_TASKS[{shell_quote(str(wf_name))}]={shell_quote(' '.join(steps))}")
 
-        if isinstance(selected_cmd, (list, tuple)):
-            tokens = [str(item) for item in selected_cmd]
-            use_array_format = True
-        elif isinstance(selected_cmd, str) and selected_cmd.strip():
-            base_cmd = selected_cmd  # preserve raw shell string
-        elif selected_cmd not in (None, ''):
-            # numbers/other scalars -> treat as a single token
-            tokens = [str(selected_cmd)]
+    tasks = wgx.get('tasks') if isinstance(wgx, dict) else None
+    if not isinstance(tasks, dict) or not tasks:
+        tasks = root_tasks if isinstance(root_tasks, dict) else {}
+        if tasks:
+            used_root_fallback = True
+    if isinstance(tasks, dict):
+        seen_task_order = set()
+        for raw_name, spec in tasks.items():
+            name = str(raw_name)
+            norm = name.replace(' ', '').replace('_', '-').lower()
+            if norm not in seen_task_order:
+                emit(f"WGX_TASK_ORDER+=({shell_quote(norm)})")
+                seen_task_order.add(norm)
+            desc = ''
+            group = ''
+            safe = False
+            cmd_value = spec
+            args_value = None
+            if isinstance(spec, dict):
+                desc = spec.get('desc') or ''
+                group = spec.get('group') or ''
+                safe = as_bool(spec.get('safe'))
+                cmd_value = spec.get('cmd')
+                args_value = spec.get('args')
+            selected_cmd = select_variant(cmd_value)
+            #
+            # Build command preserving semantics:
+            # - If manifest provided a STRING: keep it as-is (no re-quoting/splitting).
+            #   Only append args (quoted) if present.
+            # - If manifest provided an ARRAY: emit ARRJSON (and extend with args).
+            # - Otherwise: coerce to string sensibly.
+            #
+            base_cmd = None
+            tokens = []
+            use_array_format = False
 
-        # Normalize/collect args (list/dict with platform variants)
-        appended_args = []
-        if isinstance(args_value, (list, tuple)) and args_value:
-            appended_args.extend(str(item) for item in args_value)
-        elif isinstance(args_value, dict):
-            variant = select_variant(args_value)
-            if isinstance(variant, (list, tuple)):
-                appended_args.extend(str(item) for item in variant)
-            elif variant not in (None, ''):
-                appended_args.append(str(variant))
+            if isinstance(selected_cmd, (list, tuple)):
+                tokens = [str(item) for item in selected_cmd]
+                use_array_format = True
+            elif isinstance(selected_cmd, str) and selected_cmd.strip():
+                base_cmd = selected_cmd  # preserve raw shell string
+            elif selected_cmd not in (None, ''):
+                # numbers/other scalars -> treat as a single token
+                tokens = [str(selected_cmd)]
 
-        if use_array_format:
-            if appended_args:
-                tokens.extend(appended_args)
-            payload = json.dumps(tokens, ensure_ascii=False)
-            emit(f"WGX_TASK_CMDS[{shell_quote(norm)}]={shell_quote('ARRJSON:' + payload)}")
-        else:
-            command_parts = []
-            if base_cmd is not None:
-                command_parts.append(base_cmd)
+            # Normalize/collect args (list/dict with platform variants)
+            appended_args = []
+            if isinstance(args_value, (list, tuple)) and args_value:
+                appended_args.extend(str(item) for item in args_value)
+            elif isinstance(args_value, dict):
+                variant = select_variant(args_value)
+                if isinstance(variant, (list, tuple)):
+                    appended_args.extend(str(item) for item in variant)
+                elif variant not in (None, ''):
+                    appended_args.append(str(variant))
+
+            if use_array_format:
                 if appended_args:
-                    command_parts.extend(shlex.quote(str(a)) for a in appended_args)
-                command = ' '.join(command_parts)
+                    tokens.extend(appended_args)
+                payload = json.dumps(tokens, ensure_ascii=False)
+                emit(f"WGX_TASK_CMDS[{shell_quote(norm)}]={shell_quote('ARRJSON:' + payload)}")
             else:
-                all_parts = tokens + appended_args
-                command = ' '.join(shlex.quote(str(p)) for p in all_parts)
-            emit(f"WGX_TASK_CMDS[{shell_quote(norm)}]={shell_quote('STR:' + command)}")
-        emit(f"WGX_TASK_DESC[{shell_quote(norm)}]={shell_quote(str(desc))}")
-        emit(f"WGX_TASK_GROUP[{shell_quote(norm)}]={shell_quote(str(group))}")
-        emit(f"WGX_TASK_SAFE[{shell_quote(norm)}]={shell_quote('1' if safe else '0')}")
-        continue
+                command_parts = []
+                if base_cmd is not None:
+                    command_parts.append(base_cmd)
+                    if appended_args:
+                        command_parts.extend(shlex.quote(str(a)) for a in appended_args)
+                    command = ' '.join(command_parts)
+                else:
+                    all_parts = tokens + appended_args
+                    command = ' '.join(shlex.quote(str(p)) for p in all_parts)
+                emit(f"WGX_TASK_CMDS[{shell_quote(norm)}]={shell_quote('STR:' + command)}")
+            emit(f"WGX_TASK_DESC[{shell_quote(norm)}]={shell_quote(str(desc))}")
+            emit(f"WGX_TASK_GROUP[{shell_quote(norm)}]={shell_quote(str(group))}")
+            emit(f"WGX_TASK_SAFE[{shell_quote(norm)}]={shell_quote('1' if safe else '0')}")
+            continue
 
-if used_root_fallback and os.environ.get("WGX_PROFILE_DEPRECATION", "warn") != "quiet":
-    print("wgx: note: using root-level profile keys for backwards compatibility; consider nesting under 'wgx.'", file=sys.stderr)
+    if used_root_fallback and os.environ.get("WGX_PROFILE_DEPRECATION", "warn") != "quiet":
+        print("wgx: note: using root-level profile keys for backwards compatibility; consider nesting under 'wgx.'", file=sys.stderr)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))
