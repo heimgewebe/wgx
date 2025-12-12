@@ -11,6 +11,9 @@ on:
       - '.wgx-tools/**'
       - '.github/workflows/wgx-tools-guard.yml'
 
+permissions:
+  contents: read
+
 jobs:
   shellcheck:
     runs-on: ubuntu-latest
