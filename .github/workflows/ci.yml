@@ -228,7 +228,7 @@ jobs:
       - name: Install Vale
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VALE_VERSION: latest
+          VALE_VERSION: v2.27.0
         run: |
           set -euo pipefail
           set -x  # Enable debug output to see API responses
