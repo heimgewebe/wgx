@@ -60,7 +60,7 @@ SCRIPT
     "bash -n"
     "shfmt -d"
     "shellcheck -S style"
-    "bats-core/bats-action"
+    "./.github/actions/run-bats"
   )
 
   for pattern in "${workflow_patterns[@]}"; do
