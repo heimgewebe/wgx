@@ -36,7 +36,8 @@ jobs:
             exit 0
           fi
 
-          mapfile -d '' files < <(find .wgx-tools/modules -type f ! -name '.gitkeep' -print0)
+          # Prevent empty-find from tripping set -e: mapfile exits 1 when it reads nothing.
+          mapfile -d '' files < <(find .wgx-tools/modules -type f ! -name '.gitkeep' -print0) || true
 
           if (( ${#files[@]} == 0 )); then
             echo "No files under .wgx-tools/modules to ShellCheck. Skipping."

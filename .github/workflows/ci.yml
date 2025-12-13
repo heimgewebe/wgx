@@ -156,7 +156,7 @@ jobs:
           sudo apt-get install -y python3-yaml
       - name: Run bats test suites
         # Pin to a published release of bats-core/bats-action.
-        uses: bats-core/bats-action@v2
+        uses: bats-core/bats-action@v3.0.0
         with:
           helpers: |
             bats-support
@@ -177,6 +177,9 @@ jobs:
       )
     runs-on: ubuntu-latest
     timeout-minutes: 12
+    env:
+      # Required by Vale install script; must be job-level so scripts can assert presence.
+      VALE_VERSION: v2.27.0
     steps:
       - uses: actions/checkout@v4
       - name: Find changed docs and script files
@@ -233,7 +236,6 @@ jobs:
       - name: Install Vale
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VALE_VERSION: v2.27.0
         run: |
           set -euo pipefail
           set -x  # Enable debug output to see API responses
