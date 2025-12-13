@@ -1,0 +1,46 @@
+name: wgx-tools-guard
+permissions:
+  contents: read
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '.wgx-tools/**'
+      - '.github/workflows/wgx-tools-guard.yml'
+  pull_request:
+    paths:
+      - '.wgx-tools/**'
+      - '.github/workflows/wgx-tools-guard.yml'
+
+jobs:
+  shellcheck:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install ShellCheck
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y shellcheck
+
+      - name: ShellCheck .wgx-tools/modules (skip if empty)
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+
+          if [[ ! -d .wgx-tools/modules ]]; then
+            echo "No .wgx-tools/modules directory. Skipping ShellCheck."
+            exit 0
+          fi
+
+          mapfile -d '' files < <(find .wgx-tools/modules -type f ! -name '.gitkeep' -print0)
+
+          if (( ${#files[@]} == 0 )); then
+            echo "No files under .wgx-tools/modules to ShellCheck. Skipping."
+            exit 0
+          fi
+
+          shellcheck -x "${files[@]}"

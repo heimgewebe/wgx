@@ -155,8 +155,8 @@ jobs:
           sudo apt-get update -y
           sudo apt-get install -y python3-yaml
       - name: Run bats test suites
-        # Pin to v2.0.0, a stable published release of bats-core/bats-action.
-        uses: bats-core/bats-action@v2.0.0
+        # Pin to a published release of bats-core/bats-action.
+        uses: bats-core/bats-action@v2
         with:
           helpers: |
             bats-support
@@ -233,7 +233,7 @@ jobs:
       - name: Install Vale
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VALE_VERSION: latest
+          VALE_VERSION: v2.27.0
         run: |
           set -euo pipefail
           set -x  # Enable debug output to see API responses
