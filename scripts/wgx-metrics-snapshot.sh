@@ -72,9 +72,9 @@ updates_pkg=${UPDATES_PKG:-0}
 updates_flatpak=${UPDATES_FLATPAK:-0}
 
 # Backup-Status (Platzhalter)
+age_days=${BACKUP_AGE_DAYS:-1}
 if date -d "yesterday" +%F >/dev/null 2>&1; then
   # Backup-Status konsistent: age_days steuert last_ok
-  age_days=${BACKUP_AGE_DAYS:-1}
   if date -d "today" +%F >/dev/null 2>&1; then
     # GNU date
     last_ok=$(date -d "${age_days} day ago" +%F)
@@ -85,7 +85,6 @@ if date -d "yesterday" +%F >/dev/null 2>&1; then
 else
   last_ok=$(date -v-"${age_days}"d +%F) # BSD/macOS
 fi
-age_days=${BACKUP_AGE_DAYS:-1}
 
 # Template-Drift (Platzhalter)
 drift_templates=${DRIFT_TEMPLATES:-0}
