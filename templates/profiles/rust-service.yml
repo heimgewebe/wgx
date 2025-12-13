@@ -3,7 +3,7 @@ class: rust-service
 tasks:
   smoke: "cargo build --workspace"
   guard: "cargo fmt --all --check && cargo clippy --all-targets --all-features -- -D warnings"
-  metrics: "# TODO: repo-spezifische Metriken hier ergänzen"
+  metrics: "echo 'TODO: Configure repository-specific metrics (e.g. coverage, complexity) here.'"
   snapshot: "# TODO: tiefergehender Test-/Build-Run"
 
 # Alternative (optional, falls just + gh CLI vorhanden sind):
