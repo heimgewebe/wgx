@@ -104,9 +104,9 @@ profile::_abspath() {
 
 profile::_normalize_task_name() {
   local name="${1:-}"
-  name="${name// /}"        # remove spaces
-  name="${name//_/-}"       # mirror parser underscore normalization
-  name="$(printf '%s' "$name" | tr -s '-')"  # collapse repeated dashes
+  name="${name// /}"                        # remove spaces
+  name="${name//_/-}"                       # mirror parser underscore normalization
+  name="$(printf '%s' "$name" | tr -s '-')" # collapse repeated dashes
   printf '%s' "${name,,}"
 }
 
@@ -126,6 +126,7 @@ profile::_parser_line_is_safe() {
 
   # reject typical code-injection primitives
   # (values should be quoted by the parser; if they aren't, we prefer failing closed)
+  # shellcheck disable=SC2016
   if [[ $line == *'$('* || $line == *'`'* || $line == *';'* || $line == *'|'* || $line == *'&'* || $line == *'<'* || $line == *'>'* ]]; then
     return 1
   fi
