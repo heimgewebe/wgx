@@ -122,7 +122,7 @@ jobs:
       - name: shellcheck
         run: |
           set -euo pipefail
-          ./etc/ci/run-with-files.sh "No shell files to lint." shellcheck -S style <<-'EOF'
+          ./etc/ci/run-with-files.sh "No shell files to lint." shellcheck -x -S style <<-'EOF'
           ${{ steps.shell_files.outputs.files }}
           EOF
 
@@ -323,12 +323,17 @@ jobs:
                       print(asset.get('browser_download_url') or '')
                       sys.exit(0)
 
-          raise SystemExit('No suitable Linux tarball found in release assets')
+          # Print available assets for debugging
+          available = [a.get('name', '') for a in data.get('assets', [])]
+          sys.stderr.write('ERROR: No suitable Linux tarball found in release assets\n')
+          sys.stderr.write(f'Available assets: {", ".join(available)}\n')
+          sys.stderr.write(f'Tried suffixes: {", ".join(preferred_suffixes)}\n')
+          raise SystemExit(1)
           PY
           )
 
-          if [[ "${#asset_info[@]}" -lt 2 ]]; then
-            echo "Failed to determine Vale asset download information" >&2
+          if [[ "${#asset_info[@]}" -lt 2 ]] || [[ -z "${asset_info[0]:-}" ]]; then
+            echo "::error::Asset info array is empty or incomplete; check Python script output above" >&2
             exit 1
           fi
 
@@ -345,7 +350,11 @@ jobs:
                   print(asset.get('browser_download_url') or '')
                   sys.exit(0)
 
-          raise SystemExit('checksums.txt not found in release assets')
+          # Print available assets for debugging
+          available = [a.get('name', '') for a in data.get('assets', [])]
+          sys.stderr.write('ERROR: checksums.txt not found in release assets\n')
+          sys.stderr.write(f'Available assets: {", ".join(available)}\n')
+          raise SystemExit(1)
           PY
           )
 
