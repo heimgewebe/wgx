@@ -233,16 +233,15 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          set -o pipefail  # Catch errors in pipes
           set -x  # Enable debug output to see API responses
           owner="errata-ai"
           repo="vale"
           version="${VALE_VERSION:-latest}"
           release_json=""
           
-          # Validate required variables before making API calls
-          if [[ -z "${owner}" || -z "${repo}" || -z "${version}" ]]; then
-            echo "::error::Missing required variable (owner/repo/version)" >&2
+          # Validate version variable is populated (owner/repo are hardcoded literals)
+          if [[ -z "${version}" ]]; then
+            echo "::error::Missing required variable (version)" >&2
             exit 1
           fi
 
@@ -297,12 +296,6 @@ jobs:
               echo "::error::Failed to fetch release data (empty response)" >&2
               exit 1
             fi
-            
-            # Validate JSON before parsing
-            echo "${release_json}" | python3 -m json.tool > /dev/null 2>&1 || {
-              echo "::error::Downloaded release json is not valid" >&2
-              exit 1
-            }
 
             # Validate that we got valid JSON and extract version
             if ! version=$(printf '%s' "${release_json}" | python3 - <<-'PY'
