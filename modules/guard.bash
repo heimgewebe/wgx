@@ -16,25 +16,6 @@ _guard_command_available() {
   [[ -r "${project_root}/cmd/${name}.bash" ]]
 }
 
-_guard_require_file() {
-  local path="$1" message="$2"
-  if [[ -f "$path" ]]; then
-    printf '  • %s ✅\n' "$message"
-    return 0
-  fi
-  printf '  ✗ %s missing\n' "$message" >&2
-  return 1
-}
-
-type _guard_gitgrep_pcre_supported >/dev/null 2>&1 ||
-  _guard_gitgrep_pcre_supported() {
-    local rc
-    # 0/1 = Option -P vorhanden (Match egal), 2 = Fehler/fehlendes PCRE
-    git grep -P -n 'a' -- . >/dev/null 2>&1
-    rc=$?
-    [[ $rc -ne 2 ]]
-  }
-
 guard_run() {
   local run_lint=0 run_test=0
   while [[ $# -gt 0 ]]; do
