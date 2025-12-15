@@ -35,3 +35,7 @@ __pycache__/
 /artifacts/
 actionlint
 *.err
+
+# Test dependencies (installed by CI)
+/test/bats-assert/
+/test/bats-support/
