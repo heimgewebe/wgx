@@ -105,7 +105,6 @@ profile::_abspath() {
 profile::_normalize_task_name() {
   local name="${1:-}"
   name="${name// /}"                        # remove spaces
-  name="${name//_/-}"                       # mirror parser underscore normalization
   name="$(printf '%s' "$name" | tr -s '-')" # collapse repeated dashes
   printf '%s' "${name,,}"
 }
@@ -152,7 +151,7 @@ profile::_parser_line_is_safe() {
       else
         value_part="${line#*=}"
       fi
-      
+
       # Allow array append syntax: VAR+=(value)
       if [[ $value_part == \(* && $value_part == *\) ]]; then
         # Check content inside parentheses
@@ -163,13 +162,14 @@ profile::_parser_line_is_safe() {
           return 0
         fi
       fi
-      
+
       # Check if value starts with a quote (single or double)
       if [[ $value_part == \"*\" || $value_part == \'*\' ]]; then
         # Properly quoted value, allow special chars inside quotes
         return 0
       fi
       # If not quoted, apply strict checks
+      # shellcheck disable=SC2016
       if [[ $value_part == *'$('* || $value_part == *'`'* || $value_part == *';'* || $value_part == *'|'* || $value_part == *'&'* || $value_part == *'<'* || $value_part == *'>'* ]]; then
         return 1
       fi
@@ -223,11 +223,17 @@ profile::_python_parse() {
   return 0
 }
 
+profile::_task_key_from_var() {
+  # Convert internal variable naming (with underscores) to user-facing task names (with dashes)
+  local key="$1"
+  printf '%s' "${key//_/-}"
+}
+
 profile::_convert_flat_to_arrays() {
   # Convert flat variables (VAR_key=value) to associative arrays (VAR[key]=value)
   # This allows the parser to output safe flat variables while maintaining the array interface
   local var key value
-  
+
   # Convert WGX_ENV_DEFAULT_MAP_* to array
   while IFS= read -r var; do
     [[ -n $var ]] || continue
@@ -235,7 +241,7 @@ profile::_convert_flat_to_arrays() {
     value="${!var}"
     WGX_ENV_DEFAULT_MAP["$key"]="$value"
   done < <(compgen -v WGX_ENV_DEFAULT_MAP_)
-  
+
   # Convert WGX_ENV_BASE_MAP_* to array
   while IFS= read -r var; do
     [[ -n $var ]] || continue
@@ -243,7 +249,7 @@ profile::_convert_flat_to_arrays() {
     value="${!var}"
     WGX_ENV_BASE_MAP["$key"]="$value"
   done < <(compgen -v WGX_ENV_BASE_MAP_)
-  
+
   # Convert WGX_ENV_OVERRIDE_MAP_* to array
   while IFS= read -r var; do
     [[ -n $var ]] || continue
@@ -251,7 +257,7 @@ profile::_convert_flat_to_arrays() {
     value="${!var}"
     WGX_ENV_OVERRIDE_MAP["$key"]="$value"
   done < <(compgen -v WGX_ENV_OVERRIDE_MAP_)
-  
+
   # Convert WGX_WORKFLOW_TASKS_* to array
   while IFS= read -r var; do
     [[ -n $var ]] || continue
@@ -259,35 +265,39 @@ profile::_convert_flat_to_arrays() {
     value="${!var}"
     WGX_WORKFLOW_TASKS["$key"]="$value"
   done < <(compgen -v WGX_WORKFLOW_TASKS_)
-  
+
   # Convert WGX_TASK_CMDS_* to array
   while IFS= read -r var; do
     [[ -n $var ]] || continue
     key="${var#WGX_TASK_CMDS_}"
+    key="$(profile::_task_key_from_var "$key")"
     value="${!var}"
     WGX_TASK_CMDS["$key"]="$value"
   done < <(compgen -v WGX_TASK_CMDS_)
-  
+
   # Convert WGX_TASK_DESC_* to array
   while IFS= read -r var; do
     [[ -n $var ]] || continue
     key="${var#WGX_TASK_DESC_}"
+    key="$(profile::_task_key_from_var "$key")"
     value="${!var}"
     WGX_TASK_DESC["$key"]="$value"
   done < <(compgen -v WGX_TASK_DESC_)
-  
+
   # Convert WGX_TASK_GROUP_* to array
   while IFS= read -r var; do
     [[ -n $var ]] || continue
     key="${var#WGX_TASK_GROUP_}"
+    key="$(profile::_task_key_from_var "$key")"
     value="${!var}"
     WGX_TASK_GROUP["$key"]="$value"
   done < <(compgen -v WGX_TASK_GROUP_)
-  
+
   # Convert WGX_TASK_SAFE_* to array
   while IFS= read -r var; do
     [[ -n $var ]] || continue
     key="${var#WGX_TASK_SAFE_}"
+    key="$(profile::_task_key_from_var "$key")"
     value="${!var}"
     WGX_TASK_SAFE["$key"]="$value"
   done < <(compgen -v WGX_TASK_SAFE_)

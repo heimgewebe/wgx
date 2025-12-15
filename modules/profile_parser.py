@@ -470,7 +470,7 @@ if isinstance(tasks, dict):
     seen_task_order = set()
     for raw_name, spec in tasks.items():
         name = str(raw_name)
-        norm = name.replace(' ', '').replace('_', '-').lower()
+        norm = name.replace(' ', '').replace('-', '_').lower()
         if norm not in seen_task_order:
             emit(f"WGX_TASK_ORDER+=({shell_quote(norm)})")
             seen_task_order.add(norm)
