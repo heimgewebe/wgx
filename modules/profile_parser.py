@@ -343,7 +343,8 @@ def emit_env(prefix: str, mapping):
         # env base/overrides werden 1:1 als STR übernommen
         skey = str(key)
         sval = '' if val is None else str(val)
-        emit(f"{prefix}[{shell_quote(skey)}]={shell_quote(sval)}")
+        # Use flat variable naming to avoid array syntax
+        emit(f"{prefix}_{skey}={shell_quote(sval)}")
 
 def emit_caps(caps):
     if not isinstance(caps, (list, tuple)):
@@ -454,7 +455,11 @@ if isinstance(workflows, dict):
                     task_name = step.get('task')
                     if task_name:
                         steps.append(str(task_name))
-        emit(f"WGX_WORKFLOW_TASKS[{shell_quote(str(wf_name))}]={shell_quote(' '.join(steps))}")
+        # Use flat variable naming to avoid array syntax
+        # Sanitize workflow name to create a valid variable suffix
+        import re
+        safe_name = re.sub(r'[^A-Za-z0-9_]', '_', str(wf_name))
+        emit(f"WGX_WORKFLOW_TASKS_{safe_name}={shell_quote(' '.join(steps))}")
 
 tasks = wgx.get('tasks') if isinstance(wgx, dict) else None
 if not isinstance(tasks, dict) or not tasks:
@@ -516,7 +521,8 @@ if isinstance(tasks, dict):
             if appended_args:
                 tokens.extend(appended_args)
             payload = json.dumps(tokens, ensure_ascii=False)
-            emit(f"WGX_TASK_CMDS[{shell_quote(norm)}]={shell_quote('ARRJSON:' + payload)}")
+            # Use flat variable naming to avoid array syntax
+            emit(f"WGX_TASK_CMDS_{norm}={shell_quote('ARRJSON:' + payload)}")
         else:
             command_parts = []
             if base_cmd is not None:
@@ -527,10 +533,11 @@ if isinstance(tasks, dict):
             else:
                 all_parts = tokens + appended_args
                 command = ' '.join(shlex.quote(str(p)) for p in all_parts)
-            emit(f"WGX_TASK_CMDS[{shell_quote(norm)}]={shell_quote('STR:' + command)}")
-        emit(f"WGX_TASK_DESC[{shell_quote(norm)}]={shell_quote(str(desc))}")
-        emit(f"WGX_TASK_GROUP[{shell_quote(norm)}]={shell_quote(str(group))}")
-        emit(f"WGX_TASK_SAFE[{shell_quote(norm)}]={shell_quote('1' if safe else '0')}")
+            # Use flat variable naming to avoid array syntax
+            emit(f"WGX_TASK_CMDS_{norm}={shell_quote('STR:' + command)}")
+        emit(f"WGX_TASK_DESC_{norm}={shell_quote(str(desc))}")
+        emit(f"WGX_TASK_GROUP_{norm}={shell_quote(str(group))}")
+        emit(f"WGX_TASK_SAFE_{norm}={shell_quote('1' if safe else '0')}")
         continue
 
 if used_root_fallback and os.environ.get("WGX_PROFILE_DEPRECATION", "warn") != "quiet":
