@@ -38,6 +38,8 @@ jobs:
           repo="vale"
           version="v${VALE_VERSION#v}"
 
+          echo "owner=${owner}, repo=${repo}, version=${version}"
+
           accept_header="Accept: application/vnd.github+json"
           api_ver_header="X-GitHub-Api-Version: 2022-11-28"
           curl_headers=(-H "$accept_header" -H "$api_ver_header")
@@ -53,11 +55,19 @@ jobs:
             exit 1
           fi
 
-          readarray -t asset_info < <(printf '%s' "${release_json}" | python3 - <<'PY'
+          if [[ "${release_json}" == *"Not Found"* ]]; then
+            echo "::error::Release not found for tag ${version}"
+            exit 1
+          fi
+
+          readarray -t asset_info < <(printf '%s' "${release_json}" | python3 <(cat <<'PY'
           import json, sys
+          raw = sys.stdin.read()
           try:
-              data = json.load(sys.stdin)
+              data = json.loads(raw)
           except json.JSONDecodeError as e:
+              sys.stderr.write("Failed to parse JSON input:\n")
+              sys.stderr.write(raw)
               raise SystemExit(f"Failed to parse JSON: {e}")
 
           preferred_suffixes = ('Linux_64-bit.tar.gz', 'Linux_amd64.tar.gz')
@@ -79,7 +89,7 @@ jobs:
 
           raise SystemExit(f"No suitable Linux tarball found in release assets. Checked suffixes: {preferred_suffixes}")
           PY
-          )
+          ))
 
           if [[ ${#asset_info[@]} -lt 2 ]]; then
             echo "::error::Failed to resolve asset name/url from python script"
@@ -89,7 +99,7 @@ jobs:
           asset_name="${asset_info[0]}"
           asset_url="${asset_info[1]}"
 
-          checksums_url="$(printf '%s' "${release_json}" | python3 - <<'PY'
+          checksums_url="$(printf '%s' "${release_json}" | python3 <(cat <<'PY'
           import json, sys
           try:
               data = json.load(sys.stdin)
@@ -109,7 +119,7 @@ jobs:
 
           raise SystemExit("checksums.txt not found in release assets")
           PY
-          )"
+          ))"
 
           if [[ -z "${checksums_url}" ]]; then
             echo "::error::Failed to resolve checksums URL"
