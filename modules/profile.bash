@@ -158,7 +158,7 @@ profile::_parser_line_is_safe() {
         # Check content inside parentheses
         local inner="${value_part#\(}"
         inner="${inner%\)}"
-        # Allow if properly quoted or is a simple value
+        # Allow if properly quoted or is a simple value (letters, digits, underscores, hyphens)
         if [[ $inner == \"*\" || $inner == \'*\' || $inner =~ ^[A-Za-z0-9_-]+$ ]]; then
           return 0
         fi
@@ -229,60 +229,68 @@ profile::_convert_flat_to_arrays() {
   local var key value
   
   # Convert WGX_ENV_DEFAULT_MAP_* to array
-  for var in $(compgen -v | grep '^WGX_ENV_DEFAULT_MAP_'); do
+  while IFS= read -r var; do
+    [[ -n $var ]] || continue
     key="${var#WGX_ENV_DEFAULT_MAP_}"
     value="${!var}"
     WGX_ENV_DEFAULT_MAP["$key"]="$value"
-  done
+  done < <(compgen -v WGX_ENV_DEFAULT_MAP_)
   
   # Convert WGX_ENV_BASE_MAP_* to array
-  for var in $(compgen -v | grep '^WGX_ENV_BASE_MAP_'); do
+  while IFS= read -r var; do
+    [[ -n $var ]] || continue
     key="${var#WGX_ENV_BASE_MAP_}"
     value="${!var}"
     WGX_ENV_BASE_MAP["$key"]="$value"
-  done
+  done < <(compgen -v WGX_ENV_BASE_MAP_)
   
   # Convert WGX_ENV_OVERRIDE_MAP_* to array
-  for var in $(compgen -v | grep '^WGX_ENV_OVERRIDE_MAP_'); do
+  while IFS= read -r var; do
+    [[ -n $var ]] || continue
     key="${var#WGX_ENV_OVERRIDE_MAP_}"
     value="${!var}"
     WGX_ENV_OVERRIDE_MAP["$key"]="$value"
-  done
+  done < <(compgen -v WGX_ENV_OVERRIDE_MAP_)
   
   # Convert WGX_WORKFLOW_TASKS_* to array
-  for var in $(compgen -v | grep '^WGX_WORKFLOW_TASKS_'); do
+  while IFS= read -r var; do
+    [[ -n $var ]] || continue
     key="${var#WGX_WORKFLOW_TASKS_}"
     value="${!var}"
     WGX_WORKFLOW_TASKS["$key"]="$value"
-  done
+  done < <(compgen -v WGX_WORKFLOW_TASKS_)
   
   # Convert WGX_TASK_CMDS_* to array
-  for var in $(compgen -v | grep '^WGX_TASK_CMDS_'); do
+  while IFS= read -r var; do
+    [[ -n $var ]] || continue
     key="${var#WGX_TASK_CMDS_}"
     value="${!var}"
     WGX_TASK_CMDS["$key"]="$value"
-  done
+  done < <(compgen -v WGX_TASK_CMDS_)
   
   # Convert WGX_TASK_DESC_* to array
-  for var in $(compgen -v | grep '^WGX_TASK_DESC_'); do
+  while IFS= read -r var; do
+    [[ -n $var ]] || continue
     key="${var#WGX_TASK_DESC_}"
     value="${!var}"
     WGX_TASK_DESC["$key"]="$value"
-  done
+  done < <(compgen -v WGX_TASK_DESC_)
   
   # Convert WGX_TASK_GROUP_* to array
-  for var in $(compgen -v | grep '^WGX_TASK_GROUP_'); do
+  while IFS= read -r var; do
+    [[ -n $var ]] || continue
     key="${var#WGX_TASK_GROUP_}"
     value="${!var}"
     WGX_TASK_GROUP["$key"]="$value"
-  done
+  done < <(compgen -v WGX_TASK_GROUP_)
   
   # Convert WGX_TASK_SAFE_* to array
-  for var in $(compgen -v | grep '^WGX_TASK_SAFE_'); do
+  while IFS= read -r var; do
+    [[ -n $var ]] || continue
     key="${var#WGX_TASK_SAFE_}"
     value="${!var}"
     WGX_TASK_SAFE["$key"]="$value"
-  done
+  done < <(compgen -v WGX_TASK_SAFE_)
 }
 
 profile::_decode_json_array() {

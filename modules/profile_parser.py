@@ -456,7 +456,10 @@ if isinstance(workflows, dict):
                     if task_name:
                         steps.append(str(task_name))
         # Use flat variable naming to avoid array syntax
-        emit(f"WGX_WORKFLOW_TASKS_{wf_name}={shell_quote(' '.join(steps))}")
+        # Sanitize workflow name to create a valid variable suffix
+        import re
+        safe_name = re.sub(r'[^A-Za-z0-9_]', '_', str(wf_name))
+        emit(f"WGX_WORKFLOW_TASKS_{safe_name}={shell_quote(' '.join(steps))}")
 
 tasks = wgx.get('tasks') if isinstance(wgx, dict) else None
 if not isinstance(tasks, dict) or not tasks:
