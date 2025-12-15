@@ -238,6 +238,12 @@ jobs:
           repo="vale"
           version="${VALE_VERSION:-latest}"
           release_json=""
+          
+          # Validate version variable is populated (owner/repo are hardcoded literals)
+          if [[ -z "${version}" ]]; then
+            echo "::error::Missing required variable (version)" >&2
+            exit 1
+          fi
 
           # Use authenticated GitHub API requests to avoid low rate limits
           accept_header="Accept: application/vnd.github+json"
@@ -255,21 +261,39 @@ jobs:
           fi
 
           if [[ -n "${version}" && "${version}" != "latest" ]]; then
-            if ! release_json=$(curl --retry 5 --retry-all-errors -fsSL \
+            response=$(curl -i --retry 5 --retry-all-errors -fsSL \
               "${curl_headers[@]}" \
-              "https://api.github.com/repos/${owner}/${repo}/releases/tags/${version}"); then
-              echo "Unable to fetch release metadata for ${version}; falling back to the latest release" >&2
+              "https://api.github.com/repos/${owner}/${repo}/releases/tags/${version}")
+            http_status=$(echo "$response" | head -n 1 | awk '{print $2}')
+            json_body=$(echo "$response" | awk 'NR>1 && /^[{[]/{p=1} p')
+            
+            if [[ "$http_status" != "200" ]]; then
+              echo "Unable to fetch release metadata for ${version} (HTTP status $http_status); falling back to the latest release" >&2
+              echo "$json_body" >&2
               release_json=""
+            else
+              release_json="$json_body"
             fi
           fi
 
           if [[ -z "${release_json}" ]]; then
             echo "Fetching latest Vale release from GitHub API..." >&2
-            if ! release_json=$(curl --retry 5 --retry-all-errors -fsSL \
+            response=$(curl -i --retry 5 --retry-all-errors -fsSL \
               "${curl_headers[@]}" \
-              "https://api.github.com/repos/${owner}/${repo}/releases/latest"); then
-              echo "ERROR: Failed to fetch release metadata from GitHub API" >&2
-              echo "This may be caused by API rate limits or network issues" >&2
+              "https://api.github.com/repos/${owner}/${repo}/releases/latest")
+            http_status=$(echo "$response" | head -n 1 | awk '{print $2}')
+            json_body=$(echo "$response" | awk 'NR>1 && /^[{[]/{p=1} p')
+            
+            if [[ "$http_status" != "200" ]]; then
+              echo "::error::Failed to fetch release data (HTTP status $http_status)" >&2
+              echo "$json_body" >&2
+              exit 1
+            fi
+            
+            release_json="$json_body"
+            
+            if [[ -z "${release_json}" ]]; then
+              echo "::error::Failed to fetch release data (empty response)" >&2
               exit 1
             fi
 
@@ -308,8 +332,12 @@ jobs:
 
           readarray -t asset_info < <(printf '%s' "${release_json}" | python3 - <<-'PY'
           import json, sys
-
-          data = json.load(sys.stdin)
+          try:
+              data = json.load(sys.stdin)
+          except json.JSONDecodeError as e:
+              sys.stderr.write(f'Failed to parse JSON: {e}\n')
+              raise SystemExit(1)
+          
           preferred_suffixes = (
               'Linux_64-bit.tar.gz',
               'Linux_amd64.tar.gz',
@@ -339,11 +367,21 @@ jobs:
 
           asset_name="${asset_info[0]}"
           asset_url="${asset_info[1]}"
+          
+          # Validate extracted asset information
+          if [[ -z "${asset_name}" || -z "${asset_url}" ]]; then
+            echo "::error::Asset name or URL is empty" >&2
+            exit 1
+          fi
 
           checksums_url=$(printf '%s' "${release_json}" | python3 - <<-'PY'
           import json, sys
-
-          data = json.load(sys.stdin)
+          try:
+              data = json.load(sys.stdin)
+          except json.JSONDecodeError as e:
+              sys.stderr.write(f'Failed to parse JSON: {e}\n')
+              raise SystemExit(1)
+          
           for asset in data.get('assets', []):
               name = asset.get('name') or ''
               if name.endswith('checksums.txt'):
@@ -357,12 +395,30 @@ jobs:
           raise SystemExit(1)
           PY
           )
+          
+          # Validate checksums URL
+          if [[ -z "${checksums_url}" ]]; then
+            echo "::error::Checksums URL is empty" >&2
+            exit 1
+          fi
 
           echo "Downloading Vale tarball: ${asset_url}" >&2
           curl --retry 5 --retry-all-errors -fsSL "${asset_url}" -o vale.tar.gz
+          
+          # Verify downloaded tarball is non-empty
+          if [[ ! -s vale.tar.gz ]]; then
+            echo "::error::Downloaded vale.tar.gz is empty" >&2
+            exit 1
+          fi
 
           echo "Downloading checksums: ${checksums_url}" >&2
           curl --retry 5 --retry-all-errors -fsSL "${checksums_url}" -o checksums.txt
+          
+          # Verify downloaded checksums file is non-empty
+          if [[ ! -s checksums.txt ]]; then
+            echo "::error::Downloaded checksums.txt is empty" >&2
+            exit 1
+          fi
 
           EXPECTED_SHA256=$(awk -v file="${asset_name}" '$2 == file {print $1; exit}' checksums.txt)
           if [[ -z "${EXPECTED_SHA256:-}" ]]; then
