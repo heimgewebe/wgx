@@ -351,17 +351,17 @@ jobs:
                       print(asset.get('browser_download_url') or '')
                       sys.exit(0)
 
-          # If we get here, no suitable asset was found - list available assets
-          sys.stderr.write('No suitable Linux tarball found in release assets\n')
-          sys.stderr.write('Available assets:\n')
-          for asset in data.get('assets', []):
-              sys.stderr.write(f"  - {asset.get('name', 'N/A')}\n")
+          # Print available assets for debugging
+          available = [a.get('name', '') for a in data.get('assets', [])]
+          sys.stderr.write('ERROR: No suitable Linux tarball found in release assets\n')
+          sys.stderr.write(f'Available assets: {", ".join(available)}\n')
+          sys.stderr.write(f'Tried suffixes: {", ".join(preferred_suffixes)}\n')
           raise SystemExit(1)
           PY
           )
 
-          if [[ "${#asset_info[@]}" -lt 2 ]]; then
-            echo "::error::Failed to determine Vale asset download information" >&2
+          if [[ "${#asset_info[@]}" -lt 2 ]] || [[ -z "${asset_info[0]:-}" ]]; then
+            echo "::error::Asset info array is empty or incomplete; check Python script output above" >&2
             exit 1
           fi
 
@@ -388,7 +388,10 @@ jobs:
                   print(asset.get('browser_download_url') or '')
                   sys.exit(0)
 
-          sys.stderr.write('checksums.txt not found in release assets\n')
+          # Print available assets for debugging
+          available = [a.get('name', '') for a in data.get('assets', [])]
+          sys.stderr.write('ERROR: checksums.txt not found in release assets\n')
+          sys.stderr.write(f'Available assets: {", ".join(available)}\n')
           raise SystemExit(1)
           PY
           )

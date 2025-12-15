@@ -104,9 +104,8 @@ profile::_abspath() {
 
 profile::_normalize_task_name() {
   local name="${1:-}"
-  name="${name// /}"        # remove spaces
-  name="${name//_/-}"       # mirror parser underscore normalization
-  name="$(printf '%s' "$name" | tr -s '-')"  # collapse repeated dashes
+  name="${name// /}"                        # remove spaces
+  name="$(printf '%s' "$name" | tr -s '-')" # collapse repeated dashes
   printf '%s' "${name,,}"
 }
 
@@ -124,23 +123,58 @@ profile::_parser_line_is_safe() {
     return 1
   fi
 
-  # reject typical code-injection primitives
-  # (values should be quoted by the parser; if they aren't, we prefer failing closed)
-  if [[ $line == *'$('* || $line == *'`'* || $line == *';'* || $line == *'|'* || $line == *'&'* || $line == *'<'* || $line == *'>'* ]]; then
-    return 1
-  fi
-
   # allow only assignment-like forms:
   #   VAR=...
   #   VAR+=...
-  #   VAR[...]=...
+  #   VAR+=(...)  (array append)
+  #   VAR_key=...  (flat variable naming)
   #   declare -g[aA]? VAR=(...)
   #   declare -g[aA]? VAR=...
   if [[ $line =~ ^declare[[:space:]]+-g[aA]?[a-zA-Z-]*[[:space:]]+[A-Za-z_][A-Za-z0-9_]*= ]]; then
     return 0
   fi
-  if [[ $line =~ ^[A-Za-z_][A-Za-z0-9_]*(\[[^][]+\])?(\+?=).+ ]]; then
-    return 0
+  if [[ $line =~ ^[A-Za-z_][A-Za-z0-9_]*(\+?=).+ ]]; then
+    # Extract the part before = to check it's a valid variable name
+    # This allows VAR=value and VAR_key=value but not VAR[key]=value
+    local var_part
+    if [[ $line == *"+="* ]]; then
+      var_part="${line%%+=*}"
+    else
+      var_part="${line%%=*}"
+    fi
+    if [[ $var_part =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]; then
+      # Valid flat variable name, now check the value
+      # Extract the value part (everything after = or +=)
+      local value_part
+      if [[ $line == *"+="* ]]; then
+        value_part="${line#*+=}"
+      else
+        value_part="${line#*=}"
+      fi
+
+      # Allow array append syntax: VAR+=(value)
+      if [[ $value_part == \(* && $value_part == *\) ]]; then
+        # Check content inside parentheses
+        local inner="${value_part#\(}"
+        inner="${inner%\)}"
+        # Allow if properly quoted or is a simple value (letters, digits, underscores, hyphens)
+        if [[ $inner == \"*\" || $inner == \'*\' || $inner =~ ^[A-Za-z0-9_-]+$ ]]; then
+          return 0
+        fi
+      fi
+
+      # Check if value starts with a quote (single or double)
+      if [[ $value_part == \"*\" || $value_part == \'*\' ]]; then
+        # Properly quoted value, allow special chars inside quotes
+        return 0
+      fi
+      # If not quoted, apply strict checks
+      # shellcheck disable=SC2016
+      if [[ $value_part == *'$('* || $value_part == *'`'* || $value_part == *';'* || $value_part == *'|'* || $value_part == *'&'* || $value_part == *'<'* || $value_part == *'>'* ]]; then
+        return 1
+      fi
+      return 0
+    fi
   fi
 
   return 1
@@ -187,6 +221,86 @@ profile::_python_parse() {
   done <<<"$output"
 
   return 0
+}
+
+profile::_task_key_from_var() {
+  # Convert internal variable naming (with underscores) to user-facing task names (with dashes)
+  local key="$1"
+  printf '%s' "${key//_/-}"
+}
+
+profile::_convert_flat_to_arrays() {
+  # Convert flat variables (VAR_key=value) to associative arrays (VAR[key]=value)
+  # This allows the parser to output safe flat variables while maintaining the array interface
+  local var key value
+
+  # Convert WGX_ENV_DEFAULT_MAP_* to array
+  while IFS= read -r var; do
+    [[ -n $var ]] || continue
+    key="${var#WGX_ENV_DEFAULT_MAP_}"
+    value="${!var}"
+    WGX_ENV_DEFAULT_MAP["$key"]="$value"
+  done < <(compgen -v WGX_ENV_DEFAULT_MAP_)
+
+  # Convert WGX_ENV_BASE_MAP_* to array
+  while IFS= read -r var; do
+    [[ -n $var ]] || continue
+    key="${var#WGX_ENV_BASE_MAP_}"
+    value="${!var}"
+    WGX_ENV_BASE_MAP["$key"]="$value"
+  done < <(compgen -v WGX_ENV_BASE_MAP_)
+
+  # Convert WGX_ENV_OVERRIDE_MAP_* to array
+  while IFS= read -r var; do
+    [[ -n $var ]] || continue
+    key="${var#WGX_ENV_OVERRIDE_MAP_}"
+    value="${!var}"
+    WGX_ENV_OVERRIDE_MAP["$key"]="$value"
+  done < <(compgen -v WGX_ENV_OVERRIDE_MAP_)
+
+  # Convert WGX_WORKFLOW_TASKS_* to array
+  while IFS= read -r var; do
+    [[ -n $var ]] || continue
+    key="${var#WGX_WORKFLOW_TASKS_}"
+    value="${!var}"
+    WGX_WORKFLOW_TASKS["$key"]="$value"
+  done < <(compgen -v WGX_WORKFLOW_TASKS_)
+
+  # Convert WGX_TASK_CMDS_* to array
+  while IFS= read -r var; do
+    [[ -n $var ]] || continue
+    key="${var#WGX_TASK_CMDS_}"
+    key="$(profile::_task_key_from_var "$key")"
+    value="${!var}"
+    WGX_TASK_CMDS["$key"]="$value"
+  done < <(compgen -v WGX_TASK_CMDS_)
+
+  # Convert WGX_TASK_DESC_* to array
+  while IFS= read -r var; do
+    [[ -n $var ]] || continue
+    key="${var#WGX_TASK_DESC_}"
+    key="$(profile::_task_key_from_var "$key")"
+    value="${!var}"
+    WGX_TASK_DESC["$key"]="$value"
+  done < <(compgen -v WGX_TASK_DESC_)
+
+  # Convert WGX_TASK_GROUP_* to array
+  while IFS= read -r var; do
+    [[ -n $var ]] || continue
+    key="${var#WGX_TASK_GROUP_}"
+    key="$(profile::_task_key_from_var "$key")"
+    value="${!var}"
+    WGX_TASK_GROUP["$key"]="$value"
+  done < <(compgen -v WGX_TASK_GROUP_)
+
+  # Convert WGX_TASK_SAFE_* to array
+  while IFS= read -r var; do
+    [[ -n $var ]] || continue
+    key="${var#WGX_TASK_SAFE_}"
+    key="$(profile::_task_key_from_var "$key")"
+    value="${!var}"
+    WGX_TASK_SAFE["$key"]="$value"
+  done < <(compgen -v WGX_TASK_SAFE_)
 }
 
 profile::_decode_json_array() {
@@ -256,6 +370,8 @@ profile::load() {
     # The flat yaml parser has been removed.
     return 1
   fi
+  # Convert flat variables to associative arrays
+  profile::_convert_flat_to_arrays
   profile::_collect_env_keys
   WGX_PROFILE_LOADED="$_norm_file"
   return 0
@@ -280,6 +396,7 @@ profile::ensure_version() {
     return 0
   fi
   if ! declare -F semver_norm >/dev/null 2>&1; then
+    # shellcheck disable=SC1091
     source "$(dirname "${BASH_SOURCE[0]}")/semver.bash"
   fi
   local have="${WGX_VERSION:-0.0.0}"
@@ -369,6 +486,7 @@ profile::tasks_json() {
   profile::ensure_loaded || return 1
   local safe_only="${1:-0}" include_groups="${2:-0}"
   if ! declare -F json_escape >/dev/null 2>&1; then
+    # shellcheck disable=SC1091
     source "$(dirname "${BASH_SOURCE[0]}")/json.bash"
   fi
   local sep=""
