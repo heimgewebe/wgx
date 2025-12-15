@@ -223,6 +223,12 @@ profile::_python_parse() {
   return 0
 }
 
+profile::_task_key_from_var() {
+  # Convert internal variable naming (with underscores) to user-facing task names (with dashes)
+  local key="$1"
+  printf '%s' "${key//_/-}"
+}
+
 profile::_convert_flat_to_arrays() {
   # Convert flat variables (VAR_key=value) to associative arrays (VAR[key]=value)
   # This allows the parser to output safe flat variables while maintaining the array interface
@@ -264,8 +270,7 @@ profile::_convert_flat_to_arrays() {
   while IFS= read -r var; do
     [[ -n $var ]] || continue
     key="${var#WGX_TASK_CMDS_}"
-    # Convert underscores back to dashes for user-facing task names
-    key="${key//_/-}"
+    key="$(profile::_task_key_from_var "$key")"
     value="${!var}"
     WGX_TASK_CMDS["$key"]="$value"
   done < <(compgen -v WGX_TASK_CMDS_)
@@ -274,8 +279,7 @@ profile::_convert_flat_to_arrays() {
   while IFS= read -r var; do
     [[ -n $var ]] || continue
     key="${var#WGX_TASK_DESC_}"
-    # Convert underscores back to dashes for user-facing task names
-    key="${key//_/-}"
+    key="$(profile::_task_key_from_var "$key")"
     value="${!var}"
     WGX_TASK_DESC["$key"]="$value"
   done < <(compgen -v WGX_TASK_DESC_)
@@ -284,8 +288,7 @@ profile::_convert_flat_to_arrays() {
   while IFS= read -r var; do
     [[ -n $var ]] || continue
     key="${var#WGX_TASK_GROUP_}"
-    # Convert underscores back to dashes for user-facing task names
-    key="${key//_/-}"
+    key="$(profile::_task_key_from_var "$key")"
     value="${!var}"
     WGX_TASK_GROUP["$key"]="$value"
   done < <(compgen -v WGX_TASK_GROUP_)
@@ -294,8 +297,7 @@ profile::_convert_flat_to_arrays() {
   while IFS= read -r var; do
     [[ -n $var ]] || continue
     key="${var#WGX_TASK_SAFE_}"
-    # Convert underscores back to dashes for user-facing task names
-    key="${key//_/-}"
+    key="$(profile::_task_key_from_var "$key")"
     value="${!var}"
     WGX_TASK_SAFE["$key"]="$value"
   done < <(compgen -v WGX_TASK_SAFE_)
