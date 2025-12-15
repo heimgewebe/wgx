@@ -48,38 +48,86 @@ jobs:
           release_json="$(curl --retry 5 --retry-all-errors -fsSL "${curl_headers[@]}" \
             "https://api.github.com/repos/${owner}/${repo}/releases/tags/${version}")"
 
+          if [[ -z "${release_json}" ]]; then
+            echo "::error::Failed to fetch release data (empty response)"
+            exit 1
+          fi
+
           readarray -t asset_info < <(printf '%s' "${release_json}" | python3 - <<'PY'
           import json, sys
-          data = json.load(sys.stdin)
-          preferred_suffixes = ('Linux_64-bit.tar.gz','Linux_amd64.tar.gz')
+          try:
+              data = json.load(sys.stdin)
+          except json.JSONDecodeError as e:
+              raise SystemExit(f"Failed to parse JSON: {e}")
+
+          preferred_suffixes = ('Linux_64-bit.tar.gz', 'Linux_amd64.tar.gz')
+          assets = data.get('assets', [])
+
+          # Try to find a match
           for suffix in preferred_suffixes:
-              for a in data.get('assets', []):
+              for a in assets:
                   name = (a.get('name') or '')
                   if name.endswith(suffix):
                       print(name)
                       print(a.get('browser_download_url') or '')
                       sys.exit(0)
-          raise SystemExit("No suitable Linux tarball found in release assets")
+
+          # If we get here, no match was found
+          print("Available assets:", file=sys.stderr)
+          for a in assets:
+              print(f"- {a.get('name')}", file=sys.stderr)
+
+          raise SystemExit(f"No suitable Linux tarball found in release assets. Checked suffixes: {preferred_suffixes}")
           PY
           )
+
+          if [[ ${#asset_info[@]} -lt 2 ]]; then
+            echo "::error::Failed to resolve asset name/url from python script"
+            exit 1
+          fi
+
           asset_name="${asset_info[0]}"
           asset_url="${asset_info[1]}"
 
           checksums_url="$(printf '%s' "${release_json}" | python3 - <<'PY'
           import json, sys
-          data = json.load(sys.stdin)
-          for a in data.get('assets', []):
+          try:
+              data = json.load(sys.stdin)
+          except json.JSONDecodeError as e:
+              raise SystemExit(f"Failed to parse JSON: {e}")
+
+          assets = data.get('assets', [])
+          for a in assets:
               name = (a.get('name') or '')
               if name.endswith('checksums.txt'):
                   print(a.get('browser_download_url') or '')
                   sys.exit(0)
+
+          print("Available assets:", file=sys.stderr)
+          for a in assets:
+              print(f"- {a.get('name')}", file=sys.stderr)
+
           raise SystemExit("checksums.txt not found in release assets")
           PY
           )"
 
+          if [[ -z "${checksums_url}" ]]; then
+            echo "::error::Failed to resolve checksums URL"
+            exit 1
+          fi
+
           tmpdir="$(mktemp -d)"
           curl --retry 5 --retry-all-errors -fsSL "${asset_url}" -o "${tmpdir}/vale.tar.gz"
           curl --retry 5 --retry-all-errors -fsSL "${checksums_url}" -o "${tmpdir}/checksums.txt"
+
+          if [ ! -s "${tmpdir}/vale.tar.gz" ]; then
+            echo "::error::vale.tar.gz not downloaded or empty"
+            exit 1
+          fi
+          if [ ! -s "${tmpdir}/checksums.txt" ]; then
+            echo "::error::checksums.txt not downloaded or empty"
+            exit 1
+          fi
 
           EXPECTED_SHA256="$(awk -v file="${asset_name}" '$2 == file {print $1; exit}' "${tmpdir}/checksums.txt")"
           [[ -n "${EXPECTED_SHA256:-}" ]] || { echo "::error::No checksum for ${asset_name}"; exit 1; }
