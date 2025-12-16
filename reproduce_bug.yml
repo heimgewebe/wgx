@@ -1,0 +1,4 @@
+name: profile-precedence
+wgx:
+  required-wgx: "v2"
+requiredWgx: "v1"
