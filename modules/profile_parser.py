@@ -368,18 +368,15 @@ if not api_version:
 emit(f"PROFILE_VERSION={shell_quote(api_version)}")
 req = wgx.get('requiredWgx')
 
+# Also check wgx['required-wgx'] specifically (alias inside wgx block)
+# Priority: wgx.requiredWgx > wgx.required-wgx > root.requiredWgx > root.required-wgx
+if req is None and isinstance(wgx, dict):
+    req = wgx.get('required-wgx')
+
 # Fallback: check root 'requiredWgx' or 'required-wgx' if not in wgx block
 if req is None and isinstance(data, dict):
     req = data.get('requiredWgx')
 
-if req is None and isinstance(data, dict):
-    req = data.get('required-wgx')
-
-# Also check wgx['required-wgx'] specifically (alias inside wgx block)
-if req is None and isinstance(wgx, dict):
-    req = wgx.get('required-wgx')
-
-# One final check for the legacy top-level alias if strictly nothing found yet
 if req is None and isinstance(data, dict):
     req = data.get('required-wgx')
 
