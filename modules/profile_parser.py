@@ -376,9 +376,13 @@ if req is None and isinstance(wgx, dict):
 # Fallback: check root 'requiredWgx' or 'required-wgx' if not in wgx block
 if req is None and isinstance(data, dict):
     req = data.get('requiredWgx')
+    if req is not None:
+        used_root_fallback = True
 
 if req is None and isinstance(data, dict):
     req = data.get('required-wgx')
+    if req is not None:
+        used_root_fallback = True
 
 # Ensure we handle the case where both keys might exist but one is None/Empty
 # Priority: wgx.requiredWgx > wgx.required-wgx > root.requiredWgx > root.required-wgx
