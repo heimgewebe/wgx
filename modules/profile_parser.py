@@ -384,10 +384,6 @@ if req is None and isinstance(data, dict):
 # Priority: wgx.requiredWgx > wgx.required-wgx > root.requiredWgx > root.required-wgx
 # (The above logic roughly implements a "first found wins" strategy)
 
-# One final check for the legacy top-level alias if strictly nothing found yet
-if req is None and isinstance(data, dict):
-    req = data.get('required-wgx')
-
 if isinstance(req, str):
     emit(f"WGX_REQUIRED_RANGE={shell_quote(req)}")
 elif isinstance(req, dict):
