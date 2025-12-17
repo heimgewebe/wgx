@@ -296,30 +296,30 @@ jobs:
               echo "::error::Failed to fetch release data (empty response)" >&2
               exit 1
             fi
-
-            # Validate that we got valid JSON and extract version
-            if ! version=$(printf '%s' "${release_json}" | python3 - <<-'PY'
-            import json, sys
-            try:
-                data = json.load(sys.stdin)
-                tag = data.get('tag_name')
-                if not tag:
-                    sys.stderr.write('ERROR: tag_name is null or missing in API response\n')
-                    sys.stderr.write('API response keys: ' + ', '.join(data.keys()) + '\n')
-                    raise SystemExit(1)
-                print(tag)
-            except json.JSONDecodeError as e:
-                sys.stderr.write(f'ERROR: Invalid JSON from API: {e}\n')
-                raise SystemExit(1)
-            PY
-            ); then
-              echo "ERROR: Failed to parse release metadata" >&2
-              exit 1
-            fi
           fi
 
           if [[ -z "${release_json}" ]]; then
             echo "ERROR: release_json is empty after API fetch" >&2
+            exit 1
+          fi
+
+          # Always extract the actual version from the release JSON to ensure it's set correctly
+          if ! version=$(printf '%s' "${release_json}" | python3 - <<-'PY'
+          import json, sys
+          try:
+              data = json.load(sys.stdin)
+              tag = data.get('tag_name')
+              if not tag:
+                  sys.stderr.write('ERROR: tag_name is null or missing in API response\n')
+                  sys.stderr.write('API response keys: ' + ', '.join(data.keys()) + '\n')
+                  raise SystemExit(1)
+              print(tag)
+          except json.JSONDecodeError as e:
+              sys.stderr.write(f'ERROR: Invalid JSON from API: {e}\n')
+              raise SystemExit(1)
+          PY
+          ); then
+            echo "ERROR: Failed to extract version from release metadata" >&2
             exit 1
           fi
 
