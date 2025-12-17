@@ -20,6 +20,7 @@ runs:
       with:
         repository: ${{ inputs.repo }}
         ref: ${{ inputs.ref }}
+        path: target
 
     - name: Checkout wgx (self)
       uses: actions/checkout@v4
@@ -51,19 +52,21 @@ runs:
     - name: Sanity
       shell: bash
       run: |
-        ./wgx/wgx version || true
-        if ! ls .wgx/profile.* >/dev/null 2>&1; then
+        wgx version || true
+        if ! ls target/.wgx/profile.* >/dev/null 2>&1; then
           echo "profile manifest fehlt"
           exit 1
         fi
 
     - name: Validate manifest
       shell: bash
+      working-directory: target
       run: |
         wgx validate --json | jq -e '.ok==true'
 
     - name: Execute safe tasks
       shell: bash
+      working-directory: target
       run: |
         set -euo pipefail
         tasks_json="$(wgx tasks --json --groups)"
