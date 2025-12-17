@@ -141,7 +141,8 @@ USAGE
       # If semver functions are in modules/semver.bash, we might need to source it.
       # cli/wgx only sources lib/*.bash by default. modules/ are usually on demand?
       # Let's try to source it if needed.
-      local mod_path="${WGX_DIR}/modules/semver.bash"
+      local wgx_root="${WGX_DIR:-"$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"}"
+      local mod_path="${wgx_root}/modules/semver.bash"
       if [ -f "$mod_path" ]; then
         # shellcheck disable=SC1090
         source "$mod_path"
