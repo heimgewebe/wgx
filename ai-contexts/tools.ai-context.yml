@@ -1,4 +1,5 @@
-ai_context_version: 1.0
+---
+ai_context_version: 1.1
 
 project:
   name: tools
@@ -6,6 +7,22 @@ project:
   role: shared_dev_tooling
   primary_language: bash
   visibility: internal
+
+heimgewebe:
+  axis: [Motorik]
+  fleet:
+    enabled: true
+  wgx:
+    profile_expected: false
+    guard_smoke_expected: false
+
+interfaces:
+  consumes: ["CI/local shell"]
+  produces: ["pinned binaries in tools/bin/*"]
+
+boundaries:
+  not_responsible_for:
+    - "Project semantics; only tooling."
 
 dependencies:
   internal: []

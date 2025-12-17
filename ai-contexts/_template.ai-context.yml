@@ -1,0 +1,77 @@
+---
+ai_context_version: 1.1
+
+project:
+  name: REPO_NAME
+  summary: "One sentence: what this repo is for."
+  role: repo_role_id
+  primary_language: mixed
+  visibility: internal
+
+heimgewebe:
+  axis:
+    - Events
+    - Semantik
+    - Decisions
+    - Learning
+    - Motorik
+    - UI
+    - Contracts
+  fleet:
+    enabled: unknown
+  wgx:
+    profile_expected: unknown
+    guard_smoke_expected: unknown
+
+interfaces:
+  consumes:
+    - "event.line"
+  produces:
+    - "insights.*"
+
+contracts:
+  schemas:
+    - path: "contracts/*.schema.json"
+      note: "Reference canonical schemas; do not fork lightly."
+
+dependencies:
+  internal:
+    - name: metarepo
+      relationship: uses
+      interface: [docs, templates]
+  external:
+    - name: bash
+      version: ">=4"
+
+architecture:
+  entrypoints:
+    - "cmd/*"
+  key_paths:
+    - path: "docs/"
+      purpose: "Operator docs / ADRs"
+  data_flow:
+    input: "what comes in"
+    processing: "what it does"
+    output: "what it emits"
+
+boundaries:
+  not_responsible_for:
+    - "Doing network ingest without aussensensor"
+  dangerous_assumptions:
+    - "Assume repo is Fleet-enabled without checking .wgx/"
+
+conventions:
+  branching: "main, feature/*"
+  commit_prefix: "REPO_NAME"
+  ci_platform: github_actions
+
+documentation:
+  runbook: docs/runbook.md
+
+ai_guidance:
+  do:
+    - "Start with entrypoints and key_paths."
+    - "Prefer contract-compatible changes."
+  dont:
+    - "Invent missing schemas."
+    - "Change repo role without updating ai-context."
