@@ -122,7 +122,7 @@ jobs:
       - name: shellcheck
         run: |
           set -euo pipefail
-          ./etc/ci/run-with-files.sh "No shell files to lint." shellcheck -S style <<-'EOF'
+          ./etc/ci/run-with-files.sh "No shell files to lint." shellcheck -x -S style <<-'EOF'
           ${{ steps.shell_files.outputs.files }}
           EOF
 
