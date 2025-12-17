@@ -322,10 +322,10 @@ jobs:
           
           for suffix in "Linux_64-bit.tar.gz" "Linux_amd64.tar.gz"; do
             read -r asset_name asset_url < <(printf '%s' "${release_json}" | jq -r --arg suffix "$suffix" '
-              [.assets[] | select(.name | endswith($suffix))][0] | "\(.name) \(.browser_download_url)"
+              ([.assets[] | select(.name | endswith($suffix))][0] // {name: "", browser_download_url: ""}) | "\(.name) \(.browser_download_url)"
             ')
             
-            if [[ -n "${asset_name}" && -n "${asset_url}" && "${asset_name}" != "null" ]]; then
+            if [[ -n "${asset_name}" && -n "${asset_url}" ]]; then
               break
             fi
           done
@@ -339,12 +339,12 @@ jobs:
 
           # Find checksums file
           checksums_url=$(printf '%s' "${release_json}" | jq -r '
-            [.assets[] | select(.name | endswith("checksums.txt"))][0] | .browser_download_url
+            ([.assets[] | select(.name | endswith("checksums.txt"))][0] // {browser_download_url: ""}) | .browser_download_url
           ')
           
           # Validate checksums URL
-          if [[ -z "${checksums_url}" || "${checksums_url}" == "null" ]]; then
-            echo "::error::Checksums URL is empty or not found" >&2
+          if [[ -z "${checksums_url}" ]]; then
+            echo "::error::Checksums file not found in release assets" >&2
             exit 1
           fi
 
