@@ -265,8 +265,8 @@ jobs:
             response=$(curl -i --retry 5 --retry-all-errors -fsSL \
               "${curl_headers[@]}" \
               "https://api.github.com/repos/${owner}/${repo}/releases/tags/${version}")
-            http_status=$(echo "$response" | head -n 1 | awk '{print $2}')
-            json_body=$(echo "$response" | awk 'NR>1 && /^[{[]/{p=1} p')
+            http_status=$(head -n 1 <<< "$response" | awk '{print $2}')
+            json_body=$(awk 'NR>1 && /^[{[]/{p=1} p' <<< "$response")
             
             if [[ "$http_status" != "200" ]]; then
               echo "Unable to fetch release metadata for ${version} (HTTP status $http_status); falling back to the latest release" >&2
@@ -282,8 +282,8 @@ jobs:
             response=$(curl -i --retry 5 --retry-all-errors -fsSL \
               "${curl_headers[@]}" \
               "https://api.github.com/repos/${owner}/${repo}/releases/latest")
-            http_status=$(echo "$response" | head -n 1 | awk '{print $2}')
-            json_body=$(echo "$response" | awk 'NR>1 && /^[{[]/{p=1} p')
+            http_status=$(head -n 1 <<< "$response" | awk '{print $2}')
+            json_body=$(awk 'NR>1 && /^[{[]/{p=1} p' <<< "$response")
             
             if [[ "$http_status" != "200" ]]; then
               echo "::error::Failed to fetch release data (HTTP status $http_status)" >&2
