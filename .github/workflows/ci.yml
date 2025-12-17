@@ -261,37 +261,48 @@ jobs:
             )
           fi
 
-          if [[ -n "${version}" && "${version}" != "latest" ]]; then
-            response=$(curl -i --retry 5 --retry-all-errors -fsSL \
-              "${curl_headers[@]}" \
-              "https://api.github.com/repos/${owner}/${repo}/releases/tags/${version}")
-            http_status=$(head -n 1 <<< "$response" | awk '{print $2}')
-            json_body=$(awk 'NR>1 && /^[{[]/{p=1} p' <<< "$response")
+          # Define function to fetch release safely
+          fetch_release() {
+            local url="$1"
+            local tmp_body
+            tmp_body=$(mktemp)
+            local status_code
+
+            # Use curl -w to capture status code cleanly, avoid awk on full response
+            if ! status_code=$(curl --retry 5 --retry-all-errors -fsSL \
+                "${curl_headers[@]}" \
+                -w "%{http_code}" -o "$tmp_body" \
+                "$url"); then
+               echo "::warning::curl failed for $url"
+               rm -f "$tmp_body"
+               return 1
+            fi
             
-            if [[ "$http_status" != "200" ]]; then
-              echo "Unable to fetch release metadata for ${version} (HTTP status $http_status); falling back to the latest release" >&2
-              echo "$json_body" >&2
+            if [[ "$status_code" != "200" ]]; then
+              echo "::warning::HTTP $status_code for $url"
+              rm -f "$tmp_body"
+              return 1
+            fi
+
+            cat "$tmp_body"
+            rm -f "$tmp_body"
+          }
+
+          if [[ -n "${version}" && "${version}" != "latest" ]]; then
+            url="https://api.github.com/repos/${owner}/${repo}/releases/tags/${version}"
+            if ! release_json=$(fetch_release "$url"); then
+              echo "Unable to fetch release metadata for ${version}; falling back to latest" >&2
               release_json=""
-            else
-              release_json="$json_body"
             fi
           fi
 
           if [[ -z "${release_json}" ]]; then
             echo "Fetching latest Vale release from GitHub API..." >&2
-            response=$(curl -i --retry 5 --retry-all-errors -fsSL \
-              "${curl_headers[@]}" \
-              "https://api.github.com/repos/${owner}/${repo}/releases/latest")
-            http_status=$(head -n 1 <<< "$response" | awk '{print $2}')
-            json_body=$(awk 'NR>1 && /^[{[]/{p=1} p' <<< "$response")
-            
-            if [[ "$http_status" != "200" ]]; then
-              echo "::error::Failed to fetch release data (HTTP status $http_status)" >&2
-              echo "$json_body" >&2
+            url="https://api.github.com/repos/${owner}/${repo}/releases/latest"
+            if ! release_json=$(fetch_release "$url"); then
+              echo "::error::Failed to fetch release data (API error)" >&2
               exit 1
             fi
-            
-            release_json="$json_body"
             
             if [[ -z "${release_json}" ]]; then
               echo "::error::Failed to fetch release data (empty response)" >&2
@@ -299,19 +310,14 @@ jobs:
             fi
           fi
 
-          if [[ -z "${release_json}" ]]; then
-            echo "ERROR: release_json is empty after API fetch" >&2
-            exit 1
-          fi
-
           # Always extract the actual version from the release JSON to ensure it's set correctly
           if ! version=$(printf '%s' "${release_json}" | jq -r '.tag_name'); then
-            echo "ERROR: Failed to extract version from release metadata" >&2
+            echo "::error::Failed to extract version from release metadata" >&2
             exit 1
           fi
           
           if [[ -z "${version}" || "${version}" == "null" ]]; then
-            echo "ERROR: tag_name is null or missing in API response" >&2
+            echo "::error::Missing required version in release metadata" >&2
             exit 1
           fi
 
@@ -369,7 +375,7 @@ jobs:
 
           EXPECTED_SHA256=$(awk -v file="${asset_name}" '$2 == file {print $1; exit}' checksums.txt)
           if [[ -z "${EXPECTED_SHA256:-}" ]]; then
-            echo "ERROR: Unable to determine expected checksum for ${asset_name}" >&2
+            echo "::error::Unable to determine expected checksum for ${asset_name}" >&2
             echo "Available checksums:" >&2
             cat checksums.txt >&2
             exit 1
@@ -379,7 +385,7 @@ jobs:
 
           ACTUAL_SHA256=$(sha256sum vale.tar.gz | awk '{print $1}')
           if [[ "${EXPECTED_SHA256}" != "${ACTUAL_SHA256}" ]]; then
-            echo "SHA256 checksum mismatch for vale.tar.gz" >&2
+            echo "::error::Checksum mismatch for vale.tar.gz" >&2
             echo "Expected: ${EXPECTED_SHA256}" >&2
             echo "Actual:   ${ACTUAL_SHA256}" >&2
             exit 1
@@ -404,23 +410,14 @@ jobs:
           ./etc/ci/run-with-files.sh "No files for Vale." vale --minAlertLevel=warning <<-'EOF'
           ${{ steps.changed_docs.outputs.vale_files }}
           EOF
-      - name: Link check (Lychee)
+      - name: Check Markdown links
         if: steps.changed_docs.outputs.markdown_files != ''
-        # Pin to SHA for security - v2.7.0
-        uses: lycheeverse/lychee-action@a8c4c7cb88f0c7386610c35eb25108e448569cb0
-        with:
-          args: >-
-            --no-progress
-            --accept 200,206,429
-            --max-concurrency 8
-            --retry-wait-time 2
-            --timeout 30
-            --max-retries 2
-            --exclude-path 'node_modules|.git'
-            --exclude 'localhost|127\.0\.0\.1|badge\.fury\.io|shields\.io'
-            ${{ steps.changed_docs.outputs.markdown_files }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          npm i -g markdown-link-check
+          ./etc/ci/run-with-files.sh "No markdown files." markdown-link-check --config .github/markdown-link-check.json --failIfEmpty false <<-'EOF'
+          ${{ steps.changed_docs.outputs.markdown_files }}
+          EOF
 
   profile_contracts:
     name: Profile contracts
