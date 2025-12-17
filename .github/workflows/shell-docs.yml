@@ -24,6 +24,7 @@ jobs:
           node-version: '20'
       - name: Install deps
         env:
+          VALE_VERSION: ${{ env.VALE_VERSION }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           export DEBIAN_FRONTEND=noninteractive

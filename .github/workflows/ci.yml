@@ -230,6 +230,7 @@ jobs:
           node-version: '20'
       - name: Install Vale
         env:
+          VALE_VERSION: ${{ env.VALE_VERSION }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
