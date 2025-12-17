@@ -47,7 +47,7 @@ SCRIPT
   local -a readme_patterns=(
     "bash -n \$(git ls-files '*.sh' '*.bash')"
     "shfmt -d \$(git ls-files '*.sh' '*.bash')"
-    "shellcheck -S style \$(git ls-files '*.sh' '*.bash')"
+    "shellcheck -x -S style \$(git ls-files '*.sh' '*.bash')"
     "bats -r tests"
   )
 
@@ -59,7 +59,7 @@ SCRIPT
   local -a workflow_patterns=(
     "bash -n"
     "shfmt -d"
-    "shellcheck -S style"
+    "shellcheck -x -S style"
     "./.github/actions/run-bats"
   )
 

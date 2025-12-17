@@ -118,7 +118,7 @@ CI-Lauf oder lokal nach `./scripts/gen-readiness.sh`; Details stehen in
   ```bash
   bash -n $(git ls-files '*.sh' '*.bash')
   shfmt -d $(git ls-files '*.sh' '*.bash')
-  shellcheck -S style $(git ls-files '*.sh' '*.bash')
+  shellcheck -x -S style $(git ls-files '*.sh' '*.bash')
   bats -r tests
   ```
 
