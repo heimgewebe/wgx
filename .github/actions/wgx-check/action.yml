@@ -52,7 +52,7 @@ runs:
     - name: Sanity
       shell: bash
       run: |
-        ./wgx/wgx version || true
+        wgx version || true
         if ! ls target/.wgx/profile.* >/dev/null 2>&1; then
           echo "profile manifest fehlt"
           exit 1
@@ -62,18 +62,18 @@ runs:
       shell: bash
       working-directory: target
       run: |
-        ../wgx/wgx validate --json | jq -e '.ok==true'
+        wgx validate --json | jq -e '.ok==true'
 
     - name: Execute safe tasks
       shell: bash
       working-directory: target
       run: |
         set -euo pipefail
-        tasks_json="$(../wgx/wgx tasks --json --groups)"
+        tasks_json="$(wgx tasks --json --groups)"
         if echo "$tasks_json" | jq -e '.tasks[] | select(.name=="doctor" and .safe==true)' >/dev/null; then
-          ../wgx/wgx task doctor || true
+          wgx task doctor || true
         fi
         if echo "$tasks_json" | jq -e '.tasks[] | select(.name=="test" and .safe==true)' >/dev/null; then
-          ../wgx/wgx task test
+          wgx task test
         fi
 
