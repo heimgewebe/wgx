@@ -321,14 +321,11 @@ jobs:
           asset_url=""
           
           for suffix in "Linux_64-bit.tar.gz" "Linux_amd64.tar.gz"; do
-            asset_name=$(printf '%s' "${release_json}" | jq -r --arg suffix "$suffix" '
-              .assets[] | select(.name | endswith($suffix)) | .name
+            read -r asset_name asset_url < <(printf '%s' "${release_json}" | jq -r --arg suffix "$suffix" '
+              .assets[] | select(.name | endswith($suffix)) | "\(.name) \(.browser_download_url)"
             ' | head -n 1)
             
-            if [[ -n "${asset_name}" ]]; then
-              asset_url=$(printf '%s' "${release_json}" | jq -r --arg name "$asset_name" '
-                .assets[] | select(.name == $name) | .browser_download_url
-              ')
+            if [[ -n "${asset_name}" && -n "${asset_url}" ]]; then
               break
             fi
           done
@@ -346,8 +343,8 @@ jobs:
           ' | head -n 1)
           
           # Validate checksums URL
-          if [[ -z "${checksums_url}" ]]; then
-            echo "::error::Checksums URL is empty" >&2
+          if [[ -z "${checksums_url}" || "${checksums_url}" == "null" ]]; then
+            echo "::error::Checksums URL is empty or not found" >&2
             exit 1
           fi
 
