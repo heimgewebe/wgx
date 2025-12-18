@@ -14,6 +14,17 @@ if ! declare -F hauski::emit >/dev/null 2>&1; then
   source "$WGX_DIR/lib/hauski.bash"
 fi
 
+task::_check_python_runtime() {
+  if ! command -v python3 >/dev/null 2>&1; then
+    die "Python 3 is required for parsing .wgx/profile.yml but is not installed. See README section \"Laufzeitabhängigkeiten\" / \"Runtime dependencies\"."
+  fi
+  if [[ ${WGX_DEBUG:-0} != 0 ]]; then
+    if ! python3 -c "import yaml" >/dev/null 2>&1; then
+      echo "WGX: PyYAML not available; using built-in minimal YAML parser." >&2
+    fi
+  fi
+}
+
 wgx::_json_escape_fallback() {
   local input="${1:-}" output="" ch
   while IFS= read -r -n1 ch; do
@@ -79,12 +90,14 @@ USAGE
     die "Target root not found: $target_root"
   fi
 
-  profile::ensure_loaded
-  if [[ -z $WGX_PROFILE_LOADED ]]; then
-    # Profile loading failed or no profile found
-    if ! profile::has_manifest; then
-      die $'No tracked wgx profile found. Commit one of:\n  • .wgx/profile.yml          (preferred for production config)\n  • .wgx/profile.example.yml  (placeholder for CI)'
-    fi
+  if ! profile::has_manifest; then
+    die $'No tracked wgx profile found. Commit one of:\n  • .wgx/profile.yml          (preferred for production config)\n  • .wgx/profile.example.yml  (placeholder for CI)'
+  fi
+
+  task::_check_python_runtime
+
+  if ! profile::ensure_loaded; then
+    die "Failed to parse .wgx/profile.yml. Please check its syntax."
   fi
 
   # Ensure required wgx version is satisfied.
