@@ -139,7 +139,11 @@ def _split_key_value(text: str):
             i += 1
             continue
         if ch == ":":
-            return text[:i], text[i + 1 :]
+            # In block-style YAML, a key-value separator must be followed by a space
+            # or appear at the end of the line (e.g. "key:").
+            # A colon not followed by space (e.g. "http://example.com") is part of the string.
+            if i + 1 >= length or text[i + 1] in " \t":
+                return text[:i], text[i + 1 :]
         i += 1
     return None
 
