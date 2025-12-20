@@ -1,4 +1,11 @@
 #!/usr/bin/env python3
+"""
+WGX Profile Parser (Fallback)
+
+This script parses .wgx/profile.yml files when PyYAML is not available.
+It implements a minimal subset of block-style YAML necessary for wgx profiles.
+It does NOT support the full YAML specification (e.g. flow style, complex keys, anchors).
+"""
 import ast
 import json
 import os
@@ -85,7 +92,9 @@ def _strip_inline_comment(line: str) -> str:
             i += 1
             continue
         if ch == '#':
-            break
+            # Comments must be separated by whitespace (or start of line)
+            if i == 0 or line[i - 1] in " \t":
+                break
         result.append(ch)
         i += 1
     return ''.join(result)
