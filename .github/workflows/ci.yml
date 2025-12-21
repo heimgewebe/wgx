@@ -415,9 +415,14 @@ jobs:
         run: |
           set -euo pipefail
           npm i -g markdown-link-check
-          ./etc/ci/run-with-files.sh "No markdown files." markdown-link-check --config .github/markdown-link-check.json --failIfEmpty false <<-'EOF'
+          # Check if there are files before running markdown-link-check
+          if [ -n "${{ steps.changed_docs.outputs.markdown_files }}" ]; then
+            ./etc/ci/run-with-files.sh "No markdown files." markdown-link-check --config .github/markdown-link-check.json <<-'EOF'
           ${{ steps.changed_docs.outputs.markdown_files }}
           EOF
+          else
+            echo "No markdown files to check."
+          fi
 
   profile_contracts:
     name: Profile contracts
