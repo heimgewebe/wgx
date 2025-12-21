@@ -256,7 +256,7 @@ Teams).
 ## 5. Kommandoreferenz (Index, Status, Nutzen)
 
 | Kategorie | Kommando | Status | Nutzen (Einzeiler) |
-|---|---|:---:|---|
+| --- | --- | :---: | --- |
 | Core | `up` | 🟢 | Umgebung erkennen & fertig machen |
 | Core | `list` | 🟢 | Tasks autodiscovern & taggen |
 | Core | `run <task\|text>` | 🟢 | Intent → richtiges Kommando |
