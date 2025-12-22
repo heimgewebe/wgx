@@ -350,6 +350,7 @@ def emit_caps(caps):
 
 def main():
     if len(sys.argv) < 2:
+        sys.stderr.write("Usage: profile_parser.py <profile_file>\n")
         sys.exit(1)
 
     path = sys.argv[1]
