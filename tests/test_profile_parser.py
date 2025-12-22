@@ -3,6 +3,7 @@ import sys
 import os
 import io
 import unittest
+import tempfile
 from unittest.mock import patch, mock_open
 
 # Adjust path to import modules/profile_parser.py
@@ -44,7 +45,6 @@ class TestProfileParser(unittest.TestCase):
     def test_integration_quoted_keys(self):
         """Test full parsing of quoted keys via _parse_simple_yaml."""
         # Create a temp file
-        import tempfile
         with tempfile.NamedTemporaryFile(mode='w+', delete=False) as tmp:
             tmp.write('"key1": value1\n')
             tmp.write("'key2': value2\n")
