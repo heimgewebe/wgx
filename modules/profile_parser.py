@@ -197,7 +197,7 @@ def _parse_simple_yaml(path: str) -> Any:
                 split = _split_key_value(value_part)
                 if split is not None:
                     key, rest = split
-                    key = key.strip()
+                    key = key.strip().strip("'\"")
                     rest = rest.strip()
                     item: Dict[str, Any] = {}
                     container.append(item)
@@ -229,7 +229,7 @@ def _parse_simple_yaml(path: str) -> Any:
             split = _split_key_value(content)
             if split is not None:
                 key, value_part = split
-                key = key.strip()
+                key = key.strip().strip("'\"")
                 value_part = value_part.strip()
                 _convert_frame(frame, "dict")
                 container = frame["container"]
