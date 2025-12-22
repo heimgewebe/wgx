@@ -393,51 +393,6 @@ _fetch_once() {
   fi
 }
 
-# ---------- Sync Command ----------
-
-# Sync local branch with remote (pull --rebase)
-cmd_sync() {
-  require_repo
-  local sign="" scope="" base="$WGX_BASE"
-  while [[ $# -gt 0 ]]; do
-    case "$1" in
-    --sign) sign="--gpg-sign" ;;
-    --scope)
-      shift
-      scope="${1:-}"
-      ;;
-    --base)
-      shift
-      base="${1:-$WGX_BASE}"
-      ;;
-    *) ;;
-    esac
-    shift || true
-  done
-
-  _fetch_once || true
-
-  local br
-  br="$(git_current_branch)"
-
-  if ((WGX_AUTO_BRANCH)) && [[ "$br" == "$base" ]]; then
-    local ts
-    ts="$(date +%y%m%d%H%M)"
-    local nb="feat/wgx-$ts"
-    git switch -c "$nb" || return 1
-    ok "Neuer Arbeits-Branch: $nb"
-  fi
-
-  git pull --rebase --autostash --ff-only 2>/dev/null || {
-    warn "Fast-Forward nicht möglich – versuche rebase auf origin/$base"
-    git fetch -q origin "$base" 2>/dev/null || true
-    git rebase "origin/$base" ${sign:+"$sign"} || {
-      die "Rebase fehlgeschlagen – bitte wgx heal benutzen."
-    }
-  }
-  ok "Sync abgeschlossen."
-}
-
 # ── Module autoload ─────────────────────────────────────────────────────────
 _load_modules() {
   local MODULE_DIR="${WGX_PROJECT_ROOT:-$WGX_DIR}/modules"
