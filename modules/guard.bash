@@ -16,6 +16,30 @@ _guard_command_available() {
   [[ -r "${project_root}/cmd/${name}.bash" ]]
 }
 
+_guard_find_wgx() {
+  if command -v wgx >/dev/null 2>&1; then
+    command -v wgx
+    return 0
+  fi
+
+  local -a candidates=()
+  local base
+  for base in "${WGX_DIR:-}" "${WGX_PROJECT_ROOT:-}"; do
+    [[ -n "$base" ]] || continue
+    candidates+=("$base/wgx" "$base/cli/wgx")
+  done
+
+  local bin
+  for bin in "${candidates[@]}"; do
+    if [[ -x "$bin" ]]; then
+      printf '%s\n' "$bin"
+      return 0
+    fi
+  done
+
+  return 1
+}
+
 guard_run() {
   local run_lint=0 run_test=0
   while [[ $# -gt 0 ]]; do
@@ -59,6 +83,9 @@ USAGE
     run_lint=1
     run_test=1
   fi
+
+  local wgx_bin=""
+  wgx_bin="$(_guard_find_wgx)" || wgx_bin=""
 
   local profile_missing=0
   # 0. Profile check
@@ -115,7 +142,10 @@ USAGE
       info "bats context detected, skipping 'wgx lint' run."
     elif _guard_command_available lint; then
       info "Running lint checks..."
-      wgx lint || return 1
+      if [[ -z "$wgx_bin" ]]; then
+        die "wgx executable not found; cannot run lint step."
+      fi
+      "$wgx_bin" lint || return 1
     else
       info "lint command not available, skipping lint step."
     fi
@@ -127,7 +157,10 @@ USAGE
       info "bats context detected, skipping recursive 'wgx test' run."
     elif _guard_command_available test; then
       info "Running tests..."
-      wgx test || return 1
+      if [[ -z "$wgx_bin" ]]; then
+        die "wgx executable not found; cannot run test step."
+      fi
+      "$wgx_bin" test || return 1
     else
       info "test command not available, skipping test step."
     fi
