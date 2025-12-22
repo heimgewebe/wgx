@@ -50,7 +50,40 @@ teardown() {
     dd if=/dev/zero of=large_file.bin bs=1024 count=1024
     git add large_file.bin .wgx/profile.example.yml >/dev/null 2>&1
 
-    run wgx guard 2>&1
-    assert_failure
-    assert_output --partial "Oversized files detected"
+  run wgx guard 2>&1
+  assert_failure
+  assert_output --partial "Oversized files detected"
+}
+
+@test "guard uses repo-local wgx when not on PATH" {
+    local repo_root="$WGX_PROJECT_ROOT"
+    local stub_dir
+    stub_dir="$(mktemp -d)"
+    trap 'rm -rf "$stub_dir"' RETURN
+
+    cat >"$stub_dir/wgx" <<'SH'
+#!/usr/bin/env bash
+printf '__LOCAL_WGX_USED__ %s\n' "${1:-}"
+exit 0
+SH
+    chmod +x "$stub_dir/wgx"
+
+    cat >"$WORKDIR/.wgx/profile.yml" <<'YAML'
+wgx:
+  apiVersion: v1
+  tasks:
+    noop:
+      cmd: echo ok
+YAML
+    git add .wgx/profile.yml >/dev/null 2>&1 || true
+
+    run env -u BATS_TEST_FILENAME \
+        PATH="/usr/bin:/bin" \
+        WGX_DIR="$stub_dir" \
+        WGX_PROJECT_ROOT="$repo_root" \
+        bash -lc "cd \"$WORKDIR\" && \"$repo_root/wgx\" guard --lint"
+
+    assert_success
+    assert_output --partial "__LOCAL_WGX_USED__ lint"
+    assert_output --partial "Guard finished"
 }
