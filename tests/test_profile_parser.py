@@ -34,9 +34,38 @@ class TestProfileParser(unittest.TestCase):
 
     def test_split_key_value_quoted(self):
         """Test quoted keys."""
+        # _split_key_value returns raw string parts.
+        # The stripping of quotes happens in _parse_simple_yaml, but _split_key_value
+        # should return them intact so the caller can identify them as keys.
         self.assertEqual(profile_parser._split_key_value("'key': value"), ("'key'", " value"))
         self.assertEqual(profile_parser._split_key_value('"key": value'), ('"key"', " value"))
         self.assertEqual(profile_parser._split_key_value("'key:complex': value"), ("'key:complex'", " value"))
+
+    def test_integration_quoted_keys(self):
+        """Test full parsing of quoted keys via _parse_simple_yaml."""
+        # Create a temp file
+        import tempfile
+        with tempfile.NamedTemporaryFile(mode='w+', delete=False) as tmp:
+            tmp.write('"key1": value1\n')
+            tmp.write("'key2': value2\n")
+            tmp.write("key3: value3\n")
+            tmp_path = tmp.name
+
+        try:
+            res = profile_parser._parse_simple_yaml(tmp_path)
+            # Ensure quotes are stripped from keys
+            self.assertIn("key1", res)
+            self.assertIn("key2", res)
+            self.assertIn("key3", res)
+            self.assertEqual(res["key1"], "value1")
+            self.assertEqual(res["key2"], "value2")
+            self.assertEqual(res["key3"], "value3")
+            # Ensure raw quoted keys are NOT present
+            self.assertNotIn('"key1"', res)
+            self.assertNotIn("'key2'", res)
+        finally:
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
 
     def test_split_key_value_quoted_values(self):
         """Test quoted values containing colons."""
