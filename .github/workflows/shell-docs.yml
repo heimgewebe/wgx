@@ -127,9 +127,54 @@ jobs:
             exit 1
           fi
 
+          # Robust download function with exponential backoff
+          download_with_retry() {
+            local url="$1"
+            local output="$2"
+            local max_attempts=6
+            local attempt=1
+            local wait_time=3
+
+            while [ $attempt -le $max_attempts ]; do
+              echo "Download attempt $attempt/$max_attempts: $url" >&2
+              
+              # Capture HTTP status code
+              local http_code
+              http_code=$(curl -w '%{http_code}' -o "$output" -fsSL \
+                --retry 3 --retry-all-errors \
+                "${curl_headers[@]}" \
+                "$url" 2>/dev/null || echo "000")
+              
+              if [[ "$http_code" == "200" ]] && [[ -s "$output" ]]; then
+                echo "Download successful on attempt $attempt" >&2
+                return 0
+              elif [[ "$http_code" == "503" ]]; then
+                echo "::warning::HTTP 503 Service Unavailable (attempt $attempt/$max_attempts)" >&2
+                rm -f "$output"
+              elif [[ "$http_code" == "000" ]]; then
+                echo "::warning::Download failed - network error (attempt $attempt/$max_attempts)" >&2
+                rm -f "$output"
+              else
+                echo "::warning::HTTP $http_code (attempt $attempt/$max_attempts)" >&2
+                rm -f "$output"
+              fi
+              
+              if [ $attempt -lt $max_attempts ]; then
+                echo "Waiting ${wait_time}s before retry..." >&2
+                sleep $wait_time
+                wait_time=$((wait_time * 2))
+              fi
+              
+              attempt=$((attempt + 1))
+            done
+            
+            echo "::error::Download failed after $max_attempts attempts: $url" >&2
+            return 1
+          }
+
           tmpdir="$(mktemp -d)"
-          curl --retry 5 --retry-all-errors -fsSL "${asset_url}" -o "${tmpdir}/vale.tar.gz"
-          curl --retry 5 --retry-all-errors -fsSL "${checksums_url}" -o "${tmpdir}/checksums.txt"
+          download_with_retry "${asset_url}" "${tmpdir}/vale.tar.gz" || exit 1
+          download_with_retry "${checksums_url}" "${tmpdir}/checksums.txt" || exit 1
 
           if [ ! -s "${tmpdir}/vale.tar.gz" ]; then
             echo "::error::vale.tar.gz not downloaded or empty"
