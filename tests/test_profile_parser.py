@@ -7,15 +7,7 @@ from unittest.mock import patch, mock_open
 # Adjust path to import modules/profile_parser.py
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../modules')))
 
-# Mock sys.argv to prevent profile_parser from executing its main block
-with patch.object(sys, 'argv', ['profile_parser.py', 'dummy_path']):
-    # Mock open to return valid JSON to satisfy json.load()
-    with patch('builtins.open', mock_open(read_data="{}")):
-        try:
-            import profile_parser
-        except ImportError:
-            sys.path.append('modules')
-            import profile_parser
+import profile_parser
 
 class TestProfileParser(unittest.TestCase):
 
