@@ -58,7 +58,7 @@ teardown() {
 @test "guard uses repo-local wgx when not on PATH" {
     local repo_root="$WGX_PROJECT_ROOT"
     local stub_dir="$(mktemp -d)"
-    trap "rm -rf '$stub_dir'" RETURN
+    trap 'rm -rf "${stub_dir:-}"' RETURN
 
     cat >"$stub_dir/wgx" <<'SH'
 #!/usr/bin/env bash
