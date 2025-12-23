@@ -1,10 +1,3 @@
-#!/usr/bin/env bash
-
-# Archivist-Modul: Bereitet Insights auf und sendet sie an Chronik.
-
-# Importiere abhängige Module (angenommen, diese werden vom Aufrufer oder hier geladen)
-# Wir verlassen uns darauf, dass `modules/chronik.bash` verfügbar ist.
-
 archivist::archive_insight() {
   local raw_id="$1"
   local role="$2"
@@ -13,38 +6,64 @@ archivist::archive_insight() {
   # ID Consistency: Ensure ID is prefixed with evt-
   local event_id="evt-${raw_id}"
 
-  # Zeitstempel generieren (ISO 8601)
+  # Zeitstempel (UTC, ISO 8601)
   local timestamp
-  if date --version >/dev/null 2>&1; then
-    # GNU date
-    timestamp="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
-  else
-    # BSD date (macOS)
-    timestamp="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
-  fi
+  timestamp="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 
-  # JSON Wrapper bauen
-  # Wir nutzen printf, um das JSON sicher zusammenzubauen.
-  # Achtung: data_json wird hier direkt eingefügt, muss also valides JSON sein.
   local payload
-  # Wir verwenden python3 für sicheres JSON-Composing, wenn möglich, um Escaping-Probleme zu vermeiden.
   if command -v python3 >/dev/null 2>&1; then
-    payload=$(python3 -c "import json, sys; print(json.dumps({
-      'kind': 'heimgeist.insight',
-      'version': 1,
-      'id': '$event_id',
-      'meta': {
-        'occurred_at': '$timestamp',
-        'role': '$role'
-      },
-      'data': json.loads(sys.stdin.read())
-    }))" <<< "$data_json")
+    # Build JSON payload safely (no string interpolation; validate input JSON)
+    if ! payload="$(
+      ARCHIVIST_ID="$event_id" \
+      ARCHIVIST_TIMESTAMP="$timestamp" \
+      ARCHIVIST_ROLE="$role" \
+      python3 - <<'PY' <<<"$data_json"
+import json, os, sys
+
+event_id = os.environ.get("ARCHIVIST_ID")
+ts = os.environ.get("ARCHIVIST_TIMESTAMP")
+role = os.environ.get("ARCHIVIST_ROLE")
+
+missing = [k for k, v in {
+    "ARCHIVIST_ID": event_id,
+    "ARCHIVIST_TIMESTAMP": ts,
+    "ARCHIVIST_ROLE": role,
+}.items() if not v]
+
+if missing:
+    print(f"Error: Missing required env vars: {', '.join(missing)}", file=sys.stderr)
+    sys.exit(1)
+
+raw = sys.stdin.read()
+if not raw or not raw.strip():
+    print("Error: Empty input JSON", file=sys.stderr)
+    sys.exit(1)
+
+try:
+    data = json.loads(raw)
+except json.JSONDecodeError as e:
+    print(f"Error: Invalid JSON input: {e}", file=sys.stderr)
+    sys.exit(1)
+
+result = {
+    "kind": "heimgeist.insight",
+    "version": 1,
+    "id": event_id,
+    "meta": {
+        "occurred_at": ts,
+        "role": role,
+    },
+    "data": data,
+}
+
+print(json.dumps(result, separators=(",", ":")))
+PY
+    )"; then
+      die "Failed to build insight payload (python3 JSON processing error)"
+    fi
   else
-    # Fallback: Simple string manipulation (Riskant bei komplexem data_json, aber für einfache Zwecke ok)
-    # Bevorzugt python3
     die "python3 required for JSON handling in archivist."
   fi
 
-  # An Chronik senden
   chronik::append "$event_id" "$payload"
 }

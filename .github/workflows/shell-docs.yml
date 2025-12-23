@@ -186,9 +186,19 @@ jobs:
           fi
 
           EXPECTED_SHA256="$(awk -v file="${asset_name}" '$2 == file {print $1; exit}' "${tmpdir}/checksums.txt")"
-          [[ -n "${EXPECTED_SHA256:-}" ]] || { echo "::error::No checksum for ${asset_name}"; exit 1; }
+          if [[ -z "${EXPECTED_SHA256:-}" ]]; then
+            echo "::error::No checksum for ${asset_name} in checksums.txt" >&2
+            echo "Available checksums:" >&2
+            cat "${tmpdir}/checksums.txt" >&2
+            exit 1
+          fi
           ACTUAL_SHA256="$(sha256sum "${tmpdir}/vale.tar.gz" | awk '{print $1}')"
-          [[ "${EXPECTED_SHA256}" == "${ACTUAL_SHA256}" ]] || { echo "::error::Checksum mismatch"; exit 1; }
+          if [[ "${EXPECTED_SHA256}" != "${ACTUAL_SHA256}" ]]; then
+            echo "::error::Checksum mismatch for ${asset_name}" >&2
+            echo "Expected: ${EXPECTED_SHA256}" >&2
+            echo "Actual:   ${ACTUAL_SHA256}" >&2
+            exit 1
+          fi
 
           tar -xzf "${tmpdir}/vale.tar.gz" -C "${tmpdir}"
           sudo install -m 0755 "${tmpdir}/vale" /usr/local/bin/vale
