@@ -3,84 +3,73 @@
 import sys
 import json
 import logging
+import argparse
 
 # Configure logging to output to stderr
 logging.basicConfig(level=logging.INFO, format='%(message)s', stream=sys.stderr)
 
-def validate_insight(filepath):
+def validate_insight(instance_path, schema_path):
     """
-    Validates a Heimgeist insight JSON file against the Mini-Spec.
+    Validates a Heimgeist insight JSON file against a provided JSON Schema.
     """
     try:
-        with open(filepath, 'r') as f:
-            content = f.read().strip()
-
-        # The chronik mock file might contain "key=value" lines or just raw JSON if we adapted it.
-        # But wait, chronik.bash appends `key=value`.
-        # The schema validation logic needs to handle that or we need to parse the file carefully.
-        # For this script, let's assume it gets passed the raw JSON of the insight itself,
-        # OR it parses the output of the mock file.
-
-        # Let's support both: direct JSON file or parsing the LAST line of a chronik mock file.
-
+        # Import jsonschema here to allow script to fail gracefully if not installed
+        # (though strictly required by plan, in some envs it might be missing)
         try:
-            data = json.loads(content)
-        except json.JSONDecodeError:
-            # Maybe it's a chronik log format: key=value
-            lines = content.splitlines()
-            if not lines:
-                raise ValueError("Empty file")
-            last_line = lines[-1]
-            if '=' in last_line:
-                _, value = last_line.split('=', 1)
-                data = json.loads(value)
-            else:
-                raise ValueError("Could not parse file as JSON or Key=Value pair")
-
-        # Validate Wrapper
-        errors = []
-        if data.get('kind') != 'heimgeist.insight':
-            errors.append(f"Invalid kind: {data.get('kind')}")
-
-        if data.get('version') != 1:
-            errors.append(f"Invalid version: {data.get('version')}")
-
-        if 'id' not in data:
-            errors.append("Missing 'id'")
-        elif not data['id'].startswith('evt-'):
-            errors.append(f"Invalid id format: {data['id']} (must start with 'evt-')")
-
-        if 'meta' not in data:
-            errors.append("Missing 'meta'")
-        else:
-            meta = data['meta']
-            if 'occurred_at' not in meta:
-                errors.append("Missing 'meta.occurred_at'")
-            # role is optional in my implementation (args passed), but spec says 'role' in meta.
-            # My archivist implementation puts it there.
-            if 'role' not in meta:
-                errors.append("Missing 'meta.role'")
-            elif meta['role'] not in ['archivist', 'heimgeist']:
-                errors.append(f"Invalid role: {meta['role']} (must be 'archivist' or 'heimgeist')")
-
-        if 'data' not in data:
-            errors.append("Missing 'data'")
-
-        if errors:
-            for err in errors:
-                logging.error(f"Schema Error: {err}")
+            from jsonschema import validate
+            from jsonschema.exceptions import ValidationError
+        except ImportError:
+            logging.error("Error: 'jsonschema' library is required. Install via 'uv pip install jsonschema'.")
             sys.exit(1)
 
-        logging.info("Schema Validation Passed")
-        sys.exit(0)
+        # Load Schema
+        try:
+            with open(schema_path, 'r') as sf:
+                schema = json.load(sf)
+        except Exception as e:
+            logging.error(f"Failed to load schema from {schema_path}: {e}")
+            sys.exit(1)
+
+        # Load Instance
+        try:
+            with open(instance_path, 'r') as f:
+                content = f.read().strip()
+
+            # Handle Chronik log format: key=value
+            try:
+                data = json.loads(content)
+            except json.JSONDecodeError:
+                lines = content.splitlines()
+                if not lines:
+                    raise ValueError("Empty file")
+                last_line = lines[-1]
+                if '=' in last_line:
+                    _, value = last_line.split('=', 1)
+                    data = json.loads(value)
+                else:
+                    raise ValueError("Could not parse file as JSON or Key=Value pair")
+        except Exception as e:
+            logging.error(f"Failed to load instance from {instance_path}: {e}")
+            sys.exit(1)
+
+        # Validate
+        try:
+            validate(instance=data, schema=schema)
+            logging.info("Schema Validation Passed")
+            sys.exit(0)
+        except ValidationError as e:
+            logging.error(f"Schema Validation Failed: {e.message}")
+            sys.exit(1)
 
     except Exception as e:
-        logging.error(f"Validation failed with exception: {e}")
+        logging.error(f"Validation process failed: {e}")
         sys.exit(1)
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        logging.error("Usage: validate_insight_schema.py <filepath>")
-        sys.exit(1)
+    parser = argparse.ArgumentParser(description="Validate JSON against a Schema")
+    parser.add_argument("instance", help="Path to the JSON instance (or log file)")
+    parser.add_argument("--schema", required=True, help="Path to the JSON Schema file")
 
-    validate_insight(sys.argv[1])
+    args = parser.parse_args()
+
+    validate_insight(args.instance, args.schema)

@@ -13,6 +13,28 @@ setup() {
 
     # Mock Chronik
     export WGX_CHRONIK_MOCK_FILE="$WORKDIR/chronik_events.log"
+
+    # Create a local copy of the Metarepo Schema (Mocking the SSOT for test purposes)
+    cat > schema.json <<'EOF'
+{
+  "type": "object",
+  "properties": {
+    "kind": { "const": "heimgeist.insight" },
+    "version": { "const": 1 },
+    "id": { "type": "string", "pattern": "^evt-" },
+    "meta": {
+      "type": "object",
+      "properties": {
+        "occurred_at": { "type": "string" },
+        "role": { "enum": ["wgx.guard", "archivist", "heimgeist"] }
+      },
+      "required": ["occurred_at", "role"]
+    },
+    "data": { "type": "object" }
+  },
+  "required": ["kind", "version", "id", "meta", "data"]
+}
+EOF
 }
 
 teardown() {
@@ -29,8 +51,8 @@ teardown() {
 
     # Generate event using the fixture
     # heimgeist::archive_insight <id> <role> <data>
-    # Note: role defaults to 'archivist' if not set, or we can pass it
-    run heimgeist::archive_insight "test-id" "archivist" "$test_data"
+    # Note: role defaults to 'wgx.guard' if not set
+    run heimgeist::archive_insight "test-id" "" "$test_data"
     assert_success
 
     # Check existence
@@ -44,8 +66,8 @@ teardown() {
     local value
     value=$(tail -n 1 "$WGX_CHRONIK_MOCK_FILE" | cut -d= -f2-)
 
-    # Use the script which now checks role and id strictness
-    run python3 "$BATS_TEST_DIRNAME/../scripts/validate_insight_schema.py" <(echo "$value")
+    # Use the script with the provided schema
+    run python3 "$BATS_TEST_DIRNAME/../scripts/validate_insight_schema.py" --schema schema.json <(echo "$value")
     assert_success
     assert_output --partial "Schema Validation Passed"
 }
