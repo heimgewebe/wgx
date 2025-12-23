@@ -76,7 +76,7 @@ try:
 except Exception as e:
     print(f'Error: Unexpected error in archivist JSON processing: {e}', file=sys.stderr)
     sys.exit(1)
-" <<< "$data_json"); then
+" <<<"$data_json"); then
       # Unset exported variables even on failure
       unset ARCHIVIST_ID ARCHIVIST_TIMESTAMP ARCHIVIST_ROLE
       die "Failed to build insight payload (Python JSON processing error)"
