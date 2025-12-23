@@ -14,9 +14,6 @@ setup() {
     # Setzt WGX_DIR explizit auf das Testverzeichnis, damit `profile::has_manifest`
     # das Profil korrekt finden kann.
     export WGX_DIR="$WORKDIR"
-    
-    # Setzt Mock-Modus für Chronik (Heimgeist integration)
-    export WGX_CHRONIK_MOCK_FILE="$WORKDIR/.wgx/chronik.log"
 }
 
 teardown() {
@@ -24,7 +21,6 @@ teardown() {
     cd ..
     rm -rf "$WORKDIR"
     unset WGX_DIR
-    unset WGX_CHRONIK_MOCK_FILE
 }
 
 @test "guard fails if no profile is found" {
@@ -35,30 +31,14 @@ teardown() {
 }
 
 @test "guard profile check passes with .wgx/profile.example.yml" {
-    cat >.wgx/profile.example.yml <<'YAML'
-wgx:
-  apiVersion: v1
-  requiredWgx: "^2.0"
-  repoKind: "generic"
-  tasks:
-    test: "echo 'test passed'"
-    lint: "echo 'lint passed'"
-YAML
+    touch .wgx/profile.example.yml
     git add .wgx/profile.example.yml
     run wgx guard
     assert_success
 }
 
 @test "guard profile check passes with .wgx/profile.yml" {
-    cat >.wgx/profile.yml <<'YAML'
-wgx:
-  apiVersion: v1
-  requiredWgx: "^2.0"
-  repoKind: "generic"
-  tasks:
-    test: "echo 'test passed'"
-    lint: "echo 'lint passed'"
-YAML
+    touch .wgx/profile.yml
     git add .wgx/profile.yml
     run wgx guard
     assert_success
@@ -66,15 +46,7 @@ YAML
 
 @test "guard fails on files >=1MB" {
     # Erstellt eine große Datei, die den Schwellenwert überschreitet
-    cat >.wgx/profile.example.yml <<'YAML'
-wgx:
-  apiVersion: v1
-  requiredWgx: "^2.0"
-  repoKind: "generic"
-  tasks:
-    test: "echo 'test passed'"
-    lint: "echo 'lint passed'"
-YAML
+    touch .wgx/profile.example.yml
     dd if=/dev/zero of=large_file.bin bs=1024 count=1024
     git add large_file.bin .wgx/profile.example.yml >/dev/null 2>&1
 

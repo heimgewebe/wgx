@@ -47,6 +47,8 @@ def validate_insight(filepath):
 
         if 'id' not in data:
             errors.append("Missing 'id'")
+        elif not data['id'].startswith('evt-'):
+            errors.append(f"Invalid id format: {data['id']} (must start with 'evt-')")
 
         if 'meta' not in data:
             errors.append("Missing 'meta'")

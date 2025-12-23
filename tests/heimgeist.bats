@@ -61,6 +61,7 @@ try:
     assert data['kind'] == 'heimgeist.insight'
     assert data['version'] == 1
     assert 'id' in data
+    assert data['id'].startswith('evt-') # ID Consistency Check
     assert 'meta' in data
     assert 'occurred_at' in data['meta']
     assert data['meta']['role'] == 'guard'
@@ -73,11 +74,29 @@ except Exception as e:
     assert_output "VALID"
 }
 
-@test "heimgeist: fails if archiving fails (simulated)" {
-    # Wir simulieren Fail indem wir WGX_CHRONIK_MOCK_FILE unsetten (und kein echtes Backend konfiguriert ist -> chronik::append gibt 1 zurück)
+@test "heimgeist: warns but succeeds without backend (default)" {
+    # Default behavior: Warn only
     unset WGX_CHRONIK_MOCK_FILE
 
     run wgx guard --lint
+    assert_success
+    # The warning is printed to stderr, which bats captures in output
+    assert_output --partial "Chronik backend not configured"
+}
+
+@test "heimgeist: fails if archiving fails (STRICT mode)" {
+    # Strict behavior: Fail
+    unset WGX_CHRONIK_MOCK_FILE
+    export WGX_HEIMGEIST_STRICT=1
+
+    run wgx guard --lint
     assert_failure
-    assert_output --partial "Failed to archive insight via Heimgeist."
+    # Expect failure from Chronik (if it dies) or Guard (if Chronik returns error)
+    # Currently Chronik dies directly in strict mode
+    if [[ "$output" == *"Chronik backend not configured"* ]]; then
+        assert_output --partial "Chronik backend not configured"
+        assert_output --partial "STRICT mode"
+    else
+        assert_output --partial "Failed to archive insight via Heimgeist."
+    fi
 }

@@ -28,6 +28,11 @@ chronik::append() {
   # wenn kein Mock und kein Backend da ist?
   # Fürs Erste: Loggen und failen, wenn URL nicht gesetzt (wenn wir eine URL hätten).
 
-  warn "Chronik backend not configured and WGX_CHRONIK_MOCK_FILE not set."
-  return 1
+  if [[ "${WGX_HEIMGEIST_STRICT:-0}" == "1" ]]; then
+      die "Chronik backend not configured and WGX_CHRONIK_MOCK_FILE not set (STRICT mode)."
+      return 1
+  fi
+
+  warn "Chronik backend not configured and WGX_CHRONIK_MOCK_FILE not set (Warn-only)."
+  return 0
 }

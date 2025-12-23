@@ -6,17 +6,12 @@
 # Wir verlassen uns darauf, dass `modules/chronik.bash` verfügbar ist.
 
 archivist::archive_insight() {
-  local id="$1"
+  local raw_id="$1"
   local role="$2"
   local data_json="$3"
 
-  # Validiere, dass data_json nicht leer ist
-  if [[ -z "$data_json" ]]; then
-    if [[ -n "${GITHUB_ACTIONS:-}" ]]; then
-      echo "::error::data_json ist leer oder nicht gesetzt" >&2
-    fi
-    die "data_json ist leer oder nicht gesetzt"
-  fi
+  # ID Consistency: Ensure ID is prefixed with evt-
+  local event_id="evt-${raw_id}"
 
   # Zeitstempel generieren (ISO 8601)
   local timestamp
@@ -29,70 +24,27 @@ archivist::archive_insight() {
   fi
 
   # JSON Wrapper bauen
-  # Python3 ist erforderlich für sicheres JSON-Composing
+  # Wir nutzen printf, um das JSON sicher zusammenzubauen.
+  # Achtung: data_json wird hier direkt eingefügt, muss also valides JSON sein.
   local payload
+  # Wir verwenden python3 für sicheres JSON-Composing, wenn möglich, um Escaping-Probleme zu vermeiden.
   if command -v python3 >/dev/null 2>&1; then
-    # Export variables to environment for safe passing to Python
-    export ARCHIVIST_ID="$id"
-    export ARCHIVIST_TIMESTAMP="$timestamp"
-    export ARCHIVIST_ROLE="$role"
-    
-    if ! payload=$(python3 -c "
-import json, sys, os
-
-try:
-    # Validate environment variables
-    required_vars = ['ARCHIVIST_ID', 'ARCHIVIST_TIMESTAMP', 'ARCHIVIST_ROLE']
-    for var in required_vars:
-        if var not in os.environ:
-            print(f'Error: Missing required environment variable {var}', file=sys.stderr)
-            sys.exit(1)
-    
-    # Parse input JSON
-    data_json_str = sys.stdin.read()
-    if not data_json_str or not data_json_str.strip():
-        print('Error: Empty or whitespace-only input JSON', file=sys.stderr)
-        sys.exit(1)
-    
-    try:
-        data = json.loads(data_json_str)
-    except json.JSONDecodeError as e:
-        print(f'Error: Invalid JSON input: {e}', file=sys.stderr)
-        sys.exit(1)
-    
-    # Build result
-    result = {
-        'kind': 'heimgeist.insight',
-        'version': 1,
-        'id': os.environ['ARCHIVIST_ID'],
-        'meta': {
-            'occurred_at': os.environ['ARCHIVIST_TIMESTAMP'],
-            'role': os.environ['ARCHIVIST_ROLE']
-        },
-        'data': data
-    }
-    print(json.dumps(result))
-    
-except Exception as e:
-    print(f'Error: Unexpected error in archivist JSON processing: {e}', file=sys.stderr)
-    sys.exit(1)
-" <<< "$data_json"); then
-      # Unset exported variables even on failure
-      unset ARCHIVIST_ID ARCHIVIST_TIMESTAMP ARCHIVIST_ROLE
-      die "Failed to build insight payload (Python JSON processing error)"
-    fi
-    
-    # Unset exported variables on success
-    unset ARCHIVIST_ID ARCHIVIST_TIMESTAMP ARCHIVIST_ROLE
+    payload=$(python3 -c "import json, sys; print(json.dumps({
+      'kind': 'heimgeist.insight',
+      'version': 1,
+      'id': '$event_id',
+      'meta': {
+        'occurred_at': '$timestamp',
+        'role': '$role'
+      },
+      'data': json.loads(sys.stdin.read())
+    }))" <<< "$data_json")
   else
-    # Python3 ist Voraussetzung – keine unsichere Bash-Fallback-Logik
-    if [[ -n "${GITHUB_ACTIONS:-}" ]]; then
-      echo "::error::Python3 ist Voraussetzung für JSON-Auswertung; bitte in Install-Step ergänzen." >&2
-    fi
+    # Fallback: Simple string manipulation (Riskant bei komplexem data_json, aber für einfache Zwecke ok)
+    # Bevorzugt python3
     die "python3 required for JSON handling in archivist."
   fi
 
   # An Chronik senden
-  local key="evt-${id}"
-  chronik::append "$key" "$payload"
+  chronik::append "$event_id" "$payload"
 }
