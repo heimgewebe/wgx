@@ -15,6 +15,7 @@ setup() {
     export WGX_CHRONIK_MOCK_FILE="$WORKDIR/chronik_events.log"
 
     # Create a local copy of the Metarepo Schema (Mocking the SSOT for test purposes)
+    # Reflects Base-Envelope with producer required, role removed from meta
     cat > schema.json <<'EOF'
 {
   "type": "object",
@@ -26,12 +27,22 @@ setup() {
       "type": "object",
       "properties": {
         "occurred_at": { "type": "string" },
-        "producer": { "const": "wgx.guard" },
-        "role": { "enum": ["wgx.guard", "archivist", "heimgeist"] }
+        "producer": { "const": "wgx.guard" }
       },
-      "required": ["occurred_at", "producer", "role"]
+      "required": ["occurred_at", "producer"],
+      "not": { "required": ["role"] }
     },
-    "data": { "type": "object" }
+    "data": {
+      "type": "object",
+      "properties": {
+         "origin": {
+            "type": "object",
+            "properties": {
+               "role": { "type": "string" }
+            }
+         }
+      }
+    }
   },
   "required": ["kind", "version", "id", "meta", "data"]
 }
