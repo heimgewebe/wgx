@@ -36,23 +36,53 @@ archivist::archive_insight() {
     export ARCHIVIST_ID="$id"
     export ARCHIVIST_TIMESTAMP="$timestamp"
     export ARCHIVIST_ROLE="$role"
-    payload=$(python3 -c "
+    
+    if ! payload=$(python3 -c "
 import json, sys, os
-data_json_str = sys.stdin.read()
-data = json.loads(data_json_str)
-result = {
-  'kind': 'heimgeist.insight',
-  'version': 1,
-  'id': os.environ['ARCHIVIST_ID'],
-  'meta': {
-    'occurred_at': os.environ['ARCHIVIST_TIMESTAMP'],
-    'role': os.environ['ARCHIVIST_ROLE']
-  },
-  'data': data
-}
-print(json.dumps(result))
-" <<< "$data_json")
-    # Unset exported variables
+
+try:
+    # Validate environment variables
+    required_vars = ['ARCHIVIST_ID', 'ARCHIVIST_TIMESTAMP', 'ARCHIVIST_ROLE']
+    for var in required_vars:
+        if var not in os.environ:
+            print(f'Error: Missing required environment variable {var}', file=sys.stderr)
+            sys.exit(1)
+    
+    # Parse input JSON
+    data_json_str = sys.stdin.read()
+    if not data_json_str or not data_json_str.strip():
+        print('Error: Empty or whitespace-only input JSON', file=sys.stderr)
+        sys.exit(1)
+    
+    try:
+        data = json.loads(data_json_str)
+    except json.JSONDecodeError as e:
+        print(f'Error: Invalid JSON input: {e}', file=sys.stderr)
+        sys.exit(1)
+    
+    # Build result
+    result = {
+        'kind': 'heimgeist.insight',
+        'version': 1,
+        'id': os.environ['ARCHIVIST_ID'],
+        'meta': {
+            'occurred_at': os.environ['ARCHIVIST_TIMESTAMP'],
+            'role': os.environ['ARCHIVIST_ROLE']
+        },
+        'data': data
+    }
+    print(json.dumps(result))
+    
+except Exception as e:
+    print(f'Error: Unexpected error in archivist JSON processing: {e}', file=sys.stderr)
+    sys.exit(1)
+" <<< "$data_json"); then
+      # Unset exported variables even on failure
+      unset ARCHIVIST_ID ARCHIVIST_TIMESTAMP ARCHIVIST_ROLE
+      die "Failed to build insight payload (Python JSON processing error)"
+    fi
+    
+    # Unset exported variables on success
     unset ARCHIVIST_ID ARCHIVIST_TIMESTAMP ARCHIVIST_ROLE
   else
     # Python3 ist Voraussetzung – keine unsichere Bash-Fallback-Logik
