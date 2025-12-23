@@ -15,7 +15,7 @@ jobs:
     timeout-minutes: 15
     env:
       # Pinned to a known-good version to ensure reliable CI builds
-      VALE_VERSION: "3.6.1"
+      VALE_VERSION: "3.13.0"
     steps:
       - uses: actions/checkout@v4
       - name: Setup Node
