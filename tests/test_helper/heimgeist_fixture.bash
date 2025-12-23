@@ -59,13 +59,18 @@ heimgeist::archive_insight() {
   # JSON Wrapper bauen
   local payload
   if command -v python3 >/dev/null 2>&1; then
-    payload=$(python3 -c "import json, sys; print(json.dumps({
+    # Use env vars for safe passing of values to avoid injection
+    export HG_EVENT_ID="$event_id"
+    export HG_TIMESTAMP="$timestamp"
+    export HG_ROLE="$role"
+
+    payload=$(python3 -c "import json, sys, os; print(json.dumps({
       'kind': 'heimgeist.insight',
       'version': 1,
-      'id': '$event_id',
+      'id': os.environ['HG_EVENT_ID'],
       'meta': {
-        'occurred_at': '$timestamp',
-        'role': '$role'
+        'occurred_at': os.environ['HG_TIMESTAMP'],
+        'role': os.environ['HG_ROLE']
       },
       'data': json.loads(sys.stdin.read())
     }))" <<< "$data_json")
