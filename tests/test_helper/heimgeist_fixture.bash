@@ -40,6 +40,7 @@ heimgeist::append_event() {
 
 heimgeist::archive_insight() {
   local raw_id="$1"
+  # role arg is kept for compatibility but producer is enforced
   local role="${2:-wgx.guard}"
   local data_json="$3"
 
@@ -63,6 +64,7 @@ heimgeist::archive_insight() {
     export HG_EVENT_ID="$event_id"
     export HG_TIMESTAMP="$timestamp"
     export HG_ROLE="$role"
+    export HG_PRODUCER="wgx.guard"
 
     payload=$(python3 -c "import json, sys, os; print(json.dumps({
       'kind': 'heimgeist.insight',
@@ -70,6 +72,7 @@ heimgeist::archive_insight() {
       'id': os.environ['HG_EVENT_ID'],
       'meta': {
         'occurred_at': os.environ['HG_TIMESTAMP'],
+        'producer': os.environ['HG_PRODUCER'],
         'role': os.environ['HG_ROLE']
       },
       'data': json.loads(sys.stdin.read())

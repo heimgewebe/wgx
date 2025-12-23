@@ -26,9 +26,10 @@ setup() {
       "type": "object",
       "properties": {
         "occurred_at": { "type": "string" },
+        "producer": { "const": "wgx.guard" },
         "role": { "enum": ["wgx.guard", "archivist", "heimgeist"] }
       },
-      "required": ["occurred_at", "role"]
+      "required": ["occurred_at", "producer", "role"]
     },
     "data": { "type": "object" }
   },
