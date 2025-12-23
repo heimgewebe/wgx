@@ -7,8 +7,7 @@ The canonical source of truth for Heimgeist Insight Events lives in the Metarepo
 ## WGX Implementation Details
 WGX adheres to the metarepo contract with the following specific values:
 
-*   **Producer**: `wgx.guard` (in `meta.producer`)
-*   **Origin Role**: Mapped to `data.origin.role` (optional, for logical origin)
+*   **Role**: String (e.g., `wgx.guard`, `archivist`, `heimgeist`) in `meta.role`.
 *   **ID Format**: `evt-<uuid>`
 *   **Kind**: `heimgeist.insight`
 *   **Version**: `1` (number)

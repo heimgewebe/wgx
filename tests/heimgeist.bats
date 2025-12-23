@@ -27,10 +27,10 @@ setup() {
       "type": "object",
       "properties": {
         "occurred_at": { "type": "string" },
-        "producer": { "const": "wgx.guard" }
+        "producer": { "type": "string", "minLength": 1 },
+        "role": { "type": "string" }
       },
-      "required": ["occurred_at", "producer"],
-      "not": { "required": ["role"] }
+      "required": ["occurred_at"]
     },
     "data": {
       "type": "object",

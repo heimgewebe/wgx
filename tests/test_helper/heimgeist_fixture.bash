@@ -40,9 +40,8 @@ heimgeist::append_event() {
 
 heimgeist::archive_insight() {
   local raw_id="$1"
-  # Role argument maps to data.origin.role (logical origin)
-  # Producer is fixed to wgx.guard (technical component)
-  local origin_role="${2:-wgx.guard}"
+  # Use provided role (default wgx.guard)
+  local role="${2:-wgx.guard}"
   local data_json="$3"
 
   # ID Consistency: Ensure ID is prefixed with evt-
@@ -64,31 +63,21 @@ heimgeist::archive_insight() {
     # Use env vars for safe passing of values to avoid injection
     export HG_EVENT_ID="$event_id"
     export HG_TIMESTAMP="$timestamp"
-    export HG_ORIGIN_ROLE="$origin_role"
-    export HG_PRODUCER="wgx.guard"
+    export HG_ROLE="$role"
 
-    # We construct 'data' by merging origin info if needed, or ensuring it's in the structure
-    # But to avoid deep merging complexity in python one-liner, we will just assume data is the payload
-    # and we insert origin into it if we follow the strict separation.
-    # However, the user said: "Wenn 'role-Semantik' gebraucht wird: in data.origin.role ablegen".
-    # This implies 'data' structure might need to change.
-    # For simplicity and safety, let's inject origin into data using python.
+    # Structure aligned with relaxed SSOT:
+    # meta.role is present (string)
+    # No meta.producer enforced if not in contract (or optional)
 
-    payload=$(python3 -c "import json, sys, os;
-data = json.loads(sys.stdin.read());
-if 'origin' not in data:
-    data['origin'] = {};
-data['origin']['role'] = os.environ['HG_ORIGIN_ROLE'];
-
-print(json.dumps({
+    payload=$(python3 -c "import json, sys, os; print(json.dumps({
       'kind': 'heimgeist.insight',
       'version': 1,
       'id': os.environ['HG_EVENT_ID'],
       'meta': {
         'occurred_at': os.environ['HG_TIMESTAMP'],
-        'producer': os.environ['HG_PRODUCER']
+        'role': os.environ['HG_ROLE']
       },
-      'data': data
+      'data': json.loads(sys.stdin.read())
     }))" <<< "$data_json")
   else
     die "python3 required for JSON handling in heimgeist lib."
