@@ -10,6 +10,14 @@ archivist::archive_insight() {
   local role="$2"
   local data_json="$3"
 
+  # Validiere, dass data_json nicht leer ist
+  if [[ -z "$data_json" ]]; then
+    if [[ -n "${GITHUB_ACTIONS:-}" ]]; then
+      echo "::error::data_json ist leer oder nicht gesetzt" >&2
+    fi
+    die "data_json ist leer oder nicht gesetzt"
+  fi
+
   # Zeitstempel generieren (ISO 8601)
   local timestamp
   if date --version >/dev/null 2>&1; then
@@ -21,10 +29,8 @@ archivist::archive_insight() {
   fi
 
   # JSON Wrapper bauen
-  # Wir nutzen printf, um das JSON sicher zusammenzubauen.
-  # Achtung: data_json wird hier direkt eingefügt, muss also valides JSON sein.
+  # Python3 ist erforderlich für sicheres JSON-Composing
   local payload
-  # Wir verwenden python3 für sicheres JSON-Composing, wenn möglich, um Escaping-Probleme zu vermeiden.
   if command -v python3 >/dev/null 2>&1; then
     payload=$(python3 -c "import json, sys; print(json.dumps({
       'kind': 'heimgeist.insight',
@@ -37,8 +43,10 @@ archivist::archive_insight() {
       'data': json.loads(sys.stdin.read())
     }))" <<< "$data_json")
   else
-    # Fallback: Simple string manipulation (Riskant bei komplexem data_json, aber für einfache Zwecke ok)
-    # Bevorzugt python3
+    # Python3 ist Voraussetzung – keine unsichere Bash-Fallback-Logik
+    if [[ -n "${GITHUB_ACTIONS:-}" ]]; then
+      echo "::error::Python3 ist Voraussetzung für JSON-Auswertung; bitte in Install-Step ergänzen." >&2
+    fi
     die "python3 required for JSON handling in archivist."
   fi
 
