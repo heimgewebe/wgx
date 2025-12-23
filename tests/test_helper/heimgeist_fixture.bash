@@ -40,7 +40,7 @@ heimgeist::append_event() {
 
 heimgeist::archive_insight() {
   local raw_id="$1"
-  local role="$2"
+  local role="${2:-archivist}"
   local data_json="$3"
 
   # ID Consistency: Ensure ID is prefixed with evt-

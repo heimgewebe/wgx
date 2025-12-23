@@ -5,35 +5,6 @@
 #   WGX_GUARD_MAX_BYTES        Schwelle für Bigfile-Check (Bytes, Default 1048576)
 #   WGX_GUARD_CHECKLIST_STRICT Schaltet Checkliste auf Warnmodus, wenn "0"
 
-# Importiere Heimgeist-Bibliothek
-# Wir versuchen, lib/heimgeist.bash relativ zum Modul (../lib/) oder via WGX_DIR zu finden.
-_guard_load_heimgeist() {
-  local dir
-  dir="$(dirname "${BASH_SOURCE[0]}")"
-  # modules/guard.bash -> ../lib/heimgeist.bash
-  local lib_path="$dir/../lib/heimgeist.bash"
-
-  if [[ -f "$lib_path" ]]; then
-    source "$lib_path"
-    return 0
-  fi
-
-  # Fallback: WGX_DIR
-  if [[ -n "${WGX_DIR:-}" && -f "${WGX_DIR}/lib/heimgeist.bash" ]]; then
-    source "${WGX_DIR}/lib/heimgeist.bash"
-    return 0
-  fi
-
-  # Fallback: WGX_PROJECT_ROOT (z.B. in Tests)
-  if [[ -n "${WGX_PROJECT_ROOT:-}" && -f "${WGX_PROJECT_ROOT}/lib/heimgeist.bash" ]]; then
-    source "${WGX_PROJECT_ROOT}/lib/heimgeist.bash"
-    return 0
-  fi
-
-  warn "Heimgeist library not found (looked in $lib_path)."
-}
-_guard_load_heimgeist
-
 _guard_command_available() {
   local name="$1"
   if declare -F "cmd_${name}" >/dev/null 2>&1; then
@@ -198,41 +169,6 @@ USAGE
   # Wenn wir bis hier keinen harten Fehler hatten, aber das Profil fehlt,
   # schlagen wir jetzt (wie im Test erwartet) mit Status 1 fehl.
   if ((profile_missing)); then
-    return 1
-  fi
-
-  # --- Heimgeist: Insight Archivierung ---
-  # Generiere ID
-  local insight_id
-  if command -v uuidgen >/dev/null 2>&1; then
-    insight_id="$(uuidgen | tr '[:upper:]' '[:lower:]')"
-  elif [ -f /proc/sys/kernel/random/uuid ]; then
-    insight_id="$(cat /proc/sys/kernel/random/uuid)"
-  else
-    # Fallback: Python
-    insight_id="$(python3 -c 'import uuid; print(str(uuid.uuid4()))')"
-  fi
-
-  # Sammle Status
-  local status="success"
-  # Da wir hier sind, war alles erfolgreich (sonst return 1 vorher).
-  # Wir können noch weitere Metadaten sammeln.
-
-  # Daten payload bauen
-  local data_json
-  data_json="$(python3 -c "import json; print(json.dumps({
-    'status': '$status',
-    'checks': {
-        'lint': '$run_lint',
-        'test': '$run_test',
-        'profile_missing': '$profile_missing'
-    }
-  }))")"
-
-  # Archivieren via Archivist
-  # Rolle: "guard"
-  if ! heimgeist::archive_insight "$insight_id" "guard" "$data_json"; then
-    die "Failed to archive insight via Heimgeist."
     return 1
   fi
 

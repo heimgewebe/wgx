@@ -60,6 +60,8 @@ def validate_insight(filepath):
             # My archivist implementation puts it there.
             if 'role' not in meta:
                 errors.append("Missing 'meta.role'")
+            elif meta['role'] not in ['archivist', 'heimgeist']:
+                errors.append(f"Invalid role: {meta['role']} (must be 'archivist' or 'heimgeist')")
 
         if 'data' not in data:
             errors.append("Missing 'data'")

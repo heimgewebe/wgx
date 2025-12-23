@@ -36,9 +36,6 @@ jobs:
 
       - name: Run WGX guard
         id: guard
-        env:
-          # Enable Mock mode for Heimgeist/Chronik to avoid failure and generate the insight file
-          WGX_CHRONIK_MOCK_FILE: .wgx/last_insight.json
         run: |
           # Run guard task if available, fallback to smoke
           tasks_json=$(wgx tasks --json 2>/dev/null || echo '{"tasks":[]}')
@@ -50,16 +47,4 @@ jobs:
           else
             echo "::warning::Neither guard nor smoke task found in profile"
             exit 0
-          fi
-
-      - name: Validate Insight Schema (Warn Only)
-        if: steps.guard.outcome == 'success'
-        continue-on-error: true
-        run: |
-          # Check if we have an insight file to validate (local debug file)
-          if [ -f .wgx/last_insight.json ]; then
-             echo "Validating .wgx/last_insight.json..."
-             python3 scripts/validate_insight_schema.py .wgx/last_insight.json
-          else
-             echo "No insight file found to validate."
           fi
