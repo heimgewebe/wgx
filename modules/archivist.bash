@@ -32,16 +32,28 @@ archivist::archive_insight() {
   # Python3 ist erforderlich für sicheres JSON-Composing
   local payload
   if command -v python3 >/dev/null 2>&1; then
-    payload=$(python3 -c "import json, sys; print(json.dumps({
-      'kind': 'heimgeist.insight',
-      'version': 1,
-      'id': '$id',
-      'meta': {
-        'occurred_at': '$timestamp',
-        'role': '$role'
-      },
-      'data': json.loads(sys.stdin.read())
-    }))" <<< "$data_json")
+    # Export variables to environment for safe passing to Python
+    export ARCHIVIST_ID="$id"
+    export ARCHIVIST_TIMESTAMP="$timestamp"
+    export ARCHIVIST_ROLE="$role"
+    payload=$(python3 -c "
+import json, sys, os
+data_json_str = sys.stdin.read()
+data = json.loads(data_json_str)
+result = {
+  'kind': 'heimgeist.insight',
+  'version': 1,
+  'id': os.environ['ARCHIVIST_ID'],
+  'meta': {
+    'occurred_at': os.environ['ARCHIVIST_TIMESTAMP'],
+    'role': os.environ['ARCHIVIST_ROLE']
+  },
+  'data': data
+}
+print(json.dumps(result))
+" <<< "$data_json")
+    # Unset exported variables
+    unset ARCHIVIST_ID ARCHIVIST_TIMESTAMP ARCHIVIST_ROLE
   else
     # Python3 ist Voraussetzung – keine unsichere Bash-Fallback-Logik
     if [[ -n "${GITHUB_ACTIONS:-}" ]]; then
