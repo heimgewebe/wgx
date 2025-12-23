@@ -33,7 +33,7 @@ teardown() {
     unset WGX_DIR
 }
 
-@test "heimgeist: guard calls archivist -> chronik.append with evt-ID" {
+@test "heimgeist: guard calls heimgeist::archive_insight -> append with evt-ID" {
     # Führe Guard aus
     run wgx guard --lint
     assert_success

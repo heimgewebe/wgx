@@ -5,24 +5,32 @@
 #   WGX_GUARD_MAX_BYTES        Schwelle für Bigfile-Check (Bytes, Default 1048576)
 #   WGX_GUARD_CHECKLIST_STRICT Schaltet Checkliste auf Warnmodus, wenn "0"
 
-# Importiere Heimgeist-Komponenten (werden relativ zum Modul erwartet)
-# Da diese im selben 'modules/' Verzeichnis liegen, und 'modules/guard.bash'
-# vermutlich via 'source' geladen wird, hoffen wir, dass der Pfad stimmt.
-# Falls nicht, müssen wir den Pfad dynamisch ermitteln.
-# Wir nehmen an, dass 'wgx' (das CLI) den 'modules/' Pfad kennt oder
-# wir laden sie hier explizit.
+# Importiere Heimgeist-Bibliothek
+# Wir versuchen, lib/heimgeist.bash relativ zum Modul (../lib/) oder via WGX_DIR zu finden.
 _guard_load_heimgeist() {
   local dir
   dir="$(dirname "${BASH_SOURCE[0]}")"
-  # Wenn wir bereits gesourced sind, könnte BASH_SOURCE[0] das Hauptskript sein,
-  # aber bei direktem Aufruf oder korrektem Sourcing zeigt es auf guard.bash.
-  # Wir versuchen es relativ.
-  if [[ -f "$dir/chronik.bash" && -f "$dir/archivist.bash" ]]; then
-    source "$dir/chronik.bash"
-    source "$dir/archivist.bash"
-  else
-    warn "Heimgeist modules not found in $dir"
+  # modules/guard.bash -> ../lib/heimgeist.bash
+  local lib_path="$dir/../lib/heimgeist.bash"
+
+  if [[ -f "$lib_path" ]]; then
+    source "$lib_path"
+    return 0
   fi
+
+  # Fallback: WGX_DIR
+  if [[ -n "${WGX_DIR:-}" && -f "${WGX_DIR}/lib/heimgeist.bash" ]]; then
+    source "${WGX_DIR}/lib/heimgeist.bash"
+    return 0
+  fi
+
+  # Fallback: WGX_PROJECT_ROOT (z.B. in Tests)
+  if [[ -n "${WGX_PROJECT_ROOT:-}" && -f "${WGX_PROJECT_ROOT}/lib/heimgeist.bash" ]]; then
+    source "${WGX_PROJECT_ROOT}/lib/heimgeist.bash"
+    return 0
+  fi
+
+  warn "Heimgeist library not found (looked in $lib_path)."
 }
 _guard_load_heimgeist
 
@@ -223,7 +231,7 @@ USAGE
 
   # Archivieren via Archivist
   # Rolle: "guard"
-  if ! archivist::archive_insight "$insight_id" "guard" "$data_json"; then
+  if ! heimgeist::archive_insight "$insight_id" "guard" "$data_json"; then
     die "Failed to archive insight via Heimgeist."
     return 1
   fi
