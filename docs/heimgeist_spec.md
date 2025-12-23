@@ -3,6 +3,7 @@
 Domain: heimgeist
 
 Wrapper:
+
 ```json
 {
   "kind": "heimgeist.insight",

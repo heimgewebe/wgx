@@ -29,7 +29,7 @@ jobs:
         run: |
           export DEBIAN_FRONTEND=noninteractive
           sudo apt-get -yq update
-          sudo apt-get -yq install shellcheck shfmt bats
+          sudo apt-get -yq install shellcheck shfmt bats jq
           npm install -g markdownlint-cli2@0.14.0
 
           # Robust Vale install via GitHub Releases API
@@ -49,7 +49,7 @@ jobs:
           fi
 
           release_json="$(curl --retry 5 --retry-all-errors -fsSL "${curl_headers[@]}" \
-            "https://api.github.com/repos/${owner}/${repo}/releases/tags/${version}")"
+            "https://api.github.com/repos/${owner}/${repo}/releases/tags/${version}" | jq -c .)"
 
           if [[ -z "${release_json}" ]]; then
             echo "::error::Failed to fetch release data (empty response)"
