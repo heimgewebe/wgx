@@ -25,7 +25,7 @@ jobs:
         run: |
           sudo apt-get update -y
           sudo apt-get install -y jq
-          pip install jsonschema
+          python3 -m pip install jsonschema
 
       - name: Make wgx available in PATH
         run: |
