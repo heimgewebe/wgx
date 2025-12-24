@@ -50,6 +50,15 @@ _guard_contracts_meta() {
   fi
 }
 
+# Insights Guard (validates insight streams against local contract)
+_guard_insights() {
+  local project_root
+  project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+  if command -v python3 >/dev/null 2>&1; then
+    python3 "${project_root}/guards/insights_guard.py"
+  fi
+}
+
 guard_run() {
   local run_lint=0 run_test=0
   while [[ $# -gt 0 ]]; do
@@ -150,6 +159,13 @@ USAGE
   if [[ -d "contracts/events" ]]; then
     info "Running contracts meta guard..."
     _guard_contracts_meta || return 1
+  fi
+
+  # 2.6 Insights Guard (always runs if python available)
+  if command -v python3 >/dev/null 2>&1; then
+    # The guard script handles skipping if no schema/data found.
+    # It outputs info/skips to stderr.
+    _guard_insights || return 1
   fi
 
   # 3. Lint (wenn gewünscht)
