@@ -24,7 +24,7 @@ heimgeist::preflight_check() {
     echo "  - name: Set up Python 3" >&2
     echo "    uses: actions/setup-python@v5" >&2
     echo "    with:" >&2
-    echo "      python-version: '3.x'" >&2
+    echo "      python-version: '3.11'" >&2
     return 1
   fi
   
