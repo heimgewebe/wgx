@@ -154,6 +154,8 @@ jobs:
           # Ohne diese Abhängigkeit schlagen Profil-Tests fehl.
           sudo apt-get update -y
           sudo apt-get install -y python3-yaml
+          # jsonschema: required for heimgeist insight validation
+          pip install jsonschema
       - name: Run bats test suites
         uses: ./.github/actions/run-bats
 
