@@ -175,3 +175,20 @@ JSON
   # Should NOT see manual error (deduplication)
   [[ ! "$output" =~ "error: missing relation for insight.negation" ]]
 }
+
+@test "guard insights: fails on invalid JSON/JSONL (garbage content)" {
+  mkdir -p contracts artifacts
+  cat <<JSON > contracts/insights.schema.json
+{ "type": "object" }
+JSON
+
+  # Random text, neither JSON list nor valid JSON lines
+  echo "THIS IS NOT JSON" > artifacts/insights.json
+
+  git add contracts artifacts
+
+  run wgx guard --lint
+  echo "Output: $output"
+  [ "$status" -eq 1 ]
+  [[ "$output" =~ "Failed to parse data" ]] || [[ "$output" =~ "neither valid JSON nor valid JSONL" ]]
+}

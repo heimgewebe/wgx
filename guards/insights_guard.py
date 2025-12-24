@@ -12,8 +12,8 @@ Logic:
 4. Enforce strict structure for insight.negation
 
 Exit codes:
- 0: Success or Skip
- 1: Validation Failure
+ 0: Success or Skip (missing optional dependency or no relevant files)
+ 1: Validation Failure or Parse Error
 """
 
 import sys
@@ -24,7 +24,8 @@ import os
 try:
     import jsonschema
 except ImportError:
-    print("[wgx][guard][insights] SKIP: jsonschema not installed", file=sys.stderr)
+    # Use ::notice:: for GitHub Actions visibility
+    print("::notice::[wgx][guard][insights] SKIP: jsonschema not installed", file=sys.stderr)
     sys.exit(0)
 
 def load_data(filepath):
@@ -43,24 +44,34 @@ def load_data(filepath):
         elif isinstance(data, dict):
             return [data]
         else:
-            # Should not happen for valid JSON types unless it's a primitive
+            # Valid JSON but not a list/dict (e.g. primitive) -> treat as empty list or invalid?
+            # Contracts usually expect objects/lists.
             return []
     except json.JSONDecodeError:
         # Try JSONL
         items = []
         lines = content.splitlines()
+        valid_lines_count = 0
+
         for i, line in enumerate(lines):
             line = line.strip()
             if not line:
                 continue
             try:
                 items.append(json.loads(line))
+                valid_lines_count += 1
             except json.JSONDecodeError as e:
                  raise ValueError(f"Line {i+1}: {e}")
 
-        # If we parsed lines but got no items (and it wasn't empty file), maybe it was just invalid JSON?
-        # If it was empty, we return [].
-        # If it was invalid garbage, json.loads(line) would have raised.
+        # Hardsicherung: JSONL fallback only valid if at least one line was valid JSON.
+        # If content was not empty but produced 0 valid lines (e.g. random text file with no newlines that failed first parse),
+        # we should have caught it.
+        # If file was truly empty (0 bytes), content is empty, first json.loads fails? No, json.loads("") raises.
+        # If file is whitespace only, content.splitlines() might be empty or whitespace lines.
+        # If we have content but 0 valid lines, it's garbage.
+        if content.strip() and valid_lines_count == 0:
+             raise ValueError("File content is neither valid JSON nor valid JSONL (no valid lines found)")
+
         return items
 
 def main():
