@@ -40,10 +40,14 @@ heimgeist::preflight_check() {
   echo "  Version: $(python3 --version 2>&1)" >&2
   
   # Try the import and capture any error output
-  if ! python3 -c "import json, sys, os" 2>&1; then
+  local import_error
+  if ! import_error=$(python3 -c "import json, sys, os" 2>&1); then
     echo "" >&2
     echo "ERROR: python3 found but unable to import required modules (json, sys, os)." >&2
     echo "This is unexpected as these are standard library modules." >&2
+    echo "" >&2
+    echo "Python error output:" >&2
+    echo "$import_error" >&2
     echo "" >&2
     echo "This may indicate:" >&2
     echo "  - Corrupted or incomplete Python installation" >&2
