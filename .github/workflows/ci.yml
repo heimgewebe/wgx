@@ -153,11 +153,15 @@ jobs:
           python-version: '3.11'
       - name: Install test dependencies
         run: |
-          # python3-yaml: stellt das Python-Paket `pyyaml` bereit,
-          # das von WGX für das Parsen von `.wgx/profile.yml` genutzt wird.
-          # Ohne diese Abhängigkeit schlagen Profil-Tests fehl.
+          # Ensure Python 3 is fully installed with all necessary packages
           sudo apt-get update -y
-          sudo apt-get install -y python3-yaml
+          sudo apt-get install -y python3 python3-venv python3-yaml
+          # Verify Python 3 is working correctly
+          python3 --version
+          python3 -c "import json, sys, os" || {
+            echo "::error::Python3 installation verification failed"
+            exit 1
+          }
           # jsonschema: required for heimgeist insight validation
           python3 -m pip install jsonschema
       - name: Run bats test suites
