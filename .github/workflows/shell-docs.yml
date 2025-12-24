@@ -22,6 +22,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
       - name: Install deps
         env:
           VALE_VERSION: ${{ env.VALE_VERSION }}
@@ -29,7 +33,8 @@ jobs:
         run: |
           export DEBIAN_FRONTEND=noninteractive
           sudo apt-get -yq update
-          sudo apt-get -yq install shellcheck shfmt bats
+          sudo apt-get -yq install shellcheck shfmt bats jq
+          pip install jsonschema
           npm install -g markdownlint-cli2@0.14.0
 
           # Robust Vale install via GitHub Releases API

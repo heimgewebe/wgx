@@ -16,10 +16,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
       - name: Install dependencies
         run: |
           sudo apt-get update -y
-          sudo apt-get install -y jq python3
+          sudo apt-get install -y jq
+          pip install jsonschema
 
       - name: Make wgx available in PATH
         run: |
