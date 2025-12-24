@@ -32,13 +32,13 @@ heimgeist::preflight_check() {
     echo "      python-version: '3.11'" >&2
     return 1
   fi
-  
+
   # Verify python3 can actually run and import required standard library modules
   # Show diagnostics first to help with troubleshooting
   echo "Python diagnostics:" >&2
   echo "  Path: $(command -v python3)" >&2
   echo "  Version: $(python3 --version 2>&1)" >&2
-  
+
   # Try the import and capture any error output
   local import_error
   if ! import_error=$(python3 -c "import json, sys, os" 2>&1); then
@@ -59,10 +59,10 @@ heimgeist::preflight_check() {
     echo "  sudo apt-get install -y python3 python3-venv" >&2
     return 1
   fi
-  
+
   # Cache the result to avoid redundant checks
   _HEIMGEIST_PREFLIGHT_DONE=1
-  
+
   return 0
 }
 
@@ -87,8 +87,8 @@ heimgeist::append_event() {
   # Hier würde der echte Versand an Chronik stehen (z.B. curl)
 
   if [[ "${WGX_HEIMGEIST_STRICT:-0}" == "1" ]]; then
-      die "Chronik backend not configured and WGX_CHRONIK_MOCK_FILE not set (STRICT mode)."
-      return 1
+    die "Chronik backend not configured and WGX_CHRONIK_MOCK_FILE not set (STRICT mode)."
+    return 1
   fi
 
   warn "Chronik backend not configured and WGX_CHRONIK_MOCK_FILE not set (Warn-only)."
@@ -141,7 +141,7 @@ heimgeist::archive_insight() {
       'role': os.environ['HG_ROLE']
     },
     'data': json.loads(sys.stdin.read())
-  }))" <<< "$data_json")
+  }))" <<<"$data_json")
 
   # An Chronik senden
   heimgeist::append_event "$event_id" "$payload"
