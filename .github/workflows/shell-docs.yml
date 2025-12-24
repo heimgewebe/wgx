@@ -33,7 +33,13 @@ jobs:
         run: |
           export DEBIAN_FRONTEND=noninteractive
           sudo apt-get -yq update
-          sudo apt-get -yq install shellcheck shfmt bats jq
+          sudo apt-get -yq install python3 python3-venv shellcheck shfmt bats jq
+          # Verify Python 3 is working correctly
+          python3 --version
+          python3 -c "import json, sys, os" || {
+            echo "::error::Python3 installation verification failed"
+            exit 1
+          }
           python3 -m pip install jsonschema
           npm install -g markdownlint-cli2@0.14.0
 

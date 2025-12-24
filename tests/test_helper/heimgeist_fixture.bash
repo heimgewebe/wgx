@@ -20,7 +20,12 @@ heimgeist::preflight_check() {
     echo "ERROR: python3 is required for JSON handling in heimgeist lib." >&2
     echo "Please ensure python3 is installed and available in PATH." >&2
     echo "" >&2
-    echo "For GitHub Actions workflows, add this step before running tests:" >&2
+    echo "For GitHub Actions workflows, add these steps before running tests:" >&2
+    echo "  - name: Install Python dependencies" >&2
+    echo "    run: |" >&2
+    echo "      sudo apt-get update -y" >&2
+    echo "      sudo apt-get install -y python3 python3-venv" >&2
+    echo "" >&2
     echo "  - name: Set up Python 3" >&2
     echo "    uses: actions/setup-python@v5" >&2
     echo "    with:" >&2
@@ -48,6 +53,10 @@ heimgeist::preflight_check() {
     echo "  - Corrupted or incomplete Python installation" >&2
     echo "  - Missing Python standard library packages" >&2
     echo "  - PYTHONPATH or environment variable issues" >&2
+    echo "" >&2
+    echo "To fix this in CI, ensure python3 is properly installed:" >&2
+    echo "  sudo apt-get update -y" >&2
+    echo "  sudo apt-get install -y python3 python3-venv" >&2
     return 1
   fi
   
