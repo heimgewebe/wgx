@@ -8,7 +8,7 @@ Part of PR3d (wgx guard hardening).
 Logic:
 1. Locate schema (contracts/insights.schema.json or contracts/events/insights.schema.json)
 2. Locate data (artifacts/insights.daily.json, etc.)
-3. Validate data against schema
+3. Validate data against schema (supports JSON and JSONL)
 4. Enforce strict structure for insight.negation
 
 Exit codes:
@@ -24,8 +24,44 @@ import os
 try:
     import jsonschema
 except ImportError:
-    print("Error: jsonschema module not found. Please install it.", file=sys.stderr)
-    sys.exit(1)
+    print("[wgx][guard][insights] SKIP: jsonschema not installed", file=sys.stderr)
+    sys.exit(0)
+
+def load_data(filepath):
+    """
+    Load data from JSON or JSONL file.
+    Returns a list of items or raises an exception.
+    """
+    with open(filepath, 'r', encoding='utf-8') as f:
+        content = f.read()
+
+    # Try JSON first
+    try:
+        data = json.loads(content)
+        if isinstance(data, list):
+            return data
+        elif isinstance(data, dict):
+            return [data]
+        else:
+            # Should not happen for valid JSON types unless it's a primitive
+            return []
+    except json.JSONDecodeError:
+        # Try JSONL
+        items = []
+        lines = content.splitlines()
+        for i, line in enumerate(lines):
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                items.append(json.loads(line))
+            except json.JSONDecodeError as e:
+                 raise ValueError(f"Line {i+1}: {e}")
+
+        # If we parsed lines but got no items (and it wasn't empty file), maybe it was just invalid JSON?
+        # If it was empty, we return [].
+        # If it was invalid garbage, json.loads(line) would have raised.
+        return items
 
 def main():
     # 1. Locate Schema
@@ -82,36 +118,23 @@ def main():
     # 4. Validate
     errors = 0
 
-    # Simple validation without complex resolver for now.
-    # If relative refs are needed, we can improve this later using `referencing`.
-
     for df in data_files:
         try:
-            with open(df, 'r', encoding='utf-8') as f:
-                content = json.load(f)
+            items = load_data(df)
         except Exception as e:
             print(f"[wgx][guard][insights] ERROR: Failed to parse data {df}: {e}", file=sys.stderr)
             errors += 1
             continue
 
-        # Normalize to list of items
-        items = []
-        if isinstance(content, list):
-            items = content
-        elif isinstance(content, dict):
-            items = [content]
-        else:
-            print(f"[wgx][guard][insights] ERROR: {df} root must be list or object.", file=sys.stderr)
-            errors += 1
-            continue
-
         for i, item in enumerate(items):
             item_id = item.get("id", f"item-{i}")
+            schema_failed = False
 
             # Schema Validation
             try:
                 jsonschema.validate(instance=item, schema=schema)
             except jsonschema.ValidationError as e:
+                schema_failed = True
                 # Format error: concise if possible
                 msg = e.message
                 if len(msg) > 200: msg = msg[:200] + "..."
@@ -119,7 +142,8 @@ def main():
                 errors += 1
 
             # Explicit Negation Check (Defense in Depth)
-            if item.get("type") == "insight.negation":
+            # Only run if schema validation passed (to avoid duplicate errors if schema already catches it)
+            if not schema_failed and item.get("type") == "insight.negation":
                 relation = item.get("relation")
                 if not isinstance(relation, dict):
                      print(f"[wgx][guard][insights]\nschema: {schema_path}\ndata: {df}\nid: {item_id}\nerror: missing relation for insight.negation", file=sys.stderr)

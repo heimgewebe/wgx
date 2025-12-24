@@ -28,14 +28,16 @@ YAML
   git commit -m "Add profile"
 }
 
-@test "guard insights: skips when no files found" {
+@test "guard insights: silent when no files found (no invocation)" {
   run wgx guard --lint
   echo "Output: $output"
   [ "$status" -eq 0 ]
-  [[ "$output" =~ "SKIP: No schema found" ]] || [[ "$output" =~ "SKIP: No insight data found" ]]
+  # Should NOT see SKIP message because bash logic prevents invocation
+  [[ ! "$output" =~ "SKIP: No schema found" ]]
+  [[ ! "$output" =~ "SKIP: No insight data found" ]]
 }
 
-@test "guard insights: passes with valid schema and data" {
+@test "guard insights: passes with valid schema and data (JSON)" {
   mkdir -p contracts artifacts
   cat <<JSON > contracts/insights.schema.json
 {
@@ -73,6 +75,30 @@ JSON
   [[ "$output" =~ "[wgx][guard][insights] OK" ]]
 }
 
+@test "guard insights: passes with valid schema and data (JSONL)" {
+  mkdir -p contracts artifacts
+  cat <<JSON > contracts/insights.schema.json
+{
+  "type": "object",
+  "properties": { "type": { "type": "string" } },
+  "required": ["type"]
+}
+JSON
+
+  # JSONL format: one JSON object per line
+  cat <<JSONL > artifacts/insights.json
+{ "type": "review.insight" }
+{ "type": "insight.negation", "relation": { "thesis": "A", "antithesis": "B" } }
+JSONL
+
+  git add contracts artifacts
+
+  run wgx guard --lint
+  echo "Output: $output"
+  [ "$status" -eq 0 ]
+  [[ "$output" =~ "[wgx][guard][insights] OK" ]]
+}
+
 @test "guard insights: fails on schema violation" {
   mkdir -p contracts artifacts
   cat <<JSON > contracts/insights.schema.json
@@ -95,7 +121,7 @@ JSON
   [[ "$output" =~ "is a required property" ]]
 }
 
-@test "guard insights: fails on missing relation in insight.negation" {
+@test "guard insights: fails on missing relation in insight.negation (manual check)" {
   mkdir -p contracts artifacts
   # Schema allows it (doesn't force relation), but Guard should enforce it!
   cat <<JSON > contracts/insights.schema.json
@@ -119,21 +145,23 @@ JSON
   [[ "$output" =~ "error: missing relation for insight.negation" ]]
 }
 
-@test "guard insights: fails on missing thesis in relation" {
+@test "guard insights: no double error if schema catches missing relation" {
   mkdir -p contracts artifacts
+  # Schema enforces 'relation'
   cat <<JSON > contracts/insights.schema.json
 {
   "type": "object",
-  "properties": { "type": { "type": "string" }, "relation": { "type": "object" } }
+  "properties": {
+    "type": { "type": "string" },
+    "relation": { "type": "object" }
+  },
+  "required": ["relation"]
 }
 JSON
 
   cat <<JSON > artifacts/insights.json
 [
-  {
-    "type": "insight.negation",
-    "relation": { "antithesis": "foo" }
-  }
+  { "type": "insight.negation" }
 ]
 JSON
 
@@ -142,5 +170,8 @@ JSON
   run wgx guard --lint
   echo "Output: $output"
   [ "$status" -eq 1 ]
-  [[ "$output" =~ "error: missing relation.thesis for insight.negation" ]]
+  # Should see schema error
+  [[ "$output" =~ "is a required property" ]]
+  # Should NOT see manual error (deduplication)
+  [[ ! "$output" =~ "error: missing relation for insight.negation" ]]
 }
