@@ -122,8 +122,10 @@ JSON
 }
 
 @test "guard insights: fails on missing relation in insight.negation (manual check)" {
+  # NOTE: This test verifies the "Defense-in-Depth" check.
+  # Even if the schema is loose (doesn't mandate relation/thesis/antithesis),
+  # the Guard enforces epistemological completeness for negations.
   mkdir -p contracts artifacts
-  # Schema allows it (doesn't force relation), but Guard should enforce it!
   cat <<JSON > contracts/insights.schema.json
 {
   "type": "object",
