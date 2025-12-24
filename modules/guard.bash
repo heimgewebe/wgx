@@ -50,6 +50,31 @@ _guard_contracts_meta() {
   fi
 }
 
+# Insights Guard (validates insight streams against local contract)
+_guard_insights() {
+  local project_root
+  project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+  # Check if relevant files exist before invoking Python (reduce noise)
+  local has_schema=0
+  [[ -f "contracts/insights.schema.json" || -f "contracts/events/insights.schema.json" ]] && has_schema=1
+
+  local has_data=0
+  if [[ -f "artifacts/insights.daily.json" || -f "artifacts/insights.json" ]]; then
+    has_data=1
+  elif compgen -G "insights/*.json" >/dev/null || compgen -G "events/insights/*.json" >/dev/null; then
+    has_data=1
+  fi
+
+  if [[ $has_schema -eq 1 || $has_data -eq 1 ]]; then
+    if command -v python3 >/dev/null 2>&1; then
+      python3 "${project_root}/guards/insights_guard.py"
+    else
+      warn "Skipping insights guard (python3 not found)"
+    fi
+  fi
+}
+
 guard_run() {
   local run_lint=0 run_test=0
   while [[ $# -gt 0 ]]; do
@@ -151,6 +176,9 @@ USAGE
     info "Running contracts meta guard..."
     _guard_contracts_meta || return 1
   fi
+
+  # 2.6 Insights Guard (runs if relevant files exist)
+  _guard_insights || return 1
 
   # 3. Lint (wenn gewünscht)
   if [[ $run_lint -eq 1 ]]; then
