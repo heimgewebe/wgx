@@ -40,6 +40,16 @@ _guard_find_wgx() {
   return 1
 }
 
+# Contracts Meta Guard (keeps contracts strict-validator friendly)
+_guard_contracts_meta() {
+  local project_root
+  project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+  if [[ -d "contracts/events" ]] && command -v python3 >/dev/null 2>&1; then
+    # strict: fail on unresolved $ref and x-* keys
+    python3 "${project_root}/guards/contracts_meta_guard.py" --strict --require-meta-fields
+  fi
+}
+
 guard_run() {
   local run_lint=0 run_test=0
   while [[ $# -gt 0 ]]; do
@@ -134,6 +144,12 @@ USAGE
   if git grep -I -n -E '^(<<<<<<< |=======|>>>>>>> )' -- . >/dev/null 2>&1; then
     die "Konfliktmarker in getrackten Dateien gefunden!"
     return 1
+  fi
+
+  # 2.5 Contracts Meta (nur wenn contracts/events existiert)
+  if [[ -d "contracts/events" ]]; then
+    info "Running contracts meta guard..."
+    _guard_contracts_meta || return 1
   fi
 
   # 3. Lint (wenn gewünscht)
