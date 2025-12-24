@@ -1,5 +1,10 @@
 name: Run Bats test suite
-description: Run the repository's Bats-based test suites
+description: |
+  Run the repository's Bats-based test suites.
+  
+  Prerequisites:
+  - Python 3 must be set up via actions/setup-python@v5 before calling this action.
+  - This is required for heimgeist test fixtures and JSON validation.
 inputs:
   working-directory:
     description: Directory to run bats from
@@ -17,7 +22,16 @@ runs:
       run: |
         set -euo pipefail
         sudo apt-get update -y
-        sudo apt-get install -y --no-install-recommends bats jq python3
+        sudo apt-get install -y --no-install-recommends python3 python3-venv bats jq python3-yaml
+        # Verify Python 3 is working correctly
+        python3 --version
+        python3 -c "import json, sys, os" || {
+          echo "::error::Python3 installation verification failed"
+          exit 1
+        }
+        # Install jsonschema for heimgeist insight validation
+        # Note: Python 3 must be set up via actions/setup-python@v5 before calling this action
+        python3 -m pip install jsonschema
     - name: Install bats helpers
       shell: bash
       working-directory: ${{ inputs.working-directory }}

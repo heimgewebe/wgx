@@ -1,20 +1,7 @@
-# Beispielprofil für WGX in diesem Repo
-# Diese Datei kann gefahrlos committet werden und dient als CI-/Template-Profil.
-
-repo:
-  name: heimgewebe-tools
-  kind: library
-
-requiredWgx:
-  # Minimalanforderung, an deinen echten Stand anpassen
-  range: ">=0.1.0"
-
-tasks:
-  smoke:
-    # Einfacher, immer-grüner Test für CI, kann später ersetzt werden
-    cmd:
-      - bash
-      - -lc
-      - |
-        echo "[wgx] smoke task in $(pwd)"
-        exit 0
+wgx:
+  apiVersion: v1
+  requiredWgx: "^2.0"
+  repoKind: "generic"
+  tasks:
+    test: "bats -r tests"
+    lint: "FILES=$(git ls-files '*.sh' '*.bash'); shfmt -d $FILES && shellcheck -S style $FILES"

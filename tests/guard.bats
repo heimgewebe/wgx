@@ -14,6 +14,17 @@ setup() {
     # Setzt WGX_DIR explizit auf das Testverzeichnis, damit `profile::has_manifest`
     # das Profil korrekt finden kann.
     export WGX_DIR="$WORKDIR"
+
+    # Kanonisches Profil-Template ins Test-Repo spiegeln (driftfest: Tests hängen am Standard).
+    # BATS_TEST_DIRNAME zeigt auf tests/, wir wollen ../templates/.wgx/profile.yml aus dem Repo.
+    mkdir -p "$WORKDIR/templates/.wgx"
+    cp "$BATS_TEST_DIRNAME/../templates/.wgx/profile.yml" "$WORKDIR/templates/.wgx/profile.yml"
+}
+
+write_valid_profile() {
+    local target="${1:-.wgx/profile.yml}"
+    # Wir nutzen das im Setup bereitgestellte Template, um valide Profile zu erzeugen
+    cp "templates/.wgx/profile.yml" "$target"
 }
 
 teardown() {
@@ -31,14 +42,14 @@ teardown() {
 }
 
 @test "guard profile check passes with .wgx/profile.example.yml" {
-    touch .wgx/profile.example.yml
+    write_valid_profile .wgx/profile.example.yml
     git add .wgx/profile.example.yml
     run wgx guard
     assert_success
 }
 
 @test "guard profile check passes with .wgx/profile.yml" {
-    touch .wgx/profile.yml
+    write_valid_profile .wgx/profile.yml
     git add .wgx/profile.yml
     run wgx guard
     assert_success
@@ -46,7 +57,7 @@ teardown() {
 
 @test "guard fails on files >=1MB" {
     # Erstellt eine große Datei, die den Schwellenwert überschreitet
-    touch .wgx/profile.example.yml
+    write_valid_profile .wgx/profile.example.yml
     dd if=/dev/zero of=large_file.bin bs=1024 count=1024
     git add large_file.bin .wgx/profile.example.yml >/dev/null 2>&1
 
