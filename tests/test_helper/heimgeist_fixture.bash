@@ -10,6 +10,11 @@
 # --- Preflight Check ---
 
 heimgeist::preflight_check() {
+  # Skip if already checked in this session
+  if [[ "${_HEIMGEIST_PREFLIGHT_DONE:-}" == "1" ]]; then
+    return 0
+  fi
+
   # Check for python3 availability early with clear diagnostics
   if ! command -v python3 >/dev/null 2>&1; then
     echo "ERROR: python3 is required for JSON handling in heimgeist lib." >&2
@@ -23,12 +28,15 @@ heimgeist::preflight_check() {
     return 1
   fi
   
-  # Verify python3 can actually run and import json module
+  # Verify python3 can actually run and import required standard library modules
   if ! python3 -c "import json, sys, os" 2>/dev/null; then
     echo "ERROR: python3 found but unable to import required modules (json, sys, os)." >&2
     echo "This is unexpected as these are standard library modules." >&2
     return 1
   fi
+  
+  # Cache the result to avoid redundant checks
+  _HEIMGEIST_PREFLIGHT_DONE=1
   
   return 0
 }
