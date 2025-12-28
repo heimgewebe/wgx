@@ -60,3 +60,11 @@ jobs:
             echo "::warning::Neither guard nor smoke task found in profile"
             exit 0
           fi
+
+  validate-observatory:
+    uses: heimgewebe/metarepo/.github/workflows/reusable-validate-observatory.yml@8a509b1da5e3b13b2f0d444227d0c5e3b6805a0a
+    with:
+      STRICT: true
+      FAIL_ON_EMPTY: false
+    permissions:
+      contents: read
