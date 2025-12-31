@@ -21,6 +21,7 @@ Commands:
   help
   hooks
   init
+  integrity
   lint
   quick
   release
@@ -179,6 +180,7 @@ Commands:
   help
   hooks
   init
+  integrity
   lint
   quick
   release
@@ -232,6 +234,15 @@ Description:
 Options:
   --wizard      Interaktiven Profil-Wizard starten.
   -h, --help    Diese Hilfe anzeigen.
+```
+
+### integrity
+
+```text
+Usage: wgx integrity
+
+Zeigt den aktuellen Integritätsstatus (Diagnose) an.
+Liest aus reports/integrity/summary.json.
 ```
 
 ### lint
