@@ -78,7 +78,10 @@ integrity::generate() {
     }
   }, indent=2))" 2>&1); then
     echo "Fehler: Erzeugung der Zusammenfassungs-JSON fehlgeschlagen" >&2
-    echo "Python-Ausgabe: $json_output" >&2
+    # Sanitize Python output to prevent injection or information disclosure
+    local sanitized_output
+    sanitized_output=$(printf '%s' "$json_output" | head -c 500 | tr -cd '[:print:]\n' | head -5)
+    echo "Python-Ausgabe: $sanitized_output" >&2
     return 1
   fi
 
@@ -88,9 +91,18 @@ integrity::generate() {
     return 1
   fi
 
-  # Now write the validated JSON to file (atomic write)
-  if ! printf '%s\n' "$json_output" > "$summary_file"; then
-    echo "Fehler: Konnte JSON nicht in Datei schreiben" >&2
+  # Now write the validated JSON to file (atomic write via temp file)
+  local temp_file="${summary_file}.tmp.$$"
+  if ! printf '%s\n' "$json_output" > "$temp_file"; then
+    echo "Fehler: Konnte JSON nicht in temporäre Datei schreiben" >&2
+    rm -f "$temp_file"
+    return 1
+  fi
+  
+  # Atomic rename
+  if ! mv -f "$temp_file" "$summary_file"; then
+    echo "Fehler: Konnte JSON nicht in Zieldatei verschieben" >&2
+    rm -f "$temp_file"
     return 1
   fi
 
