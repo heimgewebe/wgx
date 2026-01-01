@@ -52,7 +52,7 @@ integrity::generate() {
   # JSON Construction
   # Using python for safe JSON generation
   if ! command -v python3 >/dev/null 2>&1; then
-    echo "Error: python3 is required but not found" >&2
+    echo "Fehler: python3 wird benötigt, ist aber nicht installiert" >&2
     return 1
   fi
 
@@ -75,13 +75,13 @@ integrity::generate() {
       'unclear': int(os.environ['INT_C_UNCLEAR'])
     }
   }, indent=2))" > "$summary_file"; then
-    echo "Error: Failed to generate summary JSON" >&2
+    echo "Fehler: Erzeugung der Zusammenfassungs-JSON fehlgeschlagen" >&2
     return 1
   fi
 
   # Verify the file was created and is not empty
   if [[ ! -s "$summary_file" ]]; then
-    echo "Error: Summary file is empty or not created" >&2
+    echo "Fehler: Zusammenfassungsdatei ist leer oder wurde nicht erstellt" >&2
     return 1
   fi
 

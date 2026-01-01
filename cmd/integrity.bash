@@ -112,10 +112,6 @@ cmd_integrity() {
         die "Fehler beim Erzeugen des Event-Payloads."
       fi
 
-      if [[ -z "$payload_json" ]]; then
-        die "Fehler beim Erzeugen des Event-Payloads (leeres Ergebnis)."
-      fi
-
       # Emit Event - failure is acceptable but should be logged
       if ! heimgeist::emit "integrity.summary.published.v1" "$repo" "$payload_json"; then
         warn "Konnte Event 'integrity.summary.published.v1' nicht senden (heimgeist::emit fehlgeschlagen)."
