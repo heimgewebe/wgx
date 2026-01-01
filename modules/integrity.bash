@@ -64,7 +64,9 @@ integrity::generate() {
   export INT_C_GAPS="$count_gaps"
   export INT_C_UNCLEAR="$count_unclear"
 
-  if ! python3 -c "import json, os; print(json.dumps({
+  # First generate JSON into a variable (atomic operation)
+  local json_output
+  if ! json_output=$(python3 -c "import json, os; print(json.dumps({
     'repo': os.environ['INT_REPO'],
     'generated_at': os.environ['INT_GEN'],
     'status': os.environ['INT_STATUS'],
@@ -74,8 +76,21 @@ integrity::generate() {
       'loop_gaps': int(os.environ['INT_C_GAPS']),
       'unclear': int(os.environ['INT_C_UNCLEAR'])
     }
-  }, indent=2))" > "$summary_file"; then
+  }, indent=2))" 2>&1); then
     echo "Fehler: Erzeugung der Zusammenfassungs-JSON fehlgeschlagen" >&2
+    echo "Python-Ausgabe: $json_output" >&2
+    return 1
+  fi
+
+  # Verify JSON was generated and is not empty
+  if [[ -z "$json_output" ]]; then
+    echo "Fehler: Generiertes JSON ist leer" >&2
+    return 1
+  fi
+
+  # Now write the validated JSON to file (atomic write)
+  if ! printf '%s\n' "$json_output" > "$summary_file"; then
+    echo "Fehler: Konnte JSON nicht in Datei schreiben" >&2
     return 1
   fi
 
