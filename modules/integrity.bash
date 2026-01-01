@@ -93,13 +93,20 @@ integrity::generate() {
   fi
 
   # Now write the validated JSON to file (atomic write via temp file)
+  # Use mktemp without path prefix for better portability across systems
   local temp_file
-  if ! temp_file=$(mktemp "${summary_file}.XXXXXX"); then
+  if ! temp_file=$(mktemp); then
     echo "Fehler: Konnte temporäre Datei nicht erstellen" >&2
     return 1
   fi
 
-  if ! printf '%s\n' "$json_output" > "$temp_file"; then
+  # Debug: verify temp_file and json_output are set
+  if [[ -z "$temp_file" ]]; then
+    echo "Fehler: temp_file ist leer" >&2
+    return 1
+  fi
+
+  if ! printf '%s\n' "$json_output" >"$temp_file"; then
     echo "Fehler: Konnte JSON nicht in temporäre Datei schreiben" >&2
     rm -f "$temp_file"
     return 1
