@@ -38,9 +38,9 @@ cmd_integrity() {
     # Ensure module is loaded
     local mod_integrity="${WGX_PROJECT_ROOT:-$WGX_DIR}/modules/integrity.bash"
     if [[ -r "$mod_integrity" ]]; then
-        source "$mod_integrity"
+      source "$mod_integrity"
     else
-        die "Modul integrity.bash nicht gefunden."
+      die "Modul integrity.bash nicht gefunden."
     fi
 
     info "Erzeuge Integritätsbericht..."
@@ -59,24 +59,55 @@ cmd_integrity() {
 
   # 3. Publish Event (if requested)
   if ((DO_PUBLISH)); then
-     local mod_heimgeist="${WGX_PROJECT_ROOT:-$WGX_DIR}/modules/heimgeist.bash"
-     if [[ -r "$mod_heimgeist" ]]; then
-         source "$mod_heimgeist"
-     else
-         die "Modul heimgeist.bash nicht gefunden."
-     fi
+    local mod_heimgeist="${WGX_PROJECT_ROOT:-$WGX_DIR}/modules/heimgeist.bash"
+    if [[ -r "$mod_heimgeist" ]]; then
+      source "$mod_heimgeist"
+    else
+      die "Modul heimgeist.bash nicht gefunden."
+    fi
 
-     if ! has jq; then
-        warn "jq fehlt. Kann Bericht für Event nicht lesen."
-     else
-        local data_json
-        data_json="$(cat "$summary_file")"
-        # Event senden (hier: auf stdout ausgeben)
-        heimgeist::emit "integrity.summary.published.v1" "$data_json" "wgx.integrity"
-     fi
-     # Continue to display report unless we want to exit?
-     # Usually publish might be used in CI where we don't need the table output.
-     # But let's show the table too for verification.
+    if ! has jq; then
+      warn "jq fehlt. Kann Bericht für Event nicht lesen."
+    else
+      local repo generated_at status
+      repo=$(jq -r '.repo // "unknown"' "$summary_file")
+      generated_at=$(jq -r '.generated_at // "unknown"' "$summary_file")
+      status=$(jq -r '.status // "UNKNOWN"' "$summary_file")
+
+      # Construct URL (Best Effort)
+      local url="null"
+      local remote_url current_branch
+      remote_url=$(git remote get-url origin 2>/dev/null || echo "")
+      current_branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "main")
+
+      # Normalize URL for GitHub Raw
+      if [[ "$remote_url" =~ github\.com[:/]([^/]+)/([^/]+)(\.git)?$ ]]; then
+        local org="${BASH_REMATCH[1]}"
+        local rname="${BASH_REMATCH[2]}"
+        # Ensure rname doesn't end in .git
+        rname="${rname%.git}"
+        url="https://raw.githubusercontent.com/${org}/${rname}/${current_branch}/reports/integrity/summary.json"
+      fi
+
+      # Construct Payload JSON
+      # The payload requires: url, generated_at, repo, status
+      local payload_json
+      export PL_URL="$url"
+      export PL_GEN="$generated_at"
+      export PL_REPO="$repo"
+      export PL_STAT="$status"
+
+      payload_json=$(python3 -c "import json, os; print(json.dumps({
+           'url': os.environ['PL_URL'],
+           'generated_at': os.environ['PL_GEN'],
+           'repo': os.environ['PL_REPO'],
+           'status': os.environ['PL_STAT']
+         }))")
+
+      # Emit Event
+      heimgeist::emit "integrity.summary.published.v1" "$repo" "$payload_json"
+      return 0
+    fi
   fi
 
   if ! has jq; then
@@ -86,11 +117,11 @@ cmd_integrity() {
   fi
 
   # JSON parsen und tabellarisch ausgeben
-  local repo generated counts_claims counts_artifacts counts_gaps counts_unclear status
+  local repo generated_at counts_claims counts_artifacts counts_gaps counts_unclear status
 
   # Safe read with jq
   repo=$(jq -r '.repo // "unknown"' "$summary_file")
-  generated=$(jq -r '.generated_at // "unknown"' "$summary_file")
+  generated_at=$(jq -r '.generated_at // "unknown"' "$summary_file")
   status=$(jq -r '.status // "UNKNOWN"' "$summary_file")
 
   # Counts extraction
@@ -103,7 +134,7 @@ cmd_integrity() {
   printf "\nIntegritäts-Diagnose (Beobachter-Modus)\n"
   printf -- "---------------------------------------\n"
   printf "Repo:       %s\n" "$repo"
-  printf "Generated:  %s\n" "$generated"
+  printf "Generated:  %s\n" "$generated_at"
   printf "Status:     %s\n" "$status"
   printf "\n"
   printf "%-12s | %s\n" "Metrik" "Anzahl"

@@ -1,25 +1,24 @@
 #!/usr/bin/env bash
 
 # Rolle: Heimgeist-Client (Production)
-# Erzeugt und versendet Heimgeist-Events.
-# Adaptiert aus tests/test_helper/heimgeist_fixture.bash.
-
-# Lädt Environment (falls nötig)
-# In wgx-Kontext erwarten wir, dass Environment-Variablen gesetzt sind oder Defaults greifen.
+# Erzeugt und versendet Heimgeist-Events im Metarepo-konformen Format.
+#
+# Schema:
+# {
+#   "type": "integrity.summary.published.v1",
+#   "source": "heimgewebe/wgx",
+#   "payload": {
+#     "url": "...",
+#     "generated_at": "...",
+#     "repo": "heimgewebe/wgx",
+#     "status": "OK"
+#   }
+# }
 
 heimgeist::emit() {
-  local kind="$1"
-  local data_json="$2"
-  local role="${3:-wgx.integrity}"
-
-  # ID generieren (Prefix 'evt-')
-  local raw_id
-  raw_id="$(date +%s%N | sha256sum | head -c 8)"
-  local event_id="evt-${raw_id}"
-
-  # Timestamp (ISO 8601)
-  local timestamp
-  timestamp="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+  local type="$1"
+  local source="$2"
+  local payload_json="$3"
 
   # JSON konstruieren (Safe via Python)
   if ! command -v python3 >/dev/null 2>&1; then
@@ -27,29 +26,14 @@ heimgeist::emit() {
     return 1
   fi
 
-  local payload
-  export HG_KIND="$kind"
-  export HG_ID="$event_id"
-  export HG_TIME="$timestamp"
-  export HG_ROLE="$role"
+  export HG_TYPE="$type"
+  export HG_SOURCE="$source"
 
-  payload=$(python3 -c "import json, sys, os; print(json.dumps({
-    'kind': os.environ['HG_KIND'],
-    'version': 1,
-    'id': os.environ['HG_ID'],
-    'meta': {
-      'occurred_at': os.environ['HG_TIME'],
-      'role': os.environ['HG_ROLE']
-    },
-    'data': json.loads(sys.stdin.read())
-  }))" <<<"$data_json")
-
-  # Output / Send
-  # "Nutze vorhandene Event-Publish-Mechanik (kein Neubau)."
-  # Da keine zentrale Sende-Mechanik im Code gefunden wurde, gehen wir davon aus,
-  # dass das Event auf STDOUT ausgegeben wird (für Log-Scraper/Plexer) oder in eine Datei.
-  # Wir geben es auf STDOUT aus, damit der Aufrufer (z.B. CI) es weiterverarbeiten kann.
-
-  # Wir markieren es als Event, z.B. JSON-Line
-  echo "$payload"
+  # Construct the envelope
+  # Note: payload_json is injected directly into 'payload' key
+  python3 -c "import json, sys, os; print(json.dumps({
+    'type': os.environ['HG_TYPE'],
+    'source': os.environ['HG_SOURCE'],
+    'payload': json.loads(sys.stdin.read())
+  }))" <<<"$payload_json"
 }
