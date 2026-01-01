@@ -79,9 +79,9 @@ integrity::generate() {
   }, indent=2))" 2>&1); then
     echo "Fehler: Erzeugung der Zusammenfassungs-JSON fehlgeschlagen" >&2
     # Sanitize Python output to prevent injection or information disclosure
-    # Only allow alphanumeric, spaces, common punctuation, and newlines
+    # Only allow alphanumeric, spaces, common punctuation, and newlines; limit to 500 chars
     local sanitized_output
-    sanitized_output=$(printf '%s' "$json_output" | head -c 500 | tr -cd '[:alnum:][:space:].,;:_-' | head -n 5)
+    sanitized_output=$(printf '%s' "$json_output" | head -c 500 | tr -cd '[:alnum:][:space:].,;:_-')
     [[ -n "$sanitized_output" ]] && echo "Python-Ausgabe: $sanitized_output" >&2
     return 1
   fi
@@ -93,7 +93,12 @@ integrity::generate() {
   fi
 
   # Now write the validated JSON to file (atomic write via temp file)
-  local temp_file="${summary_file}.tmp.$$"
+  local temp_file
+  if ! temp_file=$(mktemp "${summary_file}.XXXXXX"); then
+    echo "Fehler: Konnte temporäre Datei nicht erstellen" >&2
+    return 1
+  fi
+
   if ! printf '%s\n' "$json_output" > "$temp_file"; then
     echo "Fehler: Konnte JSON nicht in temporäre Datei schreiben" >&2
     rm -f "$temp_file"
