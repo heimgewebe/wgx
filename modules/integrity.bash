@@ -81,7 +81,7 @@ integrity::generate() {
     # Sanitize Python output to prevent injection or information disclosure
     # Only allow alphanumeric, spaces, common punctuation, and newlines
     local sanitized_output
-    sanitized_output=$(printf '%s' "$json_output" | head -c 500 | tr -cd '[:alnum:][:space:].,;:_-' | head -5)
+    sanitized_output=$(printf '%s' "$json_output" | head -c 500 | tr -cd '[:alnum:][:space:].,;:_-' | head -n 5)
     [[ -n "$sanitized_output" ]] && echo "Python-Ausgabe: $sanitized_output" >&2
     return 1
   fi
@@ -101,7 +101,7 @@ integrity::generate() {
   fi
 
   # Atomic rename
-  if ! mv -f "$temp_file" "$summary_file"; then
+  if ! mv "$temp_file" "$summary_file"; then
     echo "Fehler: Konnte JSON nicht in Zieldatei verschieben" >&2
     rm -f "$temp_file"
     return 1
