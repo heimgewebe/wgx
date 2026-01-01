@@ -23,13 +23,13 @@ integrity::generate() {
   # 1. Claims (Contracts)
   local count_claims=0
   if [[ -d "${target_root}/contracts" ]]; then
-    count_claims=$(find "${target_root}/contracts" -name "*.schema.json" | wc -l)
+    count_claims=$(find "${target_root}/contracts" -name "*.schema.json" | wc -l | tr -d ' ')
   fi
 
   # 2. Artifacts (Reports)
   local count_artifacts=0
   if [[ -d "${target_root}/reports" ]]; then
-     count_artifacts=$(find "${target_root}/reports" -type f | wc -l)
+    count_artifacts=$(find "${target_root}/reports" -type f ! -name "summary.json" | wc -l | tr -d ' ')
   fi
 
   # 3. Gaps (Missing expected files based on profile - simplified)
@@ -43,15 +43,19 @@ integrity::generate() {
 
   # Status determination
   local status="OK"
-  if ((count_claims == 0)); then
-    status="UNCLEAR" # No contracts -> unclear what integrity means
-  fi
   if ((count_artifacts == 0)); then
     status="MISSING" # No artifacts -> missing proof
+  elif ((count_claims == 0)); then
+    status="UNCLEAR" # No contracts -> unclear what integrity means
   fi
 
   # JSON Construction
   # Using python for safe JSON generation
+  if ! command -v python3 >/dev/null 2>&1; then
+    echo "Fehler: python3 wird benötigt, ist aber nicht installiert" >&2
+    return 1
+  fi
+
   export INT_REPO="$repo_name"
   export INT_GEN="$generated_at"
   export INT_STATUS="$status"
@@ -60,7 +64,7 @@ integrity::generate() {
   export INT_C_GAPS="$count_gaps"
   export INT_C_UNCLEAR="$count_unclear"
 
-  python3 -c "import json, os; print(json.dumps({
+  if ! python3 -c "import json, os; print(json.dumps({
     'repo': os.environ['INT_REPO'],
     'generated_at': os.environ['INT_GEN'],
     'status': os.environ['INT_STATUS'],
@@ -70,7 +74,16 @@ integrity::generate() {
       'loop_gaps': int(os.environ['INT_C_GAPS']),
       'unclear': int(os.environ['INT_C_UNCLEAR'])
     }
-  }, indent=2))" > "$summary_file"
+  }, indent=2))" > "$summary_file"; then
+    echo "Fehler: Erzeugung der Zusammenfassungs-JSON fehlgeschlagen" >&2
+    return 1
+  fi
+
+  # Verify the file was created and is not empty
+  if [[ ! -s "$summary_file" ]]; then
+    echo "Fehler: Zusammenfassungsdatei ist leer oder wurde nicht erstellt" >&2
+    return 1
+  fi
 
   # Return path to generated file
   echo "$summary_file"

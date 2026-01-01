@@ -44,7 +44,9 @@ cmd_integrity() {
     fi
 
     info "Erzeuge Integritätsbericht..."
-    integrity::generate >/dev/null
+    if ! integrity::generate >/dev/null; then
+      die "Fehler beim Erzeugen des Integritätsberichts."
+    fi
     ok "Bericht aktualisiert: $summary_file"
   fi
 
@@ -97,15 +99,23 @@ cmd_integrity() {
       export PL_REPO="$repo"
       export PL_STAT="$status"
 
-      payload_json=$(python3 -c "import json, os; print(json.dumps({
+      if ! command -v python3 >/dev/null 2>&1; then
+        die "python3 fehlt. Kann Event-Payload nicht erzeugen."
+      fi
+
+      if ! payload_json=$(python3 -c "import json, os; print(json.dumps({
            'url': os.environ['PL_URL'],
            'generated_at': os.environ['PL_GEN'],
            'repo': os.environ['PL_REPO'],
            'status': os.environ['PL_STAT']
-         }))")
+         }))"); then
+        die "Fehler beim Erzeugen des Event-Payloads."
+      fi
 
-      # Emit Event
-      heimgeist::emit "integrity.summary.published.v1" "$repo" "$payload_json"
+      # Emit Event - failure is acceptable but should be logged
+      if ! heimgeist::emit "integrity.summary.published.v1" "$repo" "$payload_json"; then
+        warn "Konnte Event 'integrity.summary.published.v1' nicht senden (heimgeist::emit fehlgeschlagen)."
+      fi
       return 0
     fi
   fi
