@@ -75,6 +75,20 @@ _guard_insights() {
   fi
 }
 
+# Integrity Guard (strict-light -> strict-hard rollout)
+_guard_integrity() {
+  local project_root
+  project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+  local guard_script="${project_root}/guards/integrity.guard.sh"
+
+  if [[ -x "$guard_script" ]]; then
+    info "Running integrity guard..."
+    "$guard_script"
+  else
+    warn "Integrity guard script not found or not executable: $guard_script"
+  fi
+}
+
 guard_run() {
   local run_lint=0 run_test=0
   while [[ $# -gt 0 ]]; do
@@ -179,6 +193,9 @@ USAGE
 
   # 2.6 Insights Guard (runs if relevant files exist)
   _guard_insights || return 1
+
+  # 2.7 Integrity Guard
+  _guard_integrity || return 1
 
   # 3. Lint (wenn gewünscht)
   if [[ $run_lint -eq 1 ]]; then
