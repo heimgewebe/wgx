@@ -16,7 +16,7 @@ heimgeist::emit() {
   local raw_id
   if [ -r /dev/urandom ]; then
     # 4 Bytes aus /dev/urandom -> 8-stelliger Hex-String
-    raw_id="$(od -An -N4 -tx8 < /dev/urandom | tr -d ' \n')"
+    raw_id="$(od -An -N4 -tx4 < /dev/urandom | tr -d ' \n')"
   else
     # Fallback: timestamp-basiert, aber nur, wenn %N unterstützt wird
     if raw_id="$(date +%s%N 2>/dev/null)" && [[ "$raw_id" =~ ^[0-9]+$ ]]; then
