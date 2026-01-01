@@ -44,7 +44,9 @@ cmd_integrity() {
     fi
 
     info "Erzeuge Integritätsbericht..."
-    integrity::generate >/dev/null
+    if ! integrity::generate >/dev/null; then
+      die "Fehler beim Erzeugen des Integritätsberichts."
+    fi
     ok "Bericht aktualisiert: $summary_file"
   fi
 
@@ -104,8 +106,14 @@ cmd_integrity() {
            'status': os.environ['PL_STAT']
          }))")
 
-      # Emit Event
-      heimgeist::emit "integrity.summary.published.v1" "$repo" "$payload_json"
+      if [[ -z "$payload_json" ]]; then
+        die "Fehler beim Erzeugen des Event-Payloads (leeres Ergebnis)."
+      fi
+
+      # Emit Event - failure is acceptable but should be logged
+      if ! heimgeist::emit "integrity.summary.published.v1" "$repo" "$payload_json"; then
+        warn "Konnte Event 'integrity.summary.published.v1' nicht senden (heimgeist::emit fehlgeschlagen)."
+      fi
       return 0
     fi
   fi
