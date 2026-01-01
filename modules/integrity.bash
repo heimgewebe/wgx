@@ -79,9 +79,10 @@ integrity::generate() {
   }, indent=2))" 2>&1); then
     echo "Fehler: Erzeugung der Zusammenfassungs-JSON fehlgeschlagen" >&2
     # Sanitize Python output to prevent injection or information disclosure
+    # Only allow alphanumeric, spaces, common punctuation, and newlines
     local sanitized_output
-    sanitized_output=$(printf '%s' "$json_output" | head -c 500 | tr -cd '[:print:]\n' | head -5)
-    echo "Python-Ausgabe: $sanitized_output" >&2
+    sanitized_output=$(printf '%s' "$json_output" | head -c 500 | tr -cd '[:alnum:][:space:].,;:_-' | head -5)
+    [[ -n "$sanitized_output" ]] && echo "Python-Ausgabe: $sanitized_output" >&2
     return 1
   fi
 
@@ -98,7 +99,7 @@ integrity::generate() {
     rm -f "$temp_file"
     return 1
   fi
-  
+
   # Atomic rename
   if ! mv -f "$temp_file" "$summary_file"; then
     echo "Fehler: Konnte JSON nicht in Zieldatei verschieben" >&2
