@@ -199,7 +199,7 @@ def _parse_simple_yaml(path: str) -> Any:
                     key, rest = split
                     key = key.strip().strip("'\"")
                     rest = rest.strip()
-                    item = {}
+                    item = {}  # type: Dict[str, Any]
                     container.append(item)
                     frame_item = {
                         "indent": indent,
