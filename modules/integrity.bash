@@ -23,13 +23,13 @@ integrity::generate() {
   # 1. Claims (Contracts)
   local count_claims=0
   if [[ -d "${target_root}/contracts" ]]; then
-    count_claims=$(find "${target_root}/contracts" -name "*.schema.json" | wc -l)
+    count_claims=$(find "${target_root}/contracts" -name "*.schema.json" | wc -l | tr -d ' ')
   fi
 
   # 2. Artifacts (Reports)
   local count_artifacts=0
   if [[ -d "${target_root}/reports" ]]; then
-     count_artifacts=$(find "${target_root}/reports" -type f | wc -l)
+    count_artifacts=$(find "${target_root}/reports" -type f ! -path "${summary_file}" | wc -l | tr -d ' ')
   fi
 
   # 3. Gaps (Missing expected files based on profile - simplified)
@@ -43,11 +43,10 @@ integrity::generate() {
 
   # Status determination
   local status="OK"
-  if ((count_claims == 0)); then
-    status="UNCLEAR" # No contracts -> unclear what integrity means
-  fi
   if ((count_artifacts == 0)); then
     status="MISSING" # No artifacts -> missing proof
+  elif ((count_claims == 0)); then
+    status="UNCLEAR" # No contracts -> unclear what integrity means
   fi
 
   # JSON Construction
@@ -60,6 +59,10 @@ integrity::generate() {
   export INT_C_GAPS="$count_gaps"
   export INT_C_UNCLEAR="$count_unclear"
 
+  if ! command -v python3 >/dev/null 2>&1; then
+    die "python3 ist erforderlich, um JSON zu generieren."
+  fi
+
   python3 -c "import json, os; print(json.dumps({
     'repo': os.environ['INT_REPO'],
     'generated_at': os.environ['INT_GEN'],
@@ -70,7 +73,7 @@ integrity::generate() {
       'loop_gaps': int(os.environ['INT_C_GAPS']),
       'unclear': int(os.environ['INT_C_UNCLEAR'])
     }
-  }, indent=2))" > "$summary_file"
+  }, indent=2))" > "$summary_file" || die "Fehler beim Erzeugen von $summary_file"
 
   # Return path to generated file
   echo "$summary_file"

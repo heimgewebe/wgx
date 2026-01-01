@@ -21,11 +21,12 @@ cmd_integrity() {
       echo "Usage: wgx integrity [options]"
       echo ""
       echo "Options:"
-      echo "  --update, -u    Erzeugt/Aktualisiert den Integritätsbericht."
-      echo "  --publish, -p   Gibt ein Event-JSON (integrity.summary.published.v1) aus."
+      echo "  --update, -u    Erzeugt/Aktualisiert den Integritätsbericht (und zeigt danach den Status an)."
+      echo "  --publish, -p   Gibt ein Event-JSON (integrity.summary.published.v1) aus (und zeigt ebenfalls den Status an)."
       echo "  --help, -h      Zeigt diese Hilfe."
       echo ""
-      echo "Standard: Liest reports/integrity/summary.json und zeigt Status an."
+      echo "Ohne Optionen: Liest reports/integrity/summary.json und zeigt den Integritäts-Status an."
+      echo "Optionen können kombiniert werden, z.B.: 'wgx integrity --update --publish' zum Erzeugen/Aktualisieren und anschließenden Veröffentlichen."
       return 0
       ;;
     *) ;;
@@ -98,14 +99,16 @@ cmd_integrity() {
       export PL_STAT="$status"
 
       payload_json=$(python3 -c "import json, os; print(json.dumps({
-           'url': os.environ['PL_URL'],
-           'generated_at': os.environ['PL_GEN'],
-           'repo': os.environ['PL_REPO'],
-           'status': os.environ['PL_STAT']
-         }))")
+        'url': os.environ['PL_URL'],
+        'generated_at': os.environ['PL_GEN'],
+        'repo': os.environ['PL_REPO'],
+        'status': os.environ['PL_STAT']
+      }))")
 
-      # Emit Event
-      heimgeist::emit "integrity.summary.published.v1" "$repo" "$payload_json"
+      # Emit Event. Fehler sind nicht fatal, werden aber geloggt.
+      if ! heimgeist::emit "integrity.summary.published.v1" "$repo" "$payload_json"; then
+        warn "Konnte Event 'integrity.summary.published.v1' nicht senden (heimgeist::emit fehlgeschlagen)."
+      fi
       return 0
     fi
   fi

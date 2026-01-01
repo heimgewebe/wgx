@@ -36,8 +36,9 @@ jobs:
 
       - name: Publish Event
         run: |
-          # The command outputs the event JSON to stdout
-          EVENT_JSON=$(./wgx integrity --publish | tail -n 1)
+          # Extract the JSON event. The --publish flag outputs only JSON to stdout.
+          set -o pipefail
+          EVENT_JSON=$(./wgx integrity --publish)
 
           # Since there is no central event bus configured in this environment yet,
           # we log it to the GitHub Actions summary or log.
