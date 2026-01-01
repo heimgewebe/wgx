@@ -29,7 +29,7 @@ integrity::generate() {
   # 2. Artifacts (Reports)
   local count_artifacts=0
   if [[ -d "${target_root}/reports" ]]; then
-    count_artifacts=$(find "${target_root}/reports" -type f ! -path "${report_dir}/summary.json" | wc -l | tr -d ' ')
+    count_artifacts=$(find "${target_root}/reports" -type f ! -name "summary.json" | wc -l | tr -d ' ')
   fi
 
   # 3. Gaps (Missing expected files based on profile - simplified)

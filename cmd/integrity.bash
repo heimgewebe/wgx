@@ -99,12 +99,18 @@ cmd_integrity() {
       export PL_REPO="$repo"
       export PL_STAT="$status"
 
-      payload_json=$(python3 -c "import json, os; print(json.dumps({
+      if ! command -v python3 >/dev/null 2>&1; then
+        die "python3 fehlt. Kann Event-Payload nicht erzeugen."
+      fi
+
+      if ! payload_json=$(python3 -c "import json, os; print(json.dumps({
            'url': os.environ['PL_URL'],
            'generated_at': os.environ['PL_GEN'],
            'repo': os.environ['PL_REPO'],
            'status': os.environ['PL_STAT']
-         }))")
+         }))"); then
+        die "Fehler beim Erzeugen des Event-Payloads."
+      fi
 
       if [[ -z "$payload_json" ]]; then
         die "Fehler beim Erzeugen des Event-Payloads (leeres Ergebnis)."
