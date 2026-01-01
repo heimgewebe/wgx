@@ -47,14 +47,14 @@ def _convert_frame(frame: Dict[str, Any], kind: str) -> None:
         frame["container"] = new_value
         frame["type"] = "list"
     else:
-        new_value: Dict[str, Any] = {}
+        new_value_dict: Dict[str, Any] = {}
         if parent is None:
-            frame["container"] = new_value
+            frame["container"] = new_value_dict
         elif isinstance(parent, list):
-            parent[key] = new_value
+            parent[key] = new_value_dict
         else:
-            parent[key] = new_value
-        frame["container"] = new_value
+            parent[key] = new_value_dict
+        frame["container"] = new_value_dict
         frame["type"] = "dict"
 
 
@@ -199,7 +199,7 @@ def _parse_simple_yaml(path: str) -> Any:
                     key, rest = split
                     key = key.strip().strip("'\"")
                     rest = rest.strip()
-                    item: Dict[str, Any] = {}
+                    item = {}
                     container.append(item)
                     frame_item = {
                         "indent": indent,
