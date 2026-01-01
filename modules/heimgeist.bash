@@ -14,7 +14,18 @@ heimgeist::emit() {
 
   # ID generieren (Prefix 'evt-')
   local raw_id
-  raw_id="$(date +%s%N | sha256sum | head -c 8)"
+  if [ -r /dev/urandom ]; then
+    # 4 Bytes aus /dev/urandom -> 8-stelliger Hex-String
+    raw_id="$(od -An -N4 -tx8 < /dev/urandom | tr -d ' \n')"
+  else
+    # Fallback: timestamp-basiert, aber nur, wenn %N unterstützt wird
+    if raw_id="$(date +%s%N 2>/dev/null)" && [[ "$raw_id" =~ ^[0-9]+$ ]]; then
+      raw_id="$(printf '%s' "$raw_id" | sha256sum | head -c 8)"
+    else
+      # Letzter Fallback: Sekundenauflösung
+      raw_id="$(date +%s | sha256sum | head -c 8)"
+    fi
+  fi
   local event_id="evt-${raw_id}"
 
   # Timestamp (ISO 8601)

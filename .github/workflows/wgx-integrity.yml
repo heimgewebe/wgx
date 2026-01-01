@@ -36,8 +36,22 @@ jobs:
 
       - name: Publish Event
         run: |
-          # The command outputs the event JSON to stdout
-          EVENT_JSON=$(./wgx integrity --publish | tail -n 1)
+          # Extract the last line that looks like JSON (starts with { or [),
+          # to avoid capturing trailing warnings or table output.
+          set -o pipefail
+          EVENT_JSON=$(
+            ./wgx integrity --publish \
+              | awk '
+                  BEGIN { last_json_line = "" }
+                  /^[[:space:]]*[{[]/ { last_json_line = $0 }
+                  END {
+                    if (last_json_line == "") {
+                      exit 1
+                    }
+                    print last_json_line
+                  }
+                '
+          )
 
           # Since there is no central event bus configured in this environment yet,
           # we log it to the GitHub Actions summary or log.

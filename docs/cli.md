@@ -239,10 +239,15 @@ Options:
 ### integrity
 
 ```text
-Usage: wgx integrity
+Usage: wgx integrity [options]
 
-Zeigt den aktuellen Integritätsstatus (Diagnose) an.
-Liest aus reports/integrity/summary.json.
+Options:
+  --update, -u    Erzeugt/Aktualisiert den Integritätsbericht (und zeigt danach den Status an).
+  --publish, -p   Gibt ein Event-JSON (integrity.summary.published.v1) aus (und zeigt ebenfalls den Status an).
+  --help, -h      Zeigt diese Hilfe.
+
+Ohne Optionen: Liest reports/integrity/summary.json und zeigt den Integritäts-Status an.
+Optionen können kombiniert werden, z.B.: 'wgx integrity --update --publish' zum Erzeugen/Aktualisieren und anschließenden Veröffentlichen.
 ```
 
 ### lint

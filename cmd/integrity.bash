@@ -21,11 +21,12 @@ cmd_integrity() {
       echo "Usage: wgx integrity [options]"
       echo ""
       echo "Options:"
-      echo "  --update, -u    Erzeugt/Aktualisiert den Integritätsbericht."
-      echo "  --publish, -p   Gibt ein Event-JSON (integrity.summary.published.v1) aus."
+      echo "  --update, -u    Erzeugt/Aktualisiert den Integritätsbericht (und zeigt danach den Status an)."
+      echo "  --publish, -p   Gibt ein Event-JSON (integrity.summary.published.v1) aus (und zeigt ebenfalls den Status an)."
       echo "  --help, -h      Zeigt diese Hilfe."
       echo ""
-      echo "Standard: Liest reports/integrity/summary.json und zeigt Status an."
+      echo "Ohne Optionen: Liest reports/integrity/summary.json und zeigt den Integritäts-Status an."
+      echo "Optionen können kombiniert werden, z.B.: 'wgx integrity --update --publish' zum Erzeugen/Aktualisieren und anschließenden Veröffentlichen."
       return 0
       ;;
     *) ;;
@@ -38,9 +39,9 @@ cmd_integrity() {
     # Ensure module is loaded
     local mod_integrity="${WGX_PROJECT_ROOT:-$WGX_DIR}/modules/integrity.bash"
     if [[ -r "$mod_integrity" ]]; then
-        source "$mod_integrity"
+      source "$mod_integrity"
     else
-        die "Modul integrity.bash nicht gefunden."
+      die "Modul integrity.bash nicht gefunden."
     fi
 
     info "Erzeuge Integritätsbericht..."
@@ -59,24 +60,26 @@ cmd_integrity() {
 
   # 3. Publish Event (if requested)
   if ((DO_PUBLISH)); then
-     local mod_heimgeist="${WGX_PROJECT_ROOT:-$WGX_DIR}/modules/heimgeist.bash"
-     if [[ -r "$mod_heimgeist" ]]; then
-         source "$mod_heimgeist"
-     else
-         die "Modul heimgeist.bash nicht gefunden."
-     fi
+    local mod_heimgeist="${WGX_PROJECT_ROOT:-$WGX_DIR}/modules/heimgeist.bash"
+    if [[ -r "$mod_heimgeist" ]]; then
+      source "$mod_heimgeist"
+    else
+      die "Modul heimgeist.bash nicht gefunden."
+    fi
 
-     if ! has jq; then
-        warn "jq fehlt. Kann Bericht für Event nicht lesen."
-     else
-        local data_json
-        data_json="$(cat "$summary_file")"
-        # Event senden (hier: auf stdout ausgeben)
-        heimgeist::emit "integrity.summary.published.v1" "$data_json" "wgx.integrity"
-     fi
-     # Continue to display report unless we want to exit?
-     # Usually publish might be used in CI where we don't need the table output.
-     # But let's show the table too for verification.
+    if ! has jq; then
+      warn "jq fehlt. Kann Bericht für Event nicht lesen."
+    else
+      local data_json
+      data_json="$(cat "$summary_file")"
+      # Event senden (hier: auf stdout ausgeben). Fehler sind nicht fatal, werden aber geloggt.
+      if ! heimgeist::emit "integrity.summary.published.v1" "$data_json" "wgx.integrity"; then
+        warn "Konnte Event 'integrity.summary.published.v1' nicht senden (heimgeist::emit fehlgeschlagen)."
+      fi
+    fi
+    # Continue to display report unless we want to exit?
+    # Usually publish might be used in CI where we don't need the table output.
+    # But let's show the table too for verification.
   fi
 
   if ! has jq; then
