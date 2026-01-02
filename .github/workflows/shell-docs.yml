@@ -222,8 +222,20 @@ jobs:
               exit 1
             }
           done
-          shfmt -d "${files[@]}"
-          shellcheck -e SC1091 -S style "${files[@]}"
+          for file in "${files[@]}"; do
+            echo "Formatting check: $file"
+            shfmt -d "$file" || {
+              echo "::error file=$file::Formatting issues in $file"
+              exit 1
+            }
+          done
+          for file in "${files[@]}"; do
+            echo "Shellcheck: $file"
+            shellcheck -e SC1091 -S style "$file" || {
+              echo "::error file=$file::Shellcheck failed for $file"
+              exit 1
+            }
+          done
       - name: Test (bats)
         run: |
           if [ -d tests ]; then
