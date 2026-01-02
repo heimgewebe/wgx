@@ -87,8 +87,6 @@ JSON
   run cat "reports/integrity/summary.json"
   assert_output --partial '"status":'
   assert_output --partial '"repo": "org/repo"'
-
-  unset GITHUB_REPOSITORY
 }
 
 @test "integrity: --update detects repo from git remote (fallback)" {
