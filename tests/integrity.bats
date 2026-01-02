@@ -69,11 +69,14 @@ JSON
   assert_output --partial '"repo": "semantAH"'
 }
 
-@test "integrity: --update generates reports/integrity/summary.json" {
+@test "integrity: --update detects repo from GITHUB_REPOSITORY (priority)" {
   cd "$TEST_DIR"
-  # Mock git remote for repo name detection
+  # Mock git remote (should be ignored when GITHUB_REPOSITORY is set)
   git init >/dev/null 2>&1
-  git remote add origin https://github.com/heimgewebe/wgx.git >/dev/null 2>&1
+  git remote add origin https://github.com/other/repo.git >/dev/null 2>&1
+
+  # Set GITHUB_REPOSITORY to test priority
+  export GITHUB_REPOSITORY="org/repo"
 
   run wgx integrity --update
   assert_success
@@ -81,5 +84,25 @@ JSON
   [ -f "reports/integrity/summary.json" ]
   run cat "reports/integrity/summary.json"
   assert_output --partial '"status":'
-  assert_output --partial '"repo": "heimgewebe/wgx"'
+  assert_output --partial '"repo": "org/repo"'
+
+  unset GITHUB_REPOSITORY
+}
+
+@test "integrity: --update detects repo from git remote (fallback)" {
+  cd "$TEST_DIR"
+  # Ensure GITHUB_REPOSITORY is not set
+  unset GITHUB_REPOSITORY
+
+  # Mock git remote for repo name detection
+  git init >/dev/null 2>&1
+  git remote add origin https://github.com/org/repo.git >/dev/null 2>&1
+
+  run wgx integrity --update
+  assert_success
+
+  [ -f "reports/integrity/summary.json" ]
+  run cat "reports/integrity/summary.json"
+  assert_output --partial '"status":'
+  assert_output --partial '"repo": "org/repo"'
 }
