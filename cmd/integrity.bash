@@ -38,6 +38,7 @@ cmd_integrity() {
     # Ensure module is loaded
     local mod_integrity="${WGX_PROJECT_ROOT:-$WGX_DIR}/modules/integrity.bash"
     if [[ -r "$mod_integrity" ]]; then
+      # shellcheck source=modules/integrity.bash
       source "$mod_integrity"
     else
       die "Modul integrity.bash nicht gefunden."
@@ -63,6 +64,7 @@ cmd_integrity() {
   if ((DO_PUBLISH)); then
     local mod_heimgeist="${WGX_PROJECT_ROOT:-$WGX_DIR}/modules/heimgeist.bash"
     if [[ -r "$mod_heimgeist" ]]; then
+      # shellcheck source=modules/heimgeist.bash
       source "$mod_heimgeist"
     else
       die "Modul heimgeist.bash nicht gefunden."
