@@ -6,6 +6,8 @@ setup() {
   export TEST_DIR
   TEST_DIR="$(mktemp -d)"
   export WGX_TARGET_ROOT="$TEST_DIR"
+  # Ensure clean environment for repo detection tests
+  unset GITHUB_REPOSITORY
 }
 
 teardown() {
@@ -91,8 +93,7 @@ JSON
 
 @test "integrity: --update detects repo from git remote (fallback)" {
   cd "$TEST_DIR"
-  # Ensure GITHUB_REPOSITORY is not set
-  unset GITHUB_REPOSITORY
+  # GITHUB_REPOSITORY is already unset in setup()
 
   # Mock git remote for repo name detection
   git init >/dev/null 2>&1
