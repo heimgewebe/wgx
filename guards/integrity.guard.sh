@@ -80,11 +80,6 @@ if [ -f "$EVENT_FILE" ]; then
     fail "Event payload contains forbidden keys: $UNKNOWN_KEYS"
   fi
 
-  # Explicit check for forbidden 'counts' (as per instructions)
-  if [ "$(jq -r 'has("counts")' "$EVENT_FILE")" == "true" ]; then
-    fail "Event payload contains forbidden key: counts"
-  fi
-
   # Check missing mandatory keys
   for key in url generated_at repo status; do
     if [ "$(jq -r "has(\"$key\")" "$EVENT_FILE")" != "true" ]; then
@@ -94,16 +89,16 @@ if [ -f "$EVENT_FILE" ]; then
 
   # Strict Type Checking
   if [ "$(jq -r '.url | type' "$EVENT_FILE")" != "string" ]; then
-     fail "Event payload.url must be a string."
+    fail "Event payload.url must be a string."
   fi
   if [ "$(jq -r '.generated_at | type' "$EVENT_FILE")" != "string" ]; then
-     fail "Event payload.generated_at must be a string."
+    fail "Event payload.generated_at must be a string."
   fi
   if [ "$(jq -r '.repo | type' "$EVENT_FILE")" != "string" ]; then
-     fail "Event payload.repo must be a string."
+    fail "Event payload.repo must be a string."
   fi
   if [ "$(jq -r '.status | type' "$EVENT_FILE")" != "string" ]; then
-     fail "Event payload.status must be a string."
+    fail "Event payload.status must be a string."
   fi
 
   # Enhanced schema validation: status enum, URL format, generated_at format, repo non-empty

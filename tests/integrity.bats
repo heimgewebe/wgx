@@ -6,6 +6,17 @@ setup() {
   export TEST_DIR
   TEST_DIR="$(mktemp -d)"
   export WGX_TARGET_ROOT="$TEST_DIR"
+
+  # Hard isolation: no writes outside test dir
+  export HOME="$TEST_DIR/home"
+  mkdir -p "$HOME"
+  export XDG_CONFIG_HOME="$TEST_DIR/xdg/config"
+  export XDG_CACHE_HOME="$TEST_DIR/xdg/cache"
+  export XDG_STATE_HOME="$TEST_DIR/xdg/state"
+  mkdir -p "$XDG_CONFIG_HOME" "$XDG_CACHE_HOME" "$XDG_STATE_HOME"
+
+  # Ensure clean environment for repo detection tests
+  unset GITHUB_REPOSITORY
 }
 
 teardown() {
@@ -69,11 +80,14 @@ JSON
   assert_output --partial '"repo": "semantAH"'
 }
 
-@test "integrity: --update generates reports/integrity/summary.json" {
+@test "integrity: --update detects repo from GITHUB_REPOSITORY (priority)" {
   cd "$TEST_DIR"
-  # Mock git remote for repo name detection
+  # Mock git remote (should be ignored when GITHUB_REPOSITORY is set)
   git init >/dev/null 2>&1
-  git remote add origin https://github.com/org/repo.git >/dev/null 2>&1
+  git remote add origin https://github.com/should-be/ignored.git >/dev/null 2>&1
+
+  # Set GITHUB_REPOSITORY to test priority
+  export GITHUB_REPOSITORY="org/repo"
 
   run wgx integrity --update
   assert_success
@@ -82,4 +96,28 @@ JSON
   run cat "reports/integrity/summary.json"
   assert_output --partial '"status":'
   assert_output --partial '"repo": "org/repo"'
+}
+
+@test "integrity: --update detects repo from git remote (fallback)" {
+  cd "$TEST_DIR"
+  git init >/dev/null 2>&1
+
+  # Test that various remote URL formats are correctly parsed
+  for remote in \
+    "https://github.com/org/repo.git" \
+    "git@github.com:org/repo.git" \
+    "https://github.com/org/repo"
+  do
+    # Update remote for each format
+    git remote remove origin >/dev/null 2>&1 || true
+    git remote add origin "$remote" >/dev/null 2>&1
+
+    run wgx integrity --update
+    assert_success
+
+    [ -f "reports/integrity/summary.json" ]
+    run cat "reports/integrity/summary.json"
+    assert_output --partial '"status":'
+    assert_output --partial '"repo": "org/repo"'
+  done
 }
