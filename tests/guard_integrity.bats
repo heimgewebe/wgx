@@ -150,6 +150,17 @@ EOF
   assert_output --partial "Integrity checks passed."
 }
 
+@test "guard integrity: WARNS when URL does not point to summary.json" {
+  mkdir -p reports/integrity
+  touch reports/integrity/summary.json
+  echo '{"url": "https://example.com/other.json", "generated_at": "2024-01-01T00:00:00Z", "repo": "r", "status": "OK"}' > reports/integrity/event_payload.json
+
+  run wgx guard
+  assert_success
+  assert_output --partial "WARN: Event payload.url does not appear to point to a 'summary.json' report"
+  assert_output --partial "Integrity checks passed."
+}
+
 @test "guard integrity: FAILS when jq is not available" {
   mkdir -p reports/integrity
   touch reports/integrity/summary.json

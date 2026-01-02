@@ -58,13 +58,6 @@ if [ "$HAS_INTEGRITY_SIGNAL" -eq 1 ]; then
   fi
 fi
 
-# Output warnings at the end if any were collected
-if [ ${#WARNINGS[@]} -gt 0 ]; then
-  for warning in "${WARNINGS[@]}"; do
-    echo -e "${YELLOW}WARN: $warning${NC}" >&2
-  done
-fi
-
 # C) Event Payload Schema Pre-check (FAIL if exists)
 EVENT_FILE="reports/integrity/event_payload.json"
 if [ -f "$EVENT_FILE" ]; then
@@ -113,6 +106,12 @@ if [ -f "$EVENT_FILE" ]; then
     fail "Event payload.url must be a valid HTTP/HTTPS URL. Found: '$URL'"
   fi
 
+  # URL Pattern Check (Soft Invariant)
+  # payload.url is expected to point to summary.json (the report)
+  if [[ ! "$URL" =~ /summary\.json$ ]]; then
+    warn "Event payload.url does not appear to point to a 'summary.json' report. Found: '$URL'"
+  fi
+
   GENERATED_AT=$(jq -r '.generated_at // empty' "$EVENT_FILE")
   if [ -z "$GENERATED_AT" ]; then
     fail "Event payload.generated_at must be a non-empty string."
@@ -126,6 +125,13 @@ if [ -f "$EVENT_FILE" ]; then
   if [ -z "$REPO" ]; then
     fail "Event payload.repo must be a non-empty string."
   fi
+fi
+
+# Output warnings at the end if any were collected
+if [ ${#WARNINGS[@]} -gt 0 ]; then
+  for warning in "${WARNINGS[@]}"; do
+    echo -e "${YELLOW}WARN: $warning${NC}" >&2
+  done
 fi
 
 ok "Integrity checks passed."

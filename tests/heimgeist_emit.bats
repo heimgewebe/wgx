@@ -32,8 +32,6 @@ setup() {
 
   # Mock curl
   function curl() {
-    # echo "DEBUG: curl called with $*" >&2
-
     # Simple check for arguments
     local args="$*"
     if [[ "$args" != *"$PLEXER_URL"* ]]; then echo "Missing URL" >&2; return 1; fi
@@ -69,10 +67,21 @@ setup() {
   assert_output --partial "Fehler beim Senden an Plexer (curl exit code 7)"
 }
 
-@test "heimgeist::emit handles HTTP error" {
+@test "heimgeist::emit handles HTTP error and prints body" {
   export PLEXER_URL="http://mock-plexer/events"
 
   function curl() {
+    # Parse -o argument
+    local out_file=""
+    local next_is_out=0
+    for arg in "$@"; do
+      if [[ "$arg" == "-o" ]]; then next_is_out=1; continue; fi
+      if [[ $next_is_out -eq 1 ]]; then out_file="$arg"; break; fi
+    done
+
+    if [[ -n "$out_file" ]]; then
+       echo "CRITICAL SERVER ERROR MSG" > "$out_file"
+    fi
     echo "500" # Internal Server Error
     return 0
   }
@@ -83,4 +92,6 @@ setup() {
 
   assert_failure
   assert_output --partial "Fehler beim Senden an Plexer (HTTP 500)"
+  assert_output --partial "Server Response:"
+  assert_output --partial "CRITICAL SERVER ERROR MSG"
 }

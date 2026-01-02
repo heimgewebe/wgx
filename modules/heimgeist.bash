@@ -79,6 +79,11 @@ heimgeist::emit() {
     # Check HTTP status code (200-299)
     if [[ "$http_code" -lt 200 || "$http_code" -ge 300 ]]; then
       warn "Fehler beim Senden an Plexer (HTTP $http_code)."
+      if [[ -s "$response_file" ]]; then
+        warn "Server Response:"
+        cat "$response_file" >&2
+        echo >&2 ""
+      fi
       rm -f "$response_file"
       return 1
     fi
