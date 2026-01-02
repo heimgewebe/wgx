@@ -214,7 +214,14 @@ jobs:
             echo "No shell files found."
             exit 0
           fi
-          bash -n "${files[@]}"
+          # Check each file individually for better error output
+          for file in "${files[@]}"; do
+            echo "Checking syntax: $file"
+            bash -n "$file" || {
+              echo "::error file=$file::Syntax error in $file"
+              exit 1
+            }
+          done
           shfmt -d "${files[@]}"
           shellcheck -e SC1091 -S style "${files[@]}"
       - name: Test (bats)
