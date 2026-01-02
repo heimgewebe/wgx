@@ -73,7 +73,7 @@ JSON
   cd "$TEST_DIR"
   # Mock git remote (should be ignored when GITHUB_REPOSITORY is set)
   git init >/dev/null 2>&1
-  git remote add origin https://github.com/other/repo.git >/dev/null 2>&1
+  git remote add origin https://github.com/ignored/repo.git >/dev/null 2>&1
 
   # Set GITHUB_REPOSITORY to test priority
   export GITHUB_REPOSITORY="org/repo"
