@@ -100,6 +100,7 @@ JSON
 
 @test "integrity: --update detects repo from git remote (fallback)" {
   cd "$TEST_DIR"
+  git init >/dev/null 2>&1
 
   # Test that various remote URL formats are correctly parsed
   for remote in \
@@ -107,8 +108,7 @@ JSON
     "git@github.com:org/repo.git" \
     "https://github.com/org/repo"
   do
-    # Clean up any existing remote
-    git init >/dev/null 2>&1
+    # Update remote for each format
     git remote remove origin >/dev/null 2>&1 || true
     git remote add origin "$remote" >/dev/null 2>&1
 
