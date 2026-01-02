@@ -4,6 +4,8 @@ load test_helper
 
 setup() {
   export WGX_DIR="$BATS_TEST_DIRNAME/.."
+  # Ensure WGX_PROJECT_ROOT is set cleanly for tests
+  export WGX_PROJECT_ROOT="$WGX_DIR"
   export PATH="$WGX_DIR/cli:$PATH"
   # Use a unique temp directory
   export WGX_TARGET_ROOT="$BATS_TMPDIR/wgx-guard-integrity-$BASHPID"
@@ -51,8 +53,6 @@ teardown() {
 
 @test "guard integrity: WARNS when integrity task exists but summary.json is missing" {
   # Modify profile to include integrity task.
-  # We overwrite because appending to yaml is tricky without structure awareness,
-  # but here we can just write a valid minimal profile with integrity task.
   cat <<EOF > .wgx/profile.yml
 wgx:
   apiVersion: v1
@@ -63,39 +63,36 @@ wgx:
     test: "echo test"
     lint: "echo lint"
 EOF
-  # Need to commit changes or stage them?
-  # wgx guard usually checks working tree or profile.
-  # Profile parser reads file from disk.
 
   run wgx guard
   assert_success
   assert_output --partial "Integrity task detected but no reports/integrity/summary.json produced."
 }
 
-@test "guard integrity: FAILS when reports/integrity/event.json has invalid schema (bad type)" {
+@test "guard integrity: FAILS when reports/integrity/event_payload.json has extra keys" {
   mkdir -p reports/integrity
   touch reports/integrity/summary.json
-  echo '{"type": "wrong", "source": "s", "payload": {}}' > reports/integrity/event.json
-
-  run wgx guard
-  assert_failure
-  assert_output --partial "Event type must be 'integrity.summary.published.v1'"
-}
-
-@test "guard integrity: FAILS when reports/integrity/event.json has extra keys" {
-  mkdir -p reports/integrity
-  touch reports/integrity/summary.json
-  echo '{"type": "integrity.summary.published.v1", "source": "s", "payload": {"url": "https://example.com", "generated_at": "2024-01-01T00:00:00Z", "repo": "r", "status": "OK", "extra": "x"}}' > reports/integrity/event.json
+  echo '{"url": "https://example.com", "generated_at": "2024-01-01T00:00:00Z", "repo": "r", "status": "OK", "extra": "x"}' > reports/integrity/event_payload.json
 
   run wgx guard
   assert_failure
   assert_output --partial "Event payload contains forbidden keys: extra"
 }
 
+@test "guard integrity: FAILS when reports/integrity/event_payload.json has forbidden 'counts' key" {
+  mkdir -p reports/integrity
+  touch reports/integrity/summary.json
+  echo '{"url": "https://example.com", "generated_at": "2024-01-01T00:00:00Z", "repo": "r", "status": "OK", "counts": {"foo": 1}}' > reports/integrity/event_payload.json
+
+  run wgx guard
+  assert_failure
+  assert_output --partial "Event payload contains forbidden keys: counts"
+}
+
 @test "guard integrity: PASSES when everything is correct" {
   mkdir -p reports/integrity
   touch reports/integrity/summary.json
-  echo '{"type": "integrity.summary.published.v1", "source": "s", "payload": {"url": "https://example.com", "generated_at": "2024-01-01T00:00:00Z", "repo": "r", "status": "OK"}}' > reports/integrity/event.json
+  echo '{"url": "https://example.com", "generated_at": "2024-01-01T00:00:00Z", "repo": "r", "status": "OK"}' > reports/integrity/event_payload.json
 
   run wgx guard
   assert_success
@@ -112,61 +109,51 @@ EOF
   [[ ! "$output" =~ "artifacts/integrity/ is forbidden" ]]
 }
 
-@test "guard integrity: FAILS when event.json payload is missing mandatory key (url)" {
+@test "guard integrity: FAILS when event_payload.json is missing mandatory key (url)" {
   mkdir -p reports/integrity
   touch reports/integrity/summary.json
-  echo '{"type": "integrity.summary.published.v1", "source": "s", "payload": {"generated_at": "2024-01-01T00:00:00Z", "repo": "r", "status": "OK"}}' > reports/integrity/event.json
+  echo '{"generated_at": "2024-01-01T00:00:00Z", "repo": "r", "status": "OK"}' > reports/integrity/event_payload.json
 
   run wgx guard
   assert_failure
   assert_output --partial "Event payload missing mandatory key: url"
 }
 
-@test "guard integrity: FAILS when event.json payload is missing mandatory key (status)" {
+@test "guard integrity: FAILS when event_payload.json is missing mandatory key (status)" {
   mkdir -p reports/integrity
   touch reports/integrity/summary.json
-  echo '{"type": "integrity.summary.published.v1", "source": "s", "payload": {"url": "https://example.com", "generated_at": "2024-01-01T00:00:00Z", "repo": "r"}}' > reports/integrity/event.json
+  echo '{"url": "https://example.com", "generated_at": "2024-01-01T00:00:00Z", "repo": "r"}' > reports/integrity/event_payload.json
 
   run wgx guard
   assert_failure
   assert_output --partial "Event payload missing mandatory key: status"
 }
 
-@test "guard integrity: FAILS when event.json source is not a string" {
+@test "guard integrity: FAILS when event_payload.json is not an object" {
   mkdir -p reports/integrity
   touch reports/integrity/summary.json
-  echo '{"type": "integrity.summary.published.v1", "source": 123, "payload": {"url": "https://example.com", "generated_at": "2024-01-01T00:00:00Z", "repo": "r", "status": "OK"}}' > reports/integrity/event.json
-
-  run wgx guard
-  assert_failure
-  assert_output --partial "Event source must be a string."
-}
-
-@test "guard integrity: FAILS when event.json payload is not an object" {
-  mkdir -p reports/integrity
-  touch reports/integrity/summary.json
-  echo '{"type": "integrity.summary.published.v1", "source": "s", "payload": "not-an-object"}' > reports/integrity/event.json
+  echo '"not-an-object"' > reports/integrity/event_payload.json
 
   run wgx guard
   assert_failure
   assert_output --partial "Event payload must be an object."
 }
 
-@test "guard integrity: WARNS when event.json exists but summary.json is missing" {
+@test "guard integrity: WARNS when event_payload.json exists but summary.json is missing" {
   mkdir -p reports/integrity
-  echo '{"type": "integrity.summary.published.v1", "source": "s", "payload": {"url": "https://example.com", "generated_at": "2024-01-01T00:00:00Z", "repo": "r", "status": "OK"}}' > reports/integrity/event.json
+  echo '{"url": "https://example.com", "generated_at": "2024-01-01T00:00:00Z", "repo": "r", "status": "OK"}' > reports/integrity/event_payload.json
 
   run wgx guard
   assert_success
   assert_output --partial "WARN: Integrity task detected but no reports/integrity/summary.json produced."
-  # Should still validate event.json and pass
+  # Should still validate event_payload.json and pass
   assert_output --partial "Integrity checks passed."
 }
 
 @test "guard integrity: FAILS when jq is not available" {
   mkdir -p reports/integrity
   touch reports/integrity/summary.json
-  echo '{"type": "integrity.summary.published.v1", "source": "s", "payload": {"url": "https://example.com", "generated_at": "2024-01-01T00:00:00Z", "repo": "r", "status": "OK"}}' > reports/integrity/event.json
+  echo '{"url": "https://example.com", "generated_at": "2024-01-01T00:00:00Z", "repo": "r", "status": "OK"}' > reports/integrity/event_payload.json
 
   # Create a wrapper script that simulates missing jq
   cat > /tmp/guard-wrapper.sh <<EOF
@@ -194,7 +181,7 @@ EOF
 @test "guard integrity: FAILS when status is not a valid enum value" {
   mkdir -p reports/integrity
   touch reports/integrity/summary.json
-  echo '{"type": "integrity.summary.published.v1", "source": "s", "payload": {"url": "https://example.com", "generated_at": "2024-01-01T00:00:00Z", "repo": "r", "status": "INVALID"}}' > reports/integrity/event.json
+  echo '{"url": "https://example.com", "generated_at": "2024-01-01T00:00:00Z", "repo": "r", "status": "INVALID"}' > reports/integrity/event_payload.json
 
   run wgx guard
   assert_failure
@@ -204,7 +191,7 @@ EOF
 @test "guard integrity: FAILS when URL is not a valid HTTP/HTTPS URL" {
   mkdir -p reports/integrity
   touch reports/integrity/summary.json
-  echo '{"type": "integrity.summary.published.v1", "source": "s", "payload": {"url": "ftp://example.com", "generated_at": "2024-01-01T00:00:00Z", "repo": "r", "status": "OK"}}' > reports/integrity/event.json
+  echo '{"url": "ftp://example.com", "generated_at": "2024-01-01T00:00:00Z", "repo": "r", "status": "OK"}' > reports/integrity/event_payload.json
 
   run wgx guard
   assert_failure
@@ -214,7 +201,7 @@ EOF
 @test "guard integrity: FAILS when generated_at is not in ISO-8601 format" {
   mkdir -p reports/integrity
   touch reports/integrity/summary.json
-  echo '{"type": "integrity.summary.published.v1", "source": "s", "payload": {"url": "https://example.com", "generated_at": "invalid-date", "repo": "r", "status": "OK"}}' > reports/integrity/event.json
+  echo '{"url": "https://example.com", "generated_at": "invalid-date", "repo": "r", "status": "OK"}' > reports/integrity/event_payload.json
 
   run wgx guard
   assert_failure
@@ -224,7 +211,7 @@ EOF
 @test "guard integrity: FAILS when repo is empty" {
   mkdir -p reports/integrity
   touch reports/integrity/summary.json
-  echo '{"type": "integrity.summary.published.v1", "source": "s", "payload": {"url": "https://example.com", "generated_at": "2024-01-01T00:00:00Z", "repo": "", "status": "OK"}}' > reports/integrity/event.json
+  echo '{"url": "https://example.com", "generated_at": "2024-01-01T00:00:00Z", "repo": "", "status": "OK"}' > reports/integrity/event_payload.json
 
   run wgx guard
   assert_failure

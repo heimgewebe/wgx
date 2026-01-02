@@ -43,3 +43,28 @@ JSON
   assert_output --partial "Claims       | 12"
   assert_output --partial "Loop Gaps    | 3"
 }
+
+@test "integrity: --publish creates reports/integrity/event_payload.json" {
+  mkdir -p "$TEST_DIR/reports/integrity"
+  cat <<JSON > "$TEST_DIR/reports/integrity/summary.json"
+{
+  "repo": "semantAH",
+  "generated_at": "2023-10-27T10:00:00Z",
+  "status": "OK"
+}
+JSON
+  # Initialize git repo to satisfy remote url logic (best effort)
+  cd "$TEST_DIR"
+  git init >/dev/null 2>&1
+  git remote add origin https://github.com/org/repo.git >/dev/null 2>&1
+
+  run wgx integrity --publish
+
+  # file check
+  [ -f "$TEST_DIR/reports/integrity/event_payload.json" ]
+
+  # content check
+  run cat "$TEST_DIR/reports/integrity/event_payload.json"
+  assert_output --partial '"status": "OK"'
+  assert_output --partial '"repo": "semantAH"'
+}
