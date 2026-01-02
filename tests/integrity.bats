@@ -68,3 +68,18 @@ JSON
   assert_output --partial '"status": "OK"'
   assert_output --partial '"repo": "semantAH"'
 }
+
+@test "integrity: --update generates reports/integrity/summary.json" {
+  cd "$TEST_DIR"
+  # Mock git remote for repo name detection
+  git init >/dev/null 2>&1
+  git remote add origin https://github.com/org/repo.git >/dev/null 2>&1
+
+  run wgx integrity --update
+  assert_success
+
+  [ -f "reports/integrity/summary.json" ]
+  run cat "reports/integrity/summary.json"
+  assert_output --partial '"status":'
+  assert_output --partial '"repo": "org/repo"'
+}

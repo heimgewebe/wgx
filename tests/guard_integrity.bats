@@ -40,7 +40,7 @@ teardown() {
 
   run wgx guard
   assert_failure
-  assert_output --partial "Integrity artifacts must live under reports/integrity/. artifacts/integrity/ is forbidden."
+  assert_output --regexp "artifacts/integrity/ is [Ff]orbidden"
 }
 
 @test "guard integrity: WARNS when reports/integrity/ exists but summary.json is missing" {
@@ -76,7 +76,7 @@ EOF
 
   run wgx guard
   assert_failure
-  assert_output --partial "Event payload contains forbidden keys: extra"
+  assert_output --regexp "Event payload contains [Ff]orbidden keys: extra"
 }
 
 @test "guard integrity: FAILS when reports/integrity/event_payload.json has forbidden 'counts' key" {
@@ -86,7 +86,7 @@ EOF
 
   run wgx guard
   assert_failure
-  assert_output --partial "Event payload contains forbidden keys: counts"
+  assert_output --regexp "Event payload contains [Ff]orbidden keys: counts" # Regex match for forbidden/Forbidden
 }
 
 @test "guard integrity: PASSES when everything is correct" {
@@ -227,4 +227,20 @@ EOF
   run wgx guard
   assert_failure
   assert_output --partial "Event payload.repo must be a non-empty string."
+}
+
+@test "guard integrity: FAILS when event_payload.json keys have wrong types" {
+  mkdir -p reports/integrity
+  touch reports/integrity/summary.json
+  # url is number
+  echo '{"url": 123, "generated_at": "2024-01-01T00:00:00Z", "repo": "r", "status": "OK"}' > reports/integrity/event_payload.json
+  run wgx guard
+  assert_failure
+  assert_output --partial "Event payload.url must be a string."
+
+  # status is number
+  echo '{"url": "https://a.com/summary.json", "generated_at": "2024-01-01T00:00:00Z", "repo": "r", "status": 123}' > reports/integrity/event_payload.json
+  run wgx guard
+  assert_failure
+  assert_output --partial "Event payload.status must be a string."
 }

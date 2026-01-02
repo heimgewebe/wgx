@@ -92,6 +92,20 @@ if [ -f "$EVENT_FILE" ]; then
     fi
   done
 
+  # Strict Type Checking
+  if [ "$(jq -r '.url | type' "$EVENT_FILE")" != "string" ]; then
+     fail "Event payload.url must be a string."
+  fi
+  if [ "$(jq -r '.generated_at | type' "$EVENT_FILE")" != "string" ]; then
+     fail "Event payload.generated_at must be a string."
+  fi
+  if [ "$(jq -r '.repo | type' "$EVENT_FILE")" != "string" ]; then
+     fail "Event payload.repo must be a string."
+  fi
+  if [ "$(jq -r '.status | type' "$EVENT_FILE")" != "string" ]; then
+     fail "Event payload.status must be a string."
+  fi
+
   # Enhanced schema validation: status enum, URL format, generated_at format, repo non-empty
   STATUS=$(jq -r '.status // empty' "$EVENT_FILE")
   if [[ ! "$STATUS" =~ ^(OK|WARN|FAIL|MISSING|UNCLEAR)$ ]]; then

@@ -11,8 +11,10 @@ integrity::generate() {
   mkdir -p "$report_dir"
 
   local repo_name="unknown"
-  if git_has_remote; then
-    repo_name="$(git remote get-url origin | sed -E 's/.*[:/]([^/]+\/[^/]+)(\.git)?$/\1/')"
+  if [[ -n "${GITHUB_REPOSITORY:-}" ]]; then
+    repo_name="$GITHUB_REPOSITORY"
+  elif git_has_remote; then
+    repo_name="$(git remote get-url origin | sed -E 's/.*[:/]([^/]+\/[^/]+)(\.git)?$/\1/' | sed 's/\.git$//')"
   fi
 
   local generated_at
