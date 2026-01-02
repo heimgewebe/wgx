@@ -73,7 +73,7 @@ JSON
   cd "$TEST_DIR"
   # Mock git remote for repo name detection
   git init >/dev/null 2>&1
-  git remote add origin https://github.com/org/repo.git >/dev/null 2>&1
+  git remote add origin https://github.com/heimgewebe/wgx.git >/dev/null 2>&1
 
   run wgx integrity --update
   assert_success
