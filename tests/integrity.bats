@@ -75,7 +75,7 @@ JSON
   cd "$TEST_DIR"
   # Mock git remote (should be ignored when GITHUB_REPOSITORY is set)
   git init >/dev/null 2>&1
-  git remote add origin https://github.com/ignored/repo.git >/dev/null 2>&1
+  git remote add origin https://github.com/should-be/ignored.git >/dev/null 2>&1
 
   # Set GITHUB_REPOSITORY to test priority
   export GITHUB_REPOSITORY="org/repo"
@@ -91,7 +91,6 @@ JSON
 
 @test "integrity: --update detects repo from git remote (fallback)" {
   cd "$TEST_DIR"
-  # GITHUB_REPOSITORY is already unset in setup()
 
   # Mock git remote for repo name detection
   git init >/dev/null 2>&1
