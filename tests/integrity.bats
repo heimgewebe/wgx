@@ -81,5 +81,5 @@ JSON
   [ -f "reports/integrity/summary.json" ]
   run cat "reports/integrity/summary.json"
   assert_output --partial '"status":'
-  assert_output --partial '"repo": "org/repo"'
+  assert_output --partial '"repo": "heimgewebe/wgx"'
 }
