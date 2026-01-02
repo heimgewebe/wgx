@@ -120,7 +120,7 @@ cmd_integrity() {
 
       # Write payload to file (Canonical)
       local payload_file="${target_root}/reports/integrity/event_payload.json"
-      echo "$payload_json" > "$payload_file"
+      echo "$payload_json" >"$payload_file"
 
       # Emit Event - failure is acceptable but should be logged
       if ! heimgeist::emit "integrity.summary.published.v1" "$repo" "$payload_json"; then
