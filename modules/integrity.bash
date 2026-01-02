@@ -1,0 +1,130 @@
+#!/usr/bin/env bash
+
+# Rolle: Integritäts-Generator
+# Erzeugt reports/integrity/summary.json basierend auf Checks.
+
+integrity::generate() {
+  local target_root="${WGX_TARGET_ROOT:-$(pwd)}"
+  local report_dir="${target_root}/reports/integrity"
+  local summary_file="${report_dir}/summary.json"
+
+  mkdir -p "$report_dir"
+
+  local repo_name="unknown"
+  if git_has_remote; then
+    repo_name="$(git remote get-url origin | sed -E 's/.*[:/]([^/]+\/[^/]+)(\.git)?$/\1/')"
+  fi
+
+  local generated_at
+  generated_at="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+
+  # --- Checks / Counts ---
+
+  # 1. Claims (Contracts)
+  local count_claims=0
+  if [[ -d "${target_root}/contracts" ]]; then
+    count_claims=$(find "${target_root}/contracts" -name "*.schema.json" | wc -l | tr -d ' ')
+  fi
+
+  # 2. Artifacts (Reports)
+  local count_artifacts=0
+  if [[ -d "${target_root}/reports" ]]; then
+    count_artifacts=$(find "${target_root}/reports" -type f ! -name "summary.json" | wc -l | tr -d ' ')
+  fi
+
+  # 3. Gaps (Missing expected files based on profile - simplified)
+  # "Missing ist ein valider Zustand" -> wir zählen nur offensichtliche Lücken
+  local count_gaps=0
+  # (Placeholder logic)
+
+  # 4. Unclear (Files that are not tracked or unknown)
+  local count_unclear=0
+  # (Placeholder logic)
+
+  # Status determination
+  local status="OK"
+  if ((count_artifacts == 0)); then
+    status="MISSING" # No artifacts -> missing proof
+  elif ((count_claims == 0)); then
+    status="UNCLEAR" # No contracts -> unclear what integrity means
+  fi
+
+  # JSON Construction
+  # Using python for safe JSON generation
+  if ! command -v python3 >/dev/null 2>&1; then
+    echo "Fehler: python3 wird benötigt, ist aber nicht installiert" >&2
+    return 1
+  fi
+
+  export INT_REPO="$repo_name"
+  export INT_GEN="$generated_at"
+  export INT_STATUS="$status"
+  export INT_C_CLAIMS="$count_claims"
+  export INT_C_ARTIFACTS="$count_artifacts"
+  export INT_C_GAPS="$count_gaps"
+  export INT_C_UNCLEAR="$count_unclear"
+
+  # First generate JSON into a variable (atomic operation)
+  local json_output
+  if ! json_output=$(python3 -c "import json, os; print(json.dumps({
+    'repo': os.environ['INT_REPO'],
+    'generated_at': os.environ['INT_GEN'],
+    'status': os.environ['INT_STATUS'],
+    'counts': {
+      'claims': int(os.environ['INT_C_CLAIMS']),
+      'artifacts': int(os.environ['INT_C_ARTIFACTS']),
+      'loop_gaps': int(os.environ['INT_C_GAPS']),
+      'unclear': int(os.environ['INT_C_UNCLEAR'])
+    }
+  }, indent=2))" 2>&1); then
+    echo "Fehler: Erzeugung der Zusammenfassungs-JSON fehlgeschlagen" >&2
+    # Sanitize Python output to prevent injection or information disclosure
+    # Only allow alphanumeric, spaces, common punctuation, and newlines; limit to 500 chars
+    local sanitized_output
+    sanitized_output=$(printf '%s' "$json_output" | head -c 500 | tr -cd '[:alnum:][:space:].,;:_-')
+    [[ -n "$sanitized_output" ]] && echo "Python-Ausgabe: $sanitized_output" >&2
+    return 1
+  fi
+
+  # Verify JSON was generated and is not empty
+  if [[ -z "$json_output" ]]; then
+    echo "Fehler: Generiertes JSON ist leer" >&2
+    return 1
+  fi
+
+  # Now write the validated JSON to file (atomic write via temp file)
+  # Use mktemp without path prefix for better portability across systems
+  local temp_file
+  if ! temp_file=$(mktemp); then
+    echo "Fehler: Konnte temporäre Datei nicht erstellen" >&2
+    return 1
+  fi
+
+  # Debug: verify temp_file and json_output are set
+  if [[ -z "$temp_file" ]]; then
+    echo "Fehler: temp_file ist leer" >&2
+    return 1
+  fi
+
+  if ! printf '%s\n' "$json_output" >"$temp_file"; then
+    echo "Fehler: Konnte JSON nicht in temporäre Datei schreiben" >&2
+    rm -f "$temp_file"
+    return 1
+  fi
+
+  # Atomic rename
+  if ! mv "$temp_file" "$summary_file"; then
+    echo "Fehler: Konnte JSON nicht in Zieldatei verschieben" >&2
+    rm -f "$temp_file"
+    return 1
+  fi
+
+  # Verify the file was created and is not empty
+  if [[ ! -s "$summary_file" ]]; then
+    echo "Fehler: Zusammenfassungsdatei ist leer oder wurde nicht erstellt" >&2
+    return 1
+  fi
+
+  # Return path to generated file
+  echo "$summary_file"
+}

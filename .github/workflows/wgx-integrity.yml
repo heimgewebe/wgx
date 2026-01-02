@@ -1,0 +1,47 @@
+name: WGX Integrity
+
+on:
+  schedule:
+    - cron: '0 6 * * *' # Daily at 06:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  integrity:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Generate Integrity Report
+        run: |
+          ./wgx integrity --update
+
+      - name: Commit Report
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore(integrity): update summary [skip ci]"
+          file_pattern: "reports/integrity/summary.json"
+
+      - name: Publish Event
+        run: |
+          # The command outputs the event JSON to stdout
+          EVENT_JSON=$(./wgx integrity --publish | tail -n 1)
+
+          # Since there is no central event bus configured in this environment yet,
+          # we log it to the GitHub Actions summary or log.
+          # If 'plexer' or similar were available, we would pipe it there.
+
+          echo "::notice title=Integrity Event::Event published (simulated)"
+          echo "$EVENT_JSON" | jq .
