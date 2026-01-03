@@ -96,10 +96,12 @@ _guard_ci_deps() {
   local guard_script="${project_root}/guards/ci-deps.guard.sh"
 
   if [[ -x "$guard_script" ]]; then
+    info "Running CI deps guard..."
     # Runs in current working directory (target repo)
-    "$guard_script"
+    "$guard_script" || return 1
   else
     warn "CI deps guard script not found or not executable: $guard_script"
+    return 1
   fi
 }
 
@@ -199,8 +201,7 @@ USAGE
     return 1
   fi
 
-  # 2.1 CI Deps checken
-  info "Checking for CI dependencies..."
+  # 2.1 Checking for CI dependencies
   _guard_ci_deps || return 1
 
   # 2.5 Contracts Meta (nur wenn contracts/events existiert)

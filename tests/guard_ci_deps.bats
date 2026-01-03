@@ -30,6 +30,20 @@ YAML
   assert_output --partial "Forbidden npm spec detected: @openai/codex@1.0.0"
 }
 
+@test "ci-deps guard FAILS when @openai/codex@1.0.0 appears in scripts" {
+  mkdir -p scripts
+  cat > scripts/codex.sh <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+echo "npx -y @openai/codex@1.0.0"
+SH
+  chmod +x scripts/codex.sh
+
+  run "$WGX_PROJECT_ROOT/guards/ci-deps.guard.sh"
+  assert_failure
+  assert_output --partial "Forbidden npm spec detected: @openai/codex@1.0.0"
+}
+
 @test "ci-deps guard FAILS on interactive codex usage (npx ... < without exec)" {
   mkdir -p .github/workflows
   cat > .github/workflows/interactive.yml <<'YAML'
