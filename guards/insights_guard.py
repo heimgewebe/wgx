@@ -24,9 +24,8 @@ import os
 try:
     import jsonschema
 except ImportError:
-    # Use ::notice:: for GitHub Actions visibility
-    print("::notice::[wgx][guard][insights] SKIP: jsonschema not installed", file=sys.stderr)
-    sys.exit(0)
+    # Defer exit until main() so imports (e.g. for testing) keep working.
+    jsonschema = None
 
 def load_data(filepath):
     """
@@ -44,9 +43,11 @@ def load_data(filepath):
         elif isinstance(data, dict):
             return [data]
         else:
-            # Valid JSON but not a list/dict (e.g. primitive) -> treat as empty list or invalid?
-            # Contracts usually expect objects/lists.
-            return []
+            # Valid JSON but wrong shape (e.g. primitive) – surface as error so
+            # callers do not silently skip validation.
+            raise ValueError(
+                "File content must be a JSON object or array (got primitive value)"
+            )
     except json.JSONDecodeError:
         # Try JSONL
         items = []
@@ -75,6 +76,11 @@ def load_data(filepath):
         return items
 
 def main():
+    if jsonschema is None:
+        # Use ::notice:: for GitHub Actions visibility
+        print("::notice::[wgx][guard][insights] SKIP: jsonschema not installed", file=sys.stderr)
+        return 0
+
     # 1. Locate Schema
     schema_path = None
     if os.path.exists("contracts/insights.schema.json"):
