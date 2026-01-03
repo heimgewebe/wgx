@@ -53,8 +53,8 @@ heimgeist::emit() {
 
     local response_file
     if ! response_file=$(mktemp); then
-       warn "Konnte temporäre Datei für Antwort nicht erstellen."
-       return 1
+      warn "Konnte temporäre Datei für Antwort nicht erstellen."
+      return 1
     fi
 
     # Construct curl arguments
