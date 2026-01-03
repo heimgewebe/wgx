@@ -89,17 +89,17 @@ _guard_integrity() {
   fi
 }
 
-# Forbidden Pins Guard (static analysis for broken specs)
-_guard_forbidden_pins() {
+# CI Deps Guard (static analysis for broken specs and interactive usage)
+_guard_ci_deps() {
   local project_root
   project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-  local guard_script="${project_root}/guards/forbidden-pins.guard.sh"
+  local guard_script="${project_root}/guards/ci-deps.guard.sh"
 
   if [[ -x "$guard_script" ]]; then
     # Runs in current working directory (target repo)
     "$guard_script"
   else
-    warn "Forbidden pins guard script not found or not executable: $guard_script"
+    warn "CI deps guard script not found or not executable: $guard_script"
   fi
 }
 
@@ -199,9 +199,9 @@ USAGE
     return 1
   fi
 
-  # 2.1 Forbidden Pins checken
-  info "Checking for forbidden pins..."
-  _guard_forbidden_pins || return 1
+  # 2.1 CI Deps checken
+  info "Checking for CI dependencies..."
+  _guard_ci_deps || return 1
 
   # 2.5 Contracts Meta (nur wenn contracts/events existiert)
   if [[ -d "contracts/events" ]]; then
