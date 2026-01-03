@@ -114,6 +114,14 @@ cmd_integrity() {
         die "Fehler beim Erzeugen des Event-Payloads."
       fi
 
+      if [[ -z "$payload_json" ]]; then
+        die "Generierter Payload ist leer."
+      fi
+
+      # Write payload to file (Canonical)
+      local payload_file="${target_root}/reports/integrity/event_payload.json"
+      printf '%s' "$payload_json" >"$payload_file"
+
       # Emit Event - failure is acceptable but should be logged
       if ! heimgeist::emit "integrity.summary.published.v1" "$repo" "$payload_json"; then
         warn "Konnte Event 'integrity.summary.published.v1' nicht senden (heimgeist::emit fehlgeschlagen)."
