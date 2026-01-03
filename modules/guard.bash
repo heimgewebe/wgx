@@ -89,6 +89,20 @@ _guard_integrity() {
   fi
 }
 
+# Forbidden Pins Guard (static analysis for broken specs)
+_guard_forbidden_pins() {
+  local project_root
+  project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+  local guard_script="${project_root}/guards/forbidden-pins.guard.sh"
+
+  if [[ -x "$guard_script" ]]; then
+    # Runs in current working directory (target repo)
+    "$guard_script"
+  else
+    warn "Forbidden pins guard script not found or not executable: $guard_script"
+  fi
+}
+
 guard_run() {
   local run_lint=0 run_test=0
   while [[ $# -gt 0 ]]; do
@@ -184,6 +198,10 @@ USAGE
     die "Konfliktmarker in getrackten Dateien gefunden!"
     return 1
   fi
+
+  # 2.1 Forbidden Pins checken
+  info "Checking for forbidden pins..."
+  _guard_forbidden_pins || return 1
 
   # 2.5 Contracts Meta (nur wenn contracts/events existiert)
   if [[ -d "contracts/events" ]]; then
