@@ -29,13 +29,13 @@ main() {
     # Search for "npx ... @openai/codex@ ... <" AND NOT "exec"
     # grep output format: file:line:content
     local matches
-    matches=$(grep -rInE "npx .*@openai/codex@.* <" "$p" | grep -v "exec" || true)
+    matches=$(grep -rInE "npx .*@openai/codex@.* <" "$p" | grep -vE "\bexec\b" || true)
     if [ -n "$matches" ]; then
-       echo "❌ Interactive Codex usage detected in CI (potential hang):"
-       echo "   Reason: 'npx ... <' starts interactive mode unless 'exec' is used."
-       echo "   Fix: Use 'npx ... exec < ...' or ensure non-interactive mode."
-       echo "$matches"
-       failed=1
+      echo "❌ Interactive Codex usage detected in CI (potential hang):"
+      echo "   Reason: 'npx ... <' starts interactive mode unless 'exec' is used."
+      echo "   Fix: Use 'npx ... exec < ...' or ensure non-interactive mode."
+      echo "$matches"
+      failed=1
     fi
   done
 
