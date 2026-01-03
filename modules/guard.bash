@@ -89,6 +89,22 @@ _guard_integrity() {
   fi
 }
 
+# CI Deps Guard (static analysis for broken specs and interactive usage)
+_guard_ci_deps() {
+  local project_root
+  project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+  local guard_script="${project_root}/guards/ci-deps.guard.sh"
+
+  if [[ -x "$guard_script" ]]; then
+    info "Running CI deps guard..."
+    # Runs in current working directory (target repo)
+    "$guard_script" || return 1
+  else
+    warn "CI deps guard script not found or not executable: $guard_script"
+    return 1
+  fi
+}
+
 guard_run() {
   local run_lint=0 run_test=0
   while [[ $# -gt 0 ]]; do
@@ -184,6 +200,9 @@ USAGE
     die "Konfliktmarker in getrackten Dateien gefunden!"
     return 1
   fi
+
+  # 2.1 Checking for CI dependencies
+  _guard_ci_deps || return 1
 
   # 2.5 Contracts Meta (nur wenn contracts/events existiert)
   if [[ -d "contracts/events" ]]; then
