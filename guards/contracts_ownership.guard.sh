@@ -92,10 +92,32 @@ if [[ -n "${CI:-}" ]]; then
        while IFS= read -r file; do CHANGED_FILES+=("$file"); done < <(git diff --name-only HEAD~1 HEAD 2>/dev/null || echo "")
     fi
   else
-    # Strategy B: CI but not a PR (e.g. push to main) or unknown CI
-    # Attempt to diff against previous commit
-    info "CI: No GITHUB_BASE_REF. Diffing HEAD~1..."
-    while IFS= read -r file; do CHANGED_FILES+=("$file"); done < <(git diff --name-only HEAD~1 HEAD 2>/dev/null || echo "")
+    # Strategy B: CI but not a PR (e.g. push to main)
+    # Check if we have a range from environment
+    # Note: GITHUB_EVENT_BEFORE is not standard, but if provided, we use it.
+    BEFORE_SHA="${GITHUB_EVENT_BEFORE:-}"
+
+    if [[ -n "$BEFORE_SHA" ]] && [[ "$BEFORE_SHA" != "0000000000000000000000000000000000000000" ]]; then
+       info "CI: Push detected (before: $BEFORE_SHA). Diffing $BEFORE_SHA...HEAD"
+
+       # Fetch if needed
+       if ! git cat-file -t "$BEFORE_SHA" >/dev/null 2>&1; then
+           info "Fetching $BEFORE_SHA..."
+           if ! git fetch origin "$BEFORE_SHA" --depth=1 >/dev/null 2>&1; then
+               warn "Failed to fetch $BEFORE_SHA. Diff comparison might be inaccurate."
+           fi
+       fi
+
+       if git cat-file -t "$BEFORE_SHA" >/dev/null 2>&1; then
+          while IFS= read -r file; do CHANGED_FILES+=("$file"); done < <(git diff --name-only "$BEFORE_SHA" HEAD)
+       else
+          warn "Previous commit $BEFORE_SHA not available. Falling back to HEAD~1."
+          while IFS= read -r file; do CHANGED_FILES+=("$file"); done < <(git diff --name-only HEAD~1 HEAD 2>/dev/null || echo "")
+       fi
+    else
+       info "CI: No GITHUB_BASE_REF or GITHUB_EVENT_BEFORE. Diffing HEAD~1..."
+       while IFS= read -r file; do CHANGED_FILES+=("$file"); done < <(git diff --name-only HEAD~1 HEAD 2>/dev/null || echo "")
+    fi
   fi
 else
   # Strategy C: Local Development
