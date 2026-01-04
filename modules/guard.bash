@@ -105,6 +105,21 @@ _guard_ci_deps() {
   fi
 }
 
+# Contracts Ownership Guard
+_guard_contracts_ownership() {
+  local project_root
+  project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+  local guard_script="${project_root}/guards/contracts_ownership.guard.sh"
+
+  if [[ -x "$guard_script" ]]; then
+    info "Running contracts ownership guard..."
+    "$guard_script" || return 1
+  else
+    warn "Contracts ownership guard script not found or not executable: $guard_script"
+    return 1
+  fi
+}
+
 guard_run() {
   local run_lint=0 run_test=0
   while [[ $# -gt 0 ]]; do
@@ -203,6 +218,9 @@ USAGE
 
   # 2.1 Checking for CI dependencies
   _guard_ci_deps || return 1
+
+  # 2.2 Contracts Ownership
+  _guard_contracts_ownership || return 1
 
   # 2.5 Contracts Meta (nur wenn contracts/events existiert)
   if [[ -d "contracts/events" ]]; then
