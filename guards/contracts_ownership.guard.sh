@@ -6,7 +6,7 @@
 # 1. metarepo identification (fleet/repos.yml existence).
 # 2. Contract ownership:
 #    - metarepo: Exclusive owner of contracts/** (internal truth).
-#    - contracts-mirror: Allowed to change json/** etc., but NOT contracts/**.
+#    - contracts-mirror: Explicitly forbidden to change contracts/**. Other changes are implicitly allowed.
 #    - others: FORBIDDEN to change contracts/**.
 
 set -euo pipefail
@@ -14,10 +14,12 @@ set -euo pipefail
 # --- Colors for output ---
 RED='\033[0;31m'
 GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 info() { echo -e "${BLUE}INFO:${NC} $*" >&2; }
+warn() { echo -e "${YELLOW}WARN:${NC} $*" >&2; }
 die() {
   echo -e "${RED}FAIL:${NC} $*" >&2
   exit 1
@@ -76,7 +78,9 @@ if [[ -n "${CI:-}" ]]; then
     # Try to fetch if missing (shallow clones)
     if ! git rev-parse --verify "$TARGET_REF" >/dev/null 2>&1; then
        info "Fetching $TARGET_REF..."
-       git fetch origin "$GITHUB_BASE_REF" --depth=1 >/dev/null 2>&1 || true
+       if ! git fetch origin "$GITHUB_BASE_REF" --depth=1 >/dev/null 2>&1; then
+         warn "Failed to fetch $TARGET_REF. Diff comparison might be inaccurate."
+       fi
     fi
 
     if git rev-parse --verify "$TARGET_REF" >/dev/null 2>&1; then
@@ -84,7 +88,7 @@ if [[ -n "${CI:-}" ]]; then
        while IFS= read -r file; do CHANGED_FILES+=("$file"); done < <(git diff --name-only "$TARGET_REF"...HEAD)
     else
        # Fallback: HEAD~1
-       info "Target ref $TARGET_REF not found. Falling back to HEAD~1."
+       warn "Target ref $TARGET_REF not found. Falling back to HEAD~1."
        while IFS= read -r file; do CHANGED_FILES+=("$file"); done < <(git diff --name-only HEAD~1 HEAD 2>/dev/null || echo "")
     fi
   else
@@ -133,6 +137,7 @@ metarepo)
 
 contracts-mirror)
   # Rule 1: NO changes in contracts/**
+  # We only explicitly forbid contracts/**. Other paths (like json/**) are allowed by default.
   if [[ $has_contract_changes -eq 1 ]]; then
     die "Dieses Repo spiegelt externe Contracts; interne Organismus-Contracts gehören ins metarepo."
   fi
