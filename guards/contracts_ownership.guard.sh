@@ -26,58 +26,76 @@ ok() { echo -e "${GREEN}OK:${NC} $*" >&2; }
 
 # --- 1. Identify Repo ---
 
-# Allow override for testing
-REPO_NAME="${HG_REPO_NAME:-}"
+REPO_NAME=""
 
+# Strategy 1: CI Environment (GitHub Actions)
+if [[ -n "${GITHUB_REPOSITORY:-}" ]]; then
+  # Format: owner/repo
+  REPO_NAME="${GITHUB_REPOSITORY##*/}"
+  info "Detected repository via GITHUB_REPOSITORY: ${REPO_NAME}"
+fi
+
+# Strategy 2: Test Override / Explicit Env
+if [[ -z "$REPO_NAME" ]] && [[ -n "${HG_REPO_NAME:-}" ]]; then
+  REPO_NAME="$HG_REPO_NAME"
+  info "Detected repository via HG_REPO_NAME: ${REPO_NAME}"
+fi
+
+# Strategy 3: Remote origin URL
 if [[ -z "$REPO_NAME" ]]; then
-  # Strategy 1: Remote origin URL
   if git remote get-url origin >/dev/null 2>&1; then
     REPO_NAME=$(basename "$(git remote get-url origin)" .git)
   fi
 fi
 
+# Strategy 4: Root directory name
 if [[ -z "$REPO_NAME" ]]; then
-  # Strategy 2: Root directory name
   if git rev-parse --show-toplevel >/dev/null 2>&1; then
     REPO_NAME=$(basename "$(git rev-parse --show-toplevel)")
   fi
 fi
 
 if [[ -z "$REPO_NAME" ]]; then
-  info "Could not determine repo name (no remote, no git root). Assuming 'unknown'."
+  info "Could not determine repo name. Assuming 'unknown'."
   REPO_NAME="unknown"
 fi
 
-info "Detected repository: ${REPO_NAME}"
+info "Final repository identity: ${REPO_NAME}"
 
 # --- 2. Determine Changed Files ---
 
-# Collect changed files
 CHANGED_FILES=()
 
 # CI or Local Diff Strategy
 if [[ -n "${CI:-}" ]]; then
-  # In CI, attempt to diff against origin/main (or master)
-  TARGET_BRANCH="origin/main"
-  if ! git rev-parse --verify "$TARGET_BRANCH" >/dev/null 2>&1; then
-    TARGET_BRANCH="origin/master"
-  fi
+  # Strategy A: GitHub Actions PR
+  if [[ -n "${GITHUB_BASE_REF:-}" ]]; then
+    TARGET_REF="origin/$GITHUB_BASE_REF"
+    info "CI: PR detected. Diffing against $TARGET_REF..."
 
-  if git rev-parse --verify "$TARGET_BRANCH" >/dev/null 2>&1; then
-    # Use merge-base to handle potential divergencies safely
-    if git merge-base "$TARGET_BRANCH" HEAD >/dev/null 2>&1; then
-      while IFS= read -r file; do CHANGED_FILES+=("$file"); done < <(git diff --name-only "$(git merge-base "$TARGET_BRANCH" HEAD)" HEAD)
+    # Try to fetch if missing (shallow clones)
+    if ! git rev-parse --verify "$TARGET_REF" >/dev/null 2>&1; then
+       info "Fetching $TARGET_REF..."
+       git fetch origin "$GITHUB_BASE_REF" --depth=1 >/dev/null 2>&1 || true
+    fi
+
+    if git rev-parse --verify "$TARGET_REF" >/dev/null 2>&1; then
+       # Triple-dot diff finding the merge base automatically
+       while IFS= read -r file; do CHANGED_FILES+=("$file"); done < <(git diff --name-only "$TARGET_REF"...HEAD)
     else
-      # Fallback
-      while IFS= read -r file; do CHANGED_FILES+=("$file"); done < <(git diff --name-only HEAD~1 HEAD 2>/dev/null || echo "")
+       # Fallback: HEAD~1
+       info "Target ref $TARGET_REF not found. Falling back to HEAD~1."
+       while IFS= read -r file; do CHANGED_FILES+=("$file"); done < <(git diff --name-only HEAD~1 HEAD 2>/dev/null || echo "")
     fi
   else
-    # Fallback if no remote branch found
+    # Strategy B: CI but not a PR (e.g. push to main) or unknown CI
+    # Attempt to diff against previous commit
+    info "CI: No GITHUB_BASE_REF. Diffing HEAD~1..."
     while IFS= read -r file; do CHANGED_FILES+=("$file"); done < <(git diff --name-only HEAD~1 HEAD 2>/dev/null || echo "")
   fi
 else
-  # Local: Staged + Unstaged
-  # We must be careful not to fail if git command returns nothing or fails on empty repo
+  # Strategy C: Local Development
+  # Staged + Unstaged
   if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
     while IFS= read -r file; do [[ -n "$file" ]] && CHANGED_FILES+=("$file"); done < <(git diff --name-only --cached)
     while IFS= read -r file; do [[ -n "$file" ]] && CHANGED_FILES+=("$file"); done < <(git diff --name-only)

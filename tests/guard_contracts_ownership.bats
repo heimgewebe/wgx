@@ -88,3 +88,18 @@ teardown() {
     assert_success
     assert_output --partial "Contracts ownership check passed"
 }
+
+@test "contracts_ownership: GITHUB_REPOSITORY overrides other detection" {
+    # Even if folder is random, GITHUB_REPOSITORY says metarepo
+    export GITHUB_REPOSITORY="heimgewebe/metarepo"
+    export HG_REPO_NAME=""
+    mkdir fleet
+    touch fleet/repos.yml
+    mkdir contracts
+    touch contracts/internal.schema.json
+    git add fleet/repos.yml contracts/internal.schema.json
+
+    run "$GUARD_SCRIPT"
+    assert_success
+    assert_output --partial "Detected repository via GITHUB_REPOSITORY: metarepo"
+}
