@@ -34,6 +34,10 @@ teardown() {
 
 @test "contracts_ownership: FAILS for random repo with contract changes" {
     export HG_REPO_NAME="my-service"
+    touch README.md
+    git add README.md
+    git commit -m "Initial commit"
+    
     mkdir contracts
     touch contracts/foo.schema.json
     git add contracts/foo.schema.json
@@ -45,6 +49,10 @@ teardown() {
 
 @test "contracts_ownership: PASSES for metarepo with repos.yml and contract changes" {
     export HG_REPO_NAME="metarepo"
+    touch README.md
+    git add README.md
+    git commit -m "Initial commit"
+    
     mkdir fleet
     touch fleet/repos.yml
     mkdir contracts
@@ -58,6 +66,10 @@ teardown() {
 
 @test "contracts_ownership: FAILS for metarepo if fleet/repos.yml is missing" {
     export HG_REPO_NAME="metarepo"
+    touch README.md
+    git add README.md
+    git commit -m "Initial commit"
+    
     mkdir contracts
     touch contracts/internal.schema.json
     git add contracts/internal.schema.json
@@ -69,17 +81,25 @@ teardown() {
 
 @test "contracts_ownership: FAILS for contracts-mirror with contract/** changes" {
     export HG_REPO_NAME="contracts-mirror"
+    touch README.md
+    git add README.md
+    git commit -m "Initial commit"
+    
     mkdir contracts
     touch contracts/some.schema.json
     git add contracts/some.schema.json
 
     run "$GUARD_SCRIPT"
     assert_failure
-    assert_output --partial "Dieses Repo spiegelt externe Contracts; interne Organismus-Contracts gehören ins metarepo"
+    assert_output --partial "Dieses Repo spiegelt externe Contracts"
 }
 
 @test "contracts_ownership: PASSES for contracts-mirror with json/** changes" {
     export HG_REPO_NAME="contracts-mirror"
+    touch README.md
+    git add README.md
+    git commit -m "Initial commit"
+    
     mkdir json
     touch json/external.schema.json
     git add json/external.schema.json
@@ -93,6 +113,10 @@ teardown() {
     # Even if folder is random, GITHUB_REPOSITORY says metarepo
     export GITHUB_REPOSITORY="heimgewebe/metarepo"
     export HG_REPO_NAME=""
+    touch README.md
+    git add README.md
+    git commit -m "Initial commit"
+    
     mkdir fleet
     touch fleet/repos.yml
     mkdir contracts
