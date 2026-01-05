@@ -30,17 +30,17 @@ ok() { echo -e "${GREEN}OK:${NC} $*" >&2; }
 
 REPO_NAME=""
 
-# Strategy 1: CI Environment (GitHub Actions)
-if [[ -n "${GITHUB_REPOSITORY:-}" ]]; then
+# Strategy 1: Test Override / Explicit Env (highest priority for tests)
+if [[ -n "${HG_REPO_NAME:-}" ]]; then
+  REPO_NAME="$HG_REPO_NAME"
+  info "Detected repository via HG_REPO_NAME: ${REPO_NAME}"
+fi
+
+# Strategy 2: CI Environment (GitHub Actions)
+if [[ -z "$REPO_NAME" ]] && [[ -n "${GITHUB_REPOSITORY:-}" ]]; then
   # Format: owner/repo
   REPO_NAME="${GITHUB_REPOSITORY##*/}"
   info "Detected repository via GITHUB_REPOSITORY: ${REPO_NAME}"
-fi
-
-# Strategy 2: Test Override / Explicit Env
-if [[ -z "$REPO_NAME" ]] && [[ -n "${HG_REPO_NAME:-}" ]]; then
-  REPO_NAME="$HG_REPO_NAME"
-  info "Detected repository via HG_REPO_NAME: ${REPO_NAME}"
 fi
 
 # Strategy 3: Remote origin URL
@@ -77,19 +77,19 @@ if [[ -n "${CI:-}" ]]; then
 
     # Try to fetch if missing (shallow clones)
     if ! git rev-parse --verify "$TARGET_REF" >/dev/null 2>&1; then
-       info "Fetching $TARGET_REF..."
-       if ! git fetch origin "$GITHUB_BASE_REF" --depth=1 >/dev/null 2>&1; then
-         warn "Failed to fetch $TARGET_REF. Diff comparison might be inaccurate."
-       fi
+      info "Fetching $TARGET_REF..."
+      if ! git fetch origin "$GITHUB_BASE_REF" --depth=1 >/dev/null 2>&1; then
+        warn "Failed to fetch $TARGET_REF. Diff comparison might be inaccurate."
+      fi
     fi
 
     if git rev-parse --verify "$TARGET_REF" >/dev/null 2>&1; then
-       # Triple-dot diff finding the merge base automatically
-       while IFS= read -r file; do CHANGED_FILES+=("$file"); done < <(git diff --name-only "$TARGET_REF"...HEAD)
+      # Triple-dot diff finding the merge base automatically
+      while IFS= read -r file; do [[ -n "$file" ]] && CHANGED_FILES+=("$file"); done < <(git diff --name-only "$TARGET_REF"...HEAD)
     else
-       # Fallback: HEAD~1
-       warn "Target ref $TARGET_REF not found. Falling back to HEAD~1."
-       while IFS= read -r file; do CHANGED_FILES+=("$file"); done < <(git diff --name-only HEAD~1 HEAD 2>/dev/null || echo "")
+      # Fallback: HEAD~1
+      warn "Target ref $TARGET_REF not found. Falling back to HEAD~1."
+      while IFS= read -r file; do [[ -n "$file" ]] && CHANGED_FILES+=("$file"); done < <(git diff --name-only HEAD~1 HEAD 2>/dev/null)
     fi
   else
     # Strategy B: CI but not a PR (e.g. push to main)
@@ -98,25 +98,25 @@ if [[ -n "${CI:-}" ]]; then
     BEFORE_SHA="${GITHUB_EVENT_BEFORE:-}"
 
     if [[ -n "$BEFORE_SHA" ]] && [[ "$BEFORE_SHA" != "0000000000000000000000000000000000000000" ]]; then
-       info "CI: Push detected (before: $BEFORE_SHA). Diffing $BEFORE_SHA...HEAD"
+      info "CI: Push detected (before: $BEFORE_SHA). Diffing $BEFORE_SHA...HEAD"
 
-       # Fetch if needed
-       if ! git cat-file -t "$BEFORE_SHA" >/dev/null 2>&1; then
-           info "Fetching $BEFORE_SHA..."
-           if ! git fetch origin "$BEFORE_SHA" --depth=1 >/dev/null 2>&1; then
-               warn "Failed to fetch $BEFORE_SHA. Diff comparison might be inaccurate."
-           fi
-       fi
+      # Fetch if needed
+      if ! git cat-file -t "$BEFORE_SHA" >/dev/null 2>&1; then
+        info "Fetching $BEFORE_SHA..."
+        if ! git fetch origin "$BEFORE_SHA" --depth=1 >/dev/null 2>&1; then
+          warn "Failed to fetch $BEFORE_SHA. Diff comparison might be inaccurate."
+        fi
+      fi
 
-       if git cat-file -t "$BEFORE_SHA" >/dev/null 2>&1; then
-          while IFS= read -r file; do CHANGED_FILES+=("$file"); done < <(git diff --name-only "$BEFORE_SHA" HEAD)
-       else
-          warn "Previous commit $BEFORE_SHA not available. Falling back to HEAD~1."
-          while IFS= read -r file; do CHANGED_FILES+=("$file"); done < <(git diff --name-only HEAD~1 HEAD 2>/dev/null || echo "")
-       fi
+      if git cat-file -t "$BEFORE_SHA" >/dev/null 2>&1; then
+        while IFS= read -r file; do [[ -n "$file" ]] && CHANGED_FILES+=("$file"); done < <(git diff --name-only "$BEFORE_SHA" HEAD)
+      else
+        warn "Previous commit $BEFORE_SHA not available. Falling back to HEAD~1."
+        while IFS= read -r file; do [[ -n "$file" ]] && CHANGED_FILES+=("$file"); done < <(git diff --name-only HEAD~1 HEAD 2>/dev/null)
+      fi
     else
-       info "CI: No GITHUB_BASE_REF or GITHUB_EVENT_BEFORE. Diffing HEAD~1..."
-       while IFS= read -r file; do CHANGED_FILES+=("$file"); done < <(git diff --name-only HEAD~1 HEAD 2>/dev/null || echo "")
+      info "CI: No GITHUB_BASE_REF or GITHUB_EVENT_BEFORE. Diffing HEAD~1..."
+      while IFS= read -r file; do [[ -n "$file" ]] && CHANGED_FILES+=("$file"); done < <(git diff --name-only HEAD~1 HEAD 2>/dev/null)
     fi
   fi
 else
@@ -130,8 +130,7 @@ fi
 
 # Remove duplicates
 if [[ ${#CHANGED_FILES[@]} -gt 0 ]]; then
-  sorted_unique_files=$(printf "%s\n" "${CHANGED_FILES[@]}" | sort -u)
-  mapfile -t CHANGED_FILES <<<"$sorted_unique_files"
+  mapfile -t CHANGED_FILES < <(printf "%s\n" "${CHANGED_FILES[@]}" | sort -u)
 fi
 
 # --- 3. Rules Implementation ---
@@ -161,7 +160,7 @@ contracts-mirror)
   # Rule 1: NO changes in contracts/**
   # We only explicitly forbid contracts/**. Other paths (like json/**) are allowed by default.
   if [[ $has_contract_changes -eq 1 ]]; then
-    die "Dieses Repo spiegelt externe Contracts; interne Organismus-Contracts gehören ins metarepo."
+    die "Dieses Repo spiegelt externe Contracts. Interne Organismus-Contracts dürfen nur im metarepo geändert werden. Bitte Schema nach metarepo/contracts verschieben und in diesem Repo nur konsumieren bzw. spiegeln."
   fi
   ;;
 
