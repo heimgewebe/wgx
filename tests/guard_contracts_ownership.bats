@@ -41,6 +41,7 @@ teardown() {
     mkdir contracts
     touch contracts/foo.schema.json
     git add contracts/foo.schema.json
+    git commit -m "Add contract"
 
     run "$GUARD_SCRIPT"
     assert_failure
@@ -58,6 +59,7 @@ teardown() {
     mkdir contracts
     touch contracts/internal.schema.json
     git add fleet/repos.yml contracts/internal.schema.json
+    git commit -m "Add contract"
 
     run "$GUARD_SCRIPT"
     assert_success
@@ -73,6 +75,7 @@ teardown() {
     mkdir contracts
     touch contracts/internal.schema.json
     git add contracts/internal.schema.json
+    git commit -m "Add contract"
 
     run "$GUARD_SCRIPT"
     assert_failure
@@ -88,6 +91,7 @@ teardown() {
     mkdir contracts
     touch contracts/some.schema.json
     git add contracts/some.schema.json
+    git commit -m "Add contract"
 
     run "$GUARD_SCRIPT"
     assert_failure
@@ -103,6 +107,7 @@ teardown() {
     mkdir json
     touch json/external.schema.json
     git add json/external.schema.json
+    git commit -m "Add json file"
 
     run "$GUARD_SCRIPT"
     assert_success
@@ -122,6 +127,7 @@ teardown() {
     mkdir contracts
     touch contracts/internal.schema.json
     git add fleet/repos.yml contracts/internal.schema.json
+    git commit -m "Add contract"
 
     run "$GUARD_SCRIPT"
     assert_success
