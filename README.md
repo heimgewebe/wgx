@@ -1,4 +1,4 @@
-![WGX Status Badge](https://img.shields.io/badge/wgx-enabled-blue)
+![WGX Status Badge](https://img.shields.io/badge/wgx-enabled-blue "WGX Status Badge")
 
 # wgx – Weltgewebe CLI
 
@@ -7,11 +7,12 @@ License: MIT; intended for internal use but repository is publicly visible.
 
 ## Lizenz & Nutzung
 
-Dieses Repository steht unter der **MIT-Lizenz** (siehe `./LICENSE`).
-Die Lizenzdatei bleibt **unverändert**, damit gängige Tools die Lizenz korrekt erkennen.
+Dieses Repository steht unter der **MIT-Lizenz** (siehe `./LICENSE`). Die
+Lizenzdatei bleibt **unverändert**, damit gängige Tools die Lizenz korrekt
+erkennen.
 
-**Beabsichtigte Nutzung:** WGX ist primär für den internen Einsatz innerhalb der
-heimgewebe-Ökosphäre gedacht, das Repository ist jedoch öffentlich sichtbar.
+**Beabsichtigte Nutzung:** WGX ist primär für den internen Einsatz innerhalb
+der heimgewebe-Ökosphäre gedacht, das Repository ist jedoch öffentlich sichtbar.
 Diese Klarstellung ändert **nicht** die Lizenzrechte, sondern dient nur der
 Transparenz bezüglich Support-Erwartungen und Projektfokus.
 
@@ -26,8 +27,8 @@ SPDX-Kurzidentifier verwenden, z. B.:
 
 > 📘 **Sprach-Policy:** Neue Beiträge sollen derzeit deutschsprachige,
 > benutzernahe Texte verwenden. Details stehen in
-> [docs/Language-Policy.md](docs/Language-Policy.md); eine spätere Umstellung
-> auf Englisch ist dort skizziert.
+> [docs/Language-Policy.md](docs/Language-Policy.md); eine spätere
+> Umstellung auf Englisch ist dort skizziert.
 
 ```bash
 git clone <DEIN-REPO>.git wgx
@@ -56,13 +57,14 @@ wgx send "feat: initial test run"
 `wgx clean` räumt temporäre Dateien im Workspace auf. Standardmäßig werden
 nur sichere Caches entfernt (`--safe`). Weitere Modi lassen sich kombinieren:
 
-- `--build` löscht Build-Artefakte wie `dist/`, `build/`, `.venv/`, `.uv/` usw.
-- `--git` räumt gemergte Branches sowie Remote-Referenzen auf. Funktioniert nur
-  in einem sauberen Git-Arbeitsverzeichnis.
-- `--deep` führt ein destruktives `git clean -xfd` aus und benötigt zusätzlich
-  `--force`. Ein sauberer Git-Tree ist Pflicht.
-- `--dry-run` zeigt alle Schritte nur an – ideal, um vor destruktiven Varianten
-  zu prüfen, was passieren würde.
+- `--build` löscht Build-Artefakte wie `dist/`, `build/`, `.venv/`, `.uv/`
+  usw.
+- `--git` räumt gemergte Branches sowie Remote-Referenzen auf. Funktioniert
+  nur in einem sauberen Git-Arbeitsverzeichnis.
+- `--deep` führt ein destruktives `git clean -xfd` aus und benötigt
+  zusätzlich `--force`. Ein sauberer Git-Tree ist Pflicht.
+- `--dry-run` zeigt alle Schritte nur an – ideal, um vor destruktiven
+  Varianten zu prüfen, was passieren würde.
 
 💡 Tipp: `wgx clean --dry-run --git` hilft beim schnellen Check, welche
 Git-Aufräumarbeiten anstehen. Sobald der Tree sauber ist, kann
@@ -189,7 +191,7 @@ stehen in [docs/readiness.md](docs/readiness.md). Ergänzend erklärt
     uses: actions/cache@v4
     with:
       path: ~/.cache/uv
-      key: uv-${{ runner.os }}-${{ env.UV_VERSION || 'latest' }}-\
+      key: uv-${{ runner.os }}-${{ env.UV_VERSION || 'latest' }}-
         ${{ hashFiles('**/pyproject.toml', '**/uv.lock') }}
   - name: Sync deps (frozen)
     run: ~/.local/bin/uv sync --frozen
@@ -212,7 +214,8 @@ stehen in [docs/readiness.md](docs/readiness.md). Ergänzend erklärt
   `"postCreateCommand": "bash -lc '.devcontainer/setup.sh ensure-uv && ~/.local/bin/uv sync'"`.
 - Für regulierte Umgebungen kann die Installation statt `curl | sh` über gepinnte Paketquellen erfolgen.
 - Weitere Hintergründe stehen in
-  [docs/ADR-0002__python-env-manager-uv.de.md](docs/ADR-0002__python-env-manager-uv.de.md) und im
+  [docs/ADR-0002__python-env-manager-uv.de.md](
+  docs/ADR-0002__python-env-manager-uv.de.md) und im
   [Runbook](docs/Runbook.de.md#leitfaden-von-requirementstxt-zu-uv).
 
 ## Kommandos
@@ -428,8 +431,8 @@ gebündelt.
 
 ## Architekturhinweis — nur modulare Struktur
 
-Seit 2025-09-25 ist die modulare Struktur verbindlich (`cli/`, `cmd/`, `lib/`,
-`etc/`, `modules/`). Der alte Monolith wurde archiviert:
+Seit 2025-09-25 ist die modulare Struktur verbindlich (`cli/`, `cmd/`,
+`lib/`, `etc/`, `modules/`). Der alte Monolith wurde archiviert:
 `docs/archive/wgx_monolith_*.md`.
 
 ## Organismus-Kontext
@@ -445,5 +448,5 @@ sowie im Zielbild
 [organismus]: https://github.com/heimgewebe/metarepo/blob/main/docs/system/heimgewebe-organismus.md
 [zielbild]: https://github.com/heimgewebe/metarepo/blob/main/docs/system/heimgewebe-zielbild.md
 
-Alle Rollen-Definitionen, Datenflüsse und Contract-Zuordnungen dieses Repos  
+Alle Rollen-Definitionen, Datenflüsse und Contract-Zuordnungen dieses Repos
 sind dort verankert.
