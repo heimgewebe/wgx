@@ -1,4 +1,4 @@
-![WGX Badge](https://img.shields.io/badge/wgx-enabled-blue)
+![WGX Status Badge](https://img.shields.io/badge/wgx-enabled-blue)
 
 # wgx – Weltgewebe CLI
 
@@ -230,7 +230,7 @@ Destruktiv: setzt den Workspace hart auf `origin/$WGX_BASE` zurück
 
 ## Repository-Layout
 
-```plaintext
+```text
 .
 ├─ cli/                 # Einstieg: ./cli/wgx (Dispatcher)
 ├─ cmd/                 # EIN Subcommand = EINE Datei
@@ -356,7 +356,8 @@ jobs:
 Für die vollständige, integrierte Produktvision („Repo-Betriebssystem“) lies
 **[docs/wgx-mycelium-v-omega.de.md](docs/wgx-mycelium-v-omega.de.md)**.
 Sie bündelt Bedienkanon, Fleet, Memory, Policies, Offline, Registry und Roadmap.
-WGX macht Abläufe reproduzierbar, erklärt Policies und liefert Evidence-Packs für PRs – im Einzelrepo und in der Fleet.
+WGX macht Abläufe reproduzierbar, erklärt Policies und liefert Evidence-Packs für PRs –
+im Einzelrepo und in der Fleet.
 
 ## Konfiguration
 
