@@ -49,7 +49,7 @@ wgx doctor
 wgx init
 wgx clean
 wgx send "feat: initial test run"
-```
+```bash
 
 ### `wgx clean`
 
@@ -101,7 +101,7 @@ wgx run --dry-run deploy
 
 # Plattform-Variante, die auf Linux ein anderes Kommando nutzt
 wgx run build
-```
+```bash
 
 ## WGX Readiness
 
@@ -241,7 +241,7 @@ Destruktiv: setzt den Workspace hart auf `origin/$WGX_BASE` zurück
 ├─ tests/               # Automatisierte Shell-Tests
 ├─ installers/          # Installations-Skripte
 └─ docs/                # Handbücher, ADRs
-```
+```text
 
 Der eigentliche Dispatcher liegt unter `cli/wgx`.
 Alle Subcommands werden über die Dateien im Ordner `cmd/` geladen und greifen
@@ -338,7 +338,7 @@ jobs:
 
   smoke:
     uses: heimgewebe/wgx/.github/workflows/wgx-smoke.yml@main
-```
+```yaml
 
 ## Dokumentation & Referenzen
 
@@ -392,7 +392,7 @@ wgx:
   repoKind: "generic"
   tasks:
     test: "cargo test --workspace"
-```
+```yaml
 
 ### Erweitertes Beispiel (v1.1)
 
@@ -417,7 +417,7 @@ wgx:
               cmd: ["cargo","test","--workspace","--","--nocapture"] }
     serve:  { desc: "Entwicklungsserver",
               cmd: ["cargo","run","-p","hauski-cli","--","serve"] }
-```
+```yaml
 
 ## Tests
 
