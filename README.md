@@ -118,7 +118,8 @@ stehen in [docs/readiness.md](docs/readiness.md). Ergänzend erklärt
 ## Entwicklungs-Schnellstart
 
 - In VS Code öffnen → „Reopen in Container“
-- CI lokal ausführen (gespiegelt durch GitHub Actions, via `tests/shell_ci.bats` abgesichert):
+- CI lokal ausführen (gespiegelt durch GitHub Actions, via
+  `tests/shell_ci.bats` abgesichert):
 
   ```bash
   bash -n $(git ls-files '*.sh' '*.bash')
@@ -211,8 +212,10 @@ stehen in [docs/readiness.md](docs/readiness.md). Ergänzend erklärt
   ```
 
 - Devcontainer-Hinweis: kombiniere die Installation mit dem Sync, z. B.
-  `"postCreateCommand": "bash -lc '.devcontainer/setup.sh ensure-uv && ~/.local/bin/uv sync'"`.
-- Für regulierte Umgebungen kann die Installation statt `curl | sh` über gepinnte Paketquellen erfolgen.
+  `"postCreateCommand": "bash -lc '.devcontainer/setup.sh ensure-uv &&
+  ~/.local/bin/uv sync'"`.
+- Für regulierte Umgebungen kann die Installation statt `curl | sh`
+  über gepinnte Paketquellen erfolgen.
 - Weitere Hintergründe stehen in
   [docs/ADR-0002__python-env-manager-uv.de.md](
   docs/ADR-0002__python-env-manager-uv.de.md) und im
@@ -349,17 +352,21 @@ jobs:
   [englischer Kurzfassung](docs/Runbook.en.md) für internationales Onboarding.
 - **Glossar (DE/EN):** [docs/Glossar.de.md](docs/Glossar.de.md) sowie
   [docs/Glossary.en.md](docs/Glossary.en.md) erklären Schlüsselbegriffe.
-- **Befehlsreferenz:** [docs/Command-Reference.de.md](docs/Command-Reference.de.md) listet alle
-  `wgx`-Subcommands samt Optionen.
-- **Module & Vorlagen:** [docs/Module-Uebersicht.de.md](docs/Module-Uebersicht.de.md) beschreibt Aufbau
-  und Zweck von `modules/`, `lib/`, `etc/` und `templates/`.
+- **Befehlsreferenz:**
+  [docs/Command-Reference.de.md](docs/Command-Reference.de.md) listet
+  alle `wgx`-Subcommands samt Optionen.
+- **Module & Vorlagen:**
+  [docs/Module-Uebersicht.de.md](docs/Module-Uebersicht.de.md)
+  beschreibt Aufbau und Zweck von `modules/`, `lib/`, `etc/` und
+  `templates/`.
 
 ## Vision & Manifest
 
 Für die vollständige, integrierte Produktvision („Repo-Betriebssystem“) lies
 **[docs/wgx-mycelium-v-omega.de.md](docs/wgx-mycelium-v-omega.de.md)**.
 Sie bündelt Bedienkanon, Fleet, Memory, Policies, Offline, Registry und Roadmap.
-WGX macht Abläufe reproduzierbar, erklärt Policies und liefert Evidence-Packs für PRs –
+WGX macht Abläufe reproduzierbar, erklärt Policies und liefert
+Evidence-Packs für PRs –
 im Einzelrepo und in der Fleet.
 
 ## Konfiguration
