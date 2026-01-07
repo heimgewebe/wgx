@@ -352,12 +352,13 @@ jobs:
   [englischer Kurzfassung](docs/Runbook.en.md) für internationales Onboarding.
 - **Glossar (DE/EN):** [docs/Glossar.de.md](docs/Glossar.de.md) sowie
   [docs/Glossary.en.md](docs/Glossary.en.md) erklären Schlüsselbegriffe.
-- **Befehlsreferenz:** [docs/Command-Reference.de.md]\
-(docs/Command-Reference.de.md) listet alle
-  `wgx`-Subcommands samt Optionen.
-- **Module & Vorlagen:** [docs/Module-Uebersicht.de.md]\
-(docs/Module-Uebersicht.de.md) beschreibt Aufbau
-  und Zweck von `modules/`, `lib/`, `etc/` und `templates/`.
+- **Befehlsreferenz:**
+  [docs/Command-Reference.de.md](docs/Command-Reference.de.md) listet
+  alle `wgx`-Subcommands samt Optionen.
+- **Module & Vorlagen:**
+  [docs/Module-Uebersicht.de.md](docs/Module-Uebersicht.de.md)
+  beschreibt Aufbau und Zweck von `modules/`, `lib/`, `etc/` und
+  `templates/`.
 
 ## Vision & Manifest
 

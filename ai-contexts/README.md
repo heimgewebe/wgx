@@ -12,7 +12,6 @@ Wo anfangen? Was ist tabu?
   WGX-Profil/Guard/Smoke implizieren.
 - **Grenzen explizit**: Was dieses Repo *nicht* macht (damit Agenten
   nicht "kreativ falsch" werden).
-  nicht "kreativ falsch" werden).
 
 ## Version
 
