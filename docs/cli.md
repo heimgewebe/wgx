@@ -324,7 +324,10 @@ Description:
 
 Options:
   -h, --help    Diese Hilfe anzeigen.
-  --dry-run     Zeigt an, was ausgeführt würde, ohne es zu tun.
+  -n, --dry-run Zeigt an, was ausgeführt würde, ohne es zu tun.
+
+Note:
+  Unbekannte Optionen werden von wgx run abgelehnt.
 
 Examples:
   wgx run test
