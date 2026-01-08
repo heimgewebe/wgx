@@ -25,7 +25,10 @@ Description:
 
 Options:
   -h, --help    Diese Hilfe anzeigen.
-  --dry-run     Zeigt an, was ausgeführt würde, ohne es zu tun.
+  -n, --dry-run Zeigt an, was ausgeführt würde, ohne es zu tun.
+
+Note:
+  Unbekannte Optionen werden von wgx run abgelehnt.
 
 Examples:
   wgx run test
@@ -34,6 +37,26 @@ Examples:
 USAGE
     return 0
   fi
+
+  local dryrun=0
+  while (($#)); do
+    case "$1" in
+    -n | --dry-run)
+      dryrun=1
+      shift
+      ;;
+    --)
+      shift
+      break
+      ;;
+    -*)
+      die "Unknown option: $1"
+      ;;
+    *)
+      break
+      ;;
+    esac
+  done
 
   _check_python_runtime
 
@@ -52,5 +75,9 @@ USAGE
   fi
 
   # Führt den Task aus
-  profile::run_task "$@"
+  if ((dryrun)); then
+    DRYRUN=1 profile::run_task "$@"
+  else
+    profile::run_task "$@"
+  fi
 }

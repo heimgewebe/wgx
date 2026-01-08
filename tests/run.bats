@@ -38,3 +38,26 @@ YAML
   assert_failure
   assert_output --partial "Task not defined: does-not-exist"
 }
+
+@test "run: parses -n and produces DRY-RUN output" {
+  run wgx run -n echoit -- foo "bar baz"
+  assert_success
+  assert_output --partial "[DRY-RUN]"
+  assert_output --partial "echo"
+  assert_output --partial "foo"
+  assert_output --partial "bar baz"
+}
+
+@test "run: parses --dry-run and produces DRY-RUN output" {
+  run wgx run --dry-run echoit -- foo
+  assert_success
+  assert_output --partial "[DRY-RUN]"
+  assert_output --partial "echo"
+  assert_output --partial "foo"
+}
+
+@test "run: rejects unknown options" {
+  run wgx run --nope 2>&1
+  assert_failure
+  assert_output --partial "Unknown option: --nope"
+}
