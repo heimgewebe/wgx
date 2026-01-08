@@ -215,8 +215,8 @@ stehen in [docs/readiness.md](docs/readiness.md). Ergänzend erklärt
 - Für regulierte Umgebungen kann die Installation statt `curl | sh` über
   gepinnte Paketquellen erfolgen.
 - Weitere Hintergründe stehen in
-  [docs/ADR-0002__python-env-manager-uv.de.md]\
-(docs/ADR-0002__python-env-manager-uv.de.md) und im
+  [docs/ADR-0002__python-env-manager-uv.de.md](docs/ADR-0002__python-env-manager-uv.de.md)
+  und im
   [Runbook](docs/Runbook.de.md#leitfaden-von-requirementstxt-zu-uv).
 
 ## Kommandos
@@ -350,11 +350,10 @@ jobs:
   [englischer Kurzfassung](docs/Runbook.en.md) für internationales Onboarding.
 - **Glossar (DE/EN):** [docs/Glossar.de.md](docs/Glossar.de.md) sowie
   [docs/Glossary.en.md](docs/Glossary.en.md) erklären Schlüsselbegriffe.
-- **Befehlsreferenz:** [docs/Command-Reference.de.md]\
-(docs/Command-Reference.de.md) listet alle `wgx`-Subcommands samt Optionen.
-- **Module & Vorlagen:** [docs/Module-Uebersicht.de.md]\
-(docs/Module-Uebersicht.de.md) beschreibt Aufbau und Zweck von `modules/`,
-  `lib/`, `etc/` und `templates/`.
+- **Befehlsreferenz:** [docs/Command-Reference.de.md](docs/Command-Reference.de.md)
+  listet alle `wgx`-Subcommands samt Optionen.
+- **Module & Vorlagen:** [docs/Module-Uebersicht.de.md](docs/Module-Uebersicht.de.md)
+  beschreibt Aufbau und Zweck von `modules/`, `lib/`, `etc/` und `templates/`.
 
 ## Vision & Manifest
 
@@ -450,5 +449,5 @@ sowie im Zielbild
 [organismus]: https://github.com/heimgewebe/metarepo/blob/main/docs/system/heimgewebe-organismus.md
 [zielbild]: https://github.com/heimgewebe/metarepo/blob/main/docs/system/heimgewebe-zielbild.md
 
-Alle Rollen-Definitionen, Datenflüsse und Contract-Zuordnungen dieses Repos  
+Alle Rollen-Definitionen, Datenflüsse und Contract-Zuordnungen dieses Repos
 sind dort verankert.
