@@ -1,6 +1,6 @@
-![WGX Status Badge](https://img.shields.io/badge/wgx-enabled-blue "WGX Status Badge")
-
 # wgx – Weltgewebe CLI
+
+![WGX Badge](https://img.shields.io/badge/wgx-enabled-blue)
 
 Eigenständiges CLI für Git-/Repo-Workflows (Termux, WSL, Linux, macOS).
 License: MIT; intended for internal use but repository is publicly visible.
@@ -8,14 +8,12 @@ License: MIT; intended for internal use but repository is publicly visible.
 ## Lizenz & Nutzung
 
 Dieses Repository steht unter der **MIT-Lizenz** (siehe `./LICENSE`).
-Die Lizenzdatei bleibt **unverändert**, damit gängige Tools die Lizenz
-korrekt erkennen.
+Die Lizenzdatei bleibt **unverändert**, damit gängige Tools die Lizenz korrekt erkennen.
 
-**Beabsichtigte Nutzung:** WGX ist primär für den internen Einsatz
-innerhalb der heimgewebe-Ökosphäre gedacht, das Repository ist jedoch
-öffentlich sichtbar. Diese Klarstellung ändert **nicht** die Lizenzrechte,
-sondern dient nur der Transparenz bezüglich Support-Erwartungen und
-Projektfokus.
+**Beabsichtigte Nutzung:** WGX ist primär für den internen Einsatz innerhalb der
+heimgewebe-Ökosphäre gedacht, das Repository ist jedoch öffentlich sichtbar.
+Diese Klarstellung ändert **nicht** die Lizenzrechte, sondern dient nur der
+Transparenz bezüglich Support-Erwartungen und Projektfokus.
 
 **Hinweis für Beiträge/Dateiköpfe:** In neuen Dateien bitte nach Möglichkeit den
 SPDX-Kurzidentifier verwenden, z. B.:
@@ -55,25 +53,22 @@ wgx send "feat: initial test run"
 
 ### `wgx clean`
 
-`wgx clean` räumt temporäre Dateien im Workspace auf. Standardmäßig
-werden nur sichere Caches entfernt (`--safe`). Weitere Modi lassen sich
-kombinieren:
+`wgx clean` räumt temporäre Dateien im Workspace auf. Standardmäßig werden
+nur sichere Caches entfernt (`--safe`). Weitere Modi lassen sich kombinieren:
 
-- `--build` löscht Build-Artefakte wie `dist/`, `build/`, `.venv/`,
-  `.uv/` usw.
-- `--git` räumt gemergte Branches sowie Remote-Referenzen auf.
-  Funktioniert nur in einem sauberen Git-Arbeitsverzeichnis.
-- `--deep` führt ein destruktives `git clean -xfd` aus und benötigt
-  zusätzlich `--force`. Ein sauberer Git-Tree ist Pflicht.
-- `--dry-run` zeigt alle Schritte nur an – ideal, um vor destruktiven
-  Varianten zu prüfen, was passieren würde.
+- `--build` löscht Build-Artefakte wie `dist/`, `build/`, `.venv/`, `.uv/` usw.
+- `--git` räumt gemergte Branches sowie Remote-Referenzen auf. Funktioniert nur
+  in einem sauberen Git-Arbeitsverzeichnis.
+- `--deep` führt ein destruktives `git clean -xfd` aus und benötigt zusätzlich
+  `--force`. Ein sauberer Git-Tree ist Pflicht.
+- `--dry-run` zeigt alle Schritte nur an – ideal, um vor destruktiven Varianten
+  zu prüfen, was passieren würde.
 
-💡 Tipp: `wgx clean --dry-run --git` hilft beim schnellen Check,
-welche Git-Aufräumarbeiten anstehen. Sobald der Tree sauber ist, kann
+💡 Tipp: `wgx clean --dry-run --git` hilft beim schnellen Check, welche
+Git-Aufräumarbeiten anstehen. Sobald der Tree sauber ist, kann
 `wgx clean --git` (oder `--deep --force`) sicher laufen.
 
-Falls ein Befehl unbekannt ist, kannst du die verfügbaren Subcommands
-auflisten:
+Falls ein Befehl unbekannt ist, kannst du die verfügbaren Subcommands auflisten:
 
 ```bash
 wgx --list 2>/dev/null || wgx commands 2>/dev/null || ls -1 cmd/
@@ -82,20 +77,18 @@ wgx --list 2>/dev/null || wgx commands 2>/dev/null || ls -1 cmd/
 ### `wgx run`
 
 `wgx run` führt Tasks aus, die in `.wgx/profile.yml` hinterlegt sind.
-Der Aufruf ist bewusst deckungsgleich mit den bestehenden
-Profil-Parsern:
+Der Aufruf ist bewusst deckungsgleich mit den bestehenden Profil-Parsern:
 
 ```bash
 wgx run [--dry-run|-n] <task> [--] [args...]
 ```
 
-- `--dry-run` zeigt nur an, was ausgeführt würde. Die Ausgabe beginnt
-  mit `[DRY-RUN]` und zitiert Argumente POSIX-kompatibel.
-- Argumente nach einem `--` werden unverändert an den Task
-  weitergegeben.
+- `--dry-run` zeigt nur an, was ausgeführt würde. Die Ausgabe beginnt mit
+  `[DRY-RUN]` und zitiert Argumente POSIX-kompatibel.
+- Argumente nach einem `--` werden unverändert an den Task weitergegeben.
 - Plattform-Varianten (`linux`, `darwin`, `win32`, `default`) werden
-  automatisch aufgelöst – `wgx run build` nimmt beispielsweise
-  `cmd.linux`, fällt sonst auf `cmd.default` zurück.
+  automatisch aufgelöst – `wgx run build` nimmt beispielsweise `cmd.linux`,
+  fällt sonst auf `cmd.default` zurück.
 
 Beispiele:
 
@@ -112,15 +105,13 @@ wgx run build
 
 ## WGX Readiness
 
-Der Workflow [`wgx-guard`](.github/workflows/wgx-guard.yml) generiert
-pro Lauf eine Readiness-Matrix und veröffentlicht sie als Artefakte
-(`readiness.json`, `readiness-table.md`, `readiness-badge.svg`).
-Die Dateien werden nicht versioniert, um Git-Lärm zu vermeiden. Du findest
-sie im neuesten erfolgreichen CI-Lauf oder lokal nach
-`./scripts/gen-readiness.sh`; Details stehen in
-[docs/readiness.md](docs/readiness.md). Ergänzend erklärt
-[docs/audit-ledger.md](docs/audit-ledger.md) die Audit-Logs und
-Beispiele.
+Der Workflow [`wgx-guard`](.github/workflows/wgx-guard.yml) generiert pro Lauf
+eine Readiness-Matrix und veröffentlicht sie als Artefakte (`readiness.json`,
+`readiness-table.md`, `readiness-badge.svg`). Die Dateien werden nicht
+versioniert, um Git-Lärm zu vermeiden. Du findest sie im neuesten
+erfolgreichen CI-Lauf oder lokal nach `./scripts/gen-readiness.sh`; Details
+stehen in [docs/readiness.md](docs/readiness.md). Ergänzend erklärt
+[docs/audit-ledger.md](docs/audit-ledger.md) die Audit-Logs und Beispiele.
 
 ## Entwicklungs-Schnellstart
 
@@ -139,9 +130,9 @@ Beispiele.
 
   ```bash
   scripts/wgx-metrics-snapshot.sh --json --output metrics.json
-  npx --yes ajv-cli@5 validate \
-    -s "https://raw.githubusercontent.com/heimgewebe/metarepo/contracts-v1/contracts/wgx/metrics.json" \
-    -d metrics.json
+  SCHEMA="https://raw.githubusercontent.com/heimgewebe/metarepo"
+  SCHEMA="$SCHEMA/contracts-v1/contracts/wgx/metrics.json"
+  npx --yes ajv-cli@5 validate -s "$SCHEMA" -d metrics.json
   ```
 
 - Node.js tooling ist nicht erforderlich; npm-/pnpm-Workflows sind
@@ -185,8 +176,7 @@ Beispiele.
   erzeugt kompatible Artefakte.
 - Wer eine alternative Toolchain benötigt, kann in `profile.yml` auf
   `manager: pip` zurückfallen.
-- `python.version` akzeptiert exakte Versionen (`3.12`) oder Bereiche
-  (`3.12.*`).
+- `python.version` akzeptiert exakte Versionen (`3.12`) oder Bereiche (`3.12.*`).
 
 - CI-Empfehlung (GitHub Actions, gekürzt):
 
@@ -219,14 +209,14 @@ Beispiele.
   wgx py run pytest -q
   ```
 
-- Devcontainer-Hinweis: kombiniere die Installation mit dem Sync, z. B.
-  `"postCreateCommand": "bash -lc '.devcontainer/setup.sh ensure-uv &&
-  ~/.local/bin/uv sync'"`.
-- Für regulierte Umgebungen kann die Installation statt `curl | sh`
-  über gepinnte Paketquellen erfolgen.
+- Devcontainer-Hinweis: kombiniere Installation mit Sync, indem
+  `postCreateCommand` so gesetzt wird:
+  `"bash -lc '.devcontainer/setup.sh ensure-uv && ~/.local/bin/uv sync'"`.
+- Für regulierte Umgebungen kann die Installation statt `curl | sh` über
+  gepinnte Paketquellen erfolgen.
 - Weitere Hintergründe stehen in
-  [docs/ADR-0002__python-env-manager-uv.de.md](
-  docs/ADR-0002__python-env-manager-uv.de.md) und im
+  [docs/ADR-0002__python-env-manager-uv.de.md](docs/ADR-0002__python-env-manager-uv.de.md)
+  und im
   [Runbook](docs/Runbook.de.md#leitfaden-von-requirementstxt-zu-uv).
 
 ## Kommandos
@@ -236,17 +226,15 @@ Beispiele.
 Destruktiv: setzt den Workspace hart auf `origin/$WGX_BASE` zurück
 (`git reset --hard` + `git clean -fdx`).
 
-- Bricht ab, wenn das Arbeitsverzeichnis nicht sauber ist (außer mit
-  `--force`).
-- Mit `--dry-run` werden nur die Schritte angezeigt, ohne etwas zu
-  verändern.
+- Bricht ab, wenn das Arbeitsverzeichnis nicht sauber ist (außer mit `--force`).
+- Mit `--dry-run` werden nur die Schritte angezeigt, ohne etwas zu verändern.
 - Optional sichert `--snapshot` vorher in einen Git-Stash.
 
 **Alias**: `sync-remote`.
 
 ## Repository-Layout
 
-```text
+```plaintext
 .
 ├─ cli/                 # Einstieg: ./cli/wgx (Dispatcher)
 ├─ cmd/                 # EIN Subcommand = EINE Datei
@@ -362,13 +350,10 @@ jobs:
   [englischer Kurzfassung](docs/Runbook.en.md) für internationales Onboarding.
 - **Glossar (DE/EN):** [docs/Glossar.de.md](docs/Glossar.de.md) sowie
   [docs/Glossary.en.md](docs/Glossary.en.md) erklären Schlüsselbegriffe.
-- **Befehlsreferenz:**
-  [docs/Command-Reference.de.md](docs/Command-Reference.de.md) listet
-  alle `wgx`-Subcommands samt Optionen.
-- **Module & Vorlagen:**
-  [docs/Module-Uebersicht.de.md](docs/Module-Uebersicht.de.md)
-  beschreibt Aufbau und Zweck von `modules/`, `lib/`, `etc/` und
-  `templates/`.
+- **Befehlsreferenz:** [docs/Command-Reference.de.md](docs/Command-Reference.de.md)
+  listet alle `wgx`-Subcommands samt Optionen.
+- **Module & Vorlagen:** [docs/Module-Uebersicht.de.md](docs/Module-Uebersicht.de.md)
+  beschreibt Aufbau und Zweck von `modules/`, `lib/`, `etc/` und `templates/`.
 
 ## Vision & Manifest
 
@@ -376,8 +361,7 @@ Für die vollständige, integrierte Produktvision („Repo-Betriebssystem“) li
 **[docs/wgx-mycelium-v-omega.de.md](docs/wgx-mycelium-v-omega.de.md)**.
 Sie bündelt Bedienkanon, Fleet, Memory, Policies, Offline, Registry und Roadmap.
 WGX macht Abläufe reproduzierbar, erklärt Policies und liefert
-Evidence-Packs für PRs –
-im Einzelrepo und in der Fleet.
+Evidence-Packs für PRs – im Einzelrepo und in der Fleet.
 
 ## Konfiguration
 
@@ -448,8 +432,8 @@ gebündelt.
 
 ## Architekturhinweis — nur modulare Struktur
 
-Seit 2025-09-25 ist die modulare Struktur verbindlich (`cli/`, `cmd/`,
-`lib/`, `etc/`, `modules/`). Der alte Monolith wurde archiviert:
+Seit 2025-09-25 ist die modulare Struktur verbindlich (`cli/`, `cmd/`, `lib/`,
+`etc/`, `modules/`). Der alte Monolith wurde archiviert:
 `docs/archive/wgx_monolith_*.md`.
 
 ## Organismus-Kontext
