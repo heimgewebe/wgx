@@ -66,8 +66,10 @@ Usage:
 Options:
   --safe       Entfernt temporäre Cache-Verzeichnisse (Standard).
   --build      Löscht Build-Artefakte (dist, build, target, ...).
-  --git        Räumt gemergte Branches und Remote-Referenzen auf (nur sauberer Git-Tree).
-  --deep       Führt ein destruktives `git clean -xfd` aus (erfordert --force, nur sauberer Git-Tree).
+  --git        Räumt gemergte Branches und Remote-Referenzen auf
+               (nur sauberer Git-Tree).
+  --deep       Führt ein destruktives `git clean -xfd` aus
+               (erfordert --force, nur sauberer Git-Tree).
   --dry-run    Zeigt nur an, was passieren würde.
   --force      Bestätigt destruktive Operationen (für --deep).
 • Nichts zu tun.
@@ -122,7 +124,8 @@ Usage:
 
 Description:
   Führt eine Reihe von Sicherheits- und Qualitätsprüfungen für das Repository aus.
-  Dies ist ein Sicherheitsnetz, das vor dem Erstellen eines Pull Requests ausgeführt wird.
+  Dies ist ein Sicherheitsnetz, das vor dem Erstellen eines Pull
+  Requests ausgeführt wird.
   Standardmäßig werden sowohl Linting als auch Tests ausgeführt.
 
 Checks:
@@ -142,7 +145,8 @@ Options:
 
 ```text
 Usage:
-  wgx heal [rebase|ours|theirs|ff-only] [--stash] [--continue] [--abort] [--base <branch>]
+  wgx heal [rebase|ours|theirs|ff-only] [--stash] [--continue]
+           [--abort] [--base <branch>]
 
 Description:
   Löst Konflikte oder führt ein Rebase auf den Basis-Branch durch.
