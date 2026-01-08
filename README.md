@@ -1,6 +1,6 @@
-![WGX Badge](https://img.shields.io/badge/wgx-enabled-blue)
-
 # wgx – Weltgewebe CLI
+
+![WGX Badge](https://img.shields.io/badge/wgx-enabled-blue)
 
 Eigenständiges CLI für Git-/Repo-Workflows (Termux, WSL, Linux, macOS).
 License: MIT; intended for internal use but repository is publicly visible.
@@ -116,7 +116,8 @@ stehen in [docs/readiness.md](docs/readiness.md). Ergänzend erklärt
 ## Entwicklungs-Schnellstart
 
 - In VS Code öffnen → „Reopen in Container“
-- CI lokal ausführen (gespiegelt durch GitHub Actions, via `tests/shell_ci.bats` abgesichert):
+- CI lokal ausführen (gespiegelt durch GitHub Actions, via
+  `tests/shell_ci.bats` abgesichert):
 
   ```bash
   bash -n $(git ls-files '*.sh' '*.bash')
@@ -129,9 +130,9 @@ stehen in [docs/readiness.md](docs/readiness.md). Ergänzend erklärt
 
   ```bash
   scripts/wgx-metrics-snapshot.sh --json --output metrics.json
-  npx --yes ajv-cli@5 validate \
-    -s "https://raw.githubusercontent.com/heimgewebe/metarepo/contracts-v1/contracts/wgx/metrics.json" \
-    -d metrics.json
+  SCHEMA="https://raw.githubusercontent.com/heimgewebe/metarepo"
+  SCHEMA="$SCHEMA/contracts-v1/contracts/wgx/metrics.json"
+  npx --yes ajv-cli@5 validate -s "$SCHEMA" -d metrics.json
   ```
 
 - Node.js tooling ist nicht erforderlich; npm-/pnpm-Workflows sind
@@ -208,11 +209,14 @@ stehen in [docs/readiness.md](docs/readiness.md). Ergänzend erklärt
   wgx py run pytest -q
   ```
 
-- Devcontainer-Hinweis: kombiniere die Installation mit dem Sync, z. B.
-  `"postCreateCommand": "bash -lc '.devcontainer/setup.sh ensure-uv && ~/.local/bin/uv sync'"`.
-- Für regulierte Umgebungen kann die Installation statt `curl | sh` über gepinnte Paketquellen erfolgen.
+- Devcontainer-Hinweis: kombiniere Installation mit Sync, indem
+  `postCreateCommand` so gesetzt wird:
+  `"bash -lc '.devcontainer/setup.sh ensure-uv && ~/.local/bin/uv sync'"`.
+- Für regulierte Umgebungen kann die Installation statt `curl | sh` über
+  gepinnte Paketquellen erfolgen.
 - Weitere Hintergründe stehen in
-  [docs/ADR-0002__python-env-manager-uv.de.md](docs/ADR-0002__python-env-manager-uv.de.md) und im
+  [docs/ADR-0002__python-env-manager-uv.de.md]\
+(docs/ADR-0002__python-env-manager-uv.de.md) und im
   [Runbook](docs/Runbook.de.md#leitfaden-von-requirementstxt-zu-uv).
 
 ## Kommandos
@@ -346,17 +350,19 @@ jobs:
   [englischer Kurzfassung](docs/Runbook.en.md) für internationales Onboarding.
 - **Glossar (DE/EN):** [docs/Glossar.de.md](docs/Glossar.de.md) sowie
   [docs/Glossary.en.md](docs/Glossary.en.md) erklären Schlüsselbegriffe.
-- **Befehlsreferenz:** [docs/Command-Reference.de.md](docs/Command-Reference.de.md) listet alle
-  `wgx`-Subcommands samt Optionen.
-- **Module & Vorlagen:** [docs/Module-Uebersicht.de.md](docs/Module-Uebersicht.de.md) beschreibt Aufbau
-  und Zweck von `modules/`, `lib/`, `etc/` und `templates/`.
+- **Befehlsreferenz:** [docs/Command-Reference.de.md]\
+(docs/Command-Reference.de.md) listet alle `wgx`-Subcommands samt Optionen.
+- **Module & Vorlagen:** [docs/Module-Uebersicht.de.md]\
+(docs/Module-Uebersicht.de.md) beschreibt Aufbau und Zweck von `modules/`,
+  `lib/`, `etc/` und `templates/`.
 
 ## Vision & Manifest
 
 Für die vollständige, integrierte Produktvision („Repo-Betriebssystem“) lies
 **[docs/wgx-mycelium-v-omega.de.md](docs/wgx-mycelium-v-omega.de.md)**.
 Sie bündelt Bedienkanon, Fleet, Memory, Policies, Offline, Registry und Roadmap.
-WGX macht Abläufe reproduzierbar, erklärt Policies und liefert Evidence-Packs für PRs – im Einzelrepo und in der Fleet.
+WGX macht Abläufe reproduzierbar, erklärt Policies und liefert
+Evidence-Packs für PRs – im Einzelrepo und in der Fleet.
 
 ## Konfiguration
 
