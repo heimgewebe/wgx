@@ -498,7 +498,8 @@ def main():
                 )
                 sys.exit(3)
             norm_to_name[norm] = name
-            # Create a bash-safe variable name by replacing dashes with underscores
+            # Create a bash-safe variable name (bash variable names cannot contain dashes)
+            # by replacing dashes with underscores for flat variable naming
             safe_name = norm.replace('-', '_')
             if norm not in seen_task_order:
                 emit(f"WGX_TASK_ORDER+=({shell_quote(norm)})")
