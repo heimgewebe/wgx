@@ -104,10 +104,12 @@ profile::_abspath() {
 
 profile::_normalize_task_name() {
   local name="${1:-}"
-  name="${name// /}"                          # remove spaces
-  name="${name//_/-}"                         # normalize underscores to dashes
-  name="$(printf '%s' "$name" | tr -s '-')"   # collapse repeated dashes
+  name="${name// /}"                        # remove spaces
+  name="${name//_/-}"                       # normalize underscores to dashes
+  name="$(printf '%s' "$name" | tr -s '-')" # collapse repeated dashes
   printf '%s' "${name,,}"
+  # Note: This normalization must stay synchronized with profile_parser.py's implementation
+  # which uses re.sub(r'-+', '-', name.replace(' ', '').replace('_', '-').lower())
 }
 
 profile::_parser_line_is_safe() {

@@ -498,6 +498,9 @@ def main():
                 )
                 sys.exit(3)
             norm_to_name[norm] = name
+            # Create a bash-safe variable name (bash variable names cannot contain dashes)
+            # by replacing dashes with underscores for flat variable naming
+            safe_name = norm.replace('-', '_')
             if norm not in seen_task_order:
                 emit(f"WGX_TASK_ORDER+=({shell_quote(norm)})")
                 seen_task_order.add(norm)
@@ -549,7 +552,7 @@ def main():
                     tokens.extend(appended_args)
                 payload = json.dumps(tokens, ensure_ascii=False)
                 # Use flat variable naming to avoid array syntax
-                emit(f"WGX_TASK_CMDS_{norm}={shell_quote('ARRJSON:' + payload)}")
+                emit(f"WGX_TASK_CMDS_{safe_name}={shell_quote('ARRJSON:' + payload)}")
             else:
                 command_parts = []
                 if base_cmd is not None:
@@ -561,10 +564,10 @@ def main():
                     all_parts = tokens + appended_args
                     command = ' '.join(shlex.quote(str(p)) for p in all_parts)
                 # Use flat variable naming to avoid array syntax
-                emit(f"WGX_TASK_CMDS_{norm}={shell_quote('STR:' + command)}")
-            emit(f"WGX_TASK_DESC_{norm}={shell_quote(str(desc))}")
-            emit(f"WGX_TASK_GROUP_{norm}={shell_quote(str(group))}")
-            emit(f"WGX_TASK_SAFE_{norm}={shell_quote('1' if safe else '0')}")
+                emit(f"WGX_TASK_CMDS_{safe_name}={shell_quote('STR:' + command)}")
+            emit(f"WGX_TASK_DESC_{safe_name}={shell_quote(str(desc))}")
+            emit(f"WGX_TASK_GROUP_{safe_name}={shell_quote(str(group))}")
+            emit(f"WGX_TASK_SAFE_{safe_name}={shell_quote('1' if safe else '0')}")
             continue
 
     if used_root_fallback and os.environ.get("WGX_PROFILE_DEPRECATION", "warn") != "quiet":
