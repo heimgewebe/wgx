@@ -9,6 +9,7 @@ It does NOT support the full YAML specification (e.g. flow style, complex keys, 
 import ast
 import json
 import os
+import re
 import shlex
 import sys
 from typing import Any, Dict, List
@@ -472,7 +473,6 @@ def main():
                             steps.append(str(task_name))
             # Use flat variable naming to avoid array syntax
             # Sanitize workflow name to create a valid variable suffix
-            import re
             safe_name = re.sub(r'[^A-Za-z0-9_]', '_', str(wf_name))
             emit(f"WGX_WORKFLOW_TASKS_{safe_name}={shell_quote(' '.join(steps))}")
 
@@ -483,9 +483,21 @@ def main():
             used_root_fallback = True
     if isinstance(tasks, dict):
         seen_task_order = set()
+        norm_to_name: Dict[str, str] = {}
         for raw_name, spec in tasks.items():
             name = str(raw_name)
-            norm = name.replace(' ', '').replace('-', '_').lower()
+            norm = re.sub(r'-+', '-', name.replace(' ', '').replace('_', '-').lower())
+            if norm in norm_to_name and norm_to_name[norm] != name:
+                sys.stderr.write(
+                    "wgx: error: task name collision after normalization: "
+                    f"'{norm_to_name[norm]}' vs '{name}'\n"
+                )
+                sys.stderr.write(
+                    "wgx: error: task names normalize by removing spaces and "
+                    "treating '_' as '-'. Rename one task to avoid ambiguity.\n"
+                )
+                sys.exit(3)
+            norm_to_name[norm] = name
             if norm not in seen_task_order:
                 emit(f"WGX_TASK_ORDER+=({shell_quote(norm)})")
                 seen_task_order.add(norm)

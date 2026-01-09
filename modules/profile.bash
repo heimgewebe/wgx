@@ -104,8 +104,9 @@ profile::_abspath() {
 
 profile::_normalize_task_name() {
   local name="${1:-}"
-  name="${name// /}"                        # remove spaces
-  name="$(printf '%s' "$name" | tr -s '-')" # collapse repeated dashes
+  name="${name// /}"                          # remove spaces
+  name="${name//_/-}"                         # normalize underscores to dashes
+  name="$(printf '%s' "$name" | tr -s '-')"   # collapse repeated dashes
   printf '%s' "${name,,}"
 }
 
