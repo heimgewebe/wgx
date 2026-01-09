@@ -4,8 +4,15 @@
       "line_length": 120,
       "heading_line_length": 120,
       "code_block_line_length": 120,
-      "tables": false
+      "code_blocks": false,
+      "tables": false,
+      "headings": true,
+      "strict": false,
+      "stern": false
     },
-    "MD041": false
+    "MD033": false,
+    "MD040": false,
+    "MD041": false,
+    "MD045": false
   }
 }
