@@ -45,7 +45,7 @@ class TestProfileParser(unittest.TestCase):
     def test_integration_quoted_keys(self):
         """Test full parsing of quoted keys via _parse_simple_yaml."""
         # Create a temp file
-        with tempfile.NamedTemporaryFile(mode='w+', delete=False) as tmp:
+        with tempfile.NamedTemporaryFile(mode='w+', delete=False, suffix=".yml") as tmp:
             tmp.write('"key1": value1\n')
             tmp.write("'key2': value2\n")
             tmp.write("key3: value3\n")
@@ -99,6 +99,28 @@ class TestProfileParser(unittest.TestCase):
                     profile_parser.main()
                 self.assertEqual(cm.exception.code, 1)
                 self.assertIn("Usage:", mock_stderr.getvalue())
+
+    def test_task_name_collision(self):
+        """Task names that normalize to the same key should error."""
+        content = (
+            "wgx:\n"
+            "  tasks:\n"
+            "    foo-bar:\n"
+            "      cmd: echo foo\n"
+            "    foo_bar:\n"
+            "      cmd: echo bar\n"
+        )
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = os.path.join(tmp_dir, "profile.yml")
+            with open(tmp_path, "w", encoding="utf-8") as handle:
+                handle.write(content)
+            with patch.object(sys, 'argv', ['profile_parser.py', tmp_path]):
+                with patch('sys.stderr', new=io.StringIO()) as mock_stderr:
+                    with self.assertRaises(SystemExit) as cm:
+                        profile_parser.main()
+                    self.assertEqual(cm.exception.code, 3)
+                    stderr = mock_stderr.getvalue()
+                    self.assertIn("task name collision", stderr)
 
 if __name__ == '__main__':
     unittest.main()
