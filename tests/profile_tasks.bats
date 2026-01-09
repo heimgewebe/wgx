@@ -54,8 +54,6 @@ SH
 wgx:
   apiVersion: v1
   tasks:
-    BuildApp:
-      cmd: echo first
     buildapp:
       cmd: echo second
     Format:
@@ -152,7 +150,7 @@ printf 'double_hash_cmd=%s\n' "${WGX_TASK_CMDS["double-hash"]}"
 SH
   chmod +x "$helper_script"
 
-  run "$helper_script" "$REPO_ROOT" "$WORKDIR"
+  run env WGX_PROFILE_DEPRECATION=quiet "$helper_script" "$REPO_ROOT" "$WORKDIR"
   assert_success
   assert_line --index 0 -- "raw_cmd=STR:echo 'a # b' 'x y'"
   assert_line --index 1 -- "array_cmd=ARRJSON:[\"bash\", \"-lc\", \"echo ok\", \"--flag\"]"
