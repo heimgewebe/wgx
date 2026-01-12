@@ -504,9 +504,11 @@ profile::tasks_json() {
     fi
     desc="$(profile::_task_desc "$key")"
     group="$(profile::_task_group "$key")"
+    local safe_bool="false"
+    [[ $safe == 1 ]] && safe_bool="true"
     printf '%s{"name":"%s","desc":"%s","group":"%s","safe":%s}' \
       "$sep" "$(json_escape "$name")" "$(json_escape "$desc")" "$(json_escape "$group")" \
-      "$([[ $safe == 1 ]] && echo true || echo false)"
+      "$safe_bool"
     sep=','
     if ((include_groups)) && [[ -n $group ]]; then
       groups["$group"]=1
