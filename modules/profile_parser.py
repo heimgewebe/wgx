@@ -12,17 +12,18 @@ import os
 import re
 import shlex
 import sys
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional, Tuple, Union
 
+# --- YAML Parser (Minimal Subset) ---
 
 def _parse_scalar(value: str) -> Any:
     text = value.strip()
     if text == "":
         return ""
     lowered = text.lower()
-    if lowered in {"true", "yes"}:
+    if lowered in {"true", "yes", "on"}:
         return True
-    if lowered in {"false", "no"}:
+    if lowered in {"false", "no", "off"}:
         return False
     if lowered in {"null", "none", "~"}:
         return None
@@ -30,7 +31,6 @@ def _parse_scalar(value: str) -> Any:
         return ast.literal_eval(text)
     except Exception:
         return text
-
 
 def _convert_frame(frame: Dict[str, Any], kind: str) -> None:
     if frame["type"] == kind:
@@ -57,7 +57,6 @@ def _convert_frame(frame: Dict[str, Any], kind: str) -> None:
             parent[key] = new_value_dict
         frame["container"] = new_value_dict
         frame["type"] = "dict"
-
 
 def _strip_inline_comment(line: str) -> str:
     result: List[str] = []
@@ -93,25 +92,13 @@ def _strip_inline_comment(line: str) -> str:
             i += 1
             continue
         if ch == '#':
-            # Comments must be separated by whitespace (or start of line)
             if i == 0 or line[i - 1] in " \t":
                 break
         result.append(ch)
         i += 1
     return ''.join(result)
 
-
-def _split_key_value(text: str):
-    """
-    Splits a YAML line on the first unquoted colon.
-
-    Parameters:
-        text (str): The YAML line to parse.
-
-    Returns:
-        tuple[str, str] or None: A tuple of (key, value) if a colon is found outside of quotes,
-        or None if no such colon exists.
-    """
+def _split_key_value(text: str) -> Optional[Tuple[str, str]]:
     in_single = False
     in_double = False
     escape = False
@@ -149,9 +136,6 @@ def _split_key_value(text: str):
             i += 1
             continue
         if ch == ":":
-            # In block-style YAML, a key-value separator must be followed by a space
-            # or appear at the end of the line (e.g. "key:").
-            # A colon not followed by space (e.g. "http://example.com") is part of the string.
             if i + 1 >= length or text[i + 1] in " \t":
                 return text[:i], text[i + 1 :]
         i += 1
@@ -200,7 +184,7 @@ def _parse_simple_yaml(path: str) -> Any:
                     key, rest = split
                     key = key.strip().strip("'\"")
                     rest = rest.strip()
-                    item = {}  # type: Dict[str, Any]
+                    item = {}
                     container.append(item)
                     frame_item = {
                         "indent": indent,
@@ -256,7 +240,6 @@ def _parse_simple_yaml(path: str) -> Any:
 
     return root
 
-
 def _load_manifest(path: str) -> Any:
     _, ext = os.path.splitext(path)
     ext = ext.lower()
@@ -276,6 +259,7 @@ def _load_manifest(path: str) -> Any:
     with open(path, "r", encoding="utf-8") as handle:
         return json.load(handle) or {}
 
+# --- Platform Selection & Helpers ---
 
 platform_keys = []
 plat = sys.platform
@@ -289,7 +273,7 @@ elif plat.startswith('cygwin') or plat.startswith('msys'):
     platform_keys.append('win32')
 platform_keys.append('default')
 
-def select_variant(value):
+def select_variant(value: Any) -> Any:
     if isinstance(value, dict):
         for key in platform_keys:
             if key in value and value[key] not in (None, ''):
@@ -300,7 +284,7 @@ def select_variant(value):
         return None
     return value
 
-def as_bool(value):
+def as_bool(value: Any) -> bool:
     if isinstance(value, bool):
         return value
     if isinstance(value, int):
@@ -309,45 +293,83 @@ def as_bool(value):
         return value.strip().lower() in ("1", "true", "yes", "on")
     return False
 
-def normalize_list(value):
-    if value is None:
-        return []
-    if isinstance(value, (list, tuple)):
-        return [str(item) for item in value]
-    if isinstance(value, dict):
-        selected = select_variant(value)
-        if isinstance(selected, (list, tuple)):
-            return [str(item) for item in selected]
-        if selected is None:
-            return []
-        return [str(selected)]
-    return [str(value)]
-
 def emit(line: str) -> None:
     sys.stdout.write(f"{line}\n")
 
 def shell_quote(value: str) -> str:
     return shlex.quote(value)
 
-def emit_env(prefix: str, mapping):
+def emit_var(name: str, value: Any) -> None:
+    sval = '' if value is None else str(value)
+    emit(f"{name}={shell_quote(sval)}")
+
+def emit_env(prefix: str, mapping: Any) -> None:
     if not isinstance(mapping, dict):
         return
     for key, val in mapping.items():
         if key is None:
             continue
-        # env base/overrides werden 1:1 als STR übernommen
         skey = str(key)
-        sval = '' if val is None else str(val)
-        # Use flat variable naming to avoid array syntax
-        emit(f"{prefix}_{skey}={shell_quote(sval)}")
+        emit_var(f"{prefix}_{skey}", val)
 
-def emit_caps(caps):
+def emit_caps(caps: Any) -> None:
     if not isinstance(caps, (list, tuple)):
         return
     for cap in caps:
         if cap is None:
             continue
         emit(f"WGX_REQUIRED_CAPS+=({shell_quote(str(cap))})")
+
+# --- Configuration Logic ---
+
+def get_config(data: Dict, wgx: Dict, key: str, default: Any = None, aliases: Optional[List[str]] = None, check_type: Any = None) -> Tuple[Any, bool]:
+    """
+    Retrieves a configuration value with priority:
+    1. wgx[key]
+    2. wgx[alias] (for each alias)
+    3. root[key] (fallback)
+    4. root[alias] (fallback)
+
+    Returns (value, used_fallback_flag)
+    """
+    val = None
+    fallback = False
+
+    # Check wgx block
+    if isinstance(wgx, dict):
+        val = wgx.get(key)
+        if val is None and aliases:
+            for alias in aliases:
+                val = wgx.get(alias)
+                if val is not None:
+                    break
+
+    # Check root fallback
+    if val is None and isinstance(data, dict):
+        val = data.get(key)
+        if val is not None:
+            fallback = True
+        elif aliases:
+            for alias in aliases:
+                val = data.get(alias)
+                if val is not None:
+                    fallback = True
+                    break
+
+    if val is None:
+        val = default
+
+    # Optional type check (if value is found but wrong type, revert to default)
+    if check_type and val is not None:
+        if not isinstance(val, check_type):
+             # If root fallback failed type check, we don't count it as a valid usage?
+             # But here we just want to ensure we return a safe type.
+             # If we fell back to root and it was wrong type, we essentially didn't find a valid value.
+             if fallback:
+                 fallback = False # Reset flag if invalid
+             val = default
+
+    return val, fallback
 
 def main():
     if len(sys.argv) < 2:
@@ -361,214 +383,152 @@ def main():
     if not isinstance(wgx, dict):
         wgx = {}
 
-    # Backwards compatibility: allow certain keys (e.g. tasks) at the top level.
-    # Older profiles stored "tasks" directly on the root object. Newer profiles nest
-    # them inside the "wgx" block. We support both to avoid breaking existing
-    # repositories.
-    root_tasks = data.get('tasks') if isinstance(data, dict) else None
-    root_repo_kind = data.get('repoKind') if isinstance(data, dict) else None
-    root_dirs = data.get('dirs') if isinstance(data, dict) else None
-    root_env = data.get('env') if isinstance(data, dict) else None
-    root_env_defaults = data.get('envDefaults') if isinstance(data, dict) else None
-    root_env_overrides = data.get('envOverrides') if isinstance(data, dict) else None
-    root_workflows = data.get('workflows') if isinstance(data, dict) else None
-
-    # track if we used any root-level fallback (for a single deprecation note)
     used_root_fallback = False
 
-    api_version = ''
-    if isinstance(wgx, dict):
-        api_version = str(wgx.get('apiVersion') or '')
-    if not api_version and isinstance(data, dict):
-        api_version = str(data.get('apiVersion') or '')
-    if not api_version:
-        api_version = 'v1'
+    # apiVersion
+    api_version, _ = get_config(data, wgx, 'apiVersion', default='v1')
+    emit_var("PROFILE_VERSION", api_version)
 
-    emit(f"PROFILE_VERSION={shell_quote(api_version)}")
-    req = wgx.get('requiredWgx')
-
-    # Also check wgx['required-wgx'] specifically (alias inside wgx block)
-    # Priority: wgx.requiredWgx > wgx.required-wgx > root.requiredWgx > root.required-wgx
-    if req is None and isinstance(wgx, dict):
-        req = wgx.get('required-wgx')
-
-    # Fallback: check root 'requiredWgx' or 'required-wgx' if not in wgx block
-    if req is None and isinstance(data, dict):
-        req = data.get('requiredWgx')
-        if req is not None:
-            used_root_fallback = True
-
-    if req is None and isinstance(data, dict):
-        req = data.get('required-wgx')
-        if req is not None:
-            used_root_fallback = True
-
-    # Ensure we handle the case where both keys might exist but one is None/Empty
-    # Priority: wgx.requiredWgx > wgx.required-wgx > root.requiredWgx > root.required-wgx
-    # (The above logic roughly implements a "first found wins" strategy)
+    # requiredWgx (supports aliases)
+    req, fb = get_config(data, wgx, 'requiredWgx', aliases=['required-wgx'])
+    if fb: used_root_fallback = True
 
     if isinstance(req, str):
-        emit(f"WGX_REQUIRED_RANGE={shell_quote(req)}")
+        emit_var("WGX_REQUIRED_RANGE", req)
     elif isinstance(req, dict):
-        rng = req.get('range')
-        if rng:
-            emit(f"WGX_REQUIRED_RANGE={shell_quote(str(rng))}")
-        minimum = req.get('min')
-        if minimum:
-            emit(f"WGX_REQUIRED_MIN={shell_quote(str(minimum))}")
+        emit_var("WGX_REQUIRED_RANGE", req.get('range'))
+        emit_var("WGX_REQUIRED_MIN", req.get('min'))
         emit_caps(req.get('caps'))
     else:
         emit_caps([])
 
-    repo_kind = wgx.get('repoKind') if isinstance(wgx, dict) else None
-    if repo_kind is None:
-        repo_kind = root_repo_kind
-        if repo_kind is not None:
-            used_root_fallback = True
-    emit(f"WGX_REPO_KIND={shell_quote(str(repo_kind or ''))}")
+    # repoKind
+    repo_kind, fb = get_config(data, wgx, 'repoKind', default='')
+    if fb: used_root_fallback = True
+    emit_var("WGX_REPO_KIND", repo_kind)
 
-    dirs = wgx.get('dirs') if isinstance(wgx, dict) else None
-    if not isinstance(dirs, dict):
-        dirs = root_dirs if isinstance(root_dirs, dict) else {}
-        if dirs:
-            used_root_fallback = True
-    emit(f"WGX_DIR_WEB={shell_quote(str(dirs.get('web') or ''))}")
-    emit(f"WGX_DIR_API={shell_quote(str(dirs.get('api') or ''))}")
-    emit(f"WGX_DIR_DATA={shell_quote(str(dirs.get('data') or ''))}")
+    # dirs
+    dirs, fb = get_config(data, wgx, 'dirs', default={}, check_type=dict)
+    if fb: used_root_fallback = True
+    emit_var("WGX_DIR_WEB", dirs.get('web'))
+    emit_var("WGX_DIR_API", dirs.get('api'))
+    emit_var("WGX_DIR_DATA", dirs.get('data'))
 
-    env_defaults = wgx.get('envDefaults') if isinstance(wgx, dict) else None
-    if not isinstance(env_defaults, dict):
-        env_defaults = root_env_defaults if isinstance(root_env_defaults, dict) else {}
-        if env_defaults:
-            used_root_fallback = True
+    # envDefaults
+    env_defaults, fb = get_config(data, wgx, 'envDefaults', default={}, check_type=dict)
+    if fb: used_root_fallback = True
     emit_env('WGX_ENV_DEFAULT_MAP', env_defaults)
 
-    env_base = wgx.get('env') if isinstance(wgx, dict) else None
-    if not isinstance(env_base, dict):
-        env_base = root_env if isinstance(root_env, dict) else {}
-        if env_base:
-            used_root_fallback = True
+    # env (base)
+    env_base, fb = get_config(data, wgx, 'env', default={}, check_type=dict)
+    if fb: used_root_fallback = True
     emit_env('WGX_ENV_BASE_MAP', env_base)
 
-    env_overrides = wgx.get('envOverrides') if isinstance(wgx, dict) else None
-    if not isinstance(env_overrides, dict):
-        env_overrides = root_env_overrides if isinstance(root_env_overrides, dict) else {}
-        if env_overrides:
-            used_root_fallback = True
+    # envOverrides
+    env_overrides, fb = get_config(data, wgx, 'envOverrides', default={}, check_type=dict)
+    if fb: used_root_fallback = True
     emit_env('WGX_ENV_OVERRIDE_MAP', env_overrides)
 
-    workflows = wgx.get('workflows') if isinstance(wgx, dict) else None
-    if not isinstance(workflows, dict):
-        workflows = root_workflows if isinstance(root_workflows, dict) else {}
-        if workflows:
+    # workflows
+    workflows, fb = get_config(data, wgx, 'workflows', default={}, check_type=dict)
+    if fb: used_root_fallback = True
+
+    for wf_name, wf_spec in workflows.items():
+        steps = []
+        if isinstance(wf_spec, dict):
+            for step in wf_spec.get('steps') or []:
+                if isinstance(step, dict):
+                    task_name = step.get('task')
+                    if task_name:
+                        steps.append(str(task_name))
+        safe_name = re.sub(r'[^A-Za-z0-9_]', '_', str(wf_name))
+        emit_var(f"WGX_WORKFLOW_TASKS_{safe_name}", ' '.join(steps))
+
+    # tasks
+    tasks, fb = get_config(data, wgx, 'tasks', default={}, check_type=dict)
+    # Special case: if tasks is empty dict, try fallback
+    if not tasks:
+        # Retry with force root lookup if main one failed/was empty
+        root_tasks = data.get('tasks')
+        if isinstance(root_tasks, dict) and root_tasks:
+            tasks = root_tasks
             used_root_fallback = True
-    if isinstance(workflows, dict):
-        for wf_name, wf_spec in workflows.items():
-            steps = []
-            if isinstance(wf_spec, dict):
-                for step in wf_spec.get('steps') or []:
-                    if isinstance(step, dict):
-                        task_name = step.get('task')
-                        if task_name:
-                            steps.append(str(task_name))
-            # Use flat variable naming to avoid array syntax
-            # Sanitize workflow name to create a valid variable suffix
-            safe_name = re.sub(r'[^A-Za-z0-9_]', '_', str(wf_name))
-            emit(f"WGX_WORKFLOW_TASKS_{safe_name}={shell_quote(' '.join(steps))}")
+    elif fb:
+         used_root_fallback = True
 
-    tasks = wgx.get('tasks') if isinstance(wgx, dict) else None
-    if not isinstance(tasks, dict) or not tasks:
-        tasks = root_tasks if isinstance(root_tasks, dict) else {}
-        if tasks:
-            used_root_fallback = True
-    if isinstance(tasks, dict):
-        seen_task_order = set()
-        norm_to_name: Dict[str, str] = {}
-        for raw_name, spec in tasks.items():
-            name = str(raw_name)
-            norm = re.sub(r'-+', '-', name.replace(' ', '').replace('_', '-').lower())
-            if norm in norm_to_name and norm_to_name[norm] != name:
-                sys.stderr.write(
-                    "wgx: error: task name collision after normalization: "
-                    f"'{norm_to_name[norm]}' vs '{name}'\n"
-                )
-                sys.stderr.write(
-                    "wgx: error: task names normalize by removing spaces and "
-                    "treating '_' as '-'. Rename one task to avoid ambiguity.\n"
-                )
-                sys.exit(3)
-            norm_to_name[norm] = name
-            # Create a bash-safe variable name (bash variable names cannot contain dashes)
-            # by replacing dashes with underscores for flat variable naming
-            safe_name = norm.replace('-', '_')
-            if norm not in seen_task_order:
-                emit(f"WGX_TASK_ORDER+=({shell_quote(norm)})")
-                seen_task_order.add(norm)
-            desc = ''
-            group = ''
-            safe = False
-            cmd_value = spec
-            args_value = None
-            if isinstance(spec, dict):
-                desc = spec.get('desc') or ''
-                group = spec.get('group') or ''
-                safe = as_bool(spec.get('safe'))
-                cmd_value = spec.get('cmd')
-                args_value = spec.get('args')
-            selected_cmd = select_variant(cmd_value)
-            #
-            # Build command preserving semantics:
-            # - If manifest provided a STRING: keep it as-is (no re-quoting/splitting).
-            #   Only append args (quoted) if present.
-            # - If manifest provided an ARRAY: emit ARRJSON (and extend with args).
-            # - Otherwise: coerce to string sensibly.
-            #
-            base_cmd = None
-            tokens = []
-            use_array_format = False
+    seen_task_order = set()
+    norm_to_name: Dict[str, str] = {}
 
-            if isinstance(selected_cmd, (list, tuple)):
-                tokens = [str(item) for item in selected_cmd]
-                use_array_format = True
-            elif isinstance(selected_cmd, str) and selected_cmd.strip():
-                base_cmd = selected_cmd  # preserve raw shell string
-            elif selected_cmd not in (None, ''):
-                # numbers/other scalars -> treat as a single token
-                tokens = [str(selected_cmd)]
+    for raw_name, spec in tasks.items():
+        name = str(raw_name)
+        norm = re.sub(r'-+', '-', name.replace(' ', '').replace('_', '-').lower())
 
-            # Normalize/collect args (list/dict with platform variants)
-            appended_args = []
-            if isinstance(args_value, (list, tuple)) and args_value:
-                appended_args.extend(str(item) for item in args_value)
-            elif isinstance(args_value, dict):
-                variant = select_variant(args_value)
-                if isinstance(variant, (list, tuple)):
-                    appended_args.extend(str(item) for item in variant)
-                elif variant not in (None, ''):
-                    appended_args.append(str(variant))
+        if norm in norm_to_name and norm_to_name[norm] != name:
+            sys.stderr.write(f"wgx: error: task name collision: '{norm_to_name[norm]}' vs '{name}'\n")
+            sys.exit(3)
+        norm_to_name[norm] = name
 
-            if use_array_format:
+        safe_name = norm.replace('-', '_')
+        if norm not in seen_task_order:
+            emit(f"WGX_TASK_ORDER+=({shell_quote(norm)})")
+            seen_task_order.add(norm)
+
+        desc = ''
+        group = ''
+        safe = False
+        cmd_value = spec
+        args_value = None
+
+        if isinstance(spec, dict):
+            desc = spec.get('desc') or ''
+            group = spec.get('group') or ''
+            safe = as_bool(spec.get('safe'))
+            cmd_value = spec.get('cmd')
+            args_value = spec.get('args')
+
+        selected_cmd = select_variant(cmd_value)
+
+        tokens = []
+        base_cmd = None
+        use_array_format = False
+
+        if isinstance(selected_cmd, (list, tuple)):
+            tokens = [str(item) for item in selected_cmd]
+            use_array_format = True
+        elif isinstance(selected_cmd, str) and selected_cmd.strip():
+            base_cmd = selected_cmd
+        elif selected_cmd not in (None, ''):
+            tokens = [str(selected_cmd)]
+
+        appended_args = []
+        if isinstance(args_value, (list, tuple)) and args_value:
+            appended_args.extend(str(item) for item in args_value)
+        elif isinstance(args_value, dict):
+            variant = select_variant(args_value)
+            if isinstance(variant, (list, tuple)):
+                appended_args.extend(str(item) for item in variant)
+            elif variant not in (None, ''):
+                appended_args.append(str(variant))
+
+        if use_array_format:
+            if appended_args:
+                tokens.extend(appended_args)
+            payload = json.dumps(tokens, ensure_ascii=False)
+            emit_var(f"WGX_TASK_CMDS_{safe_name}", 'ARRJSON:' + payload)
+        else:
+            if base_cmd is not None:
+                command_parts = [base_cmd]
                 if appended_args:
-                    tokens.extend(appended_args)
-                payload = json.dumps(tokens, ensure_ascii=False)
-                # Use flat variable naming to avoid array syntax
-                emit(f"WGX_TASK_CMDS_{safe_name}={shell_quote('ARRJSON:' + payload)}")
+                    command_parts.extend(shlex.quote(str(a)) for a in appended_args)
+                command = ' '.join(command_parts)
             else:
-                command_parts = []
-                if base_cmd is not None:
-                    command_parts.append(base_cmd)
-                    if appended_args:
-                        command_parts.extend(shlex.quote(str(a)) for a in appended_args)
-                    command = ' '.join(command_parts)
-                else:
-                    all_parts = tokens + appended_args
-                    command = ' '.join(shlex.quote(str(p)) for p in all_parts)
-                # Use flat variable naming to avoid array syntax
-                emit(f"WGX_TASK_CMDS_{safe_name}={shell_quote('STR:' + command)}")
-            emit(f"WGX_TASK_DESC_{safe_name}={shell_quote(str(desc))}")
-            emit(f"WGX_TASK_GROUP_{safe_name}={shell_quote(str(group))}")
-            emit(f"WGX_TASK_SAFE_{safe_name}={shell_quote('1' if safe else '0')}")
-            continue
+                all_parts = tokens + appended_args
+                command = ' '.join(shlex.quote(str(p)) for p in all_parts)
+            emit_var(f"WGX_TASK_CMDS_{safe_name}", 'STR:' + command)
+
+        emit_var(f"WGX_TASK_DESC_{safe_name}", desc)
+        emit_var(f"WGX_TASK_GROUP_{safe_name}", group)
+        emit_var(f"WGX_TASK_SAFE_{safe_name}", '1' if safe else '0')
 
     if used_root_fallback and os.environ.get("WGX_PROFILE_DEPRECATION", "warn") != "quiet":
         print("wgx: note: using root-level profile keys for backwards compatibility; consider nesting under 'wgx.'", file=sys.stderr)

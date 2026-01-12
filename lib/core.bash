@@ -203,7 +203,11 @@ auto_scope() {
     max=$m_devx
     major="devx"
   }
-  ((max * 100 >= 70 * total)) && echo "$major" || echo "meta"
+  if ((max * 100 >= 70 * total)); then
+    echo "$major"
+  else
+    echo "meta"
+  fi
 }
 
 # Derive labels based on branch prefix and scope
