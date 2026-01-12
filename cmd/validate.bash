@@ -4,7 +4,7 @@
 #
 
 cmd_validate() {
-  local json=0 help=0
+  local json=0 help=0 ok_bool
   while [ $# -gt 0 ]; do
     case "$1" in
     --json) json=1 ;;
@@ -52,7 +52,7 @@ USAGE
 
   if ((json)); then
     # JSON-Ausgabe
-    local ok_bool="false"
+    ok_bool="false"
     ((ok)) && ok_bool="true"
     printf '{"ok":%s,"errors":[' "$ok_bool"
     local i

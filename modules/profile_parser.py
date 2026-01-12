@@ -362,9 +362,8 @@ def get_config(data: Dict, wgx: Dict, key: str, default: Any = None, aliases: Op
     # Optional type check (if value is found but wrong type, revert to default)
     if check_type and val is not None:
         if not isinstance(val, check_type):
-             # If root fallback failed type check, we don't count it as a valid usage?
-             # But here we just want to ensure we return a safe type.
-             # If we fell back to root and it was wrong type, we essentially didn't find a valid value.
+             # Log warning for type mismatch to stderr (not part of shell output)
+             sys.stderr.write(f"wgx: warning: configuration key '{key}' has invalid type {type(val).__name__}, expected {check_type.__name__}. Using default.\n")
              if fallback:
                  fallback = False # Reset flag if invalid
              val = default
@@ -441,6 +440,7 @@ def main():
                     task_name = step.get('task')
                     if task_name:
                         steps.append(str(task_name))
+        # Sanitize workflow name to create a valid variable suffix
         safe_name = re.sub(r'[^A-Za-z0-9_]', '_', str(wf_name))
         emit_var(f"WGX_WORKFLOW_TASKS_{safe_name}", ' '.join(steps))
 
@@ -454,7 +454,7 @@ def main():
             tasks = root_tasks
             used_root_fallback = True
     elif fb:
-         used_root_fallback = True
+        used_root_fallback = True
 
     seen_task_order = set()
     norm_to_name: Dict[str, str] = {}
@@ -464,7 +464,14 @@ def main():
         norm = re.sub(r'-+', '-', name.replace(' ', '').replace('_', '-').lower())
 
         if norm in norm_to_name and norm_to_name[norm] != name:
-            sys.stderr.write(f"wgx: error: task name collision: '{norm_to_name[norm]}' vs '{name}'\n")
+            sys.stderr.write(
+                "wgx: error: task name collision after normalization: "
+                f"'{norm_to_name[norm]}' vs '{name}'\n"
+            )
+            sys.stderr.write(
+                "wgx: error: task names normalize by removing spaces and "
+                "treating '_' as '-'. Rename one task to avoid ambiguity.\n"
+            )
             sys.exit(3)
         norm_to_name[norm] = name
 
