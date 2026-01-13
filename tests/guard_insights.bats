@@ -26,6 +26,11 @@ wgx:
 YAML
   git add .wgx/profile.yml
   git commit -m "Add profile"
+
+  # Ensure contracts ownership guard passes
+  export HG_REPO_NAME="metarepo"
+  mkdir -p fleet
+  touch fleet/repos.yml
 }
 
 @test "guard insights: silent when no files found (no invocation)" {

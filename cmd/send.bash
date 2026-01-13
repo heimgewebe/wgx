@@ -144,7 +144,17 @@ USAGE
 
   guard_run
   local rc=$?
-  ((rc == 1 && (ASSUME_YES || ${WGX_DRAFT_ON_WARN:-0}))) && DRAFT=1
+  # Wenn Guard fehlschlägt (rc=1), aber wir "force" (ASSUME_YES) oder
+  # "Draft on Warn" aktiv haben, machen wir weiter, stufen aber auf Draft herab.
+  if ((rc == 1)); then
+    if ((ASSUME_YES || ${WGX_DRAFT_ON_WARN:-0})); then
+      DRAFT=1
+    else
+      return 1
+    fi
+  elif ((rc != 0)); then
+    return $rc
+  fi
 
   local files scope short
   files="$(git diff --name-only "origin/$WGX_BASE"...HEAD 2>/dev/null || true)"

@@ -37,12 +37,6 @@ function info() {
   printf '%s %s\n' "$_DOT" "$*" >&2
 }
 
-# Legacy compatibility: prefer `info`, but keep `log_info` for callers that
-# still use the old helper name while we complete the migration.
-function log_info() {
-  info "$@"
-}
-
 function ok() {
   [[ ${WGX_QUIET:-0} != 0 ]] && return
   printf '%s %s\n' "$_OK" "$*" >&2
