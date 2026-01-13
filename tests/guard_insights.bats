@@ -26,6 +26,14 @@ wgx:
 YAML
   git add .wgx/profile.yml
   git commit -m "Add profile"
+
+  # Ensure contracts ownership guard passes
+  # The 'insights' guard runs AFTER 'contracts_ownership' in the guard chain.
+  # To test 'insights' logic in isolation without failing early, we must satisfy
+  # the ownership guard by mocking a valid metarepo environment.
+  export HG_REPO_NAME="metarepo"
+  mkdir -p fleet
+  touch fleet/repos.yml
 }
 
 @test "guard insights: silent when no files found (no invocation)" {
