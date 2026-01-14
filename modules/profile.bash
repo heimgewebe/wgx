@@ -80,6 +80,34 @@ profile::_module_dir() {
 
 profile::_abspath() {
   local p="$1" resolved=""
+
+  # Strategy 1: Fast POSIX path resolution (existing directories/files)
+  # This works on Linux, macOS, and BSD without external dependencies.
+  # It resolves directory symlinks (via pwd -P) but keeps filenames as-is,
+  # matching os.path.abspath behavior for files while being robust for directories.
+  if [[ -e "$p" ]]; then
+    if [[ -d "$p" ]]; then
+      resolved="$(cd "$p" >/dev/null 2>&1 && pwd -P)"
+      printf '%s\n' "$resolved"
+      return 0
+    else
+      local dir base
+      dir="$(dirname "$p")"
+      base="$(basename "$p")"
+      if [[ -d "$dir" ]]; then
+        resolved="$(cd "$dir" >/dev/null 2>&1 && pwd -P)"
+        printf '%s/%s\n' "$resolved" "$base"
+        return 0
+      fi
+    fi
+  fi
+
+  # Note: We intentionally avoid `realpath` and `readlink -f` here because
+  # they dereference file symlinks, which creates inconsistent behavior
+  # compared to the Python fallback (os.path.abspath) which does not.
+  # We favor consistent "absolute path" semantics over "canonical path".
+
+  # Strategy 2: Python Fallback (slow but robust cross-platform)
   local module_dir
   module_dir="$(profile::_module_dir)"
   if profile::_have_cmd python3; then
@@ -90,16 +118,24 @@ profile::_abspath() {
       fi
     fi
   fi
-  if command -v readlink >/dev/null 2>&1; then
-    resolved="$(readlink -f -- "$p" 2>/dev/null || true)"
-    if [[ -n $resolved ]]; then
-      printf '%s\n' "$resolved"
-    else
-      printf '%s\n' "$p"
-    fi
+
+  # Strategy 3: Best-effort fallback for non-existing paths without Python
+  # Try to resolve the directory part if it exists (handles ../ghost.txt).
+  local dir base
+  dir="$(dirname "$p")"
+  base="$(basename "$p")"
+  if [[ -d "$dir" ]]; then
+    resolved="$(cd "$dir" >/dev/null 2>&1 && pwd -P)"
+    printf '%s/%s\n' "$resolved" "$base"
     return 0
   fi
-  printf '%s\n' "$p"
+
+  # Ultimate fallback: Simple string manipulation (does NOT normalize ..)
+  if [[ "$p" == /* ]]; then
+    printf '%s\n' "$p"
+  else
+    printf '%s/%s\n' "$(pwd -P)" "$p"
+  fi
 }
 
 profile::_normalize_task_name() {
