@@ -119,8 +119,18 @@ profile::_abspath() {
     fi
   fi
 
-  # Strategy 3: Ultimate fallback (simple string manipulation)
-  # If the file doesn't exist and we have no tools, we just assume PWD + path.
+  # Strategy 3: Best-effort fallback for non-existing paths without Python
+  # Try to resolve the directory part if it exists (handles ../ghost.txt).
+  local dir base
+  dir="$(dirname "$p")"
+  base="$(basename "$p")"
+  if [[ -d "$dir" ]]; then
+    resolved="$(cd "$dir" >/dev/null 2>&1 && pwd -P)"
+    printf '%s/%s\n' "$resolved" "$base"
+    return 0
+  fi
+
+  # Ultimate fallback: Simple string manipulation (does NOT normalize ..)
   if [[ "$p" == /* ]]; then
     printf '%s\n' "$p"
   else
