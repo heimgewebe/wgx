@@ -80,6 +80,25 @@ profile::_module_dir() {
 
 profile::_abspath() {
   local p="$1" resolved=""
+
+  # Try native tools first (fastest)
+  if command -v realpath >/dev/null 2>&1; then
+    resolved="$(realpath -- "$p" 2>/dev/null || true)"
+    if [[ -n $resolved ]]; then
+      printf '%s\n' "$resolved"
+      return 0
+    fi
+  fi
+
+  if command -v readlink >/dev/null 2>&1; then
+    resolved="$(readlink -f -- "$p" 2>/dev/null || true)"
+    if [[ -n $resolved ]]; then
+      printf '%s\n' "$resolved"
+      return 0
+    fi
+  fi
+
+  # Fallback to Python if native tools fail or are missing
   local module_dir
   module_dir="$(profile::_module_dir)"
   if profile::_have_cmd python3; then
@@ -90,15 +109,8 @@ profile::_abspath() {
       fi
     fi
   fi
-  if command -v readlink >/dev/null 2>&1; then
-    resolved="$(readlink -f -- "$p" 2>/dev/null || true)"
-    if [[ -n $resolved ]]; then
-      printf '%s\n' "$resolved"
-    else
-      printf '%s\n' "$p"
-    fi
-    return 0
-  fi
+
+  # Ultimate fallback: return as-is
   printf '%s\n' "$p"
 }
 
