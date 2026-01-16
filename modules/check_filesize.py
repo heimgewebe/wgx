@@ -42,8 +42,8 @@ def main():
                 # No null byte found, wait for more data
                 break
 
-            # Extract the filename
-            file_bytes = buffer[:null_index]
+            # Extract the filename as immutable bytes
+            file_bytes = bytes(buffer[:null_index])
             del buffer[:null_index + 1]
 
             if not file_bytes:
@@ -64,7 +64,7 @@ def main():
 
     # Process any remaining data in buffer (though find -print0 usually ends with \0)
     if buffer:
-        file_bytes = buffer
+        file_bytes = bytes(buffer)
         try:
             fname = os.fsdecode(file_bytes)
             st = os.stat(file_bytes)
