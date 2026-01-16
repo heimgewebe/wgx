@@ -19,7 +19,7 @@ def main():
     except AttributeError:
         stream = sys.stdin
 
-    buffer = b""
+    buffer = bytearray()
     chunk_size = 65536
     found_oversized = False
 
@@ -32,7 +32,7 @@ def main():
         if not chunk:
             break
 
-        buffer += chunk
+        buffer.extend(chunk)
 
         while True:
             try:
@@ -44,7 +44,7 @@ def main():
 
             # Extract the filename
             file_bytes = buffer[:null_index]
-            buffer = buffer[null_index + 1:]
+            del buffer[:null_index + 1]
 
             if not file_bytes:
                 continue
@@ -60,8 +60,6 @@ def main():
                 # File might have been deleted or is not accessible
                 pass
             except Exception as e:
-                # Fallback for display if fsdecode fails weirdly or other issues
-                # (Should be rare with fsdecode)
                 sys.stderr.write(f"Error processing file: {e}\n")
 
     # Process any remaining data in buffer (though find -print0 usually ends with \0)

@@ -186,18 +186,29 @@ USAGE
     max_bytes=1048576
   fi
   info "Checking for oversized files (≥ ${max_bytes} Bytes)..."
-  # Portabler Check per wc -c; prüft nur getrackte Dateien, Schwelle via WGX_GUARD_MAX_BYTES konfigurierbar.
+  # Portabler Check: Python (falls verfügbar) ist viel schneller als Bash-Loop.
   local oversized
-  oversized=$(
-    git ls-files -z | while IFS= read -r -d '' f; do
-      [ -e "$f" ] || continue
-      local sz
-      sz=$(wc -c <"$f" 2>/dev/null || echo 0)
-      if [ "$sz" -ge "$max_bytes" ]; then
-        printf '%s\t%s\n' "$sz" "$f"
-      fi
-    done
-  )
+  if command -v python3 >/dev/null 2>&1; then
+    local project_root
+    project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+    oversized=$(git ls-files -z | python3 "${project_root}/modules/check_filesize.py" "$max_bytes")
+    local rc=$?
+    if [[ $rc -ne 0 && $rc -ne 1 ]]; then
+      die "Filesize check failed (internal error, exit code $rc)."
+      return 1
+    fi
+  else
+    oversized=$(
+      git ls-files -z | while IFS= read -r -d '' f; do
+        [ -e "$f" ] || continue
+        local sz
+        sz=$(wc -c <"$f" 2>/dev/null || echo 0)
+        if [ "$sz" -ge "$max_bytes" ]; then
+          printf '%s\t%s\n' "$sz" "$f"
+        fi
+      done
+    )
+  fi
   if [ -n "$oversized" ]; then
     # Die Test-Assertion erwartet die exakte Zeichenkette "Oversized files detected" auf STDOUT.
     echo "Oversized files detected"
