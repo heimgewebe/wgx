@@ -3,46 +3,83 @@ import sys
 import os
 
 def main():
+    if len(sys.argv) < 2:
+        sys.stderr.write("Usage: check_filesize.py <max_bytes>\n")
+        sys.exit(2)
+
     try:
         max_bytes = int(sys.argv[1])
-    except (IndexError, ValueError):
-        # Default to 1MB if not provided or invalid
-        max_bytes = 1048576
+    except ValueError:
+        sys.stderr.write("Error: max_bytes must be an integer\n")
+        sys.exit(2)
 
-    # Use sys.stdin.buffer to read binary data (filenames can be anything)
+    # Use sys.stdin.buffer to read binary data
     try:
         stream = sys.stdin.buffer
     except AttributeError:
         stream = sys.stdin
 
-    try:
-        content = stream.read()
-    except Exception:
-        return
+    buffer = b""
+    chunk_size = 65536
+    found_oversized = False
 
-    if not content:
-        return
-
-    # Split by null byte
-    files = content.split(b'\0')
-
-    for f_bytes in files:
-        if not f_bytes:
-            continue
-
+    while True:
         try:
-            st = os.stat(f_bytes)
+            chunk = stream.read(chunk_size)
+        except Exception:
+            break
+
+        if not chunk:
+            break
+
+        buffer += chunk
+
+        while True:
+            try:
+                # Find the next null byte
+                null_index = buffer.index(b'\0')
+            except ValueError:
+                # No null byte found, wait for more data
+                break
+
+            # Extract the filename
+            file_bytes = buffer[:null_index]
+            buffer = buffer[null_index + 1:]
+
+            if not file_bytes:
+                continue
+
+            try:
+                # Use os.fsdecode for robust decoding (surrogateescape on POSIX)
+                fname = os.fsdecode(file_bytes)
+                st = os.stat(file_bytes)
+                if st.st_size >= max_bytes:
+                    print(f"{st.st_size}\t{fname}")
+                    found_oversized = True
+            except OSError:
+                # File might have been deleted or is not accessible
+                pass
+            except Exception as e:
+                # Fallback for display if fsdecode fails weirdly or other issues
+                # (Should be rare with fsdecode)
+                sys.stderr.write(f"Error processing file: {e}\n")
+
+    # Process any remaining data in buffer (though find -print0 usually ends with \0)
+    if buffer:
+        file_bytes = buffer
+        try:
+            fname = os.fsdecode(file_bytes)
+            st = os.stat(file_bytes)
             if st.st_size >= max_bytes:
-                # Output format: size\tfilename
-                # Decode filename for display, replace errors to avoid crash
-                try:
-                    fname = f_bytes.decode('utf-8', 'replace')
-                except:
-                    fname = str(f_bytes)
                 print(f"{st.st_size}\t{fname}")
+                found_oversized = True
         except OSError:
-            # File might have been deleted or is not accessible
-            continue
+            pass
+
+    if found_oversized:
+        sys.exit(1)
+
+    sys.exit(0)
 
 if __name__ == "__main__":
     main()
