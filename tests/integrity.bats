@@ -139,6 +139,7 @@ JSON
 }
 JSON
     unset GITHUB_REPOSITORY
+    unset GIT_DIR GIT_WORK_TREE
 
     # Ensure strict isolation: no git repo at all
     cd "$TEST_DIR"
