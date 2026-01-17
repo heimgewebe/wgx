@@ -79,7 +79,7 @@ cmd_integrity() {
       status=$(jq -r '.status // "UNKNOWN"' "$summary_file")
 
       # Construct URL (Canonical Release Asset)
-      local url="null"
+      local url=""
       local repo_name="$repo"
 
       # Fallback detection if repo from summary.json is not usable
@@ -132,7 +132,7 @@ cmd_integrity() {
       printf '%s' "$payload_json" > "$payload_file"
 
       # Emit Event - failure is acceptable but should be logged
-      if ! heimgeist::emit "integrity.summary.published.v1" "$repo" "$payload_json"; then
+      if ! heimgeist::emit "integrity.summary.published.v1" "$repo_name" "$payload_json"; then
         warn "Konnte Event 'integrity.summary.published.v1' nicht senden (heimgeist::emit fehlgeschlagen)."
       fi
       return 0

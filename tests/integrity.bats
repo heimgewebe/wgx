@@ -102,7 +102,32 @@ JSON
   # content check
   run cat "$TEST_DIR/reports/integrity/event_payload.json"
   assert_output --partial '"url": "https://github.com/heimgewebe/wgx-test/releases/download/integrity/summary.json"'
+  # Should also match the repo field in payload to match GITHUB_REPOSITORY
+  assert_output --partial '"repo": "heimgewebe/wgx-test"'
 }
+
+@test "integrity: --publish uses corrected repo name in payload if summary is unknown" {
+    mkdir -p "$TEST_DIR/reports/integrity"
+    # Summary has "unknown" repo
+    cat <<JSON > "$TEST_DIR/reports/integrity/summary.json"
+{
+  "repo": "unknown",
+  "generated_at": "2023-10-27T10:00:00Z",
+  "status": "MISSING"
+}
+JSON
+
+    export GITHUB_REPOSITORY="heimgewebe/wgx-fallback"
+
+    run wgx integrity --publish
+    assert_success
+
+    # Check that the payload now contains the detected repo name, not "unknown"
+    run cat "$TEST_DIR/reports/integrity/event_payload.json"
+    assert_output --partial '"repo": "heimgewebe/wgx-fallback"'
+    assert_output --partial '"url": "https://github.com/heimgewebe/wgx-fallback/releases/download/integrity/summary.json"'
+}
+
 
 @test "integrity: --update detects repo from GITHUB_REPOSITORY (priority)" {
   cd "$TEST_DIR"
