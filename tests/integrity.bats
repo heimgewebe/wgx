@@ -139,14 +139,16 @@ JSON
 }
 JSON
     unset GITHUB_REPOSITORY
-    # Ensure no git remote
-    cd "$TEST_DIR"
-    git init >/dev/null 2>&1 || true
 
+    # Ensure strict isolation: no git repo at all
+    cd "$TEST_DIR"
+    rm -rf .git
+
+    # The command should succeed (exit 0) but warn
     run wgx integrity --publish
     assert_success
 
-    # Check that warning was emitted (to stderr/stdout)
+    # Check that warning was emitted (BATS 'run' captures stdout and stderr)
     assert_output --partial "Konnte keine gültige URL für das Integritäts-Event konstruieren"
 
     # Check that payload file was NOT created
