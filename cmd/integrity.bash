@@ -78,6 +78,11 @@ cmd_integrity() {
       generated_at=$(jq -r '.generated_at // "unknown"' "$summary_file")
       status=$(jq -r '.status // "UNKNOWN"' "$summary_file")
 
+      if [[ "$generated_at" == "unknown" || "$status" == "UNKNOWN" ]]; then
+        warn "Integritätsbericht unvollständig (generated_at/status fehlt). Überspringe Event-Payload."
+        return 0
+      fi
+
       # Construct URL (Canonical Release Asset)
       local url=""
       local repo_name="$repo"

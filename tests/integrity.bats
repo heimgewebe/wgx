@@ -156,6 +156,25 @@ JSON
     [ ! -f "$TEST_DIR/reports/integrity/event_payload.json" ]
 }
 
+@test "integrity: --publish skips payload creation if generated_at or status is missing" {
+    mkdir -p "$TEST_DIR/reports/integrity"
+    # Summary missing required fields (jq defaults to unknown/UNKNOWN)
+    cat <<JSON > "$TEST_DIR/reports/integrity/summary.json"
+{
+  "repo": "heimgewebe/wgx-test"
+}
+JSON
+    # The command should succeed (exit 0) but warn and skip
+    run wgx integrity --publish
+    assert_success
+
+    # Check warning
+    assert_output --partial "Integritätsbericht unvollständig"
+
+    # Check that payload file was NOT created
+    [ ! -f "$TEST_DIR/reports/integrity/event_payload.json" ]
+}
+
 @test "integrity: --update detects repo from GITHUB_REPOSITORY (priority)" {
   cd "$TEST_DIR"
   # Mock git remote (should be ignored when GITHUB_REPOSITORY is set)
