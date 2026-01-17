@@ -198,6 +198,52 @@ JSON
     assert_output --partial '"url": "https://github.com/heimgewebe/wgx-summary/releases/download/integrity/summary.json"'
 }
 
+@test "integrity: --publish fallback to GITHUB_REPOSITORY if summary repo invalid" {
+    mkdir -p "$TEST_DIR/reports/integrity"
+    # Summary repo is invalid (no slash)
+    cat <<JSON > "$TEST_DIR/reports/integrity/summary.json"
+{
+  "repo": "invalidrepo",
+  "generated_at": "2023-10-27T10:00:00Z",
+  "status": "OK"
+}
+JSON
+    export GITHUB_REPOSITORY="heimgewebe/wgx-env"
+
+    run wgx integrity --publish
+    assert_success
+
+    # Should fallback to GITHUB_REPOSITORY
+    run cat "$TEST_DIR/reports/integrity/event_payload.json"
+    assert_output --partial '"repo": "heimgewebe/wgx-env"'
+    assert_output --partial '"url": "https://github.com/heimgewebe/wgx-env/releases/download/integrity/summary.json"'
+}
+
+@test "integrity: --publish uses corrected repo name when remote has .git suffix" {
+    mkdir -p "$TEST_DIR/reports/integrity"
+    # Summary repo is unknown
+    cat <<JSON > "$TEST_DIR/reports/integrity/summary.json"
+{
+  "repo": "unknown",
+  "generated_at": "2023-10-27T10:00:00Z",
+  "status": "OK"
+}
+JSON
+    unset GITHUB_REPOSITORY
+    # Setup git remote with .git suffix
+    cd "$TEST_DIR"
+    git init >/dev/null 2>&1
+    git remote add origin https://github.com/org/repo.git >/dev/null 2>&1
+
+    run wgx integrity --publish
+    assert_success
+
+    # Should strip .git suffix
+    run cat "$TEST_DIR/reports/integrity/event_payload.json"
+    assert_output --partial '"repo": "org/repo"'
+    assert_output --partial '"url": "https://github.com/org/repo/releases/download/integrity/summary.json"'
+}
+
 @test "integrity: --update detects repo from GITHUB_REPOSITORY (priority)" {
   cd "$TEST_DIR"
   # Mock git remote (should be ignored when GITHUB_REPOSITORY is set)
