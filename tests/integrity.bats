@@ -128,6 +128,30 @@ JSON
     assert_output --partial '"url": "https://github.com/heimgewebe/wgx-fallback/releases/download/integrity/summary.json"'
 }
 
+@test "integrity: --publish fails gracefully (no payload) if URL cannot be constructed" {
+    mkdir -p "$TEST_DIR/reports/integrity"
+    # Summary has "unknown" repo and no GITHUB_REPOSITORY or git remote
+    cat <<JSON > "$TEST_DIR/reports/integrity/summary.json"
+{
+  "repo": "unknown",
+  "generated_at": "2023-10-27T10:00:00Z",
+  "status": "MISSING"
+}
+JSON
+    unset GITHUB_REPOSITORY
+    # Ensure no git remote
+    cd "$TEST_DIR"
+    git init >/dev/null 2>&1 || true
+
+    run wgx integrity --publish
+    assert_success
+
+    # Check that warning was emitted (to stderr/stdout)
+    assert_output --partial "Konnte keine gültige URL für das Integritäts-Event konstruieren"
+
+    # Check that payload file was NOT created
+    [ ! -f "$TEST_DIR/reports/integrity/event_payload.json" ]
+}
 
 @test "integrity: --update detects repo from GITHUB_REPOSITORY (priority)" {
   cd "$TEST_DIR"

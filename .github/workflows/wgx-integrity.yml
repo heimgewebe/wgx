@@ -10,7 +10,7 @@ permissions:
 
 concurrency:
   group: integrity-${{ github.repository }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   integrity:

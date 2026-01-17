@@ -102,6 +102,11 @@ cmd_integrity() {
         url="https://github.com/${repo_name}/releases/download/integrity/summary.json"
       fi
 
+      if [[ -z "$url" ]]; then
+        warn "Konnte keine gültige URL für das Integritäts-Event konstruieren. (Repo: $repo_name)"
+        return 0
+      fi
+
       # Construct Payload JSON
       # The payload requires: url, generated_at, repo, status
       local payload_json
