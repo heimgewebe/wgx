@@ -191,8 +191,9 @@ USAGE
   if command -v python3 >/dev/null 2>&1; then
     local project_root
     project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-    oversized=$(git ls-files -z | python3 "${project_root}/modules/check_filesize.py" "$max_bytes")
-    local rc=$?
+    # rc capturing via || rc=$? prevents 'set -e' from aborting on exit code 1 (oversized found)
+    local rc=0
+    oversized=$(git ls-files -z | python3 "${project_root}/modules/check_filesize.py" "$max_bytes") || rc=$?
     if [[ $rc -ne 0 && $rc -ne 1 ]]; then
       die "Filesize check failed (internal error, exit code $rc)."
       return 1
