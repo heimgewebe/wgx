@@ -34,6 +34,15 @@ jobs:
           commit_message: "chore(integrity): update summary [skip ci]"
           file_pattern: "reports/integrity/summary.json"
 
+      - name: Publish to Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: integrity
+          files: reports/integrity/summary.json
+          fail_on_unmatched_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Publish Event
         run: |
           # The command outputs the event JSON to stdout

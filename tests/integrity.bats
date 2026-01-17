@@ -80,6 +80,30 @@ JSON
   assert_output --partial '"repo": "semantAH"'
 }
 
+@test "integrity: --publish generates canonical release asset URL" {
+  mkdir -p "$TEST_DIR/reports/integrity"
+  cat <<JSON > "$TEST_DIR/reports/integrity/summary.json"
+{
+  "repo": "heimgewebe/wgx-test",
+  "generated_at": "2023-10-27T10:00:00Z",
+  "status": "OK"
+}
+JSON
+
+  # Ensure GITHUB_REPOSITORY is set
+  export GITHUB_REPOSITORY="heimgewebe/wgx-test"
+
+  run wgx integrity --publish
+  assert_success
+
+  # file check
+  [ -f "$TEST_DIR/reports/integrity/event_payload.json" ]
+
+  # content check
+  run cat "$TEST_DIR/reports/integrity/event_payload.json"
+  assert_output --partial '"url": "https://github.com/heimgewebe/wgx-test/releases/download/integrity/summary.json"'
+}
+
 @test "integrity: --update detects repo from GITHUB_REPOSITORY (priority)" {
   cd "$TEST_DIR"
   # Mock git remote (should be ignored when GITHUB_REPOSITORY is set)
