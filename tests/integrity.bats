@@ -175,6 +175,28 @@ JSON
     [ ! -f "$TEST_DIR/reports/integrity/event_payload.json" ]
 }
 
+@test "integrity: --publish prioritizes summary.json repo over GITHUB_REPOSITORY" {
+    mkdir -p "$TEST_DIR/reports/integrity"
+    # Summary has explicit repo
+    cat <<JSON > "$TEST_DIR/reports/integrity/summary.json"
+{
+  "repo": "heimgewebe/wgx-summary",
+  "generated_at": "2023-10-27T10:00:00Z",
+  "status": "OK"
+}
+JSON
+    # GITHUB_REPOSITORY is different
+    export GITHUB_REPOSITORY="heimgewebe/wgx-env"
+
+    run wgx integrity --publish
+    assert_success
+
+    # Should use summary repo
+    run cat "$TEST_DIR/reports/integrity/event_payload.json"
+    assert_output --partial '"repo": "heimgewebe/wgx-summary"'
+    assert_output --partial '"url": "https://github.com/heimgewebe/wgx-summary/releases/download/integrity/summary.json"'
+}
+
 @test "integrity: --update detects repo from GITHUB_REPOSITORY (priority)" {
   cd "$TEST_DIR"
   # Mock git remote (should be ignored when GITHUB_REPOSITORY is set)
