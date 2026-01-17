@@ -191,7 +191,8 @@ JSON
     run wgx integrity --publish
     assert_success
 
-    # Should use summary repo
+    # Should use summary repo as primary truth for the payload, because the report
+    # itself claims to belong to that repo.
     run cat "$TEST_DIR/reports/integrity/event_payload.json"
     assert_output --partial '"repo": "heimgewebe/wgx-summary"'
     assert_output --partial '"url": "https://github.com/heimgewebe/wgx-summary/releases/download/integrity/summary.json"'
