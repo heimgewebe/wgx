@@ -103,7 +103,12 @@ cmd_integrity() {
         fi
       fi
 
-      if [[ "$repo_name" != "unknown" && "$repo_name" =~ ^[^/]+/[^/]+$ ]]; then
+      # Ensure repo_name is strictly owner/repo format, else unknown
+      if [[ -z "$repo_name" || ! "$repo_name" =~ ^[^/]+/[^/]+$ ]]; then
+        repo_name="unknown"
+      fi
+
+      if [[ "$repo_name" != "unknown" ]]; then
         url="https://github.com/${repo_name}/releases/download/integrity/summary.json"
       fi
 
