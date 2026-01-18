@@ -343,6 +343,8 @@ heimgeist::emit() {
 BASH
 
   # Force wgx to look in TEST_DIR for modules/lib/cmd
+  # We override WGX_PROJECT_ROOT to force the CLI to load our mock module from TEST_DIR/modules.
+  # This works because the CLI uses this variable to resolve library paths.
   export WGX_PROJECT_ROOT="$TEST_DIR"
   export GITHUB_REPOSITORY="heimgewebe/wgx-fail"
 
