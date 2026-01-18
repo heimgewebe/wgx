@@ -43,7 +43,7 @@ jobs:
         run: |
           if ! jq -e '
             (.repo | type == "string" and test("^[-._a-zA-Z0-9]+/[-._a-zA-Z0-9]+$")) and
-            (.generated_at | type == "string" and test("Z$")) and
+            (.generated_at | type == "string" and (test("Z$") or test("\\+00:00$"))) and
             (.status | type == "string" and IN("OK", "WARN", "FAIL", "MISSING", "UNCLEAR"))
           ' reports/integrity/summary.json >/dev/null; then
             echo "::error::reports/integrity/summary.json is invalid or violates schema (repo format, timestamp, status enum)."
