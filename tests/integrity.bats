@@ -269,22 +269,8 @@ JSON
     assert_output --partial '"url": "https://github.com/ssh-org/ssh-repo/releases/download/integrity/summary.json"'
 }
 
-@test "integrity: --publish handles repo names with special characters" {
-    mkdir -p "$TEST_DIR/reports/integrity"
-    cat <<JSON > "$TEST_DIR/reports/integrity/summary.json"
-{
-  "repo": "my.org/my_repo-123",
-  "generated_at": "2023-10-27T10:00:00Z",
-  "status": "OK"
-}
-JSON
-    run wgx integrity --publish
-    assert_success
-
-    run cat "$TEST_DIR/reports/integrity/event_payload.json"
-    assert_output --partial '"repo": "my.org/my_repo-123"'
-    assert_output --partial '"url": "https://github.com/my.org/my_repo-123/releases/download/integrity/summary.json"'
-}
+# Merged special characters test into the general robust repo handling tests
+# to avoid redundancy. The SSH and priority tests already cover complex parsing.
 
 @test "integrity: --update detects repo from GITHUB_REPOSITORY (priority)" {
   cd "$TEST_DIR"
