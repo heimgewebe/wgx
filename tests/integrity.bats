@@ -145,11 +145,12 @@ JSON
     cd "$TEST_DIR"
     rm -rf .git
 
-    # The command should succeed (exit 0) but warn
-    run wgx integrity --publish
+    # The command should succeed (exit 0) but warn.
+    # Redirect stderr to stdout to ensure we catch warnings regardless of BATS helper configuration.
+    run bash -c "wgx integrity --publish 2>&1"
     assert_success
 
-    # Check that warning was emitted (BATS 'run' captures stdout and stderr)
+    # Check that warning was emitted
     assert_output --partial "Konnte keine gültige URL für das Integritäts-Event konstruieren"
 
     # Check that payload file was NOT created
@@ -164,8 +165,9 @@ JSON
   "repo": "heimgewebe/wgx-test"
 }
 JSON
-    # The command should succeed (exit 0) but warn and skip
-    run wgx integrity --publish
+    # The command should succeed (exit 0) but warn and skip.
+    # Redirect stderr to stdout for robust assertion.
+    run bash -c "wgx integrity --publish 2>&1"
     assert_success
 
     # Check warning
