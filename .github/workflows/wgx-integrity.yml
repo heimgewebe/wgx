@@ -39,6 +39,17 @@ jobs:
             exit 1
           fi
 
+      - name: Validate Report Invariants
+        run: |
+          if ! jq -e '
+            (.repo | type == "string" and test("^[-._a-zA-Z0-9]+/[-._a-zA-Z0-9]+$")) and
+            (.generated_at | type == "string" and (test("Z$") or test("\\+00:00$"))) and
+            (.status | type == "string" and IN("OK", "WARN", "FAIL", "MISSING", "UNCLEAR"))
+          ' reports/integrity/summary.json >/dev/null; then
+            echo "::error::reports/integrity/summary.json is invalid or violates schema (repo format, timestamp, status enum)."
+            exit 1
+          fi
+
       - name: Publish to Release
         uses: softprops/action-gh-release@c95fe1489396fe8a9eb87c0abf8aa5b2ef267fda # v2.2.1 (pinned)
         with:

@@ -315,3 +315,47 @@ JSON
     assert_output --partial '"repo": "org/repo"'
   done
 }
+
+@test "integrity: --publish warns but succeeds when heimgeist::emit fails" {
+  mkdir -p "$TEST_DIR/reports/integrity"
+  cat <<JSON > "$TEST_DIR/reports/integrity/summary.json"
+{
+  "repo": "heimgewebe/wgx-fail",
+  "generated_at": "2023-10-27T10:00:00Z",
+  "status": "OK"
+}
+JSON
+
+  # Save real root
+  local real_root="$WGX_PROJECT_ROOT"
+
+  # Copy lib and cmd to test dir so wgx can function when we override WGX_PROJECT_ROOT
+  cp -r "$real_root/lib" "$TEST_DIR/"
+  cp -r "$real_root/cmd" "$TEST_DIR/"
+
+  # Mock heimgeist module
+  mkdir -p "$TEST_DIR/modules"
+  cat <<'BASH' > "$TEST_DIR/modules/heimgeist.bash"
+heimgeist::emit() {
+  echo "Mock heimgeist::emit failing..." >&2
+  return 1
+}
+BASH
+
+  # Force wgx to look in TEST_DIR for modules/lib/cmd
+  # We override WGX_PROJECT_ROOT to force the CLI to load our mock module from TEST_DIR/modules.
+  # This works because the CLI uses this variable to resolve library paths.
+  export WGX_PROJECT_ROOT="$TEST_DIR"
+  export GITHUB_REPOSITORY="heimgewebe/wgx-fail"
+
+  # Run with absolute path to real wgx, capturing stderr
+  run bash -c "$real_root/cli/wgx integrity --publish 2>&1"
+  assert_success # Exit code 0 despite failure
+
+  # Check warning (robust partial matching)
+  assert_output --partial "integrity.summary.published.v1"
+  assert_output --partial "nicht senden"
+
+  # Check payload still exists (Release Asset logic)
+  [ -f "$TEST_DIR/reports/integrity/event_payload.json" ]
+}
