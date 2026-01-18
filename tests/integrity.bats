@@ -59,7 +59,7 @@ JSON
   mkdir -p "$TEST_DIR/reports/integrity"
   cat <<JSON > "$TEST_DIR/reports/integrity/summary.json"
 {
-  "repo": "semantAH",
+  "repo": "heimgewebe/semantAH",
   "generated_at": "2023-10-27T10:00:00Z",
   "status": "OK"
 }
@@ -77,8 +77,202 @@ JSON
   # content check
   run cat "$TEST_DIR/reports/integrity/event_payload.json"
   assert_output --partial '"status": "OK"'
-  assert_output --partial '"repo": "semantAH"'
+  assert_output --partial '"repo": "heimgewebe/semantAH"'
 }
+
+@test "integrity: --publish generates canonical release asset URL" {
+  mkdir -p "$TEST_DIR/reports/integrity"
+  cat <<JSON > "$TEST_DIR/reports/integrity/summary.json"
+{
+  "repo": "heimgewebe/wgx-test",
+  "generated_at": "2023-10-27T10:00:00Z",
+  "status": "OK"
+}
+JSON
+
+  # Ensure GITHUB_REPOSITORY is set
+  export GITHUB_REPOSITORY="heimgewebe/wgx-test"
+
+  run wgx integrity --publish
+  assert_success
+
+  # file check
+  [ -f "$TEST_DIR/reports/integrity/event_payload.json" ]
+
+  # content check
+  run cat "$TEST_DIR/reports/integrity/event_payload.json"
+  assert_output --partial '"url": "https://github.com/heimgewebe/wgx-test/releases/download/integrity/summary.json"'
+  # Should also match the repo field in payload to match GITHUB_REPOSITORY
+  assert_output --partial '"repo": "heimgewebe/wgx-test"'
+}
+
+@test "integrity: --publish uses corrected repo name in payload if summary is unknown" {
+    mkdir -p "$TEST_DIR/reports/integrity"
+    # Summary has "unknown" repo
+    cat <<JSON > "$TEST_DIR/reports/integrity/summary.json"
+{
+  "repo": "unknown",
+  "generated_at": "2023-10-27T10:00:00Z",
+  "status": "MISSING"
+}
+JSON
+
+    export GITHUB_REPOSITORY="heimgewebe/wgx-fallback"
+
+    run wgx integrity --publish
+    assert_success
+
+    # Check that the payload now contains the detected repo name, not "unknown"
+    run cat "$TEST_DIR/reports/integrity/event_payload.json"
+    assert_output --partial '"repo": "heimgewebe/wgx-fallback"'
+    assert_output --partial '"url": "https://github.com/heimgewebe/wgx-fallback/releases/download/integrity/summary.json"'
+}
+
+@test "integrity: --publish fails gracefully (no payload) if URL cannot be constructed" {
+    mkdir -p "$TEST_DIR/reports/integrity"
+    # Summary has "unknown" repo and no GITHUB_REPOSITORY or git remote
+    cat <<JSON > "$TEST_DIR/reports/integrity/summary.json"
+{
+  "repo": "unknown",
+  "generated_at": "2023-10-27T10:00:00Z",
+  "status": "MISSING"
+}
+JSON
+    unset GITHUB_REPOSITORY
+    unset GIT_DIR GIT_WORK_TREE
+
+    # Ensure strict isolation: no git repo at all
+    cd "$TEST_DIR"
+    rm -rf .git
+
+    # The command should succeed (exit 0) but warn.
+    # Redirect stderr to stdout to ensure we catch warnings regardless of BATS helper configuration.
+    run bash -c "wgx integrity --publish 2>&1"
+    assert_success
+
+    # Check that warning was emitted
+    assert_output --partial "Konnte keine gültige URL für das Integritäts-Event konstruieren"
+
+    # Check that payload file was NOT created
+    [ ! -f "$TEST_DIR/reports/integrity/event_payload.json" ]
+}
+
+@test "integrity: --publish skips payload creation if generated_at or status is missing" {
+    mkdir -p "$TEST_DIR/reports/integrity"
+    # Summary missing required fields (jq defaults to unknown/UNKNOWN)
+    cat <<JSON > "$TEST_DIR/reports/integrity/summary.json"
+{
+  "repo": "heimgewebe/wgx-test"
+}
+JSON
+    # The command should succeed (exit 0) but warn and skip.
+    # Redirect stderr to stdout for robust assertion.
+    run bash -c "wgx integrity --publish 2>&1"
+    assert_success
+
+    # Check warning
+    assert_output --partial "Integritätsbericht unvollständig"
+
+    # Check that payload file was NOT created
+    [ ! -f "$TEST_DIR/reports/integrity/event_payload.json" ]
+}
+
+@test "integrity: --publish prioritizes summary.json repo over GITHUB_REPOSITORY" {
+    mkdir -p "$TEST_DIR/reports/integrity"
+    # Summary has explicit repo
+    cat <<JSON > "$TEST_DIR/reports/integrity/summary.json"
+{
+  "repo": "heimgewebe/wgx-summary",
+  "generated_at": "2023-10-27T10:00:00Z",
+  "status": "OK"
+}
+JSON
+    # GITHUB_REPOSITORY is different
+    export GITHUB_REPOSITORY="heimgewebe/wgx-env"
+
+    run wgx integrity --publish
+    assert_success
+
+    # Should use summary repo as primary truth for the payload, because the report
+    # itself claims to belong to that repo.
+    run cat "$TEST_DIR/reports/integrity/event_payload.json"
+    assert_output --partial '"repo": "heimgewebe/wgx-summary"'
+    assert_output --partial '"url": "https://github.com/heimgewebe/wgx-summary/releases/download/integrity/summary.json"'
+}
+
+@test "integrity: --publish fallback to GITHUB_REPOSITORY if summary repo invalid" {
+    mkdir -p "$TEST_DIR/reports/integrity"
+    # Summary repo is invalid (no slash)
+    cat <<JSON > "$TEST_DIR/reports/integrity/summary.json"
+{
+  "repo": "invalidrepo",
+  "generated_at": "2023-10-27T10:00:00Z",
+  "status": "OK"
+}
+JSON
+    export GITHUB_REPOSITORY="heimgewebe/wgx-env"
+
+    run wgx integrity --publish
+    assert_success
+
+    # Should fallback to GITHUB_REPOSITORY
+    run cat "$TEST_DIR/reports/integrity/event_payload.json"
+    assert_output --partial '"repo": "heimgewebe/wgx-env"'
+    assert_output --partial '"url": "https://github.com/heimgewebe/wgx-env/releases/download/integrity/summary.json"'
+}
+
+@test "integrity: --publish uses corrected repo name when remote has .git suffix" {
+    mkdir -p "$TEST_DIR/reports/integrity"
+    # Summary repo is unknown
+    cat <<JSON > "$TEST_DIR/reports/integrity/summary.json"
+{
+  "repo": "unknown",
+  "generated_at": "2023-10-27T10:00:00Z",
+  "status": "OK"
+}
+JSON
+    unset GITHUB_REPOSITORY
+    # Setup git remote with .git suffix
+    cd "$TEST_DIR"
+    git init >/dev/null 2>&1
+    git remote add origin https://github.com/org/repo.git >/dev/null 2>&1
+
+    run wgx integrity --publish
+    assert_success
+
+    # Should strip .git suffix
+    run cat "$TEST_DIR/reports/integrity/event_payload.json"
+    assert_output --partial '"repo": "org/repo"'
+    assert_output --partial '"url": "https://github.com/org/repo/releases/download/integrity/summary.json"'
+}
+
+@test "integrity: --publish handles SSH remote URLs" {
+    mkdir -p "$TEST_DIR/reports/integrity"
+    # Summary repo is unknown
+    cat <<JSON > "$TEST_DIR/reports/integrity/summary.json"
+{
+  "repo": "unknown",
+  "generated_at": "2023-10-27T10:00:00Z",
+  "status": "OK"
+}
+JSON
+    unset GITHUB_REPOSITORY
+    # Setup SSH remote
+    cd "$TEST_DIR"
+    git init >/dev/null 2>&1
+    git remote add origin git@github.com:ssh-org/ssh-repo.git >/dev/null 2>&1
+
+    run wgx integrity --publish
+    assert_success
+
+    # Should correct repo name and URL
+    run cat "$TEST_DIR/reports/integrity/event_payload.json"
+    assert_output --partial '"repo": "ssh-org/ssh-repo"'
+    assert_output --partial '"url": "https://github.com/ssh-org/ssh-repo/releases/download/integrity/summary.json"'
+}
+
+# Merged special characters test into the general robust repo handling tests
+# to avoid redundancy. The SSH and priority tests already cover complex parsing.
 
 @test "integrity: --update detects repo from GITHUB_REPOSITORY (priority)" {
   cd "$TEST_DIR"

@@ -78,19 +78,43 @@ cmd_integrity() {
       generated_at=$(jq -r '.generated_at // "unknown"' "$summary_file")
       status=$(jq -r '.status // "UNKNOWN"' "$summary_file")
 
-      # Construct URL (Best Effort)
-      local url="null"
-      local remote_url current_branch
-      remote_url=$(git remote get-url origin 2>/dev/null || echo "")
-      current_branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "main")
+      if [[ "$generated_at" == "unknown" || "$status" == "UNKNOWN" ]]; then
+        warn "Integritätsbericht unvollständig (generated_at/status fehlt). Überspringe Event-Payload."
+        return 0
+      fi
 
-      # Normalize URL for GitHub Raw
-      if [[ "$remote_url" =~ github\.com[:/]([^/]+)/([^/]+)(\.git)?$ ]]; then
-        local org="${BASH_REMATCH[1]}"
-        local rname="${BASH_REMATCH[2]}"
-        # Ensure rname doesn't end in .git
-        rname="${rname%.git}"
-        url="https://raw.githubusercontent.com/${org}/${rname}/${current_branch}/reports/integrity/summary.json"
+      # Construct URL (Canonical Release Asset)
+      local url=""
+      local repo_name="$repo"
+
+      # Fallback detection if repo from summary.json is not usable
+      if [[ "$repo_name" == "unknown" || ! "$repo_name" =~ ^[^/]+/[^/]+$ ]]; then
+        if [[ -n "${GITHUB_REPOSITORY:-}" ]]; then
+          repo_name="$GITHUB_REPOSITORY"
+        else
+          local remote_url
+          remote_url=$(git remote get-url origin 2>/dev/null || echo "")
+          if [[ "$remote_url" =~ github\.com[:/]([^/]+)/([^/]+)(\.git)?$ ]]; then
+            local org="${BASH_REMATCH[1]}"
+            local rname="${BASH_REMATCH[2]}"
+            rname="${rname%.git}"
+            repo_name="${org}/${rname}"
+          fi
+        fi
+      fi
+
+      # Ensure repo_name is strictly owner/repo format, else unknown
+      if [[ -z "$repo_name" || ! "$repo_name" =~ ^[^/]+/[^/]+$ ]]; then
+        repo_name="unknown"
+      fi
+
+      if [[ "$repo_name" != "unknown" ]]; then
+        url="https://github.com/${repo_name}/releases/download/integrity/summary.json"
+      fi
+
+      if [[ -z "$url" ]]; then
+        warn "Konnte keine gültige URL für das Integritäts-Event konstruieren. (Repo: $repo_name)"
+        return 0
       fi
 
       # Construct Payload JSON
@@ -98,7 +122,7 @@ cmd_integrity() {
       local payload_json
       export PL_URL="$url"
       export PL_GEN="$generated_at"
-      export PL_REPO="$repo"
+      export PL_REPO="$repo_name"
       export PL_STAT="$status"
 
       if ! command -v python3 >/dev/null 2>&1; then
@@ -123,7 +147,7 @@ cmd_integrity() {
       printf '%s' "$payload_json" >"$payload_file"
 
       # Emit Event - failure is acceptable but should be logged
-      if ! heimgeist::emit "integrity.summary.published.v1" "$repo" "$payload_json"; then
+      if ! heimgeist::emit "integrity.summary.published.v1" "$repo_name" "$payload_json"; then
         warn "Konnte Event 'integrity.summary.published.v1' nicht senden (heimgeist::emit fehlgeschlagen)."
       fi
       return 0

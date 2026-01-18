@@ -8,6 +8,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: integrity-${{ github.repository }}
+  cancel-in-progress: false
+
 jobs:
   integrity:
     runs-on: ubuntu-latest
@@ -28,15 +32,37 @@ jobs:
         run: |
           ./wgx integrity --update
 
-      - name: Commit Report
-        uses: stefanzweifel/git-auto-commit-action@v5
+      - name: Preflight Check
+        run: |
+          if [ ! -s "reports/integrity/summary.json" ]; then
+            echo "::error::reports/integrity/summary.json is missing or empty."
+            exit 1
+          fi
+
+      - name: Publish to Release
+        uses: softprops/action-gh-release@c95fe1489396fe8a9eb87c0abf8aa5b2ef267fda # v2.2.1 (pinned)
         with:
-          commit_message: "chore(integrity): update summary [skip ci]"
-          file_pattern: "reports/integrity/summary.json"
+          tag_name: integrity
+          files: reports/integrity/summary.json
+          fail_on_unmatched_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify Release Asset
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Ensure the asset was actually uploaded
+          if ! gh release view integrity --repo ${{ github.repository }} --json assets -q '.assets[].name' | grep -q "summary.json"; then
+            echo "::error::Release asset summary.json not found in integrity release!"
+            exit 1
+          fi
 
       - name: Publish Event
+        continue-on-error: true
         run: |
           # The command outputs the event JSON to stdout
+          # We use continue-on-error because event emission is best-effort
           EVENT_JSON=$(./wgx integrity --publish | tail -n 1)
 
           # Since there is no central event bus configured in this environment yet,
@@ -45,3 +71,12 @@ jobs:
 
           echo "::notice title=Integrity Event::Event published (simulated)"
           echo "$EVENT_JSON" | jq .
+
+      # Release asset is canonical truth; commit is convenience.
+      # We do commit last to avoid confusion if release fails.
+      - name: Commit Report
+        if: success()
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore(integrity): update summary [skip ci]"
+          file_pattern: "reports/integrity/summary.json"
