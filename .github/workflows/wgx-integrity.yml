@@ -39,7 +39,7 @@ jobs:
             exit 1
           fi
 
-      - name: Validate Report Schema
+      - name: Validate Report Invariants
         run: |
           if ! jq -e '
             (.repo | type == "string" and test("^[-._a-zA-Z0-9]+/[-._a-zA-Z0-9]+$")) and

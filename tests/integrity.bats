@@ -352,8 +352,9 @@ BASH
   run bash -c "$real_root/cli/wgx integrity --publish 2>&1"
   assert_success # Exit code 0 despite failure
 
-  # Check warning
-  assert_output --partial "Konnte Event 'integrity.summary.published.v1' nicht senden"
+  # Check warning (robust partial matching)
+  assert_output --partial "integrity.summary.published.v1"
+  assert_output --partial "nicht senden"
 
   # Check payload still exists (Release Asset logic)
   [ -f "$TEST_DIR/reports/integrity/event_payload.json" ]
