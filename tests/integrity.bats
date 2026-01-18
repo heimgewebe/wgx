@@ -59,7 +59,7 @@ JSON
   mkdir -p "$TEST_DIR/reports/integrity"
   cat <<JSON > "$TEST_DIR/reports/integrity/summary.json"
 {
-  "repo": "semantAH",
+  "repo": "heimgewebe/semantAH",
   "generated_at": "2023-10-27T10:00:00Z",
   "status": "OK"
 }
@@ -77,7 +77,7 @@ JSON
   # content check
   run cat "$TEST_DIR/reports/integrity/event_payload.json"
   assert_output --partial '"status": "OK"'
-  assert_output --partial '"repo": "semantAH"'
+  assert_output --partial '"repo": "heimgewebe/semantAH"'
 }
 
 @test "integrity: --publish generates canonical release asset URL" {
