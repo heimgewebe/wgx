@@ -4,9 +4,9 @@
 
 The Release Asset named `summary.json` (attached to the `integrity` tag) is the **canonical source of truth**.
 
-*   **Repository Path:** `reports/integrity/summary.json` (Source)
-*   **Release Asset:** `summary.json` (Canonical Artifact)
-*   **Fetch URL:** `https://github.com/<owner>/<repo>/releases/download/integrity/summary.json`
+* **Repository Path:** `reports/integrity/summary.json` (Source)
+* **Release Asset:** `summary.json` (Canonical Artifact)
+* **Fetch URL:** `https://github.com/<owner>/<repo>/releases/download/integrity/summary.json`
 
 Events (`integrity.summary.published.v1`) are **best-effort hints** to signal updates.
 They may be lost or delayed.
