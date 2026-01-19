@@ -25,87 +25,121 @@ YAML
   touch fleet/repos.yml
 }
 
-@test "guard data_flow: silent/skip when no files found" {
-  # If no files exist, the guard runs but finds no active flows.
-
+@test "guard data_flow: silent/skip when no config found" {
   run wgx guard --lint
   echo "Output: $output"
   [ "$status" -eq 0 ]
-
+  # Depending on implementation, it might warn or just skip
   if command -v python3 >/dev/null 2>&1; then
-      [[ "$output" =~ "SKIP: No active flows detected" ]]
+      [[ "$output" =~ "No flow configuration found" ]] || [[ "$output" =~ "Skipping" ]]
   else
-      [[ "$output" =~ "Skipping data flow guard (python3 not found)" ]]
+      [[ "$output" =~ "Skipping data flow guard" ]]
   fi
 }
 
-@test "guard data_flow: validates observatory flow successfully" {
+@test "guard data_flow: fails when data exists but schema missing" {
   if ! command -v python3 >/dev/null 2>&1; then
     skip "python3 not available"
   fi
 
   mkdir -p contracts artifacts
-  echo '{"type": "object"}' > contracts/knowledge.observatory.schema.json
-  echo '{"id": "1", "val": "foo"}' > artifacts/knowledge.observatory.json
-  git add contracts artifacts
 
-  run wgx guard --lint
-  echo "Output: $output"
-  [ "$status" -eq 0 ]
-  [[ "$output" =~ "Checking 'observatory'" ]]
-  [[ "$output" =~ "OK:" ]]
+  # Create config (JSON for max portability in test env)
+  cat <<JSON > contracts/flows.json
+{
+  "flows": {
+    "test_flow": {
+      "schema": "contracts/missing.schema.json",
+      "data": ["artifacts/data.json"]
+    }
+  }
 }
+JSON
 
-@test "guard data_flow: fails on validation error" {
-  if ! command -v python3 >/dev/null 2>&1; then
-    skip "python3 not available"
-  fi
-
-  mkdir -p contracts artifacts
-  echo '{"type": "object", "properties": {"val": {"type": "integer"}}}' > contracts/knowledge.observatory.schema.json
-  echo '{"id": "1", "val": "foo"}' > artifacts/knowledge.observatory.json
+  echo '{"id": "1", "val": "foo"}' > artifacts/data.json
   git add contracts artifacts
 
   run wgx guard --lint
   echo "Output: $output"
   [ "$status" -eq 1 ]
-  [[ "$output" =~ "FAILED: 1 error(s) found" ]]
+  [[ "$output" =~ "schema is missing" ]]
 }
 
-@test "guard data_flow: checks ingest state" {
+@test "guard data_flow: passes with valid strict schema" {
   if ! command -v python3 >/dev/null 2>&1; then
     skip "python3 not available"
   fi
 
-  mkdir -p contracts data
-  echo '{"type": "object"}' > contracts/heimlern.ingest.state.v1.schema.json
-  echo '{"cursor": "123"}' > data/heimlern.cursor.json
-  git add contracts data
+  mkdir -p contracts artifacts
+
+  cat <<JSON > contracts/flows.json
+{
+  "flows": {
+    "strict_flow": {
+      "schema": "contracts/strict.schema.json",
+      "data": ["artifacts/strict.json"]
+    }
+  }
+}
+JSON
+
+  # Strict schema: additionalProperties: false
+  cat <<JSON > contracts/strict.schema.json
+{
+  "type": "object",
+  "properties": {
+    "id": { "type": "string" },
+    "val": { "type": "string" }
+  },
+  "required": ["id"],
+  "additionalProperties": false
+}
+JSON
+
+  echo '{"id": "1", "val": "foo"}' > artifacts/strict.json
+  git add contracts artifacts
 
   run wgx guard --lint
   echo "Output: $output"
   [ "$status" -eq 0 ]
-  [[ "$output" =~ "Checking 'ingest_state'" ]]
+  [[ "$output" =~ "Checking 'strict_flow'" ]]
+  [[ "$output" =~ "OK" ]]
 }
 
-@test "guard data_flow: checks multiple flows" {
+@test "guard data_flow: fails on strict schema violation" {
   if ! command -v python3 >/dev/null 2>&1; then
     skip "python3 not available"
   fi
 
-  mkdir -p contracts artifacts data reports/plexer
-  echo '{"type": "object"}' > contracts/knowledge.observatory.schema.json
-  echo '{"type": "object"}' > contracts/plexer.delivery.report.v1.schema.json
+  mkdir -p contracts artifacts
 
-  echo '{}' > artifacts/knowledge.observatory.json
-  echo '{}' > reports/plexer/delivery.report.json
+  cat <<JSON > contracts/flows.json
+{
+  "flows": {
+    "strict_flow": {
+      "schema": "contracts/strict.schema.json",
+      "data": ["artifacts/strict.json"]
+    }
+  }
+}
+JSON
 
-  git add contracts artifacts reports
+  cat <<JSON > contracts/strict.schema.json
+{
+  "type": "object",
+  "properties": {
+    "id": { "type": "string" }
+  },
+  "additionalProperties": false
+}
+JSON
+
+  # 'extra' field should cause failure
+  echo '{"id": "1", "extra": "forbidden"}' > artifacts/strict.json
+  git add contracts artifacts
 
   run wgx guard --lint
   echo "Output: $output"
-  [ "$status" -eq 0 ]
-  [[ "$output" =~ "Checking 'observatory'" ]]
-  [[ "$output" =~ "Checking 'delivery_report'" ]]
-  [[ "$output" =~ "OK: 2 flow(s) checked" ]]
+  [ "$status" -eq 1 ]
+  [[ "$output" =~ "FAILED" ]]
 }

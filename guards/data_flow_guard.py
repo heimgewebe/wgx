@@ -5,82 +5,79 @@ guards/data_flow_guard.py
 Guard: Validates data flow artifacts against their contracts.
 Part of the "Heimgewebe" architecture hardening.
 
+Config:
+- Reads flow definitions from 'contracts/flows.yaml' (or .json).
+- Format:
+  flows:
+    <name>:
+      schema: "path/to/schema.json"
+      data: ["pattern/to/data.json"]
+
 Logic:
-1. Iterates over defined data flows (Observatory, Delivery Reports, Ingest State, Events).
-2. Locates schema for each flow.
-3. Locates data files for each flow.
-4. Validates data against schema.
+1. Load configuration.
+2. For each flow:
+   - Check if data exists.
+   - If data exists:
+     - Check if schema exists.
+     - If schema MISSING -> FAIL.
+     - If schema EXISTS -> Validate (FAIL on error).
+   - If data missing -> SKIP (OK).
 
 Exit codes:
  0: Success (all checks passed or skipped)
- 1: Validation Failure
+ 1: Validation Failure or Config Error
 """
 
 import sys
 import json
 import glob
 import os
+import pathlib
+from urllib.parse import urljoin
 
+# Try imports
 try:
     import jsonschema
 except ImportError:
     jsonschema = None
 
-# Configuration: Flows to check
-# schema_candidates: list of relative paths to look for schema (first found wins)
-# data_patterns: list of glob patterns to look for data files
-FLOWS = {
-    "observatory": {
-        "schema_candidates": [
-            "contracts/knowledge.observatory.schema.json",
-            "contracts/events/knowledge.observatory.schema.json"
-        ],
-        "data_patterns": [
-            "artifacts/knowledge.observatory.json"
-        ]
-    },
-    "delivery_report": {
-        "schema_candidates": [
-            "contracts/plexer.delivery.report.v1.schema.json",
-            "contracts/events/plexer.delivery.report.v1.schema.json"
-        ],
-        "data_patterns": [
-            "reports/plexer/delivery.report.json",
-            "reports/delivery.report.json"
-        ]
-    },
-    "ingest_state": {
-        "schema_candidates": [
-            "contracts/heimlern.ingest.state.v1.schema.json",
-            "contracts/events/heimlern.ingest.state.v1.schema.json"
-        ],
-        "data_patterns": [
-            "data/heimlern.cursor.json",
-            "data/ingest.state.json"
-        ]
-    },
-    "event_envelope": {
-        "schema_candidates": [
-            "contracts/plexer.event.envelope.v1.schema.json",
-            "contracts/events/plexer.event.envelope.v1.schema.json"
-        ],
-        "data_patterns": [
-            "event.json",
-            "events/*.json",
-            "reports/events/*.json"
-        ]
-    }
-}
+try:
+    import yaml
+except ImportError:
+    yaml = None
+
+def load_config():
+    """
+    Load flows configuration from contracts/flows.yaml or contracts/flows.json.
+    """
+    candidates = ["contracts/flows.yaml", "contracts/flows.json", ".wgx/flows.yaml", ".wgx/flows.json"]
+
+    for path in candidates:
+        if os.path.exists(path):
+            if path.endswith(".yaml") or path.endswith(".yml"):
+                if yaml is None:
+                    print(f"::warning::[wgx][guard][data_flow] Found config '{path}' but PyYAML is not installed. Skipping.", file=sys.stderr)
+                    continue
+                try:
+                    with open(path, 'r', encoding='utf-8') as f:
+                        return yaml.safe_load(f), path
+                except Exception as e:
+                    print(f"[wgx][guard][data_flow] ERROR: Failed to parse YAML config '{path}': {e}", file=sys.stderr)
+                    sys.exit(1)
+            else:
+                try:
+                    with open(path, 'r', encoding='utf-8') as f:
+                        return json.load(f), path
+                except Exception as e:
+                    print(f"[wgx][guard][data_flow] ERROR: Failed to parse JSON config '{path}': {e}", file=sys.stderr)
+                    sys.exit(1)
+
+    return None, None
 
 def load_data(filepath):
-    """
-    Load data from JSON or JSONL file.
-    Returns a list of items or raises an exception.
-    """
     with open(filepath, 'r', encoding='utf-8') as f:
         content = f.read()
 
-    # Try JSON first
     try:
         data = json.loads(content)
         if isinstance(data, list):
@@ -88,7 +85,6 @@ def load_data(filepath):
         elif isinstance(data, dict):
             return [data]
         else:
-            # Valid JSON but primitive
             raise ValueError("File content must be a JSON object or array")
     except json.JSONDecodeError:
         # Try JSONL
@@ -110,14 +106,11 @@ def load_data(filepath):
 
         return items
 
-def resolve_schema(candidates):
-    for path in candidates:
-        if os.path.exists(path):
-            return path
-    return None
-
 def resolve_data(patterns):
     files = []
+    if isinstance(patterns, str):
+        patterns = [patterns]
+
     for pat in patterns:
         if "*" in pat:
             matches = sorted(glob.glob(pat))
@@ -125,42 +118,88 @@ def resolve_data(patterns):
         else:
             if os.path.exists(pat):
                 files.append(pat)
-    return sorted(list(set(files))) # dedupe
+    return sorted(list(set(files)))
 
 def main():
     if jsonschema is None:
         print("::notice::[wgx][guard][data_flow] SKIP: jsonschema not installed", file=sys.stderr)
         return 0
 
+    config, config_path = load_config()
+
+    if not config:
+        # Fallback to hardcoded defaults ONLY if no config found, or exit?
+        # The prompt implies we should harmonize. If config is missing, maybe we shouldn't guess.
+        # But to be safe for existing repos without config, we might output a warning.
+        print("::notice::[wgx][guard][data_flow] No flow configuration found (checked contracts/flows.yaml, etc). Skipping.", file=sys.stderr)
+        return 0
+
+    flows = config.get("flows", {})
+    if not flows:
+        print(f"[wgx][guard][data_flow] Config '{config_path}' has no 'flows' defined.", file=sys.stderr)
+        return 0
+
     total_errors = 0
     checks_run = 0
 
-    for flow_name, config in FLOWS.items():
-        # 1. Locate Schema
-        schema_path = resolve_schema(config["schema_candidates"])
-        if not schema_path:
-            # Skip this flow if no schema is defined
+    for flow_name, definition in flows.items():
+        # Definition format: { "schema": "...", "data": [...] }
+        # Or schema_candidates/data_patterns from previous version?
+        # Let's support the simple "schema" (string) and "data" (list/string) format as per prompt implication.
+
+        schema_rel_path = definition.get("schema")
+        data_patterns = definition.get("data")
+
+        if not data_patterns:
             continue
 
-        # 2. Locate Data
-        data_files = resolve_data(config["data_patterns"])
+        # 1. Locate Data
+        data_files = resolve_data(data_patterns)
+
         if not data_files:
-            # Skip if no data found
+            # No data -> SKIP (OK)
             continue
+
+        # 2. Locate Schema (Strict check now)
+        if not schema_rel_path:
+             print(f"[wgx][guard][data_flow] ERROR: Flow '{flow_name}' has data files but no 'schema' defined in config.", file=sys.stderr)
+             total_errors += 1
+             continue
+
+        if not os.path.exists(schema_rel_path):
+             print(f"[wgx][guard][data_flow] FAIL: Flow '{flow_name}' data exists ({len(data_files)} files) but schema is missing at '{schema_rel_path}'.", file=sys.stderr)
+             total_errors += 1
+             continue
 
         checks_run += 1
-        print(f"[wgx][guard][data_flow] Checking '{flow_name}': {len(data_files)} file(s) against '{schema_path}'...", file=sys.stderr)
+        print(f"[wgx][guard][data_flow] Checking '{flow_name}': {len(data_files)} file(s) against '{schema_rel_path}'...", file=sys.stderr)
 
-        # 3. Load Schema
+        # 3. Load Schema & Validate
         try:
-            with open(schema_path, 'r', encoding='utf-8') as f:
+            with open(schema_rel_path, 'r', encoding='utf-8') as f:
                 schema = json.load(f)
+
+            # Prepare Resolver
+            # Base URI as file:// path to the schema directory to support relative $ref
+            schema_abs_path = pathlib.Path(schema_rel_path).resolve()
+            base_uri = schema_abs_path.as_uri()
+
+            # In jsonschema >= 4.18, referencing is different, but < 4.18 uses RefResolver.
+            # We try standard validate; if it fails on ref, we might need manual resolver setup.
+            # Usually providing a fully resolved schema or correct working dir helps.
+            # Ideally, we pass resolver=... to validate, but simple validate() might not infer base_uri from file.
+            # We will use explicit validator class to set base_uri.
+
+            validator_cls = jsonschema.validators.validator_for(schema)
+            # Create a resolver that points to the schema file's location
+            resolver = jsonschema.RefResolver(base_uri=base_uri, referrer=schema)
+            validator = validator_cls(schema, resolver=resolver)
+
         except Exception as e:
-            print(f"[wgx][guard][data_flow] ERROR: Failed to parse schema {schema_path}: {e}", file=sys.stderr)
+            print(f"[wgx][guard][data_flow] ERROR: Failed to prepare schema '{schema_rel_path}': {e}", file=sys.stderr)
             total_errors += 1
             continue
 
-        # 4. Validate Data
         for df in data_files:
             try:
                 items = load_data(df)
@@ -172,11 +211,11 @@ def main():
             for i, item in enumerate(items):
                 item_id = item.get("id", f"item-{i}")
                 try:
-                    jsonschema.validate(instance=item, schema=schema)
+                    validator.validate(item)
                 except jsonschema.ValidationError as e:
                     msg = e.message
                     if len(msg) > 200: msg = msg[:200] + "..."
-                    print(f"[wgx][guard][data_flow]\nflow: {flow_name}\nschema: {schema_path}\ndata: {df}\nid: {item_id}\nerror: {msg}", file=sys.stderr)
+                    print(f"[wgx][guard][data_flow]\nflow: {flow_name}\nschema: {schema_rel_path}\ndata: {df}\nid: {item_id}\nerror: {msg}", file=sys.stderr)
                     total_errors += 1
 
     if total_errors > 0:
@@ -184,7 +223,9 @@ def main():
         return 1
 
     if checks_run == 0:
-        print("[wgx][guard][data_flow] SKIP: No active flows detected (schema + data missing).", file=sys.stderr)
+        # This is now acceptable if no data was found.
+        # But if config existed and we found no *active* flows, it's just "OK, nothing to do".
+        print("[wgx][guard][data_flow] OK: No active data flows found.", file=sys.stderr)
     else:
         print(f"[wgx][guard][data_flow] OK: {checks_run} flow(s) checked.", file=sys.stderr)
 
