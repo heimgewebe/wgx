@@ -120,6 +120,19 @@ _guard_contracts_ownership() {
   fi
 }
 
+# Data Flow Guard (validates artifacts against contracts)
+_guard_data_flow() {
+  local project_root
+  project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+  if command -v python3 >/dev/null 2>&1; then
+    # The python script itself handles skipping if files/deps are missing.
+    python3 "${project_root}/guards/data_flow_guard.py"
+  else
+    warn "Skipping data flow guard (python3 not found)"
+  fi
+}
+
 guard_run() {
   local run_lint=0 run_test=0
   while [[ $# -gt 0 ]]; do
@@ -245,6 +258,9 @@ USAGE
 
   # 2.7 Integrity Guard
   _guard_integrity || return 1
+
+  # 2.8 Data Flow Guard
+  _guard_data_flow || return 1
 
   # 3. Lint (wenn gewünscht)
   if [[ $run_lint -eq 1 ]]; then
