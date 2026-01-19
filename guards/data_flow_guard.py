@@ -6,15 +6,22 @@ Guard: Validates data flow artifacts against their contracts.
 Part of the "Heimgewebe" architecture hardening.
 
 Config:
-- Reads flow definitions from 'contracts/flows.yaml' (or .json).
+- Canonical flow definition: '.wgx/flows.json' (or .yaml).
+- Supports 'contracts/flows.json' for legacy/transition.
 - Format:
   flows:
     <name>:
-      schema: "path/to/schema.json"
+      schema: "contracts/path/to/schema.json"
       data: ["pattern/to/data.json"]
 
+SSOT Philosophy:
+- Schemas referenced in 'schema' path should be either:
+  (A) Automatically mirrored schemas from the Metarepo.
+  (B) Vendored schemas in a fixed path (e.g. .wgx/contracts/) with strict sync rules.
+- Local ad-hoc schemas are discouraged.
+
 Logic:
-1. Load configuration.
+1. Load configuration (prioritizing .wgx/flows.json).
 2. For each flow:
    - Check if data exists.
    - If data exists:
@@ -47,9 +54,19 @@ except ImportError:
 
 def load_config():
     """
-    Load flows configuration from contracts/flows.yaml or contracts/flows.json.
+    Load flows configuration.
+    Priority:
+    1. .wgx/flows.json (Canonical)
+    2. .wgx/flows.yaml
+    3. contracts/flows.json (Legacy)
+    4. contracts/flows.yaml
     """
-    candidates = ["contracts/flows.yaml", "contracts/flows.json", ".wgx/flows.yaml", ".wgx/flows.json"]
+    candidates = [
+        ".wgx/flows.json",
+        ".wgx/flows.yaml",
+        "contracts/flows.json",
+        "contracts/flows.yaml"
+    ]
 
     for path in candidates:
         if os.path.exists(path):
@@ -132,7 +149,7 @@ def main():
     config, config_path = load_config()
 
     if not config:
-        print("::notice::[wgx][guard][data_flow] No flow configuration found (checked contracts/flows.yaml, etc). Skipping.", file=sys.stderr)
+        print("::notice::[wgx][guard][data_flow] No flow configuration found (checked .wgx/flows.json, contracts/flows.yaml, etc). Skipping.", file=sys.stderr)
         return 0
 
     flows = config.get("flows", {})
@@ -156,7 +173,7 @@ def main():
         if not data_files:
             continue
 
-        # 2. Locate Schema (Strict check now)
+        # 2. Locate Schema (Strict check)
         if not schema_rel_path:
              print(f"[wgx][guard][data_flow] ERROR flow={flow_name} error='Missing schema definition in config'", file=sys.stderr)
              total_errors += 1
@@ -182,8 +199,6 @@ def main():
                 validator = validator_cls(schema, resolver=resolver)
             except Exception:
                 # Fallback for newer jsonschema versions or if resolver fails
-                # Newer versions might handle $ref automatically if registry is used,
-                # but basic validation often suffices if schemas are self-contained.
                 validator = validator_cls(schema)
 
         except Exception as e:

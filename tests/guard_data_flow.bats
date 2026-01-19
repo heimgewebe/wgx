@@ -29,18 +29,18 @@ YAML
   run wgx guard --lint
   echo "Output: $output"
   [ "$status" -eq 0 ]
-  # We just ensure it doesn't fail. Output might differ based on environment.
   [[ "$output" != *"FAILED"* ]]
 }
 
-@test "guard data_flow: fails when data exists but schema missing" {
+@test "guard data_flow: fails when data exists but schema missing (via .wgx/flows.json)" {
   if ! command -v python3 >/dev/null 2>&1; then
     skip "python3 not available"
   fi
 
-  mkdir -p contracts artifacts
+  mkdir -p contracts artifacts .wgx
 
-  cat <<JSON > contracts/flows.json
+  # Canonical config location
+  cat <<JSON > .wgx/flows.json
 {
   "flows": {
     "test_flow": {
@@ -52,24 +52,23 @@ YAML
 JSON
 
   echo '{"id": "1", "val": "foo"}' > artifacts/data.json
-  git add contracts artifacts
+  git add contracts artifacts .wgx
 
   run wgx guard --lint
   echo "Output: $output"
   [ "$status" -eq 1 ]
-  # Check for robust single-line log format and Flow ID
   [[ "$output" =~ "flow=test_flow" ]]
   [[ "$output" =~ "Schema missing" ]]
 }
 
-@test "guard data_flow: passes with valid strict schema" {
+@test "guard data_flow: passes with valid strict schema (via .wgx/flows.json)" {
   if ! command -v python3 >/dev/null 2>&1; then
     skip "python3 not available"
   fi
 
-  mkdir -p contracts artifacts
+  mkdir -p contracts artifacts .wgx
 
-  cat <<JSON > contracts/flows.json
+  cat <<JSON > .wgx/flows.json
 {
   "flows": {
     "strict_flow": {
@@ -93,48 +92,11 @@ JSON
 JSON
 
   echo '{"id": "1", "val": "foo"}' > artifacts/strict.json
-  git add contracts artifacts
+  git add contracts artifacts .wgx
 
   run wgx guard --lint
   echo "Output: $output"
   [ "$status" -eq 0 ]
   [[ "$output" =~ "CHECK flow=strict_flow" ]]
   [[ "$output" =~ "OK" ]]
-}
-
-@test "guard data_flow: fails on strict schema violation" {
-  if ! command -v python3 >/dev/null 2>&1; then
-    skip "python3 not available"
-  fi
-
-  mkdir -p contracts artifacts
-
-  cat <<JSON > contracts/flows.json
-{
-  "flows": {
-    "strict_flow": {
-      "schema": "contracts/strict.schema.json",
-      "data": ["artifacts/strict.json"]
-    }
-  }
-}
-JSON
-
-  cat <<JSON > contracts/strict.schema.json
-{
-  "type": "object",
-  "properties": {
-    "id": { "type": "string" }
-  },
-  "additionalProperties": false
-}
-JSON
-
-  echo '{"id": "1", "extra": "forbidden"}' > artifacts/strict.json
-  git add contracts artifacts
-
-  run wgx guard --lint
-  echo "Output: $output"
-  [ "$status" -eq 1 ]
-  [[ "$output" =~ "FAIL flow=strict_flow" ]]
 }

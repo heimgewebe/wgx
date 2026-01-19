@@ -11,3 +11,34 @@ Prüft `contracts/events/*.schema.json` und optional `*.meta.json`:
 - Sidecar `*.meta.json` (falls vorhanden) ist valides JSON und enthält Governance-Struktur
 
 Warum: Manche Strict-Validatoren brechen bei unbekannten Keywords; Governance-Meta wird daher ausgelagert.
+
+## data_flow_guard.py
+
+Validiert Datenartefakte gegen JSON-Schemas basierend auf einer Flow-Definition.
+
+- **Konfiguration:** `.wgx/flows.json` (Canonical) oder `contracts/flows.json` (Legacy).
+- **Logik:**
+  - Daten existieren + Schema fehlt = **FAIL** (Verhindert unvalidierten Datenfluss).
+  - Daten existieren + Schema existiert = **VALIDATE** (Fail bei Schema-Verletzung).
+  - Daten fehlen = **SKIP** (OK).
+
+### Single Source of Truth (SSOT)
+
+Die referenzierten Schemas sollten entweder:
+1. Automatisch aus dem Metarepo gespiegelt werden (`contracts/...`).
+2. Explizit als vendored Contracts abgelegt sein (`.wgx/contracts/...`).
+
+Lokale Ad-hoc-Schemas sollten vermieden werden, um Drift zu verhindern.
+
+**Beispiel `.wgx/flows.json`:**
+
+```json
+{
+  "flows": {
+    "my_artifact": {
+      "schema": "contracts/my_artifact.schema.json",
+      "data": ["artifacts/output.json"]
+    }
+  }
+}
+```
