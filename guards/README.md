@@ -25,6 +25,7 @@ Validiert Datenartefakte gegen JSON-Schemas basierend auf einer Flow-Definition.
 ### Single Source of Truth (SSOT)
 
 Die referenzierten Schemas sollten entweder:
+
 1. Automatisch aus dem Metarepo gespiegelt werden (`contracts/...`).
 2. Explizit als vendored Contracts abgelegt sein (`.wgx/contracts/...`).
 
