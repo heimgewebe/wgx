@@ -127,7 +127,7 @@ _guard_data_flow() {
 
   if command -v python3 >/dev/null 2>&1; then
     # The python script itself handles skipping if files/deps are missing.
-    python3 "${project_root}/guards/data_flow_guard.py"
+    python3 "${project_root}/guards/data_flow_guard.py" || return 1
   else
     warn "Skipping data flow guard (python3 not found)"
   fi

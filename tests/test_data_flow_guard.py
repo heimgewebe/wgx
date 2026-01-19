@@ -22,19 +22,8 @@ class TestDataFlowGuard(unittest.TestCase):
     @patch('builtins.open', new_callable=mock_open)
     def test_main_happy_path(self, mock_file, mock_glob, mock_exists, mock_jsonschema):
         # Setup: Config exists, schema exists, data exists
-
-        # Mocking exists:
-        # 1. Config check (contracts/flows.yaml) -> True
-        # 2. Schema check (path/to/schema.json) -> True
-        # 3. Data check (path/to/data.json) -> True
-        def exists_side_effect(p):
-            if p == "contracts/flows.yaml": return True
-            if p == "path/to/schema.json": return True
-            if p == "path/to/data.json": return True
-            return False
-        mock_exists.side_effect = exists_side_effect
-
-        mock_glob.return_value = [] # Assume exact path in data pattern
+        mock_exists.side_effect = lambda p: p in ["contracts/flows.yaml", "path/to/schema.json", "path/to/data.json"]
+        mock_glob.return_value = [] # Assume exact path
 
         config_content = """
 flows:
@@ -56,7 +45,6 @@ flows:
 
         mock_file.side_effect = open_side_effect
 
-        # Mock yaml.safe_load
         mock_yaml = MagicMock()
         mock_yaml.safe_load.return_value = {
             "flows": {
@@ -67,25 +55,23 @@ flows:
             }
         }
 
+        # Mock Validator
+        mock_validator_instance = MagicMock()
+        mock_jsonschema.validators.validator_for.return_value = MagicMock(return_value=mock_validator_instance)
+
         with patch('guards.data_flow_guard.yaml', mock_yaml):
             ret = data_flow_guard.main()
 
         self.assertEqual(ret, 0)
-        # Verify validator was created
-        self.assertTrue(mock_jsonschema.validators.validator_for.called)
+        self.assertTrue(mock_validator_instance.validate.called)
 
     @patch('guards.data_flow_guard.jsonschema')
     @patch('guards.data_flow_guard.os.path.exists')
+    @patch('guards.data_flow_guard.glob.glob')
     @patch('builtins.open', new_callable=mock_open)
-    def test_main_schema_missing_fail(self, mock_file, mock_exists, mock_jsonschema):
-        # Setup: Config exists, Data exists, Schema MISSING -> Fail
-
-        def exists_side_effect(p):
-            if p == "contracts/flows.json": return True
-            if p == "path/to/data.json": return True
-            if p == "path/to/missing_schema.json": return False # Missing!
-            return False
-        mock_exists.side_effect = exists_side_effect
+    def test_main_schema_missing_fail(self, mock_file, mock_glob, mock_exists, mock_jsonschema):
+        mock_exists.side_effect = lambda p: p in ["contracts/flows.json", "path/to/data.json"]
+        mock_glob.return_value = []
 
         config_content = json.dumps({
             "flows": {
@@ -96,16 +82,8 @@ flows:
             }
         })
 
-        def open_side_effect(file, mode='r', encoding='utf-8'):
-            if "flows.json" in file:
-                return mock_open(read_data=config_content).return_value
-            if "data.json" in file:
-                return mock_open(read_data="[]").return_value
-            return mock_open(read_data="").return_value
+        mock_file.side_effect = lambda f, m='r', encoding='utf-8': mock_open(read_data=config_content).return_value if "flows.json" in f else mock_open(read_data="[]").return_value
 
-        mock_file.side_effect = open_side_effect
-
-        # We need to simulate no yaml installed so it falls back to json check
         with patch('guards.data_flow_guard.yaml', None):
             ret = data_flow_guard.main()
 
@@ -113,14 +91,11 @@ flows:
 
     @patch('guards.data_flow_guard.jsonschema')
     @patch('guards.data_flow_guard.os.path.exists')
+    @patch('guards.data_flow_guard.glob.glob')
     @patch('builtins.open', new_callable=mock_open)
-    def test_main_no_data_skip(self, mock_file, mock_exists, mock_jsonschema):
-        # Setup: Config exists, Schema missing, BUT Data also missing -> OK (Skip)
-
-        def exists_side_effect(p):
-            if p == "contracts/flows.json": return True
-            return False # Data matches nothing
-        mock_exists.side_effect = exists_side_effect
+    def test_main_no_data_skip(self, mock_file, mock_glob, mock_exists, mock_jsonschema):
+        mock_exists.side_effect = lambda p: p == "contracts/flows.json"
+        mock_glob.return_value = []
 
         config_content = json.dumps({
             "flows": {
@@ -131,12 +106,60 @@ flows:
             }
         })
 
-        mock_file.side_effect = lambda f, m='r', encoding='utf-8': mock_open(read_data=config_content).return_value if "flows.json" in f else mock_open(read_data="").return_value
+        mock_file.side_effect = lambda f, m='r', encoding='utf-8': mock_open(read_data=config_content).return_value
 
         with patch('guards.data_flow_guard.yaml', None):
             ret = data_flow_guard.main()
 
         self.assertEqual(ret, 0)
+
+    # load_data robustness tests
+    def test_load_data_rejects_primitive_json(self):
+        with patch("builtins.open", mock_open(read_data='"string"')):
+            with self.assertRaises(ValueError):
+                data_flow_guard.load_data("dummy")
+        with patch("builtins.open", mock_open(read_data='123')):
+            with self.assertRaises(ValueError):
+                data_flow_guard.load_data("dummy")
+        with patch("builtins.open", mock_open(read_data='true')):
+            with self.assertRaises(ValueError):
+                data_flow_guard.load_data("dummy")
+
+    def test_load_data_accepts_object_and_array(self):
+        with patch("builtins.open", mock_open(read_data='{"a": 1}')):
+            data = data_flow_guard.load_data("dummy")
+            self.assertEqual(data, [{"a": 1}])
+        with patch("builtins.open", mock_open(read_data='[{"a": 1}]')):
+            data = data_flow_guard.load_data("dummy")
+            self.assertEqual(data, [{"a": 1}])
+
+    def test_load_data_accepts_jsonl(self):
+        content = '{"a": 1}\n{"b": 2}'
+        with patch("builtins.open", mock_open(read_data=content)):
+            data = data_flow_guard.load_data("dummy")
+            self.assertEqual(len(data), 2)
+            self.assertEqual(data[0], {"a": 1})
+
+    def test_load_data_jsonl_reports_line_number(self):
+        content = '{"a": 1}\nBROKEN_JSON'
+        with patch("builtins.open", mock_open(read_data=content)):
+            with self.assertRaisesRegex(ValueError, "Line 2"):
+                data_flow_guard.load_data("dummy")
+
+    def test_load_data_empty_file(self):
+         # Assuming explicit empty file is invalid JSON/JSONL based on implementation
+         # (content.strip() is empty -> "neither valid JSON nor valid JSONL" if valid_lines_count is 0 is NOT reached if content empty)
+         # Wait, logic: if content.strip() and valid_lines_count == 0 -> Error.
+         # If content is empty -> splitlines is empty -> returns [].
+         # Let's verify what we want. Usually empty file = empty list.
+         with patch("builtins.open", mock_open(read_data='')):
+            data = data_flow_guard.load_data("dummy")
+            self.assertEqual(data, [])
+
+         # Whitespace only
+         with patch("builtins.open", mock_open(read_data='   ')):
+            data = data_flow_guard.load_data("dummy")
+            self.assertEqual(data, [])
 
 if __name__ == '__main__':
     unittest.main()

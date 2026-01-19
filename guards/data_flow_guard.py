@@ -33,7 +33,6 @@ import json
 import glob
 import os
 import pathlib
-from urllib.parse import urljoin
 
 # Try imports
 try:
@@ -99,10 +98,10 @@ def load_data(filepath):
                 items.append(json.loads(line))
                 valid_lines_count += 1
             except json.JSONDecodeError as e:
-                 raise ValueError(f"Line {i+1}: {e}")
+                raise ValueError(f"Line {i+1}: {e}")
 
         if content.strip() and valid_lines_count == 0:
-             raise ValueError("File content is neither valid JSON nor valid JSONL")
+            raise ValueError("File content is neither valid JSON nor valid JSONL")
 
         return items
 
@@ -112,8 +111,13 @@ def resolve_data(patterns):
         patterns = [patterns]
 
     for pat in patterns:
+        if "**" in pat:
+             print(f"[wgx][guard][data_flow] WARN: Recursive glob pattern '{pat}' is forbidden. Skipping.", file=sys.stderr)
+             continue
+
         if "*" in pat:
-            matches = sorted(glob.glob(pat))
+            # Explicit recursive=False for hardening
+            matches = sorted(glob.glob(pat, recursive=False))
             files.extend(matches)
         else:
             if os.path.exists(pat):
@@ -128,9 +132,6 @@ def main():
     config, config_path = load_config()
 
     if not config:
-        # Fallback to hardcoded defaults ONLY if no config found, or exit?
-        # The prompt implies we should harmonize. If config is missing, maybe we shouldn't guess.
-        # But to be safe for existing repos without config, we might output a warning.
         print("::notice::[wgx][guard][data_flow] No flow configuration found (checked contracts/flows.yaml, etc). Skipping.", file=sys.stderr)
         return 0
 
@@ -143,10 +144,6 @@ def main():
     checks_run = 0
 
     for flow_name, definition in flows.items():
-        # Definition format: { "schema": "...", "data": [...] }
-        # Or schema_candidates/data_patterns from previous version?
-        # Let's support the simple "schema" (string) and "data" (list/string) format as per prompt implication.
-
         schema_rel_path = definition.get("schema")
         data_patterns = definition.get("data")
 
@@ -157,54 +154,52 @@ def main():
         data_files = resolve_data(data_patterns)
 
         if not data_files:
-            # No data -> SKIP (OK)
             continue
 
         # 2. Locate Schema (Strict check now)
         if not schema_rel_path:
-             print(f"[wgx][guard][data_flow] ERROR: Flow '{flow_name}' has data files but no 'schema' defined in config.", file=sys.stderr)
+             print(f"[wgx][guard][data_flow] ERROR flow={flow_name} error='Missing schema definition in config'", file=sys.stderr)
              total_errors += 1
              continue
 
         if not os.path.exists(schema_rel_path):
-             print(f"[wgx][guard][data_flow] FAIL: Flow '{flow_name}' data exists ({len(data_files)} files) but schema is missing at '{schema_rel_path}'.", file=sys.stderr)
+             print(f"[wgx][guard][data_flow] FAIL flow={flow_name} files={len(data_files)} error='Schema missing at {schema_rel_path}'", file=sys.stderr)
              total_errors += 1
              continue
-
-        checks_run += 1
-        print(f"[wgx][guard][data_flow] Checking '{flow_name}': {len(data_files)} file(s) against '{schema_rel_path}'...", file=sys.stderr)
 
         # 3. Load Schema & Validate
         try:
             with open(schema_rel_path, 'r', encoding='utf-8') as f:
                 schema = json.load(f)
 
-            # Prepare Resolver
-            # Base URI as file:// path to the schema directory to support relative $ref
             schema_abs_path = pathlib.Path(schema_rel_path).resolve()
             base_uri = schema_abs_path.as_uri()
 
-            # In jsonschema >= 4.18, referencing is different, but < 4.18 uses RefResolver.
-            # We try standard validate; if it fails on ref, we might need manual resolver setup.
-            # Usually providing a fully resolved schema or correct working dir helps.
-            # Ideally, we pass resolver=... to validate, but simple validate() might not infer base_uri from file.
-            # We will use explicit validator class to set base_uri.
-
             validator_cls = jsonschema.validators.validator_for(schema)
-            # Create a resolver that points to the schema file's location
-            resolver = jsonschema.RefResolver(base_uri=base_uri, referrer=schema)
-            validator = validator_cls(schema, resolver=resolver)
+            # Compatibility wrapper for RefResolver
+            try:
+                resolver = jsonschema.RefResolver(base_uri=base_uri, referrer=schema)
+                validator = validator_cls(schema, resolver=resolver)
+            except Exception:
+                # Fallback for newer jsonschema versions or if resolver fails
+                # Newer versions might handle $ref automatically if registry is used,
+                # but basic validation often suffices if schemas are self-contained.
+                validator = validator_cls(schema)
 
         except Exception as e:
-            print(f"[wgx][guard][data_flow] ERROR: Failed to prepare schema '{schema_rel_path}': {e}", file=sys.stderr)
+            print(f"[wgx][guard][data_flow] ERROR flow={flow_name} schema={schema_rel_path} error='Failed to prepare schema: {e}'", file=sys.stderr)
             total_errors += 1
             continue
 
+        # Log start of check for this flow
+        print(f"[wgx][guard][data_flow] CHECK flow={flow_name} files={len(data_files)} schema={schema_rel_path}", file=sys.stderr)
+
         for df in data_files:
+            checks_run += 1
             try:
                 items = load_data(df)
             except Exception as e:
-                print(f"[wgx][guard][data_flow] ERROR: Failed to parse data {df}: {e}", file=sys.stderr)
+                print(f"[wgx][guard][data_flow] ERROR flow={flow_name} data={df} error='Failed to parse data: {e}'", file=sys.stderr)
                 total_errors += 1
                 continue
 
@@ -215,7 +210,8 @@ def main():
                 except jsonschema.ValidationError as e:
                     msg = e.message
                     if len(msg) > 200: msg = msg[:200] + "..."
-                    print(f"[wgx][guard][data_flow]\nflow: {flow_name}\nschema: {schema_rel_path}\ndata: {df}\nid: {item_id}\nerror: {msg}", file=sys.stderr)
+                    # Single line log format
+                    print(f"[wgx][guard][data_flow] FAIL flow={flow_name} schema={schema_rel_path} data={df} id={item_id} error='{msg}'", file=sys.stderr)
                     total_errors += 1
 
     if total_errors > 0:
@@ -223,11 +219,9 @@ def main():
         return 1
 
     if checks_run == 0:
-        # This is now acceptable if no data was found.
-        # But if config existed and we found no *active* flows, it's just "OK, nothing to do".
         print("[wgx][guard][data_flow] OK: No active data flows found.", file=sys.stderr)
     else:
-        print(f"[wgx][guard][data_flow] OK: {checks_run} flow(s) checked.", file=sys.stderr)
+        print(f"[wgx][guard][data_flow] OK: {checks_run} file(s) checked.", file=sys.stderr)
 
     return 0
 
