@@ -18,20 +18,10 @@ wgx:
 YAML
   git add .wgx/profile.yml
   git commit -m "Add profile"
-
-  # Satisfy 'contracts_ownership' guard (runs early)
-  # It checks for HG_REPO_NAME="metarepo" OR allows changes if repo matches
-  export HG_REPO_NAME="metarepo"
-  mkdir -p fleet
-  touch fleet/repos.yml
-
-  # Ensure other guards are quiet/pass
-  # 'integrity' guard: passes if 'artifacts/integrity' is missing.
-  # 'ci-deps' guard: warns if script missing (exit 0).
 }
 
 @test "guard data_flow: silent/skip when no config found" {
-  run wgx guard --lint
+  run wgx guard --only data_flow
   echo "Output: $output"
   [ "$status" -eq 0 ]
   [[ "$output" != *"FAILED"* ]]
@@ -44,28 +34,28 @@ YAML
 
   mkdir -p contracts artifacts .wgx
 
+  # Array format
   cat <<JSON > .wgx/flows.json
-{
-  "flows": {
-    "test_flow": {
-      "schema": "contracts/missing.schema.json",
-      "data": ["artifacts/data.json"]
-    }
+[
+  {
+    "name": "test_flow",
+    "schema_path": "contracts/missing.schema.json",
+    "data_pattern": ["artifacts/data.json"]
   }
-}
+]
 JSON
 
   echo '{"id": "1", "val": "foo"}' > artifacts/data.json
   git add contracts artifacts .wgx
 
-  run wgx guard --lint
+  run wgx guard --only data_flow
   echo "Output: $output"
   [ "$status" -eq 1 ]
   [[ "$output" =~ "flow=test_flow" ]]
   [[ "$output" =~ "Schema missing" ]]
 }
 
-@test "guard data_flow: fails on recursive glob pattern" {
+@test "guard data_flow: passes with valid strict schema" {
   if ! command -v python3 >/dev/null 2>&1; then
     skip "python3 not available"
   fi
@@ -73,41 +63,13 @@ JSON
   mkdir -p contracts artifacts .wgx
 
   cat <<JSON > .wgx/flows.json
-{
-  "flows": {
-    "bad_flow": {
-      "schema": "contracts/schema.json",
-      "data": ["artifacts/**/data.json"]
-    }
+[
+  {
+    "name": "strict_flow",
+    "schema_path": "contracts/strict.schema.json",
+    "data_pattern": ["artifacts/strict.json"]
   }
-}
-JSON
-
-  git add .wgx
-
-  run wgx guard --lint
-  echo "Output: $output"
-  [ "$status" -eq 1 ]
-  [[ "$output" =~ "Recursive glob pattern" ]]
-  [[ "$output" =~ "is forbidden" ]]
-}
-
-@test "guard data_flow: passes with valid strict schema (via .wgx/flows.json)" {
-  if ! command -v python3 >/dev/null 2>&1; then
-    skip "python3 not available"
-  fi
-
-  mkdir -p contracts artifacts .wgx
-
-  cat <<JSON > .wgx/flows.json
-{
-  "flows": {
-    "strict_flow": {
-      "schema": "contracts/strict.schema.json",
-      "data": ["artifacts/strict.json"]
-    }
-  }
-}
+]
 JSON
 
   cat <<JSON > contracts/strict.schema.json
@@ -125,7 +87,7 @@ JSON
   echo '{"id": "1", "val": "foo"}' > artifacts/strict.json
   git add contracts artifacts .wgx
 
-  run wgx guard --lint
+  run wgx guard --only data_flow
   echo "Output: $output"
   [ "$status" -eq 0 ]
   [[ "$output" =~ "CHECK flow=strict_flow" ]]

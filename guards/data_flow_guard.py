@@ -8,16 +8,23 @@ Part of the "Heimgewebe" architecture hardening.
 Config:
 - Canonical flow definition: '.wgx/flows.json' (or .yaml).
 - Supports 'contracts/flows.json' for legacy/transition.
-- Format:
-  flows:
-    <name>:
-      schema: ".wgx/contracts/path/to/schema.json"
-      data: ["pattern/to/data.json"]
+- Format (Array of Objects):
+  [
+    {
+      "name": "my_flow",
+      "schema_path": ".wgx/contracts/my_schema.json",
+      "data_pattern": ["artifacts/*.json"]
+    }
+  ]
 
 SSOT Philosophy:
-- Schemas referenced in 'schema' path MUST be vendored/mirrored contracts.
+- Schemas referenced in 'schema_path' MUST be vendored/mirrored contracts.
 - Canonical path: .wgx/contracts/ (vendored) or contracts/ (mirrored).
 - Local ad-hoc schemas are discouraged.
+
+Strict Mode:
+- If WGX_STRICT=1 is set, missing dependencies (jsonschema, resolution capabilities) cause a FAIL (Exit 1).
+- Otherwise, they result in SKIP (Exit 0) for local convenience.
 
 Logic:
 1. Load configuration (prioritizing .wgx/flows.json).
@@ -50,6 +57,9 @@ try:
     import yaml
 except ImportError:
     yaml = None
+
+def is_strict():
+    return os.environ.get("WGX_STRICT") == "1"
 
 def load_config():
     """
@@ -126,14 +136,15 @@ def resolve_data(patterns):
     if isinstance(patterns, str):
         patterns = [patterns]
 
+    if not patterns:
+        return []
+
     for pat in patterns:
         if "**" in pat:
              # Recursive globs are forbidden to prevent unbounded scans.
-             # This is a configuration error.
              raise ValueError(f"Recursive glob pattern '{pat}' is forbidden.")
 
         if "*" in pat:
-            # Explicit recursive=False for hardening
             matches = sorted(glob.glob(pat, recursive=False))
             files.extend(matches)
         else:
@@ -142,26 +153,14 @@ def resolve_data(patterns):
     return sorted(list(set(files)))
 
 def check_ssot_path(path):
-    # Recommend canonical paths for schemas to avoid drift
     if not (path.startswith(".wgx/contracts/") or path.startswith("contracts/")):
         print(f"[wgx][guard][data_flow] WARN schema={path} message='Schema is outside canonical vendor paths (.wgx/contracts/ or contracts/). This may cause drift.'", file=sys.stderr)
 
-def has_ref(schema_obj):
-    """Recursively check if schema object contains '$ref' key."""
-    if isinstance(schema_obj, dict):
-        if "$ref" in schema_obj:
-            return True
-        for v in schema_obj.values():
-            if has_ref(v):
-                return True
-    elif isinstance(schema_obj, list):
-        for item in schema_obj:
-            if has_ref(item):
-                return True
-    return False
-
 def main():
     if jsonschema is None:
+        if is_strict():
+            print("::error::[wgx][guard][data_flow] Strict mode enabled (WGX_STRICT=1) but 'jsonschema' is missing.", file=sys.stderr)
+            return 1
         print("::notice::[wgx][guard][data_flow] SKIP: jsonschema not installed", file=sys.stderr)
         return 0
 
@@ -171,17 +170,44 @@ def main():
         print("::notice::[wgx][guard][data_flow] No flow configuration found (checked .wgx/flows.json, contracts/flows.yaml, etc). Skipping.", file=sys.stderr)
         return 0
 
-    flows = config.get("flows", {})
+    # Parse config: Expect list or dict with "flows" key
+    flows = []
+    if isinstance(config, list):
+        flows = config
+    elif isinstance(config, dict) and "flows" in config:
+        # Support legacy/dict format if "flows" is a list, or convert dict to list
+        f = config["flows"]
+        if isinstance(f, list):
+            flows = f
+        elif isinstance(f, dict):
+            # Convert dict {name: {schema...}} to list
+            for k, v in f.items():
+                item = v.copy()
+                item["name"] = k
+                # Adapt keys if needed (schema -> schema_path)
+                if "schema" in item and "schema_path" not in item:
+                    item["schema_path"] = item["schema"]
+                if "data" in item and "data_pattern" not in item:
+                    item["data_pattern"] = item["data"]
+                flows.append(item)
+    else:
+        print(f"[wgx][guard][data_flow] Config '{config_path}' has invalid format. Expected List of Objects or Object with 'flows' key.", file=sys.stderr)
+        return 1
+
     if not flows:
-        print(f"[wgx][guard][data_flow] Config '{config_path}' has no 'flows' defined.", file=sys.stderr)
+        print(f"[wgx][guard][data_flow] Config '{config_path}' defines no flows.", file=sys.stderr)
         return 0
 
     total_errors = 0
     checks_run = 0
 
-    for flow_name, definition in flows.items():
-        schema_rel_path = definition.get("schema")
-        data_patterns = definition.get("data")
+    for definition in flows:
+        flow_name = definition.get("name", "unnamed_flow")
+
+        # Support both new (schema_path) and old (schema) keys
+        schema_rel_path = definition.get("schema_path") or definition.get("schema")
+        # Support both new (data_pattern) and old (data) keys
+        data_patterns = definition.get("data_pattern") or definition.get("data")
 
         if not data_patterns:
             continue
@@ -199,11 +225,10 @@ def main():
 
         # 2. Locate Schema (Strict check)
         if not schema_rel_path:
-             print(f"[wgx][guard][data_flow] ERROR flow={flow_name} error='Missing schema definition in config'", file=sys.stderr)
+             print(f"[wgx][guard][data_flow] ERROR flow={flow_name} error='Missing schema_path definition in config'", file=sys.stderr)
              total_errors += 1
              continue
 
-        # Enforce/Warn SSOT path
         check_ssot_path(schema_rel_path)
 
         if not os.path.exists(schema_rel_path):
@@ -222,33 +247,36 @@ def main():
             validator_cls = jsonschema.validators.validator_for(schema)
             validator = None
 
-            # Smart Resolver Logic
-            # 1. If we have legacy RefResolver, we try to use it.
-            # 2. If we don't, we check if schema needs refs.
-            # 3. If schema needs refs and we can't resolve, we fail.
-            # 4. If schema needs refs and we have modern 'referencing' (not detectable here easily but implied by lack of RefResolver failure?), we proceed.
-
+            # Strict Resolver Strategy
             try:
+                # 1. Try modern referencing if available (unlikely in bare env but future proof)
+                # (Skipped as we assume legacy env or standard jsonschema)
+
+                # 2. Try RefResolver (Legacy)
                 if hasattr(jsonschema, 'RefResolver'):
                     resolver = jsonschema.RefResolver(base_uri=base_uri, referrer=schema)
                     validator = validator_cls(schema, resolver=resolver)
                 else:
-                    # Modern jsonschema without RefResolver.
-                    # If schema uses $ref, we are in danger zone if 'referencing' isn't handled.
-                    # Since we can't easily detect 'referencing' lib availability in this restricted script context,
-                    # we apply heuristic:
-
-                    schema_uses_ref = has_ref(schema)
-
-                    if schema_uses_ref:
-                         # We MUST fail because we cannot guarantee resolution in this environment.
-                         # (Assuming modern env would use a different script or we'd have explicit support)
-                         # BUT: modern jsonschema often "just works" for local refs if validator is init correctly.
-                         # Since we can't test it, we err on safe side: FAIL or WARN?
-                         # Prompt requirement: "FAIL if resolution cannot be guaranteed".
-                         raise ImportError("RefResolver missing and schema uses $ref. Strict resolution required.")
+                    # Missing RefResolver.
+                    if is_strict():
+                        # In strict mode, we cannot guarantee resolution without a resolver mechanism.
+                        raise ImportError("RefResolver missing in strict mode. Cannot guarantee $ref resolution.")
                     else:
-                        # Schema is simple, proceed without resolver.
+                        # Lax mode: Proceed, but warn if refs are used (or just proceed)
+                        # We'll use the smart check logic from previous iteration but make it strict-dependent.
+                        # Actually, previous logic said "FAIL if schema uses $ref and missing resolver".
+                        # That is good. Strict mode enforces even stronger: Fail if missing resolver regardless?
+                        # No, if schema has no refs, it's fine.
+
+                        # Helper check
+                        def has_ref(obj):
+                            if isinstance(obj, dict): return "$ref" in obj or any(has_ref(v) for v in obj.values())
+                            if isinstance(obj, list): return any(has_ref(i) for i in obj)
+                            return False
+
+                        if has_ref(schema):
+                             raise ImportError("RefResolver missing and schema uses $ref. Resolution required.")
+
                         validator = validator_cls(schema)
 
             except ImportError as e:
@@ -265,7 +293,6 @@ def main():
             total_errors += 1
             continue
 
-        # Log start of check for this flow
         print(f"[wgx][guard][data_flow] CHECK flow={flow_name} files={len(data_files)} schema={schema_rel_path}", file=sys.stderr)
 
         for df in data_files:
@@ -284,7 +311,6 @@ def main():
                 except jsonschema.ValidationError as e:
                     msg = e.message
                     if len(msg) > 200: msg = msg[:200] + "..."
-                    # Single line log format
                     print(f"[wgx][guard][data_flow] FAIL flow={flow_name} schema={schema_rel_path} data={df} id={item_id} error='{msg}'", file=sys.stderr)
                     total_errors += 1
 

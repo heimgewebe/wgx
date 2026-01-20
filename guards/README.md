@@ -19,6 +19,8 @@ Validiert Datenartefakte gegen JSON-Schemas basierend auf einer Flow-Definition.
 **Optional:** Dieser Guard führt die Validierung nur durch, wenn die Python-Bibliothek `jsonschema` installiert ist.
 Fehlt sie, überspringt der Guard die Prüfung (Skip/OK), um CI-Umgebungen nicht zu blockieren.
 
+**Strict Mode (CI):** Wenn die Umgebungsvariable `WGX_STRICT=1` gesetzt ist, führt das Fehlen von `jsonschema` oder fehlende Referenzauflösungskapazitäten zu einem harten Fehler (Exit 1).
+
 - **Konfiguration:** `.wgx/flows.json` (Canonical) oder `contracts/flows.json` (Legacy).
 - **Logik:**
   - Daten existieren + Schema fehlt = **FAIL** (Verhindert unvalidierten Datenfluss).
@@ -47,8 +49,8 @@ Um die strikte Validierung in CI sicherzustellen, muss `python3` und `jsonschema
 Der Aufruf erfolgt über:
 
 ```bash
-wgx guard --lint
-# oder spezifisch, falls selektierbar (Zukunft)
+export WGX_STRICT=1
+wgx guard --only data_flow
 ```
 
 ### Verpflichtende Repositories
@@ -62,15 +64,14 @@ Folgende Repositories müssen eine `.wgx/flows.json` definieren, um ihre Datenfl
 - `plexer`
 - `semantAH`
 
-**Beispiel `.wgx/flows.json`:**
+**Beispiel `.wgx/flows.json` (Array-Format):**
 
 ```json
-{
-  "flows": {
-    "my_artifact": {
-      "schema": ".wgx/contracts/my_artifact.schema.json",
-      "data": ["artifacts/output.json"]
-    }
+[
+  {
+    "name": "my_canonical_artifact",
+    "schema_path": ".wgx/contracts/my_artifact.v1.schema.json",
+    "data_pattern": ["artifacts/output.json"]
   }
-}
+]
 ```
