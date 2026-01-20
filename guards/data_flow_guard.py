@@ -146,6 +146,20 @@ def check_ssot_path(path):
     if not (path.startswith(".wgx/contracts/") or path.startswith("contracts/")):
         print(f"[wgx][guard][data_flow] WARN schema={path} message='Schema is outside canonical vendor paths (.wgx/contracts/ or contracts/). This may cause drift.'", file=sys.stderr)
 
+def has_ref(schema_obj):
+    """Recursively check if schema object contains '$ref' key."""
+    if isinstance(schema_obj, dict):
+        if "$ref" in schema_obj:
+            return True
+        for v in schema_obj.values():
+            if has_ref(v):
+                return True
+    elif isinstance(schema_obj, list):
+        for item in schema_obj:
+            if has_ref(item):
+                return True
+    return False
+
 def main():
     if jsonschema is None:
         print("::notice::[wgx][guard][data_flow] SKIP: jsonschema not installed", file=sys.stderr)
@@ -208,48 +222,40 @@ def main():
             validator_cls = jsonschema.validators.validator_for(schema)
             validator = None
 
-            # Strict Resolver Strategy: Must support resolution
+            # Smart Resolver Logic
+            # 1. If we have legacy RefResolver, we try to use it.
+            # 2. If we don't, we check if schema needs refs.
+            # 3. If schema needs refs and we can't resolve, we fail.
+            # 4. If schema needs refs and we have modern 'referencing' (not detectable here easily but implied by lack of RefResolver failure?), we proceed.
+
             try:
-                # Legacy: jsonschema < 4.18 (approximately)
                 if hasattr(jsonschema, 'RefResolver'):
                     resolver = jsonschema.RefResolver(base_uri=base_uri, referrer=schema)
                     validator = validator_cls(schema, resolver=resolver)
                 else:
-                    # Modern: jsonschema >= 4.18 should handle local refs if cwd/base_uri is correct?
-                    # Or requires `referencing`.
-                    # For this guard in a restricted env, we FAIL if we can't guarantee resolution.
-                    # Attempt simple init, but if it's missing explicit referencing support logic and RefResolver is gone,
-                    # we deem it unsafe for contracts with refs.
-                    # Note: Simple validator_cls(schema) in new versions DOES resolve relative refs if URI is proper.
-                    # We'll assume if RefResolver is missing, the modern behavior works OR we fail.
-                    # But to be STRICT as requested:
+                    # Modern jsonschema without RefResolver.
+                    # If schema uses $ref, we are in danger zone if 'referencing' isn't handled.
+                    # Since we can't easily detect 'referencing' lib availability in this restricted script context,
+                    # we apply heuristic:
 
-                    # If we can't confirm resolution capability, we fail.
-                    # However, Validator(schema) in new versions usually works for local refs relative to CWD if no base_uri provided,
-                    # or needs Registry.
+                    schema_uses_ref = has_ref(schema)
 
-                    # Strategy: If RefResolver is missing, we try to see if we can use modern `referencing` (not available here).
-                    # So we fail if RefResolver is missing? That breaks on modern setups.
-                    # Compromise: Try to instantiate. If no RefResolver, warn but proceed ONLY if we trust the env.
-                    # BUT prompt says: "FAIL if resolution cannot be guaranteed".
+                    if schema_uses_ref:
+                         # We MUST fail because we cannot guarantee resolution in this environment.
+                         # (Assuming modern env would use a different script or we'd have explicit support)
+                         # BUT: modern jsonschema often "just works" for local refs if validator is init correctly.
+                         # Since we can't test it, we err on safe side: FAIL or WARN?
+                         # Prompt requirement: "FAIL if resolution cannot be guaranteed".
+                         raise ImportError("RefResolver missing and schema uses $ref. Strict resolution required.")
+                    else:
+                        # Schema is simple, proceed without resolver.
+                        validator = validator_cls(schema)
 
-                    # We check:
-                    try:
-                        # Attempt to construct with a Registry if 'referencing' was importable (not here).
-                        # Without 'referencing', we assume old behavior or fail.
-                        # Check for RefResolver again.
-                        raise ImportError("Modern jsonschema handling requires 'referencing' lib which is not detected/implemented here, and RefResolver is missing.")
-                    except ImportError as e:
-                         # Re-raise to be caught below
-                         raise e
-
-            except ImportError:
-                 # This block catches the explicit raise above if RefResolver was missing.
-                 print(f"[wgx][guard][data_flow] ERROR flow={flow_name} error='Strict $ref resolution required. RefResolver missing and no modern fallback available.'", file=sys.stderr)
+            except ImportError as e:
+                 print(f"[wgx][guard][data_flow] ERROR flow={flow_name} error='{e}'", file=sys.stderr)
                  total_errors += 1
                  continue
             except Exception as e:
-                # Catch instantiation errors
                 print(f"[wgx][guard][data_flow] ERROR flow={flow_name} error='Validator init failed: {e}'", file=sys.stderr)
                 total_errors += 1
                 continue
