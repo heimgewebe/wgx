@@ -1,0 +1,16 @@
+{
+  "flows": {
+    "my_canonical_artifact": {
+      "schema": ".wgx/contracts/my_artifact.v1.schema.json",
+      "data": [
+        "artifacts/my_artifact.json"
+      ]
+    },
+    "another_flow": {
+      "schema": "contracts/events/some_event.v1.schema.json",
+      "data": [
+        "events/*.json"
+      ]
+    }
+  }
+}

@@ -37,6 +37,26 @@ Der Guard prüft "smart", ob Referenzen aufgelöst werden können:
 - Schemas *mit* `$ref` erfordern eine Umgebung, die Referenzen auflösen kann (via `RefResolver` oder `referencing`-Bibliothek).
 - Ist keine Auflösung möglich, bricht der Guard mit einem Fehler ab, statt falsch-positiv zu validieren.
 
+### Integration in CI
+
+Um die strikte Validierung in CI sicherzustellen, muss `python3` und `jsonschema` in der Pipeline installiert sein. Der Aufruf erfolgt über:
+
+```bash
+wgx guard --lint
+# oder spezifisch, falls selektierbar (Zukunft)
+```
+
+### Verpflichtende Repositories
+
+Folgende Repositories müssen eine `.wgx/flows.json` definieren, um ihre Datenflüsse abzusichern:
+
+* `aussensensor`
+* `chronik`
+* `heimlern`
+* `leitstand`
+* `plexer`
+* `semantAH`
+
 **Beispiel `.wgx/flows.json`:**
 
 ```json
