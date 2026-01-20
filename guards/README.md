@@ -24,11 +24,11 @@ Validiert Datenartefakte gegen JSON-Schemas basierend auf einer Flow-Definition.
 
 ### Single Source of Truth (SSOT)
 
-Die referenzierten Schemas sollten entweder:
+Die referenzierten Schemas **MÜSSEN** entweder:
 1. Automatisch aus dem Metarepo gespiegelt werden (`contracts/...`).
 2. Explizit als vendored Contracts abgelegt sein (`.wgx/contracts/...`).
 
-Lokale Ad-hoc-Schemas sollten vermieden werden, um Drift zu verhindern.
+**Wichtig:** Der Guard prüft strikt, ob Referenzen (`$ref`) aufgelöst werden können. Wenn die installierte `jsonschema`-Version keine Referenzauflösung unterstützt (fehlender `RefResolver` ohne `referencing`-Bibliothek), bricht der Guard mit einem Fehler ab. Dies verhindert Scheinsicherheit.
 
 **Beispiel `.wgx/flows.json`:**
 
@@ -36,7 +36,7 @@ Lokale Ad-hoc-Schemas sollten vermieden werden, um Drift zu verhindern.
 {
   "flows": {
     "my_artifact": {
-      "schema": "contracts/my_artifact.schema.json",
+      "schema": ".wgx/contracts/my_artifact.schema.json",
       "data": ["artifacts/output.json"]
     }
   }

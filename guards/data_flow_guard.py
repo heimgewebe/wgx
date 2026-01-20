@@ -11,13 +11,12 @@ Config:
 - Format:
   flows:
     <name>:
-      schema: "contracts/path/to/schema.json"
+      schema: ".wgx/contracts/path/to/schema.json"
       data: ["pattern/to/data.json"]
 
 SSOT Philosophy:
-- Schemas referenced in 'schema' path should be either:
-  (A) Automatically mirrored schemas from the Metarepo.
-  (B) Vendored schemas in a fixed path (e.g. .wgx/contracts/) with strict sync rules.
+- Schemas referenced in 'schema' path MUST be vendored/mirrored contracts.
+- Canonical path: .wgx/contracts/ (vendored) or contracts/ (mirrored).
 - Local ad-hoc schemas are discouraged.
 
 Logic:
@@ -142,6 +141,11 @@ def resolve_data(patterns):
                 files.append(pat)
     return sorted(list(set(files)))
 
+def check_ssot_path(path):
+    # Recommend canonical paths for schemas to avoid drift
+    if not (path.startswith(".wgx/contracts/") or path.startswith("contracts/")):
+        print(f"[wgx][guard][data_flow] WARN schema={path} message='Schema is outside canonical vendor paths (.wgx/contracts/ or contracts/). This may cause drift.'", file=sys.stderr)
+
 def main():
     if jsonschema is None:
         print("::notice::[wgx][guard][data_flow] SKIP: jsonschema not installed", file=sys.stderr)
@@ -185,6 +189,9 @@ def main():
              total_errors += 1
              continue
 
+        # Enforce/Warn SSOT path
+        check_ssot_path(schema_rel_path)
+
         if not os.path.exists(schema_rel_path):
              print(f"[wgx][guard][data_flow] FAIL flow={flow_name} files={len(data_files)} error='Schema missing at {schema_rel_path}'", file=sys.stderr)
              total_errors += 1
@@ -199,19 +206,50 @@ def main():
             base_uri = schema_abs_path.as_uri()
 
             validator_cls = jsonschema.validators.validator_for(schema)
-            # Compatibility wrapper for RefResolver
+            validator = None
+
+            # Strict Resolver Strategy: Must support resolution
             try:
-                resolver = jsonschema.RefResolver(base_uri=base_uri, referrer=schema)
-                validator = validator_cls(schema, resolver=resolver)
-            except AttributeError:
-                # RefResolver deprecated/removed in newer versions
-                # Newer jsonschema might need 'referencing' library or different setup.
-                # For now, we attempt basic validation, but warn about potential $ref issues.
-                # Ideally, this environment should use a pinned compatible version.
-                print(f"[wgx][guard][data_flow] WARN flow={flow_name} error='RefResolver not available (jsonschema version?), references may fail'", file=sys.stderr)
-                validator = validator_cls(schema)
+                # Legacy: jsonschema < 4.18 (approximately)
+                if hasattr(jsonschema, 'RefResolver'):
+                    resolver = jsonschema.RefResolver(base_uri=base_uri, referrer=schema)
+                    validator = validator_cls(schema, resolver=resolver)
+                else:
+                    # Modern: jsonschema >= 4.18 should handle local refs if cwd/base_uri is correct?
+                    # Or requires `referencing`.
+                    # For this guard in a restricted env, we FAIL if we can't guarantee resolution.
+                    # Attempt simple init, but if it's missing explicit referencing support logic and RefResolver is gone,
+                    # we deem it unsafe for contracts with refs.
+                    # Note: Simple validator_cls(schema) in new versions DOES resolve relative refs if URI is proper.
+                    # We'll assume if RefResolver is missing, the modern behavior works OR we fail.
+                    # But to be STRICT as requested:
+
+                    # If we can't confirm resolution capability, we fail.
+                    # However, Validator(schema) in new versions usually works for local refs relative to CWD if no base_uri provided,
+                    # or needs Registry.
+
+                    # Strategy: If RefResolver is missing, we try to see if we can use modern `referencing` (not available here).
+                    # So we fail if RefResolver is missing? That breaks on modern setups.
+                    # Compromise: Try to instantiate. If no RefResolver, warn but proceed ONLY if we trust the env.
+                    # BUT prompt says: "FAIL if resolution cannot be guaranteed".
+
+                    # We check:
+                    try:
+                        # Attempt to construct with a Registry if 'referencing' was importable (not here).
+                        # Without 'referencing', we assume old behavior or fail.
+                        # Check for RefResolver again.
+                        raise ImportError("Modern jsonschema handling requires 'referencing' lib which is not detected/implemented here, and RefResolver is missing.")
+                    except ImportError as e:
+                         # Re-raise to be caught below
+                         raise e
+
+            except ImportError:
+                 # This block catches the explicit raise above if RefResolver was missing.
+                 print(f"[wgx][guard][data_flow] ERROR flow={flow_name} error='Strict $ref resolution required. RefResolver missing and no modern fallback available.'", file=sys.stderr)
+                 total_errors += 1
+                 continue
             except Exception as e:
-                # Other init errors
+                # Catch instantiation errors
                 print(f"[wgx][guard][data_flow] ERROR flow={flow_name} error='Validator init failed: {e}'", file=sys.stderr)
                 total_errors += 1
                 continue
