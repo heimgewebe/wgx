@@ -19,10 +19,15 @@ YAML
   git add .wgx/profile.yml
   git commit -m "Add profile"
 
-  # Satisfy ownership guard
+  # Satisfy 'contracts_ownership' guard (runs early)
+  # It checks for HG_REPO_NAME="metarepo" OR allows changes if repo matches
   export HG_REPO_NAME="metarepo"
   mkdir -p fleet
   touch fleet/repos.yml
+
+  # Ensure other guards are quiet/pass
+  # 'integrity' guard: passes if 'artifacts/integrity' is missing.
+  # 'ci-deps' guard: warns if script missing (exit 0).
 }
 
 @test "guard data_flow: silent/skip when no config found" {
@@ -39,7 +44,6 @@ YAML
 
   mkdir -p contracts artifacts .wgx
 
-  # Canonical config location
   cat <<JSON > .wgx/flows.json
 {
   "flows": {
@@ -59,6 +63,33 @@ JSON
   [ "$status" -eq 1 ]
   [[ "$output" =~ "flow=test_flow" ]]
   [[ "$output" =~ "Schema missing" ]]
+}
+
+@test "guard data_flow: fails on recursive glob pattern" {
+  if ! command -v python3 >/dev/null 2>&1; then
+    skip "python3 not available"
+  fi
+
+  mkdir -p contracts artifacts .wgx
+
+  cat <<JSON > .wgx/flows.json
+{
+  "flows": {
+    "bad_flow": {
+      "schema": "contracts/schema.json",
+      "data": ["artifacts/**/data.json"]
+    }
+  }
+}
+JSON
+
+  git add .wgx
+
+  run wgx guard --lint
+  echo "Output: $output"
+  [ "$status" -eq 1 ]
+  [[ "$output" =~ "Recursive glob pattern" ]]
+  [[ "$output" =~ "is forbidden" ]]
 }
 
 @test "guard data_flow: passes with valid strict schema (via .wgx/flows.json)" {

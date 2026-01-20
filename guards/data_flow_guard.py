@@ -11,13 +11,12 @@ Config:
 - Format:
   flows:
     <name>:
-      schema: "contracts/path/to/schema.json"
+      schema: ".wgx/contracts/path/to/schema.json"
       data: ["pattern/to/data.json"]
 
 SSOT Philosophy:
-- Schemas referenced in 'schema' path should be either:
-  (A) Automatically mirrored schemas from the Metarepo.
-  (B) Vendored schemas in a fixed path (e.g. .wgx/contracts/) with strict sync rules.
+- Schemas referenced in 'schema' path MUST be vendored/mirrored contracts.
+- Canonical path: .wgx/contracts/ (vendored) or contracts/ (mirrored).
 - Local ad-hoc schemas are discouraged.
 
 Logic:
@@ -129,8 +128,9 @@ def resolve_data(patterns):
 
     for pat in patterns:
         if "**" in pat:
-             print(f"[wgx][guard][data_flow] WARN: Recursive glob pattern '{pat}' is forbidden. Skipping.", file=sys.stderr)
-             continue
+             # Recursive globs are forbidden to prevent unbounded scans.
+             # This is a configuration error.
+             raise ValueError(f"Recursive glob pattern '{pat}' is forbidden.")
 
         if "*" in pat:
             # Explicit recursive=False for hardening
@@ -140,6 +140,25 @@ def resolve_data(patterns):
             if os.path.exists(pat):
                 files.append(pat)
     return sorted(list(set(files)))
+
+def check_ssot_path(path):
+    # Recommend canonical paths for schemas to avoid drift
+    if not (path.startswith(".wgx/contracts/") or path.startswith("contracts/")):
+        print(f"[wgx][guard][data_flow] WARN schema={path} message='Schema is outside canonical vendor paths (.wgx/contracts/ or contracts/). This may cause drift.'", file=sys.stderr)
+
+def has_ref(schema_obj):
+    """Recursively check if schema object contains '$ref' key."""
+    if isinstance(schema_obj, dict):
+        if "$ref" in schema_obj:
+            return True
+        for v in schema_obj.values():
+            if has_ref(v):
+                return True
+    elif isinstance(schema_obj, list):
+        for item in schema_obj:
+            if has_ref(item):
+                return True
+    return False
 
 def main():
     if jsonschema is None:
@@ -168,7 +187,12 @@ def main():
             continue
 
         # 1. Locate Data
-        data_files = resolve_data(data_patterns)
+        try:
+            data_files = resolve_data(data_patterns)
+        except ValueError as e:
+            print(f"[wgx][guard][data_flow] ERROR flow={flow_name} error='{e}'", file=sys.stderr)
+            total_errors += 1
+            continue
 
         if not data_files:
             continue
@@ -178,6 +202,9 @@ def main():
              print(f"[wgx][guard][data_flow] ERROR flow={flow_name} error='Missing schema definition in config'", file=sys.stderr)
              total_errors += 1
              continue
+
+        # Enforce/Warn SSOT path
+        check_ssot_path(schema_rel_path)
 
         if not os.path.exists(schema_rel_path):
              print(f"[wgx][guard][data_flow] FAIL flow={flow_name} files={len(data_files)} error='Schema missing at {schema_rel_path}'", file=sys.stderr)
@@ -193,13 +220,45 @@ def main():
             base_uri = schema_abs_path.as_uri()
 
             validator_cls = jsonschema.validators.validator_for(schema)
-            # Compatibility wrapper for RefResolver
+            validator = None
+
+            # Smart Resolver Logic
+            # 1. If we have legacy RefResolver, we try to use it.
+            # 2. If we don't, we check if schema needs refs.
+            # 3. If schema needs refs and we can't resolve, we fail.
+            # 4. If schema needs refs and we have modern 'referencing' (not detectable here easily but implied by lack of RefResolver failure?), we proceed.
+
             try:
-                resolver = jsonschema.RefResolver(base_uri=base_uri, referrer=schema)
-                validator = validator_cls(schema, resolver=resolver)
-            except Exception:
-                # Fallback for newer jsonschema versions or if resolver fails
-                validator = validator_cls(schema)
+                if hasattr(jsonschema, 'RefResolver'):
+                    resolver = jsonschema.RefResolver(base_uri=base_uri, referrer=schema)
+                    validator = validator_cls(schema, resolver=resolver)
+                else:
+                    # Modern jsonschema without RefResolver.
+                    # If schema uses $ref, we are in danger zone if 'referencing' isn't handled.
+                    # Since we can't easily detect 'referencing' lib availability in this restricted script context,
+                    # we apply heuristic:
+
+                    schema_uses_ref = has_ref(schema)
+
+                    if schema_uses_ref:
+                         # We MUST fail because we cannot guarantee resolution in this environment.
+                         # (Assuming modern env would use a different script or we'd have explicit support)
+                         # BUT: modern jsonschema often "just works" for local refs if validator is init correctly.
+                         # Since we can't test it, we err on safe side: FAIL or WARN?
+                         # Prompt requirement: "FAIL if resolution cannot be guaranteed".
+                         raise ImportError("RefResolver missing and schema uses $ref. Strict resolution required.")
+                    else:
+                        # Schema is simple, proceed without resolver.
+                        validator = validator_cls(schema)
+
+            except ImportError as e:
+                 print(f"[wgx][guard][data_flow] ERROR flow={flow_name} error='{e}'", file=sys.stderr)
+                 total_errors += 1
+                 continue
+            except Exception as e:
+                print(f"[wgx][guard][data_flow] ERROR flow={flow_name} error='Validator init failed: {e}'", file=sys.stderr)
+                total_errors += 1
+                continue
 
         except Exception as e:
             print(f"[wgx][guard][data_flow] ERROR flow={flow_name} schema={schema_rel_path} error='Failed to prepare schema: {e}'", file=sys.stderr)

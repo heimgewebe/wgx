@@ -16,6 +16,8 @@ Warum: Manche Strict-Validatoren brechen bei unbekannten Keywords; Governance-Me
 
 Validiert Datenartefakte gegen JSON-Schemas basierend auf einer Flow-Definition.
 
+**Optional:** Dieser Guard führt die Validierung nur durch, wenn die Python-Bibliothek `jsonschema` installiert ist. Fehlt sie, überspringt der Guard die Prüfung (Skip/OK), um CI-Umgebungen nicht zu blockieren.
+
 - **Konfiguration:** `.wgx/flows.json` (Canonical) oder `contracts/flows.json` (Legacy).
 - **Logik:**
   - Daten existieren + Schema fehlt = **FAIL** (Verhindert unvalidierten Datenfluss).
@@ -24,12 +26,16 @@ Validiert Datenartefakte gegen JSON-Schemas basierend auf einer Flow-Definition.
 
 ### Single Source of Truth (SSOT)
 
-Die referenzierten Schemas sollten entweder:
-
+Die referenzierten Schemas **MÜSSEN** entweder:
 1. Automatisch aus dem Metarepo gespiegelt werden (`contracts/...`).
 2. Explizit als vendored Contracts abgelegt sein (`.wgx/contracts/...`).
 
-Lokale Ad-hoc-Schemas sollten vermieden werden, um Drift zu verhindern.
+### Schema-Referenzen ($ref)
+
+Der Guard prüft "smart", ob Referenzen aufgelöst werden können:
+- Schemas *ohne* `$ref` werden immer validiert.
+- Schemas *mit* `$ref` erfordern eine Umgebung, die Referenzen auflösen kann (via `RefResolver` oder `referencing`-Bibliothek).
+- Ist keine Auflösung möglich, bricht der Guard mit einem Fehler ab, statt falsch-positiv zu validieren.
 
 **Beispiel `.wgx/flows.json`:**
 
@@ -37,7 +43,7 @@ Lokale Ad-hoc-Schemas sollten vermieden werden, um Drift zu verhindern.
 {
   "flows": {
     "my_artifact": {
-      "schema": "contracts/my_artifact.schema.json",
+      "schema": ".wgx/contracts/my_artifact.schema.json",
       "data": ["artifacts/output.json"]
     }
   }
