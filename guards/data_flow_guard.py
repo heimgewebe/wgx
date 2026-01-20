@@ -129,8 +129,9 @@ def resolve_data(patterns):
 
     for pat in patterns:
         if "**" in pat:
-             print(f"[wgx][guard][data_flow] WARN: Recursive glob pattern '{pat}' is forbidden. Skipping.", file=sys.stderr)
-             continue
+             # Recursive globs are forbidden to prevent unbounded scans.
+             # This is a configuration error.
+             raise ValueError(f"Recursive glob pattern '{pat}' is forbidden.")
 
         if "*" in pat:
             # Explicit recursive=False for hardening
@@ -168,7 +169,12 @@ def main():
             continue
 
         # 1. Locate Data
-        data_files = resolve_data(data_patterns)
+        try:
+            data_files = resolve_data(data_patterns)
+        except ValueError as e:
+            print(f"[wgx][guard][data_flow] ERROR flow={flow_name} error='{e}'", file=sys.stderr)
+            total_errors += 1
+            continue
 
         if not data_files:
             continue
@@ -197,9 +203,18 @@ def main():
             try:
                 resolver = jsonschema.RefResolver(base_uri=base_uri, referrer=schema)
                 validator = validator_cls(schema, resolver=resolver)
-            except Exception:
-                # Fallback for newer jsonschema versions or if resolver fails
+            except AttributeError:
+                # RefResolver deprecated/removed in newer versions
+                # Newer jsonschema might need 'referencing' library or different setup.
+                # For now, we attempt basic validation, but warn about potential $ref issues.
+                # Ideally, this environment should use a pinned compatible version.
+                print(f"[wgx][guard][data_flow] WARN flow={flow_name} error='RefResolver not available (jsonschema version?), references may fail'", file=sys.stderr)
                 validator = validator_cls(schema)
+            except Exception as e:
+                # Other init errors
+                print(f"[wgx][guard][data_flow] ERROR flow={flow_name} error='Validator init failed: {e}'", file=sys.stderr)
+                total_errors += 1
+                continue
 
         except Exception as e:
             print(f"[wgx][guard][data_flow] ERROR flow={flow_name} schema={schema_rel_path} error='Failed to prepare schema: {e}'", file=sys.stderr)
