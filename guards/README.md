@@ -16,7 +16,8 @@ Warum: Manche Strict-Validatoren brechen bei unbekannten Keywords; Governance-Me
 
 Validiert Datenartefakte gegen JSON-Schemas basierend auf einer Flow-Definition.
 
-**Optional:** Dieser Guard führt die Validierung nur durch, wenn die Python-Bibliothek `jsonschema` installiert ist. Fehlt sie, überspringt der Guard die Prüfung (Skip/OK), um CI-Umgebungen nicht zu blockieren.
+**Optional:** Dieser Guard führt die Validierung nur durch, wenn die Python-Bibliothek `jsonschema` installiert ist.
+Fehlt sie, überspringt der Guard die Prüfung (Skip/OK), um CI-Umgebungen nicht zu blockieren.
 
 - **Konfiguration:** `.wgx/flows.json` (Canonical) oder `contracts/flows.json` (Legacy).
 - **Logik:**
@@ -27,12 +28,14 @@ Validiert Datenartefakte gegen JSON-Schemas basierend auf einer Flow-Definition.
 ### Single Source of Truth (SSOT)
 
 Die referenzierten Schemas **MÜSSEN** entweder:
+
 1. Automatisch aus dem Metarepo gespiegelt werden (`contracts/...`).
 2. Explizit als vendored Contracts abgelegt sein (`.wgx/contracts/...`).
 
 ### Schema-Referenzen ($ref)
 
 Der Guard prüft "smart", ob Referenzen aufgelöst werden können:
+
 - Schemas *ohne* `$ref` werden immer validiert.
 - Schemas *mit* `$ref` erfordern eine Umgebung, die Referenzen auflösen kann (via `RefResolver` oder
   `referencing`-Bibliothek).
@@ -40,7 +43,8 @@ Der Guard prüft "smart", ob Referenzen aufgelöst werden können:
 
 ### Integration in CI
 
-Um die strikte Validierung in CI sicherzustellen, muss `python3` und `jsonschema` in der Pipeline installiert sein. Der Aufruf erfolgt über:
+Um die strikte Validierung in CI sicherzustellen, muss `python3` und `jsonschema` in der Pipeline installiert sein.
+Der Aufruf erfolgt über:
 
 ```bash
 wgx guard --lint
@@ -51,12 +55,12 @@ wgx guard --lint
 
 Folgende Repositories müssen eine `.wgx/flows.json` definieren, um ihre Datenflüsse abzusichern:
 
-* `aussensensor`
-* `chronik`
-* `heimlern`
-* `leitstand`
-* `plexer`
-* `semantAH`
+- `aussensensor`
+- `chronik`
+- `heimlern`
+- `leitstand`
+- `plexer`
+- `semantAH`
 
 **Beispiel `.wgx/flows.json`:**
 
