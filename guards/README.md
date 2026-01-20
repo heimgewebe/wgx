@@ -42,7 +42,8 @@ Der Guard prüft "smart", ob Referenzen aufgelöst werden können:
 
 ### Integration in CI
 
-Um die strikte Validierung in CI sicherzustellen, muss `python3` und `jsonschema` in der Pipeline installiert sein. Der Aufruf erfolgt über:
+Um die strikte Validierung in CI sicherzustellen, muss `python3` und `jsonschema` in der Pipeline
+installiert sein. Der Aufruf erfolgt über:
 
 ```bash
 wgx guard --lint
@@ -53,12 +54,12 @@ wgx guard --lint
 
 Folgende Repositories müssen eine `.wgx/flows.json` definieren, um ihre Datenflüsse abzusichern:
 
-* `aussensensor`
-* `chronik`
-* `heimlern`
-* `leitstand`
-* `plexer`
-* `semantAH`
+- `aussensensor`
+- `chronik`
+- `heimlern`
+- `leitstand`
+- `plexer`
+- `semantAH`
 
 **Beispiel `.wgx/flows.json`:**
 
