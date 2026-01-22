@@ -15,7 +15,8 @@ Consumers MUST NOT rely on events for critical state but SHOULD pull the release
 
 ## Status Semantics (WGX)
 
-This repository uses `reports/integrity/summary.json` as the source report that is published as the `summary.json` release asset.
+This repository uses `reports/integrity/summary.json` as the source report that is published as the
+`summary.json` release asset.
 
 Important distinction:
 
