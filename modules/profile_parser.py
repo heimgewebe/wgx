@@ -14,6 +14,10 @@ import shlex
 import sys
 from typing import Any, Dict, List, Optional, Tuple, Union
 
+# Pre-compiled regexes
+RE_NON_ALPHANUM_UNDERSCORE = re.compile(r'[^A-Za-z0-9_]')
+RE_DASH_SEQ = re.compile(r'-+')
+
 # --- YAML Parser (Minimal Subset) ---
 
 def _parse_scalar(value: str) -> Any:
@@ -441,7 +445,7 @@ def main():
                     if task_name:
                         steps.append(str(task_name))
         # Sanitize workflow name to create a valid variable suffix
-        safe_name = re.sub(r'[^A-Za-z0-9_]', '_', str(wf_name))
+        safe_name = RE_NON_ALPHANUM_UNDERSCORE.sub('_', str(wf_name))
         emit_var(f"WGX_WORKFLOW_TASKS_{safe_name}", ' '.join(steps))
 
     # tasks
@@ -461,7 +465,7 @@ def main():
 
     for raw_name, spec in tasks.items():
         name = str(raw_name)
-        norm = re.sub(r'-+', '-', name.replace(' ', '').replace('_', '-').lower())
+        norm = RE_DASH_SEQ.sub('-', name.replace(' ', '').replace('_', '-').lower())
 
         if norm in norm_to_name and norm_to_name[norm] != name:
             sys.stderr.write(
