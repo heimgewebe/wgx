@@ -6,7 +6,7 @@ Guard: Validates data flow artifacts against their contracts.
 Part of the "Heimgewebe" architecture hardening.
 
 Config:
-- Canonical flow definition: '.wgx/flows.json' (or .yaml).
+- Canonical flow definition: '.wgx/flows.json' (or .yaml/.yml).
 - Supports 'contracts/flows.json' for legacy/transition.
 - Format (Array of Objects):
   [
@@ -22,10 +22,13 @@ SSOT Philosophy:
 - Canonical path: .wgx/contracts/ (vendored) or contracts/ (mirrored).
 - Local ad-hoc schemas are discouraged.
 
-Strict Mode:
-- If WGX_STRICT=1 is set, missing dependencies (jsonschema) cause a FAIL (Exit 1).
-- Missing resolution capabilities (RefResolver) cause a FAIL *only if* the schema actually uses `$ref`.
-- Otherwise, they result in SKIP (Exit 0) or simple validation.
+Strict Mode & Policy:
+- WGX_STRICT=1: Missing dependencies (jsonschema) -> FAIL (Exit 1).
+- Default: Missing dependencies -> SKIP (Exit 0).
+- Reference Resolution ($ref):
+  - If schema uses $ref and no resolver (RefResolver) is available -> ALWAYS FAIL (Exit 1).
+  - This prevents false negatives/security theatre.
+  - Currently supports `jsonschema.RefResolver` (Legacy). Modern `referencing` support is planned but not active.
 
 Logic:
 1. Load configuration (prioritizing .wgx/flows.json).
@@ -67,15 +70,17 @@ def load_config():
     Load flows configuration.
     Priority:
     1. .wgx/flows.json (Canonical)
-    2. .wgx/flows.yaml
+    2. .wgx/flows.yaml / .yml
     3. contracts/flows.json (Legacy)
-    4. contracts/flows.yaml
+    4. contracts/flows.yaml / .yml
     """
     candidates = [
         ".wgx/flows.json",
         ".wgx/flows.yaml",
+        ".wgx/flows.yml",
         "contracts/flows.json",
-        "contracts/flows.yaml"
+        "contracts/flows.yaml",
+        "contracts/flows.yml"
     ]
 
     for path in candidates:
@@ -262,18 +267,8 @@ def main():
                     validator = validator_cls(schema, resolver=resolver)
                 else:
                     # Missing RefResolver.
-                    # Strictness Rule:
-                    # If schema contains $ref -> FAIL (cannot guarantee resolution without modern setup or resolver).
-                    # If schema has NO $ref -> PROCEED (simple validation).
-
                     if has_ref(schema):
-                         # If strict, hard fail.
-                         # If lax, we could theoretically warn, but "scheinsicherheit" applies.
-                         # Logic: If it needs ref and we can't do it -> FAIL always is safest.
-                         # But let's follow the "strict mode" nuance:
-                         # WGX_STRICT=1 -> FAIL.
-                         # WGX_STRICT=0 -> WARN (maybe pass?), but actually failure to resolve refs usually causes validator to crash or ignore.
-                         # If we cannot resolve, we cannot validate correctly.
+                         # If schema uses refs but we lack resolver capability -> HARD FAIL always.
                          raise ImportError("RefResolver missing and schema uses $ref. Resolution capability required.")
                     else:
                         # Safe to proceed without resolver for simple schemas
@@ -305,7 +300,9 @@ def main():
                 continue
 
             for i, item in enumerate(items):
-                item_id = item.get("id", f"item-{i}")
+                # Safe ID extraction
+                item_id = item.get("id", f"item-{i}") if isinstance(item, dict) else f"item-{i}"
+
                 try:
                     validator.validate(item)
                 except jsonschema.ValidationError as e:

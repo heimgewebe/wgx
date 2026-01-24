@@ -23,7 +23,7 @@ Validiert Datenartefakte gegen JSON-Schemas basierend auf einer Flow-Definition.
 - Ohne `WGX_STRICT=1` wird bei fehlenden Abhängigkeiten die Prüfung übersprungen (SKIP/OK).
 
 **Referenz-Validierung:**
-- Wenn ein Schema `$ref` verwendet, **MUSS** eine Referenzauflösung möglich sein (via `RefResolver` oder `referencing`). Andernfalls bricht der Guard mit einem Fehler ab (Exit 1), um Scheinsicherheit zu vermeiden – unabhängig vom Strict Mode.
+- Wenn ein Schema `$ref` verwendet, **MUSS** eine Referenzauflösung möglich sein (via `RefResolver`). Andernfalls bricht der Guard mit einem Fehler ab (Exit 1), um Scheinsicherheit zu vermeiden – unabhängig vom Strict Mode.
 - Schemas *ohne* `$ref` werden auch ohne Resolver validiert.
 
 - **Konfiguration:** `.wgx/flows.json` (Canonical) oder `contracts/flows.json` (Legacy).
