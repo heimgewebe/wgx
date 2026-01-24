@@ -32,7 +32,6 @@ class TestDataFlowGuard(unittest.TestCase):
         mock_exists.side_effect = lambda p: p in [".wgx/flows.json", ".wgx/contracts/schema.json", "path/to/data.json"]
         mock_glob.return_value = []
 
-        # Array format
         config_content = json.dumps([
             {
                 "name": "test_flow",
@@ -68,40 +67,8 @@ class TestDataFlowGuard(unittest.TestCase):
     @patch('guards.data_flow_guard.os.path.exists')
     @patch('guards.data_flow_guard.glob.glob')
     @patch('builtins.open', new_callable=mock_open)
-    def test_main_strict_mode_missing_resolver(self, mock_file, mock_glob, mock_exists, mock_jsonschema):
-        # Strict mode enabled, RefResolver missing -> Fail even if schema is simple
-        mock_exists.side_effect = lambda p: p in [".wgx/flows.json", ".wgx/contracts/schema.json", "path/to/data.json"]
-        mock_glob.return_value = []
-
-        config_content = json.dumps([
-            {
-                "name": "test_flow",
-                "schema_path": ".wgx/contracts/schema.json",
-                "data_pattern": ["path/to/data.json"]
-            }
-        ])
-        schema_content = '{"type": "object"}' # Simple schema
-
-        mock_file.side_effect = lambda f, m='r', encoding='utf-8': \
-            mock_open(read_data=config_content).return_value if ".wgx/flows.json" in f else \
-            mock_open(read_data=schema_content).return_value if "schema.json" in f else \
-            mock_open(read_data='{}').return_value
-
-        # Delete RefResolver
-        del mock_jsonschema.RefResolver
-
-        with patch('guards.data_flow_guard.yaml', None), \
-             patch.dict(os.environ, {"WGX_STRICT": "1"}):
-            ret = data_flow_guard.main()
-
-        self.assertEqual(ret, 1)
-
-    @patch('guards.data_flow_guard.jsonschema')
-    @patch('guards.data_flow_guard.os.path.exists')
-    @patch('guards.data_flow_guard.glob.glob')
-    @patch('builtins.open', new_callable=mock_open)
-    def test_main_lax_mode_simple_schema_pass(self, mock_file, mock_glob, mock_exists, mock_jsonschema):
-        # Lax mode (default), RefResolver missing, simple schema -> Pass
+    def test_main_strict_mode_simple_schema_pass(self, mock_file, mock_glob, mock_exists, mock_jsonschema):
+        # Strict mode enabled, RefResolver missing, BUT schema is simple (no $ref) -> PASS
         mock_exists.side_effect = lambda p: p in [".wgx/flows.json", ".wgx/contracts/schema.json", "path/to/data.json"]
         mock_glob.return_value = []
 
@@ -124,10 +91,42 @@ class TestDataFlowGuard(unittest.TestCase):
         mock_class = MagicMock(return_value=MagicMock())
         mock_jsonschema.validators.validator_for.return_value = mock_class
 
-        with patch('guards.data_flow_guard.yaml', None):
+        with patch('guards.data_flow_guard.yaml', None), \
+             patch.dict(os.environ, {"WGX_STRICT": "1"}):
             ret = data_flow_guard.main()
 
         self.assertEqual(ret, 0)
+
+    @patch('guards.data_flow_guard.jsonschema')
+    @patch('guards.data_flow_guard.os.path.exists')
+    @patch('guards.data_flow_guard.glob.glob')
+    @patch('builtins.open', new_callable=mock_open)
+    def test_main_strict_mode_complex_schema_fail(self, mock_file, mock_glob, mock_exists, mock_jsonschema):
+        # Strict mode, RefResolver missing, Schema HAS $ref -> FAIL
+        mock_exists.side_effect = lambda p: p in [".wgx/flows.json", ".wgx/contracts/schema.json", "path/to/data.json"]
+        mock_glob.return_value = []
+
+        config_content = json.dumps([
+            {
+                "name": "test_flow",
+                "schema_path": ".wgx/contracts/schema.json",
+                "data_pattern": ["path/to/data.json"]
+            }
+        ])
+        schema_content = '{"$ref": "#/foo"}' # Has ref
+
+        mock_file.side_effect = lambda f, m='r', encoding='utf-8': \
+            mock_open(read_data=config_content).return_value if ".wgx/flows.json" in f else \
+            mock_open(read_data=schema_content).return_value if "schema.json" in f else \
+            mock_open(read_data='{}').return_value
+
+        del mock_jsonschema.RefResolver
+
+        with patch('guards.data_flow_guard.yaml', None), \
+             patch.dict(os.environ, {"WGX_STRICT": "1"}):
+            ret = data_flow_guard.main()
+
+        self.assertEqual(ret, 1)
 
 if __name__ == '__main__':
     unittest.main()

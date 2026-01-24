@@ -23,8 +23,9 @@ SSOT Philosophy:
 - Local ad-hoc schemas are discouraged.
 
 Strict Mode:
-- If WGX_STRICT=1 is set, missing dependencies (jsonschema, resolution capabilities) cause a FAIL (Exit 1).
-- Otherwise, they result in SKIP (Exit 0) for local convenience.
+- If WGX_STRICT=1 is set, missing dependencies (jsonschema) cause a FAIL (Exit 1).
+- Missing resolution capabilities (RefResolver) cause a FAIL *only if* the schema actually uses `$ref`.
+- Otherwise, they result in SKIP (Exit 0) or simple validation.
 
 Logic:
 1. Load configuration (prioritizing .wgx/flows.json).
@@ -156,6 +157,20 @@ def check_ssot_path(path):
     if not (path.startswith(".wgx/contracts/") or path.startswith("contracts/")):
         print(f"[wgx][guard][data_flow] WARN schema={path} message='Schema is outside canonical vendor paths (.wgx/contracts/ or contracts/). This may cause drift.'", file=sys.stderr)
 
+def has_ref(schema_obj):
+    """Recursively check if schema object contains '$ref' key."""
+    if isinstance(schema_obj, dict):
+        if "$ref" in schema_obj:
+            return True
+        for v in schema_obj.values():
+            if has_ref(v):
+                return True
+    elif isinstance(schema_obj, list):
+        for item in schema_obj:
+            if has_ref(item):
+                return True
+    return False
+
 def main():
     if jsonschema is None:
         if is_strict():
@@ -175,16 +190,13 @@ def main():
     if isinstance(config, list):
         flows = config
     elif isinstance(config, dict) and "flows" in config:
-        # Support legacy/dict format if "flows" is a list, or convert dict to list
         f = config["flows"]
         if isinstance(f, list):
             flows = f
         elif isinstance(f, dict):
-            # Convert dict {name: {schema...}} to list
             for k, v in f.items():
                 item = v.copy()
                 item["name"] = k
-                # Adapt keys if needed (schema -> schema_path)
                 if "schema" in item and "schema_path" not in item:
                     item["schema_path"] = item["schema"]
                 if "data" in item and "data_pattern" not in item:
@@ -204,15 +216,12 @@ def main():
     for definition in flows:
         flow_name = definition.get("name", "unnamed_flow")
 
-        # Support both new (schema_path) and old (schema) keys
         schema_rel_path = definition.get("schema_path") or definition.get("schema")
-        # Support both new (data_pattern) and old (data) keys
         data_patterns = definition.get("data_pattern") or definition.get("data")
 
         if not data_patterns:
             continue
 
-        # 1. Locate Data
         try:
             data_files = resolve_data(data_patterns)
         except ValueError as e:
@@ -223,7 +232,6 @@ def main():
         if not data_files:
             continue
 
-        # 2. Locate Schema (Strict check)
         if not schema_rel_path:
              print(f"[wgx][guard][data_flow] ERROR flow={flow_name} error='Missing schema_path definition in config'", file=sys.stderr)
              total_errors += 1
@@ -247,36 +255,28 @@ def main():
             validator_cls = jsonschema.validators.validator_for(schema)
             validator = None
 
-            # Strict Resolver Strategy
             try:
-                # 1. Try modern referencing if available (unlikely in bare env but future proof)
-                # (Skipped as we assume legacy env or standard jsonschema)
-
-                # 2. Try RefResolver (Legacy)
+                # 1. Try RefResolver (Legacy)
                 if hasattr(jsonschema, 'RefResolver'):
                     resolver = jsonschema.RefResolver(base_uri=base_uri, referrer=schema)
                     validator = validator_cls(schema, resolver=resolver)
                 else:
                     # Missing RefResolver.
-                    if is_strict():
-                        # In strict mode, we cannot guarantee resolution without a resolver mechanism.
-                        raise ImportError("RefResolver missing in strict mode. Cannot guarantee $ref resolution.")
+                    # Strictness Rule:
+                    # If schema contains $ref -> FAIL (cannot guarantee resolution without modern setup or resolver).
+                    # If schema has NO $ref -> PROCEED (simple validation).
+
+                    if has_ref(schema):
+                         # If strict, hard fail.
+                         # If lax, we could theoretically warn, but "scheinsicherheit" applies.
+                         # Logic: If it needs ref and we can't do it -> FAIL always is safest.
+                         # But let's follow the "strict mode" nuance:
+                         # WGX_STRICT=1 -> FAIL.
+                         # WGX_STRICT=0 -> WARN (maybe pass?), but actually failure to resolve refs usually causes validator to crash or ignore.
+                         # If we cannot resolve, we cannot validate correctly.
+                         raise ImportError("RefResolver missing and schema uses $ref. Resolution capability required.")
                     else:
-                        # Lax mode: Proceed, but warn if refs are used (or just proceed)
-                        # We'll use the smart check logic from previous iteration but make it strict-dependent.
-                        # Actually, previous logic said "FAIL if schema uses $ref and missing resolver".
-                        # That is good. Strict mode enforces even stronger: Fail if missing resolver regardless?
-                        # No, if schema has no refs, it's fine.
-
-                        # Helper check
-                        def has_ref(obj):
-                            if isinstance(obj, dict): return "$ref" in obj or any(has_ref(v) for v in obj.values())
-                            if isinstance(obj, list): return any(has_ref(i) for i in obj)
-                            return False
-
-                        if has_ref(schema):
-                             raise ImportError("RefResolver missing and schema uses $ref. Resolution required.")
-
+                        # Safe to proceed without resolver for simple schemas
                         validator = validator_cls(schema)
 
             except ImportError as e:

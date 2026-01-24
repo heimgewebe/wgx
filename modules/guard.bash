@@ -165,7 +165,8 @@ Checks:
 Options:
   --lint        Nur die Linting-Prüfungen ausführen.
   --test        Nur die Test-Prüfungen ausführen.
-  --only        Nur einen spezifischen Guard ausführen (z.B. data_flow).
+  --only        Nur einen spezifischen Guard ausführen.
+                Erlaubte Werte: profile, filesize, conflict, ci_deps, contracts_ownership, contracts_meta, insights, integrity, data_flow.
   -h, --help    Diese Hilfe anzeigen.
 USAGE
       return 0
@@ -177,6 +178,18 @@ USAGE
     esac
     shift
   done
+
+  # Validierung von --only
+  if [[ -n "$only_guard" ]]; then
+      case "$only_guard" in
+          profile|filesize|conflict|ci_deps|contracts_ownership|contracts_meta|insights|integrity|data_flow)
+              ;;
+          *)
+              echo "Error: Unknown guard '$only_guard'. Allowed: profile, filesize, conflict, ci_deps, contracts_ownership, contracts_meta, insights, integrity, data_flow." >&2
+              return 1
+              ;;
+      esac
+  fi
 
   # Standard: beides, außer wenn nur ein spezifischer Guard läuft
   if [[ $run_lint -eq 0 && $run_test -eq 0 && -z "$only_guard" ]]; then
