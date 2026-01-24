@@ -16,10 +16,15 @@ Warum: Manche Strict-Validatoren brechen bei unbekannten Keywords; Governance-Me
 
 Validiert Datenartefakte gegen JSON-Schemas basierend auf einer Flow-Definition.
 
-**Optional:** Dieser Guard führt die Validierung nur durch, wenn die Python-Bibliothek `jsonschema` installiert ist.
-Fehlt sie, überspringt der Guard die Prüfung (Skip/OK), um CI-Umgebungen nicht zu blockieren.
+**Abhängigkeiten:** Dieser Guard benötigt `python3` und `jsonschema`.
 
-**Strict Mode (CI):** Wenn die Umgebungsvariable `WGX_STRICT=1` gesetzt ist, führt das Fehlen von `jsonschema` oder fehlende Referenzauflösungskapazitäten zu einem harten Fehler (Exit 1).
+**Strict Mode (CI):**
+- Wenn `WGX_STRICT=1` gesetzt ist, führt das Fehlen von `jsonschema` zu einem harten Fehler (Exit 1).
+- Ohne `WGX_STRICT=1` wird bei fehlenden Abhängigkeiten die Prüfung übersprungen (SKIP/OK).
+
+**Referenz-Validierung:**
+- Wenn ein Schema `$ref` verwendet, **MUSS** eine Referenzauflösung möglich sein (via `RefResolver` oder `referencing`). Andernfalls bricht der Guard mit einem Fehler ab (Exit 1), um Scheinsicherheit zu vermeiden – unabhängig vom Strict Mode.
+- Schemas *ohne* `$ref` werden auch ohne Resolver validiert.
 
 - **Konfiguration:** `.wgx/flows.json` (Canonical) oder `contracts/flows.json` (Legacy).
 - **Logik:**
@@ -33,15 +38,6 @@ Die referenzierten Schemas **MÜSSEN** entweder:
 
 1. Automatisch aus dem Metarepo gespiegelt werden (`contracts/...`).
 2. Explizit als vendored Contracts abgelegt sein (`.wgx/contracts/...`).
-
-### Schema-Referenzen ($ref)
-
-Der Guard prüft "smart", ob Referenzen aufgelöst werden können:
-
-- Schemas *ohne* `$ref` werden immer validiert.
-- Schemas *mit* `$ref` erfordern eine Umgebung, die Referenzen auflösen kann (via `RefResolver` oder
-  `referencing`-Bibliothek).
-- Ist keine Auflösung möglich, bricht der Guard mit einem Fehler ab, statt falsch-positiv zu validieren.
 
 ### Integration in CI
 
