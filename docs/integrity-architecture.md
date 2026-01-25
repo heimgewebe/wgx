@@ -33,3 +33,12 @@ Notes:
 
 * The fields `counts.loop_gaps` and `counts.unclear` are placeholders at the moment and do not influence the status.
 * The workflow allows additional status values (`WARN`, `FAIL`) for forward compatibility.
+
+## Data Flow Guard & SSOT
+
+The Data Flow Guard enforces a strict binding between generated artifacts and their schemas.
+It operates on the principle: "If data exists, its schema must exist and validate it."
+
+* **Canonical Config:** `.wgx/flows.json` defines which data files map to which schema.
+* **Fail-Safe:** If data is present but the schema is missing, the guard FAILS (preventing unvalidated flows).
+* **Reference Safety:** Schemas with `$ref` must be resolvable; otherwise, the guard fails to avoid false negatives.
