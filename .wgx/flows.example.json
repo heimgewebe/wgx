@@ -1,0 +1,16 @@
+[
+  {
+    "name": "my_canonical_artifact",
+    "schema_path": ".wgx/contracts/my_artifact.v1.schema.json",
+    "data_pattern": [
+      "artifacts/my_artifact.json"
+    ]
+  },
+  {
+    "name": "another_flow",
+    "schema_path": "contracts/events/some_event.v1.schema.json",
+    "data_pattern": [
+      "events/*.json"
+    ]
+  }
+]
