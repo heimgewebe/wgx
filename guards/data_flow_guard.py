@@ -309,7 +309,7 @@ def main():
                 except jsonschema.ValidationError as e:
                     msg = e.message
                     if len(msg) > 200: msg = msg[:200] + "..."
-                    print(f"[wgx][guard][data_flow] FAIL flow={flow_name} schema={schema_rel_path} data={df} id={item_id} error='{msg}'", file=sys.stderr)
+                    print(f"[wgx][guard][data_flow] FAIL flow={flow_name} data={df} id={item_id} error='{msg}'", file=sys.stderr)
                     total_errors += 1
 
     if total_errors > 0:

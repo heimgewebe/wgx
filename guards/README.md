@@ -39,6 +39,14 @@ Validiert Datenartefakte gegen JSON-Schemas basierend auf einer Flow-Definition.
   - Daten fehlen = **SKIP** (OK).
 - **Hinweis:** Repos ohne .wgx/flows.json sind erlaubt, aber ungesichert.
 
+### Log-Format
+
+Der Guard verwendet ein stabiles, maschinenlesbares Log-Format:
+
+- **Check:** `[wgx][guard][data_flow] CHECK flow=<name> files=<count> schema=<path>`
+- **Fail:** `[wgx][guard][data_flow] FAIL flow=<name> data=<file> id=<id> error='<msg>'`
+- **OK:** `[wgx][guard][data_flow] OK: ...`
+
 ### Single Source of Truth (SSOT)
 
 Die referenzierten Schemas **MÜSSEN** entweder:
