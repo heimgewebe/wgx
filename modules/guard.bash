@@ -181,14 +181,13 @@ USAGE
 
   # Validierung von --only
   if [[ -n "$only_guard" ]]; then
-      case "$only_guard" in
-          profile|filesize|conflict|ci_deps|contracts_ownership|contracts_meta|insights|integrity|data_flow)
-              ;;
-          *)
-              echo "Error: Unknown guard '$only_guard'. Allowed: profile, filesize, conflict, ci_deps, contracts_ownership, contracts_meta, insights, integrity, data_flow." >&2
-              return 1
-              ;;
-      esac
+    case "$only_guard" in
+    profile | filesize | conflict | ci_deps | contracts_ownership | contracts_meta | insights | integrity | data_flow) ;;
+    *)
+      echo "Error: Unknown guard '$only_guard'. Allowed: profile, filesize, conflict, ci_deps, contracts_ownership, contracts_meta, insights, integrity, data_flow." >&2
+      return 1
+      ;;
+    esac
   fi
 
   # Standard: beides, außer wenn nur ein spezifischer Guard läuft
@@ -203,101 +202,101 @@ USAGE
   local profile_missing=0
   # 0. Profile check (always run unless explicit skip, but here we just check)
   if [[ -z "$only_guard" || "$only_guard" == "profile" ]]; then
-      info "Checking for wgx profile..."
-      if profile::has_manifest; then
-        # We use indented info for substeps
-        printf '  • %s\n' "Profile found." >&2
-      else
-        warn "No .wgx/profile.yml or .wgx/profile.example.yml found."
-        # Nicht sofort abbrechen – andere Checks (v.a. Oversize) sollen trotzdem laufen.
-        profile_missing=1
-      fi
+    info "Checking for wgx profile..."
+    if profile::has_manifest; then
+      # We use indented info for substeps
+      printf '  • %s\n' "Profile found." >&2
+    else
+      warn "No .wgx/profile.yml or .wgx/profile.example.yml found."
+      # Nicht sofort abbrechen – andere Checks (v.a. Oversize) sollen trotzdem laufen.
+      profile_missing=1
+    fi
   fi
 
   # 1. Bigfiles checken
   if [[ -z "$only_guard" || "$only_guard" == "filesize" ]]; then
-      local max_bytes="${WGX_GUARD_MAX_BYTES:-1048576}"
-      if [[ ! "$max_bytes" =~ ^[0-9]+$ ]]; then
-        warn "Ungültiger Wert für WGX_GUARD_MAX_BYTES ('$max_bytes'), verwende 1048576."
-        max_bytes=1048576
-      fi
-      info "Checking for oversized files (≥ ${max_bytes} Bytes)..."
-      # Portabler Check: Python (falls verfügbar) ist viel schneller als Bash-Loop.
-      local oversized
-      if command -v python3 >/dev/null 2>&1; then
-        local project_root
-        project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-        # rc capturing via || rc=$? prevents 'set -e' from aborting on exit code 1 (oversized found)
-        local rc=0
-        oversized=$(git ls-files -z | python3 "${project_root}/modules/check_filesize.py" "$max_bytes") || rc=$?
-        if [[ $rc -ne 0 && $rc -ne 1 ]]; then
-          die "Filesize check failed (internal error, exit code $rc)."
-          return 1
-        fi
-      else
-        oversized=$(
-          git ls-files -z | while IFS= read -r -d '' f; do
-            [ -e "$f" ] || continue
-            local sz
-            sz=$(wc -c <"$f" 2>/dev/null || echo 0)
-            if [ "$sz" -ge "$max_bytes" ]; then
-              printf '%s\t%s\n' "$sz" "$f"
-            fi
-          done
-        )
-      fi
-      if [ -n "$oversized" ]; then
-        # Die Test-Assertion erwartet die exakte Zeichenkette "Oversized files detected" auf STDOUT.
-        echo "Oversized files detected"
-        warn "The following tracked files exceed the size limit of ${max_bytes} Bytes:"
-        while IFS= read -r line; do
-          printf '   - %s\n' "$line" >&2
-        done <<<"$oversized"
+    local max_bytes="${WGX_GUARD_MAX_BYTES:-1048576}"
+    if [[ ! "$max_bytes" =~ ^[0-9]+$ ]]; then
+      warn "Ungültiger Wert für WGX_GUARD_MAX_BYTES ('$max_bytes'), verwende 1048576."
+      max_bytes=1048576
+    fi
+    info "Checking for oversized files (≥ ${max_bytes} Bytes)..."
+    # Portabler Check: Python (falls verfügbar) ist viel schneller als Bash-Loop.
+    local oversized
+    if command -v python3 >/dev/null 2>&1; then
+      local project_root
+      project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+      # rc capturing via || rc=$? prevents 'set -e' from aborting on exit code 1 (oversized found)
+      local rc=0
+      oversized=$(git ls-files -z | python3 "${project_root}/modules/check_filesize.py" "$max_bytes") || rc=$?
+      if [[ $rc -ne 0 && $rc -ne 1 ]]; then
+        die "Filesize check failed (internal error, exit code $rc)."
         return 1
       fi
+    else
+      oversized=$(
+        git ls-files -z | while IFS= read -r -d '' f; do
+          [ -e "$f" ] || continue
+          local sz
+          sz=$(wc -c <"$f" 2>/dev/null || echo 0)
+          if [ "$sz" -ge "$max_bytes" ]; then
+            printf '%s\t%s\n' "$sz" "$f"
+          fi
+        done
+      )
+    fi
+    if [ -n "$oversized" ]; then
+      # Die Test-Assertion erwartet die exakte Zeichenkette "Oversized files detected" auf STDOUT.
+      echo "Oversized files detected"
+      warn "The following tracked files exceed the size limit of ${max_bytes} Bytes:"
+      while IFS= read -r line; do
+        printf '   - %s\n' "$line" >&2
+      done <<<"$oversized"
+      return 1
+    fi
   fi
 
   # 2. Konfliktmarker checken
   if [[ -z "$only_guard" || "$only_guard" == "conflict" ]]; then
-      info "Checking for conflict markers..."
-      # Beschränkt auf getrackte Inhalte via git grep, vermeidet unnötige Scans.
-      if git grep -I -n -E '^(<<<<<<< |=======|>>>>>>> )' -- . >/dev/null 2>&1; then
-        die "Konfliktmarker in getrackten Dateien gefunden!"
-        return 1
-      fi
+    info "Checking for conflict markers..."
+    # Beschränkt auf getrackte Inhalte via git grep, vermeidet unnötige Scans.
+    if git grep -I -n -E '^(<<<<<<< |=======|>>>>>>> )' -- . >/dev/null 2>&1; then
+      die "Konfliktmarker in getrackten Dateien gefunden!"
+      return 1
+    fi
   fi
 
   # 2.1 Checking for CI dependencies
   if [[ -z "$only_guard" || "$only_guard" == "ci_deps" ]]; then
-      _guard_ci_deps || return 1
+    _guard_ci_deps || return 1
   fi
 
   # 2.2 Contracts Ownership
   if [[ -z "$only_guard" || "$only_guard" == "contracts_ownership" ]]; then
-      _guard_contracts_ownership || return 1
+    _guard_contracts_ownership || return 1
   fi
 
   # 2.5 Contracts Meta (nur wenn contracts/events existiert)
   if [[ -z "$only_guard" || "$only_guard" == "contracts_meta" ]]; then
-      if [[ -d "contracts/events" ]]; then
-        info "Running contracts meta guard..."
-        _guard_contracts_meta || return 1
-      fi
+    if [[ -d "contracts/events" ]]; then
+      info "Running contracts meta guard..."
+      _guard_contracts_meta || return 1
+    fi
   fi
 
   # 2.6 Insights Guard (runs if relevant files exist)
   if [[ -z "$only_guard" || "$only_guard" == "insights" ]]; then
-      _guard_insights || return 1
+    _guard_insights || return 1
   fi
 
   # 2.7 Integrity Guard
   if [[ -z "$only_guard" || "$only_guard" == "integrity" ]]; then
-      _guard_integrity || return 1
+    _guard_integrity || return 1
   fi
 
   # 2.8 Data Flow Guard
   if [[ -z "$only_guard" || "$only_guard" == "data_flow" ]]; then
-      _guard_data_flow || return 1
+    _guard_data_flow || return 1
   fi
 
   # 3. Lint (wenn gewünscht)

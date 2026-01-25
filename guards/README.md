@@ -19,14 +19,20 @@ Validiert Datenartefakte gegen JSON-Schemas basierend auf einer Flow-Definition.
 **Abhängigkeiten:** Dieser Guard benötigt `python3` und `jsonschema`.
 
 **Strict Mode (CI):**
+
 - Wenn `WGX_STRICT=1` gesetzt ist, führt das Fehlen von `jsonschema` zu einem harten Fehler (Exit 1).
 - Ohne `WGX_STRICT=1` wird bei fehlenden Abhängigkeiten die Prüfung übersprungen (SKIP/OK).
 
 **Referenz-Validierung:**
-- Wenn ein Schema `$ref` verwendet, **MUSS** eine Referenzauflösung möglich sein (via `RefResolver`). Andernfalls bricht der Guard mit einem Fehler ab (Exit 1), um Scheinsicherheit zu vermeiden – unabhängig vom Strict Mode.
+
+- Wenn ein Schema `$ref` verwendet, **MUSS** eine Referenzauflösung möglich sein (via `RefResolver`).
+  Andernfalls bricht der Guard mit einem Fehler ab (Exit 1), um Scheinsicherheit zu vermeiden –
+  unabhängig vom Strict Mode.
 - Schemas *ohne* `$ref` werden auch ohne Resolver validiert.
 
-- **Konfiguration:** `.wgx/flows.json` (Canonical) oder `contracts/flows.json` (Legacy).
+**Konfiguration:**
+
+- **Datei:** `.wgx/flows.json` (Canonical) oder `contracts/flows.json` (Legacy).
 - **Logik:**
   - Daten existieren + Schema fehlt = **FAIL** (Verhindert unvalidierten Datenfluss).
   - Daten existieren + Schema existiert = **VALIDATE** (Fail bei Schema-Verletzung).
