@@ -37,6 +37,7 @@ Validiert Datenartefakte gegen JSON-Schemas basierend auf einer Flow-Definition.
   - Daten existieren + Schema fehlt = **FAIL** (Verhindert unvalidierten Datenfluss).
   - Daten existieren + Schema existiert = **VALIDATE** (Fail bei Schema-Verletzung).
   - Daten fehlen = **SKIP** (OK).
+- **Hinweis:** Repos ohne .wgx/flows.json sind erlaubt, aber ungesichert.
 
 ### Single Source of Truth (SSOT)
 

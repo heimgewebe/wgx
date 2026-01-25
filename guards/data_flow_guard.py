@@ -29,6 +29,7 @@ Strict Mode & Policy:
   - If schema uses $ref and no resolver (RefResolver) is available -> ALWAYS FAIL (Exit 1).
   - This prevents false negatives/security theatre.
   - Currently supports `jsonschema.RefResolver` (Legacy). Modern `referencing` support is planned but not active.
+  - TODO: Migration von RefResolver -> referencing (jsonschema >=4)
 
 Logic:
 1. Load configuration (prioritizing .wgx/flows.json).
