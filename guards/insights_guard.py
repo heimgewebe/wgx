@@ -32,48 +32,41 @@ def load_data(filepath):
     Load data from JSON or JSONL file.
     Returns a list of items or raises an exception.
     """
+    items = []
     with open(filepath, 'r', encoding='utf-8') as f:
-        content = f.read()
+        # Try JSON first
+        try:
+            data = json.load(f)
+            if isinstance(data, list):
+                return data
+            elif isinstance(data, dict):
+                return [data]
+            else:
+                # Valid JSON but wrong shape (e.g. primitive) – surface as error so
+                # callers do not silently skip validation.
+                raise ValueError(
+                    "File content must be a JSON object or array (got primitive value)"
+                )
+        except json.JSONDecodeError:
+            # Try JSONL
+            f.seek(0)
+            valid_lines_count = 0
 
-    # Try JSON first
-    try:
-        data = json.loads(content)
-        if isinstance(data, list):
-            return data
-        elif isinstance(data, dict):
-            return [data]
-        else:
-            # Valid JSON but wrong shape (e.g. primitive) – surface as error so
-            # callers do not silently skip validation.
-            raise ValueError(
-                "File content must be a JSON object or array (got primitive value)"
-            )
-    except json.JSONDecodeError:
-        # Try JSONL
-        items = []
-        lines = content.splitlines()
-        valid_lines_count = 0
+            for i, line in enumerate(f):
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    items.append(json.loads(line))
+                    valid_lines_count += 1
+                except json.JSONDecodeError as e:
+                    raise ValueError(f"Line {i+1}: {e}")
 
-        for i, line in enumerate(lines):
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                items.append(json.loads(line))
-                valid_lines_count += 1
-            except json.JSONDecodeError as e:
-                 raise ValueError(f"Line {i+1}: {e}")
+            # If we reached here, either file is empty, whitespace only, or we parsed some lines.
+            # If no valid lines were found, it's an empty or whitespace-only file (since invalid lines raise).
+            # We return empty list in that case.
 
-        # Hardsicherung: JSONL fallback only valid if at least one line was valid JSON.
-        # If content was not empty but produced 0 valid lines (e.g. random text file with no newlines that failed first parse),
-        # we should have caught it.
-        # If file was truly empty (0 bytes), content is empty, first json.loads fails? No, json.loads("") raises.
-        # If file is whitespace only, content.splitlines() might be empty or whitespace lines.
-        # If we have content but 0 valid lines, it's garbage.
-        if content.strip() and valid_lines_count == 0:
-             raise ValueError("File content is neither valid JSON nor valid JSONL (no valid lines found)")
-
-        return items
+            return items
 
 def main():
     if jsonschema is None:

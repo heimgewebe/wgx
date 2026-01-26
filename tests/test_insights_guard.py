@@ -27,3 +27,23 @@ def test_load_data_accepts_object_and_array(tmp_path: Path):
 
     assert insights_guard.load_data(obj_file) == [{"id": 1}]
     assert insights_guard.load_data(array_file) == [{"id": 2}]
+
+
+def test_load_data_garbage_raises(tmp_path: Path):
+    sample = tmp_path / "garbage.txt"
+    sample.write_text("this is not json\nnor this", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="Line 1:"):
+        insights_guard.load_data(sample)
+
+
+def test_load_data_empty_returns_empty(tmp_path: Path):
+    sample = tmp_path / "empty.txt"
+    sample.write_text("", encoding="utf-8")
+    assert insights_guard.load_data(sample) == []
+
+
+def test_load_data_whitespace_returns_empty(tmp_path: Path):
+    sample = tmp_path / "whitespace.txt"
+    sample.write_text("   \n  \t  ", encoding="utf-8")
+    assert insights_guard.load_data(sample) == []
