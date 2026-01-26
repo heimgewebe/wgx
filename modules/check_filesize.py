@@ -35,6 +35,8 @@ def main():
         buffer.extend(chunk)
         offset = 0
 
+        # Optimization: Scan via offset instead of modifying the buffer repeatedly.
+        # This avoids O(N^2) memory moves when processing many small files in one chunk.
         while True:
             try:
                 # Find the next null byte
