@@ -128,6 +128,13 @@ def main():
     try:
         with open(schema_path, 'r', encoding='utf-8') as f:
             schema = json.load(f)
+
+        # Optimization: Create a validator instance once to avoid repeated schema compilation
+        # which can be very expensive for large datasets.
+        validator_cls = jsonschema.validators.validator_for(schema)
+        validator_cls.check_schema(schema)
+        validator = validator_cls(schema)
+
     except Exception as e:
          print(f"[wgx][guard][insights] ERROR: Failed to parse schema {schema_path}: {e}", file=sys.stderr)
          return 1
@@ -149,7 +156,7 @@ def main():
 
             # Schema Validation
             try:
-                jsonschema.validate(instance=item, schema=schema)
+                validator.validate(item)
             except jsonschema.ValidationError as e:
                 schema_failed = True
                 # Format error: concise if possible
