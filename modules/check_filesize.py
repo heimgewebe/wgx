@@ -33,18 +33,21 @@ def main():
             break
 
         buffer.extend(chunk)
+        offset = 0
 
+        # Optimization: Scan via offset instead of modifying the buffer repeatedly.
+        # This avoids O(N^2) memory moves when processing many small files in one chunk.
         while True:
             try:
                 # Find the next null byte
-                null_index = buffer.index(b'\0')
+                null_index = buffer.index(b'\0', offset)
             except ValueError:
                 # No null byte found, wait for more data
                 break
 
             # Extract the filename as immutable bytes
-            file_bytes = bytes(buffer[:null_index])
-            del buffer[:null_index + 1]
+            file_bytes = bytes(buffer[offset:null_index])
+            offset = null_index + 1
 
             if not file_bytes:
                 continue
@@ -61,6 +64,9 @@ def main():
                 pass
             except Exception as e:
                 sys.stderr.write(f"Error processing file: {e}\n")
+
+        if offset > 0:
+            del buffer[:offset]
 
     # Process any remaining data in buffer (though find -print0 usually ends with \0)
     if buffer:
