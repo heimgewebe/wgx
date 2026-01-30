@@ -262,7 +262,7 @@ def main():
             if schema_key in schema_cache:
                 validator = schema_cache[schema_key]
             else:
-                with open(schema_rel_path, 'r', encoding='utf-8') as f:
+                with open(schema_abs_path, 'r', encoding='utf-8') as f:
                     schema = json.load(f)
 
                 base_uri = schema_abs_path.as_uri()
