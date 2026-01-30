@@ -216,6 +216,10 @@ def main():
         print(f"[wgx][guard][data_flow] Config '{config_path}' defines no flows.", file=sys.stderr)
         return 0
 
+    # Cache for loaded schemas/validators to avoid redundant parsing
+    # Key: Absolute path string, Value: validator instance
+    schema_cache = {}
+
     total_errors = 0
     checks_run = 0
 
@@ -252,37 +256,44 @@ def main():
 
         # 3. Load Schema & Validate
         try:
-            with open(schema_rel_path, 'r', encoding='utf-8') as f:
-                schema = json.load(f)
-
             schema_abs_path = pathlib.Path(schema_rel_path).resolve()
-            base_uri = schema_abs_path.as_uri()
+            schema_key = str(schema_abs_path)
 
-            validator_cls = jsonschema.validators.validator_for(schema)
-            validator = None
+            if schema_key in schema_cache:
+                validator = schema_cache[schema_key]
+            else:
+                with open(schema_rel_path, 'r', encoding='utf-8') as f:
+                    schema = json.load(f)
 
-            try:
-                # 1. Try RefResolver (Legacy)
-                if hasattr(jsonschema, 'RefResolver'):
-                    resolver = jsonschema.RefResolver(base_uri=base_uri, referrer=schema)
-                    validator = validator_cls(schema, resolver=resolver)
-                else:
-                    # Missing RefResolver.
-                    if has_ref(schema):
-                         # If schema uses refs but we lack resolver capability -> HARD FAIL always.
-                         raise ImportError("RefResolver missing and schema uses $ref. Resolution capability required.")
+                base_uri = schema_abs_path.as_uri()
+
+                validator_cls = jsonschema.validators.validator_for(schema)
+                validator = None
+
+                try:
+                    # 1. Try RefResolver (Legacy)
+                    if hasattr(jsonschema, 'RefResolver'):
+                        resolver = jsonschema.RefResolver(base_uri=base_uri, referrer=schema)
+                        validator = validator_cls(schema, resolver=resolver)
                     else:
-                        # Safe to proceed without resolver for simple schemas
-                        validator = validator_cls(schema)
+                        # Missing RefResolver.
+                        if has_ref(schema):
+                             # If schema uses refs but we lack resolver capability -> HARD FAIL always.
+                             raise ImportError("RefResolver missing and schema uses $ref. Resolution capability required.")
+                        else:
+                            # Safe to proceed without resolver for simple schemas
+                            validator = validator_cls(schema)
 
-            except ImportError as e:
-                 print(f"[wgx][guard][data_flow] ERROR flow={flow_name} error='{e}'", file=sys.stderr)
-                 total_errors += 1
-                 continue
-            except Exception as e:
-                print(f"[wgx][guard][data_flow] ERROR flow={flow_name} error='Validator init failed: {e}'", file=sys.stderr)
-                total_errors += 1
-                continue
+                    schema_cache[schema_key] = validator
+
+                except ImportError as e:
+                     print(f"[wgx][guard][data_flow] ERROR flow={flow_name} error='{e}'", file=sys.stderr)
+                     total_errors += 1
+                     continue
+                except Exception as e:
+                    print(f"[wgx][guard][data_flow] ERROR flow={flow_name} error='Validator init failed: {e}'", file=sys.stderr)
+                    total_errors += 1
+                    continue
 
         except Exception as e:
             print(f"[wgx][guard][data_flow] ERROR flow={flow_name} schema={schema_rel_path} error='Failed to prepare schema: {e}'", file=sys.stderr)
