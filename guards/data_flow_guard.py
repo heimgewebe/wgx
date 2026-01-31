@@ -228,9 +228,11 @@ def main():
     data_cache_max = 256
     try:
         if "DATA_FLOW_GUARD_DATA_CACHE_MAX" in os.environ:
-             data_cache_max = int(os.environ["DATA_FLOW_GUARD_DATA_CACHE_MAX"])
+             val = int(os.environ["DATA_FLOW_GUARD_DATA_CACHE_MAX"])
+             data_cache_max = max(0, val)
     except ValueError:
-        pass # Fallback to default 256
+        print("[wgx][guard][data_flow] WARN invalid DATA_FLOW_GUARD_DATA_CACHE_MAX, using default 256", file=sys.stderr)
+        data_cache_max = 256
 
     total_errors = 0
     checks_run = 0
