@@ -166,7 +166,8 @@ Options:
   --lint        Nur die Linting-Prüfungen ausführen.
   --test        Nur die Test-Prüfungen ausführen.
   --only        Nur einen spezifischen Guard ausführen.
-                Erlaubte Werte: profile, filesize, conflict, ci_deps, contracts_ownership, contracts_meta, insights, integrity, data_flow.
+                Erlaubte Werte: profile, filesize, conflict, ci_deps, contracts_ownership, contracts_meta, insights,
+                integrity, data_flow.
   -h, --help    Diese Hilfe anzeigen.
 USAGE
       return 0
