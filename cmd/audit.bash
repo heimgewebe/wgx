@@ -13,6 +13,14 @@ cmd_audit() {
   local sub="${1:-}"
   shift || true
   case "$sub" in
+  git)
+    if declare -F wgx_audit_git >/dev/null 2>&1; then
+      wgx_audit_git "$@"
+    else
+      printf 'wgx audit git: logic not loaded.\n' >&2
+      return 1
+    fi
+    ;;
   verify)
     local strict=0
     while [[ $# -gt 0 ]]; do
@@ -55,8 +63,9 @@ USAGE
     cat <<'USAGE'
 Usage:
   wgx audit verify [--strict]
+  wgx audit git
 
-Verwaltet das Audit-Ledger von wgx.
+Verwaltet das Audit-Ledger von wgx und führt Audits aus.
 USAGE
     ;;
   *)
