@@ -171,7 +171,7 @@ wgx_audit_git() {
   # Construct upstream object using jq arguments to avoid string concatenation issues
   local upstream_json_arg="null"
   if [[ -n "$upstream" ]]; then
-      upstream_json_arg="{\"name\":\"$upstream\", \"exists_locally\":true}"
+    upstream_json_arg="{\"name\":\"$upstream\", \"exists_locally\":true}"
   fi
 
   # We use a temporary file to store the JSON content
@@ -237,7 +237,7 @@ wgx_audit_git() {
   if [[ "$stdout_json" -eq 1 ]]; then
     echo "$out_json"
   else
-    echo "$out_json" > .wgx/out/audit.git.v1.json
+    echo "$out_json" >.wgx/out/audit.git.v1.json
     echo ".wgx/out/audit.git.v1.json"
   fi
 }
