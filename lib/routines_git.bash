@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-set -euo pipefail
 
 wgx_routine_git_repair_remote_head() {
   local mode="${1:-dry-run}" # dry-run | apply
@@ -14,7 +13,7 @@ wgx_routine_git_repair_remote_head() {
   # Check for jq presence
   if ! command -v jq >/dev/null 2>&1; then
     echo "Error: jq is required for wgx routines" >&2
-    exit 1
+    return 1
   fi
 
   if [[ "$mode" == "dry-run" ]]; then
@@ -23,7 +22,7 @@ wgx_routine_git_repair_remote_head() {
       '{kind:"routine.preview", id:$id, mode:$mode, mutating:true, risk:$risk, steps:$steps}' \
       >"$out_dir/routine.preview.json"
     echo "$out_dir/routine.preview.json"
-    exit 0
+    return 0
   fi
 
   # apply
@@ -43,10 +42,9 @@ wgx_routine_git_repair_remote_head() {
     t_out="$(mktemp)"
     t_err="$(mktemp)"
 
-    set +e # Disable exit-on-error for the command execution
-    bash -c "$cmd" >"$t_out" 2>"$t_err"
-    rc=$?
-    set -e
+    # Run command without aborting the script on error
+    bash -c "$cmd" >"$t_out" 2>"$t_err" || rc=$?
+    rc=${rc:-0}
 
     out="$(cat "$t_out")"
     err="$(cat "$t_err")"
@@ -86,6 +84,6 @@ wgx_routine_git_repair_remote_head() {
   echo "$out_dir/routine.result.json"
 
   if [[ "$ok" != "true" ]]; then
-    exit 1
+    return 1
   fi
 }

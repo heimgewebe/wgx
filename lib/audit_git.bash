@@ -1,15 +1,40 @@
 #!/usr/bin/env bash
-set -euo pipefail
 
 wgx_audit_git() {
-  local repo="${1:-}"
+  local repo_key=""
+  local correlation_id=""
+  local stdout_json=0
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+    --repo)
+      shift
+      repo_key="$1"
+      ;;
+    --correlation-id)
+      shift
+      correlation_id="$1"
+      ;;
+    --stdout-json)
+      stdout_json=1
+      ;;
+    *)
+      # Ignore unknown args or handle positional args if needed
+      if [[ -z "$repo_key" && ! "$1" =~ ^- ]]; then
+        repo_key="$1"
+      fi
+      ;;
+    esac
+    shift || true
+  done
+
   local cwd
   cwd="$(pwd)"
 
   # helper to append check/routine (needs jq)
   if ! command -v jq >/dev/null 2>&1; then
     echo "Error: jq is required for wgx audit git" >&2
-    exit 1
+    return 1
   fi
 
   local head_sha head_ref local_branch detached_bool
@@ -49,7 +74,10 @@ wgx_audit_git() {
     upstream="$(git rev-parse --abbrev-ref --symbolic-full-name "@{u}" 2>/dev/null || true)"
     if [[ -n "$upstream" ]]; then
       upstream_exists_bool="true"
-      origin_upstream_bool="true"
+      # Only consider it an origin upstream if it starts with origin/
+      if [[ "$upstream" == origin/* ]]; then
+        origin_upstream_bool="true"
+      fi
     fi
   fi
 
@@ -137,34 +165,35 @@ wgx_audit_git() {
     u_causes='[{"kind":"environment_variance","note":"Remote or network/tooling state prevents reliable ref discovery."}]'
   fi
 
-  # Handle nulls for jq args
-  local local_branch_json="null"
-  if [[ -n "$local_branch" ]]; then local_branch_json="\"$local_branch\""; fi
-
-  local upstream_json="null"
-  if [[ -n "$upstream" ]]; then upstream_json="{\"name\":\"$upstream\", \"exists_locally\":true}"; fi
-
-  local remote_default_branch_json="null"
-  if [[ -n "$remote_default_branch" ]]; then remote_default_branch_json="\"$remote_default_branch\""; fi
-
   # write artifact
   mkdir -p .wgx/out
-  jq -n \
+
+  # Construct upstream object using jq arguments to avoid string concatenation issues
+  local upstream_json_arg="null"
+  if [[ -n "$upstream" ]]; then
+      upstream_json_arg="{\"name\":\"$upstream\", \"exists_locally\":true}"
+  fi
+
+  # We use a temporary file to store the JSON content
+  local out_json
+  out_json="$(jq -n \
     --arg kind "audit.git" \
     --arg schema_version "v1" \
     --arg ts "$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
-    --arg repo "${repo:-unknown}" \
+    --arg correlation_id "${correlation_id:-}" \
+    --arg repo "${repo_key:-unknown}" \
     --arg cwd "$cwd" \
     --arg status "$status" \
     --arg head_sha "$head_sha" \
     --arg head_ref "$head_ref" \
     --argjson detached "$detached_bool" \
-    --argjson local_branch "$local_branch_json" \
-    --argjson upstream "$upstream_json" \
+    --arg local_branch "${local_branch:-}" \
+    --arg upstream_name "${upstream:-}" \
+    --argjson upstream_exists "$upstream_exists_bool" \
     --argjson origin_head "$origin_head_bool" \
     --argjson origin_main "$origin_main_bool" \
     --argjson origin_upstream "$origin_upstream_bool" \
-    --argjson remote_default_branch "$remote_default_branch_json" \
+    --arg remote_default_branch "${remote_default_branch:-}" \
     --argjson staged "$staged" \
     --argjson unstaged "$unstaged" \
     --argjson untracked "$untracked" \
@@ -180,6 +209,7 @@ wgx_audit_git() {
       kind:$kind,
       schema_version:$schema_version,
       ts:$ts,
+      correlation_id:$correlation_id,
       repo:$repo,
       cwd:$cwd,
       status:$status,
@@ -187,10 +217,10 @@ wgx_audit_git() {
         head_sha:$head_sha,
         head_ref:$head_ref,
         is_detached_head:$detached,
-        local_branch:$local_branch,
-        upstream:$upstream,
+        local_branch:(if $local_branch=="" then null else $local_branch end),
+        upstream:(if $upstream_exists then {name:$upstream_name, exists_locally:true} else null end),
         remotes:(["origin"]),
-        remote_default_branch:$remote_default_branch,
+        remote_default_branch:(if $remote_default_branch=="" then null else $remote_default_branch end),
         remote_refs:{
           origin_main:$origin_main,
           origin_head:$origin_head,
@@ -202,7 +232,12 @@ wgx_audit_git() {
       checks:$checks,
       uncertainty:{level:$u_level, causes:$u_causes, meta:$u_meta},
       suggested_routines:$routines
-    }' >.wgx/out/audit.git.v1.json
+    }')"
 
-  echo ".wgx/out/audit.git.v1.json"
+  if [[ "$stdout_json" -eq 1 ]]; then
+    echo "$out_json"
+  else
+    echo "$out_json" > .wgx/out/audit.git.v1.json
+    echo ".wgx/out/audit.git.v1.json"
+  fi
 }
