@@ -43,6 +43,12 @@ wgx_routine_git_repair_remote_head() {
   local log_stderr=""
   local ok=true
 
+  # Validate steps JSON early (avoid jq hard-fail later)
+  if ! jq -e . >/dev/null 2>&1 <<<"$steps"; then
+    echo "Error: steps JSON invalid" >&2
+    return 1
+  fi
+
   while IFS= read -r cmd; do
     log_stdout+="> $cmd"$'\n'
     # Execute command, capture stdout and stderr, check exit code
@@ -53,6 +59,16 @@ wgx_routine_git_repair_remote_head() {
     t_err="$(mktemp)"
 
     # Run command without aborting the script on error
+    # Security: Allowlist specific git commands to prevent injection
+    case "$cmd" in
+      "git remote set-head origin --auto"|"git fetch origin --prune") ;;
+      *)
+        log_stderr+="Refusing unexpected command: $cmd"$'\n'
+        ok=false
+        break
+        ;;
+    esac
+
     bash -c "$cmd" >"$t_out" 2>"$t_err" || rc=$?
 
     out="$(cat "$t_out")"
@@ -77,7 +93,7 @@ wgx_routine_git_repair_remote_head() {
   jq -n --arg id "$routine_id" --arg mode "$mode" --arg risk "low" \
     --arg before "$before" --arg after "$after" \
     --arg stdout "$log_stdout" --arg stderr "$log_stderr" \
-    --arg ok "$ok" \
+    --argjson ok "$ok" \
     --arg steps "$steps" \
     '{
       kind:"routine.result",
@@ -86,7 +102,7 @@ wgx_routine_git_repair_remote_head() {
       mutating:true,
       risk:$risk,
       steps:($steps|fromjson),
-      ok:($ok=="true"),
+      ok:$ok,
       state_hash:{before:$before, after:$after},
       stdout:$stdout,
       stderr:$stderr
