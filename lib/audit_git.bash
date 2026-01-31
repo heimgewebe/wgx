@@ -41,25 +41,25 @@ wgx_audit_git() {
   head_sha="$(git rev-parse --short=12 HEAD 2>/dev/null || echo "")"
   head_ref="$(git rev-parse --symbolic-full-name HEAD 2>/dev/null || echo "")"
   local_branch="$(git branch --show-current 2>/dev/null || true)"
-  detached_bool="false"
-  [[ -z "$local_branch" ]] && detached_bool="true"
+  detached_bool=false
+  [[ -z "$local_branch" ]] && detached_bool=true
 
-  local origin_present_bool="false"
-  git remote get-url origin >/dev/null 2>&1 && origin_present_bool="true"
+  local origin_present_bool=false
+  git remote get-url origin >/dev/null 2>&1 && origin_present_bool=true
 
   # fetch
-  local fetch_ok_bool="false"
+  local fetch_ok_bool=false
   if [[ "$origin_present_bool" == "true" ]]; then
     if git fetch origin --prune >/dev/null 2>&1; then
-      fetch_ok_bool="true"
+      fetch_ok_bool=true
     fi
   fi
 
-  local origin_head_bool="false"
-  git show-ref --verify --quiet refs/remotes/origin/HEAD && origin_head_bool="true"
+  local origin_head_bool=false
+  git show-ref --verify --quiet refs/remotes/origin/HEAD && origin_head_bool=true
 
-  local origin_main_bool="false"
-  git show-ref --verify --quiet refs/remotes/origin/main && origin_main_bool="true"
+  local origin_main_bool=false
+  git show-ref --verify --quiet refs/remotes/origin/main && origin_main_bool=true
 
   local remote_default_branch=""
   if [[ "$origin_head_bool" == "true" ]]; then
@@ -68,15 +68,15 @@ wgx_audit_git() {
 
   # upstream
   local upstream=""
-  local upstream_exists_bool="false"
-  local origin_upstream_bool="false"
+  local upstream_exists_bool=false
+  local origin_upstream_bool=false
   if [[ -n "$local_branch" ]]; then
     upstream="$(git rev-parse --abbrev-ref --symbolic-full-name "@{u}" 2>/dev/null || true)"
     if [[ -n "$upstream" ]]; then
-      upstream_exists_bool="true"
+      upstream_exists_bool=true
       # Only consider it an origin upstream if it starts with origin/
       if [[ "$upstream" == origin/* ]]; then
-        origin_upstream_bool="true"
+        origin_upstream_bool=true
       fi
     fi
   fi
@@ -95,8 +95,8 @@ wgx_audit_git() {
   staged="$(git diff --cached --name-only | wc -l | tr -d ' ')"
   unstaged="$(git diff --name-only | wc -l | tr -d ' ')"
   untracked="$(git ls-files --others --exclude-standard | wc -l | tr -d ' ')"
-  clean_bool="false"
-  [[ "$staged" == "0" && "$unstaged" == "0" && "$untracked" == "0" ]] && clean_bool="true"
+  clean_bool=false
+  [[ "$staged" == "0" && "$unstaged" == "0" && "$untracked" == "0" ]] && clean_bool=true
 
   # checks + routines
   local status="ok"
@@ -115,13 +115,15 @@ wgx_audit_git() {
       '. + [{"id":$id,"status":$st,"message":$msg}]' <<<"$checks_json")"
   fi
 
-  if [[ "$origin_present_bool" == "true" && "$fetch_ok_bool" != "true" ]]; then
-    status="error"
-    checks_json="$(jq -c --arg id "git.fetch.ok" --arg st "error" --arg msg "git fetch origin failed." \
-      '. + [{"id":$id,"status":$st,"message":$msg}]' <<<"$checks_json")"
-  else
-    checks_json="$(jq -c --arg id "git.fetch.ok" --arg st "ok" --arg msg "Fetched remote refs." \
-      '. + [{"id":$id,"status":$st,"message":$msg}]' <<<"$checks_json")"
+  if [[ "$origin_present_bool" == "true" ]]; then
+    if [[ "$fetch_ok_bool" != "true" ]]; then
+      status="error"
+      checks_json="$(jq -c --arg id "git.fetch.ok" --arg st "error" --arg msg "git fetch origin failed." \
+        '. + [{"id":$id,"status":$st,"message":$msg}]' <<<"$checks_json")"
+    else
+      checks_json="$(jq -c --arg id "git.fetch.ok" --arg st "ok" --arg msg "Fetched remote refs." \
+        '. + [{"id":$id,"status":$st,"message":$msg}]' <<<"$checks_json")"
+    fi
   fi
 
   if [[ "$origin_head_bool" != "true" ]]; then

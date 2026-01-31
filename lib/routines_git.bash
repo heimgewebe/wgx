@@ -41,12 +41,12 @@ wgx_routine_git_repair_remote_head() {
 
   local log_stdout=""
   local log_stderr=""
-  local ok="true"
+  local ok=true
 
   while IFS= read -r cmd; do
     log_stdout+="> $cmd"$'\n'
     # Execute command, capture stdout and stderr, check exit code
-    local out err rc
+    local out err rc=0
     # Use temporary files for capturing output to avoid subshell variable scope issues or complex piping
     local t_out t_err
     t_out="$(mktemp)"
@@ -54,7 +54,6 @@ wgx_routine_git_repair_remote_head() {
 
     # Run command without aborting the script on error
     bash -c "$cmd" >"$t_out" 2>"$t_err" || rc=$?
-    rc=${rc:-0}
 
     out="$(cat "$t_out")"
     err="$(cat "$t_err")"
@@ -64,7 +63,7 @@ wgx_routine_git_repair_remote_head() {
     if [[ -n "$err" ]]; then log_stderr+="$err"$'\n'; fi
 
     if [[ $rc -ne 0 ]]; then
-      ok="false"
+      ok=false
       log_stderr+="Command failed with exit code $rc: $cmd"$'\n'
       break
     fi
