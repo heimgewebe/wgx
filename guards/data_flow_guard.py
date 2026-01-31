@@ -316,7 +316,13 @@ def main():
                 if df_abs_path in data_cache:
                     items = data_cache[df_abs_path]
                 else:
-                    items = load_data(df)
+                    # Simple safety limit to prevent unbounded memory growth
+                    if len(data_cache) > 1000:
+                        data_cache.clear()
+
+                    # Load data and cache as immutable tuple to prevent side effects
+                    loaded_items = load_data(df)
+                    items = tuple(loaded_items)
                     data_cache[df_abs_path] = items
 
             except Exception as e:

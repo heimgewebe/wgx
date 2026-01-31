@@ -229,5 +229,78 @@ class TestDataFlowGuard(unittest.TestCase):
         self.assertIn({"id": "d1", "val": "one"}, args_list)
         self.assertIn({"id": "d2", "val": "two"}, args_list)
 
+    @patch('guards.data_flow_guard.jsonschema')
+    @patch('guards.data_flow_guard.os.path.exists')
+    @patch('guards.data_flow_guard.glob.glob')
+    @patch('builtins.open', new_callable=mock_open)
+    def test_data_caching(self, mock_file, mock_glob, mock_exists, mock_jsonschema):
+        """
+        Verify that data file parsing is cached across flows sharing the same data file.
+        """
+        schema_path = ".wgx/contracts/schema.json"
+        data_path = "shared_data.json"
+
+        # Allow both relative and absolute paths
+        base_paths = [".wgx/flows.json", schema_path, data_path]
+        allowed_paths = set(base_paths)
+        for p in base_paths:
+            allowed_paths.add(str(pathlib.Path(p).resolve()))
+
+        mock_exists.side_effect = lambda p: str(p) in allowed_paths
+        mock_glob.return_value = []
+
+        expected_data_abs = str(pathlib.Path(data_path).resolve())
+
+        config_content = json.dumps([
+            {
+                "name": "flow1",
+                "schema_path": schema_path,
+                "data_pattern": [data_path]
+            },
+            {
+                "name": "flow2",
+                "schema_path": schema_path,
+                "data_pattern": [data_path]
+            }
+        ])
+
+        schema_content = '{"type": "object"}'
+        data_content = '[{"id": "d1", "val": "one"}]'
+
+        def open_side_effect(file, mode='r', encoding='utf-8'):
+            s_file = str(file)
+            if ".wgx/flows.json" in s_file:
+                return mock_open(read_data=config_content).return_value
+            elif schema_path in s_file:
+                return mock_open(read_data=schema_content).return_value
+            elif s_file == expected_data_abs or data_path in s_file:
+                return mock_open(read_data=data_content).return_value
+            return mock_open(read_data="").return_value
+
+        mock_file.side_effect = open_side_effect
+
+        mock_validator_instance = MagicMock()
+        mock_jsonschema.validators.validator_for.return_value = MagicMock(return_value=mock_validator_instance)
+        mock_jsonschema.RefResolver = MagicMock()
+
+        # Run main
+        ret = data_flow_guard.main()
+
+        self.assertEqual(ret, 0)
+
+        # Count how many times the data file was opened
+        # We need to filter calls to open() that match our data file
+        data_open_calls = 0
+        for args, _ in mock_file.call_args_list:
+            arg0 = str(args[0])
+            if arg0.endswith(data_path):
+                data_open_calls += 1
+
+        # Should be 1 due to caching
+        self.assertEqual(data_open_calls, 1, f"Expected data file to be opened once, but was opened {data_open_calls} times")
+
+        # Validation should happen twice (once per flow)
+        self.assertEqual(mock_validator_instance.validate.call_count, 2)
+
 if __name__ == '__main__':
     unittest.main()
