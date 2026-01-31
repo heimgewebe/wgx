@@ -67,8 +67,8 @@ wgx_audit_git() {
 
   # helper to append check/routine (needs jq)
   if ! command -v jq >/dev/null 2>&1; then
-      echo "Error: jq is required for wgx audit git" >&2
-      exit 1
+    echo "Error: jq is required for wgx audit git" >&2
+    exit 1
   fi
 
   checks_json="$(jq -c --arg id "git.repo.present" --arg st "ok" --arg msg "Repo detected." \
@@ -187,7 +187,7 @@ wgx_audit_git() {
       checks:$checks,
       uncertainty:{level:$u_level, causes:$u_causes, meta:$u_meta},
       suggested_routines:$routines
-    }' > .wgx/out/audit.git.v1.json
+    }' >.wgx/out/audit.git.v1.json
 
   echo ".wgx/out/audit.git.v1.json"
 }

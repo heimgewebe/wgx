@@ -26,6 +26,7 @@ Commands:
   quick
   release
   reload
+  routine
   run
   selftest
   send
@@ -53,8 +54,9 @@ More:
 ```text
 Usage:
   wgx audit verify [--strict]
+  wgx audit git
 
-Verwaltet das Audit-Ledger von wgx.
+Verwaltet das Audit-Ledger von wgx und führt Audits aus.
 ```
 
 ### clean
@@ -118,7 +120,7 @@ Usage: wgx env doctor [--fix] [--strict] [--json]
 
 ```text
 Usage:
-  wgx guard [--lint] [--test]
+  wgx guard [--lint] [--test] [--only <guard_name>]
 
 Description:
   Führt eine Reihe von Sicherheits- und Qualitätsprüfungen für das Repository aus.
@@ -135,6 +137,8 @@ Checks:
 Options:
   --lint        Nur die Linting-Prüfungen ausführen.
   --test        Nur die Test-Prüfungen ausführen.
+  --only        Nur einen spezifischen Guard ausführen.
+                Erlaubte Werte: profile, filesize, conflict, ci_deps, contracts_ownership, contracts_meta, insights, integrity, data_flow.
   -h, --help    Diese Hilfe anzeigen.
 ```
 
@@ -185,6 +189,7 @@ Commands:
   quick
   release
   reload
+  routine
   run
   selftest
   send
@@ -309,6 +314,16 @@ Options:
   --dry-run     Zeigt nur an, was getan würde, ohne Änderungen vorzunehmen.
   --snapshot    Erstellt vorher einen Git-Stash als Sicherheitskopie.
   -h, --help    Diese Hilfe anzeigen.
+```
+
+### routine
+
+```text
+Usage:
+  wgx routine <routine_id> [preview|apply]
+
+Available routines:
+  git.repair.remote-head
 ```
 
 ### run

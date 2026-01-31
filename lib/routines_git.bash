@@ -13,15 +13,15 @@ wgx_routine_git_repair_remote_head() {
 
   # Check for jq presence
   if ! command -v jq >/dev/null 2>&1; then
-      echo "Error: jq is required for wgx routines" >&2
-      exit 1
+    echo "Error: jq is required for wgx routines" >&2
+    exit 1
   fi
 
   if [[ "$mode" == "dry-run" ]]; then
     jq -n --arg id "git.repair.remote-head" --arg mode "$mode" --arg risk "low" \
       --argjson steps "$steps" \
       '{kind:"routine.preview", id:$id, mode:$mode, mutating:true, risk:$risk, steps:$steps}' \
-      > "$out_dir/routine.preview.json"
+      >"$out_dir/routine.preview.json"
     echo "$out_dir/routine.preview.json"
     exit 0
   fi
@@ -51,7 +51,7 @@ wgx_routine_git_repair_remote_head() {
       steps:$steps,
       state_hash:{before:$before, after:$after},
       stdout:$log
-    }' > "$out_dir/routine.result.json"
+    }' >"$out_dir/routine.result.json"
 
   echo "$out_dir/routine.result.json"
 }
