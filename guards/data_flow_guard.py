@@ -51,6 +51,7 @@ import json
 import glob
 import os
 import pathlib
+import collections
 
 # Try imports
 try:
@@ -221,8 +222,15 @@ def main():
     schema_cache = {}
 
     # Cache for loaded data files to avoid redundant I/O and parsing
-    # Key: Absolute path string, Value: items (list)
-    data_cache = {}
+    # Key: Absolute path string, Value: items (tuple)
+    # LRU Strategy: bounded size to prevent unbounded memory growth
+    data_cache = collections.OrderedDict()
+    data_cache_max = 256
+    try:
+        if "DATA_FLOW_GUARD_DATA_CACHE_MAX" in os.environ:
+             data_cache_max = int(os.environ["DATA_FLOW_GUARD_DATA_CACHE_MAX"])
+    except ValueError:
+        pass # Fallback to default 256
 
     total_errors = 0
     checks_run = 0
@@ -313,17 +321,24 @@ def main():
                 # Use absolute path for reliable caching
                 df_abs_path = str(pathlib.Path(df).resolve())
 
-                if df_abs_path in data_cache:
-                    items = data_cache[df_abs_path]
-                else:
-                    # Simple safety limit to prevent unbounded memory growth
-                    if len(data_cache) > 1000:
-                        data_cache.clear()
+                # LRU Cache Logic
+                if data_cache_max > 0:
+                    if df_abs_path in data_cache:
+                        items = data_cache[df_abs_path]
+                        data_cache.move_to_end(df_abs_path)
+                    else:
+                        # Load data and cache as immutable tuple to prevent side effects
+                        loaded_items = load_data(df)
+                        items = tuple(loaded_items)
 
-                    # Load data and cache as immutable tuple to prevent side effects
-                    loaded_items = load_data(df)
-                    items = tuple(loaded_items)
-                    data_cache[df_abs_path] = items
+                        # Evict oldest if full
+                        if len(data_cache) >= data_cache_max:
+                            data_cache.popitem(last=False)
+
+                        data_cache[df_abs_path] = items
+                else:
+                    # Caching disabled
+                    items = load_data(df)
 
             except Exception as e:
                 print(f"[wgx][guard][data_flow] ERROR flow={flow_name} data={df} error='Failed to parse data: {e}'", file=sys.stderr)
