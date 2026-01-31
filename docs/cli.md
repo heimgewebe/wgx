@@ -59,6 +59,7 @@ Usage:
 Verwaltet das Audit-Ledger von wgx und führt Audits aus.
 Ergebnisse werden als eindeutige JSON-Artefakte in .wgx/out/ gespeichert.
 Audit may refresh remote-tracking refs via fetch.
+Exit code is 0 even if audit status is error (check JSON output).
 ```
 
 ### clean

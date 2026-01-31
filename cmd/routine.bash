@@ -24,47 +24,39 @@ USAGE
     return 0
   fi
 
-  # normalize mode
-  if [[ "$mode" == "preview" ]]; then mode="dry-run"; fi
-  if [[ "$mode" != "dry-run" && "$mode" != "apply" ]]; then
-    printf 'wgx routine: invalid mode %s (use preview/dry-run or apply)\n' "$mode" >&2
-    return 1
+  if [ -z "${WGX_DIR:-}" ]; then
+    # Fallback logic if sourced without WGX_DIR (should be rare)
+    WGX_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
   fi
+
+  # Helper to load library robustly
+  _load_lib() {
+    local name="$1"
+    if ! declare -F "wgx_routine_${name//-/_}" >/dev/null 2>&1; then
+      local libpath="$WGX_DIR/lib/routines_${name//./_}.bash"
+      # Try simpler name if structured
+      if [[ ! -f "$libpath" ]]; then
+        libpath="$WGX_DIR/lib/routines_git.bash" # Fallback/mapping for git.*
+      fi
+
+      if [[ -r "$libpath" ]]; then
+        # shellcheck source=/dev/null
+        source "$libpath"
+      else
+         echo "Error: Routine library not found for $name" >&2
+         return 1
+      fi
+    fi
+  }
 
   case "$routine_id" in
   git.repair.remote-head)
-    if ! declare -F wgx_routine_git_repair_remote_head >/dev/null 2>&1; then
-      local lib_path=""
-      if [[ -n "${WGX_DIR:-}" ]]; then
-        lib_path="$WGX_DIR/lib/routines_git.bash"
-      else
-        # Try to find relative to this script
-        local script_dir
-        script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-        # Normalize path
-        lib_path="$(cd "$script_dir/../lib" && pwd)/routines_git.bash" 2>/dev/null
-      fi
-
-      if [[ -n "$lib_path" && -r "$lib_path" ]]; then
-        # shellcheck source=/dev/null
-        source "$lib_path"
-      fi
-    fi
-
-    if declare -F wgx_routine_git_repair_remote_head >/dev/null 2>&1; then
-      wgx_routine_git_repair_remote_head "$mode" "$@"
-    else
-      printf 'wgx routine: implementation for %s not loaded.\n' "$routine_id" >&2
-      return 1
-    fi
+    _load_lib "git" || return 1
+    wgx_routine_git_repair_remote_head "$mode"
     ;;
   *)
     printf 'wgx routine: unknown routine %s\n' "$routine_id" >&2
     return 1
     ;;
   esac
-}
-
-wgx_command_main() {
-  cmd_routine "$@"
 }

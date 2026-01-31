@@ -5,7 +5,7 @@ load test_helper
 setup() {
   # Resolve absolute path to WGX root
   export WGX_DIR="$(cd "$BATS_TEST_DIRNAME/.." && pwd)"
-  PATH="$WGX_DIR:$PATH"
+  PATH="$WGX_DIR/bin:$WGX_DIR:$PATH"
 
   # Setup temp git repo
   TEST_TEMP_DIR="$(mktemp -d)"
@@ -36,6 +36,10 @@ teardown() {
 
   # Check file exists
   [ -f ".wgx/out/audit.git.v1.run-A.json" ]
+
+  # Validate JSON structure (kind check)
+  run jq -e '.kind=="audit.git"' ".wgx/out/audit.git.v1.run-A.json"
+  assert_success
 
   run wgx audit git --correlation-id run-B
   assert_success

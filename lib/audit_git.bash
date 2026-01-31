@@ -183,7 +183,6 @@ wgx_audit_git() {
     --arg upstream_name "${upstream:-}" \
     --argjson upstream_exists "$upstream_exists_bool" \
     --argjson origin_present "$origin_present_bool" \
-    --argjson fetch_performed "$fetch_ok_bool" \
     --argjson origin_head "$origin_head_bool" \
     --argjson origin_main "$origin_main_bool" \
     --argjson origin_upstream "$origin_upstream_bool" \
@@ -214,7 +213,6 @@ wgx_audit_git() {
         local_branch:(if $local_branch=="" then null else $local_branch end),
         upstream:(if $upstream_exists then {name:$upstream_name, exists_locally:true} else null end),
         remotes:(if $origin_present then ["origin"] else [] end),
-        did_fetch:$fetch_performed,
         remote_default_branch:(if $remote_default_branch=="" then null else $remote_default_branch end),
         remote_refs:{
           origin_main:$origin_main,
