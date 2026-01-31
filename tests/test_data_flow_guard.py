@@ -362,5 +362,49 @@ class TestDataFlowGuard(unittest.TestCase):
         self.assertEqual(mock_load_data.call_count, 3,
                          f"Expected load_data to be called 3 times due to eviction, but called {mock_load_data.call_count}")
 
+    @patch('guards.data_flow_guard.load_data')
+    @patch('guards.data_flow_guard.jsonschema')
+    @patch('guards.data_flow_guard.os.path.exists')
+    @patch('guards.data_flow_guard.glob.glob')
+    @patch('builtins.open', new_callable=mock_open)
+    def test_data_cache_disabled(self, mock_file, mock_glob, mock_exists, mock_jsonschema, mock_load_data):
+        """
+        Verify that setting DATA_FLOW_GUARD_DATA_CACHE_MAX=0 disables caching.
+        """
+        schema_path = "schema.json"
+        data_path = "shared_data.json"
+
+        mock_glob.return_value = []
+        # Allow paths
+        mock_exists.side_effect = lambda p: True
+
+        config_content = json.dumps([
+            {"name": "flow1", "schema_path": schema_path, "data_pattern": [data_path]},
+            {"name": "flow2", "schema_path": schema_path, "data_pattern": [data_path]}
+        ])
+
+        def open_side_effect(file, mode='r', encoding='utf-8'):
+            if ".wgx/flows.json" in str(file):
+                return mock_open(read_data=config_content).return_value
+            elif schema_path in str(file):
+                return mock_open(read_data='{"type":"object"}').return_value
+            return mock_open(read_data="").return_value
+
+        mock_file.side_effect = open_side_effect
+        mock_load_data.return_value = [{"id": "x"}]
+
+        mock_validator_instance = MagicMock()
+        mock_jsonschema.validators.validator_for.return_value = MagicMock(return_value=mock_validator_instance)
+
+        # Run with Cache Disabled
+        with patch.dict(os.environ, {"DATA_FLOW_GUARD_DATA_CACHE_MAX": "0"}):
+            ret = data_flow_guard.main()
+
+        self.assertEqual(ret, 0)
+
+        # load_data should be called twice (once per flow) because caching is disabled
+        self.assertEqual(mock_load_data.call_count, 2,
+                         f"Expected load_data to be called 2 times (caching disabled), but called {mock_load_data.call_count}")
+
 if __name__ == '__main__':
     unittest.main()

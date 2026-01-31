@@ -25,6 +25,8 @@ SSOT Philosophy:
 Strict Mode & Policy:
 - WGX_STRICT=1: Missing dependencies (jsonschema) -> FAIL (Exit 1).
 - Default: Missing dependencies -> SKIP (Exit 0).
+- DATA_FLOW_GUARD_DATA_CACHE_MAX: Integer (default 256). Controls LRU cache size for data files.
+  - Set to 0 to disable data caching.
 - Reference Resolution ($ref):
   - If schema uses $ref and no resolver (RefResolver) is available -> ALWAYS FAIL (Exit 1).
   - This prevents false negatives/security theatre.
