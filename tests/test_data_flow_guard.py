@@ -3,6 +3,7 @@ from unittest.mock import patch, mock_open, MagicMock
 import sys
 import os
 import json
+import pathlib
 
 # Ensure the guard can be imported
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -185,16 +186,19 @@ class TestDataFlowGuard(unittest.TestCase):
         # Assertions
 
         # 1. Schema file should be opened exactly once (despite 2 flows)
+        # Use exact absolute path matching for precision
+        expected_schema_abs = str(pathlib.Path(schema_path).resolve())
+
         schema_open_calls = [
             str(args[0])
             for args, kwargs in mock_file.call_args_list
-            if "shared_schema.json" in str(args[0])
+            if str(args[0]) == expected_schema_abs
         ]
 
         self.assertEqual(
             len(schema_open_calls),
             1,
-            f"Expected schema to be opened exactly once, but was opened {len(schema_open_calls)} times: {schema_open_calls}"
+            f"Expected schema to be opened exactly once (at {expected_schema_abs}), but was opened {len(schema_open_calls)} times: {schema_open_calls}"
         )
 
         # 2. Validator class/factory should be accessed exactly once
