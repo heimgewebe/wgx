@@ -193,10 +193,10 @@ wgx_audit_git() {
     --argjson clean "$clean_bool" \
     --argjson ahead "$ahead" \
     --argjson behind "$behind" \
-    --argjson checks "$checks_json" \
-    --argjson routines "$routines_json" \
-    --argjson u_level "$u_level" \
-    --argjson u_causes "$u_causes" \
+    --arg checks "$checks_json" \
+    --arg routines "$routines_json" \
+    --arg u_level "$u_level" \
+    --arg u_causes "$u_causes" \
     --arg u_meta "$u_meta" \
     '{
       kind:$kind,
@@ -222,9 +222,9 @@ wgx_audit_git() {
         working_tree:{is_clean:$clean, staged:$staged, unstaged:$unstaged, untracked:$untracked},
         ahead_behind:{ahead:$ahead, behind:$behind}
       },
-      checks:$checks,
-      uncertainty:{level:$u_level, causes:$u_causes, meta:$u_meta},
-      suggested_routines:$routines
+      checks:($checks|fromjson),
+      uncertainty:{level:($u_level|tonumber), causes:($u_causes|fromjson), meta:$u_meta},
+      suggested_routines:($routines|fromjson)
     }')"
 
   if [[ "$stdout_json" -eq 1 ]]; then

@@ -51,10 +51,27 @@ teardown() {
 }
 
 @test "audit git: stdout-json does not write file" {
+  rm -f ".wgx/out/audit.git.v1.json"
   run wgx audit git --stdout-json
   assert_success
   assert_output --partial '"kind": "audit.git"'
 
   # Should not write the default file if stdout-json is used
   [ ! -f ".wgx/out/audit.git.v1.json" ]
+}
+
+@test "audit git: returns 0 even on status error (policy check)" {
+  # Setup: Remove origin to force audit error (ensure it exists first or ignore error)
+  git remote add origin https://example.com/repo.git || true
+  git remote remove origin
+
+  run wgx audit git --stdout-json
+  assert_success
+
+  # Verify status is error in JSON
+  assert_output --partial '"status": "error"'
+
+  # Verify uncertainty level is number, not string (robustness check)
+  run jq -e '.uncertainty.level | type == "number"' <<< "$output"
+  assert_success
 }

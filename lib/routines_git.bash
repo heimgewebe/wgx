@@ -24,8 +24,8 @@ wgx_routine_git_repair_remote_head() {
     local preview_file="routine.preview.${routine_id}.${ts}.json"
 
     jq -n --arg id "$routine_id" --arg mode "$mode" --arg risk "low" \
-      --argjson steps "$steps" \
-      '{kind:"routine.preview", id:$id, mode:$mode, mutating:true, risk:$risk, steps:$steps}' \
+      --arg steps "$steps" \
+      '{kind:"routine.preview", id:$id, mode:$mode, mutating:true, risk:$risk, steps:($steps|fromjson)}' \
       >"$out_dir/$preview_file"
 
     # Create generic fallback
@@ -77,16 +77,16 @@ wgx_routine_git_repair_remote_head() {
   jq -n --arg id "$routine_id" --arg mode "$mode" --arg risk "low" \
     --arg before "$before" --arg after "$after" \
     --arg stdout "$log_stdout" --arg stderr "$log_stderr" \
-    --argjson ok "$ok" \
-    --argjson steps "$steps" \
+    --arg ok "$ok" \
+    --arg steps "$steps" \
     '{
       kind:"routine.result",
       id:$id,
       mode:$mode,
       mutating:true,
       risk:$risk,
-      steps:$steps,
-      ok:$ok,
+      steps:($steps|fromjson),
+      ok:($ok=="true"),
       state_hash:{before:$before, after:$after},
       stdout:$stdout,
       stderr:$stderr
