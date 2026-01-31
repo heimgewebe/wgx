@@ -5,6 +5,10 @@ wgx_routine_git_repair_remote_head() {
   local out_dir=".wgx/out"
   mkdir -p "$out_dir"
 
+  local routine_id="git.repair.remote-head"
+  local ts
+  ts="$(date -u +%s)"
+
   local steps='[
     {"cmd":"git remote set-head origin --auto","why":"Restore origin/HEAD from remote HEAD"},
     {"cmd":"git fetch origin --prune","why":"Rebuild remote-tracking refs after head repair"}
@@ -17,11 +21,17 @@ wgx_routine_git_repair_remote_head() {
   fi
 
   if [[ "$mode" == "dry-run" ]]; then
-    jq -n --arg id "git.repair.remote-head" --arg mode "$mode" --arg risk "low" \
+    local preview_file="routine.preview.${routine_id}.${ts}.json"
+
+    jq -n --arg id "$routine_id" --arg mode "$mode" --arg risk "low" \
       --argjson steps "$steps" \
       '{kind:"routine.preview", id:$id, mode:$mode, mutating:true, risk:$risk, steps:$steps}' \
-      >"$out_dir/routine.preview.json"
-    echo "$out_dir/routine.preview.json"
+      >"$out_dir/$preview_file"
+
+    # Create generic fallback
+    cp "$out_dir/$preview_file" "$out_dir/routine.preview.json"
+
+    echo "$out_dir/$preview_file"
     return 0
   fi
 
@@ -63,7 +73,9 @@ wgx_routine_git_repair_remote_head() {
   local after
   after="$(git show-ref 2>/dev/null | sha256sum | awk '{print $1}')"
 
-  jq -n --arg id "git.repair.remote-head" --arg mode "$mode" --arg risk "low" \
+  local result_file="routine.result.${routine_id}.${ts}.json"
+
+  jq -n --arg id "$routine_id" --arg mode "$mode" --arg risk "low" \
     --arg before "$before" --arg after "$after" \
     --arg stdout "$log_stdout" --arg stderr "$log_stderr" \
     --argjson ok "$ok" \
@@ -79,9 +91,12 @@ wgx_routine_git_repair_remote_head() {
       state_hash:{before:$before, after:$after},
       stdout:$stdout,
       stderr:$stderr
-    }' >"$out_dir/routine.result.json"
+    }' >"$out_dir/$result_file"
 
-  echo "$out_dir/routine.result.json"
+  # Create generic fallback
+  cp "$out_dir/$result_file" "$out_dir/routine.result.json"
+
+  echo "$out_dir/$result_file"
 
   if [[ "$ok" != "true" ]]; then
     return 1

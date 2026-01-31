@@ -66,7 +66,7 @@ Usage:
   wgx audit git [--repo <key>] [--correlation-id <id>] [--stdout-json]
 
 Verwaltet das Audit-Ledger von wgx und führt Audits aus.
-Ergebnisse werden als JSON-Artefakte in .wgx/out/ gespeichert.
+Ergebnisse werden als eindeutige JSON-Artefakte in .wgx/out/ gespeichert.
 USAGE
     ;;
   *)

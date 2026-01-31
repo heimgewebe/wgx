@@ -231,7 +231,23 @@ wgx_audit_git() {
   if [[ "$stdout_json" -eq 1 ]]; then
     echo "$out_json"
   else
-    echo "$out_json" >.wgx/out/audit.git.v1.json
-    echo ".wgx/out/audit.git.v1.json"
+    local filename="audit.git.v1.json"
+    if [[ -n "$correlation_id" ]]; then
+      filename="audit.git.v1.${correlation_id}.json"
+    else
+      # If no correlation_id, use timestamp to ensure uniqueness if needed,
+      # but contract says "standardmäßig ... .json (oder <ts>...)"
+      # I'll use timestamp if correlation_id is missing to be safe against overwrites.
+      local ts
+      ts="$(date -u +%s)"
+      filename="audit.git.v1.${ts}.json"
+    fi
+
+    echo "$out_json" >".wgx/out/${filename}"
+
+    # Create the generic fallback file as a copy (or symlink, but copy is safer/easier)
+    cp ".wgx/out/${filename}" ".wgx/out/audit.git.v1.json"
+
+    echo ".wgx/out/${filename}"
   fi
 }
