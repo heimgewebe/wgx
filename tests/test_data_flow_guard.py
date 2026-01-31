@@ -132,11 +132,19 @@ class TestDataFlowGuard(unittest.TestCase):
     @patch('guards.data_flow_guard.glob.glob')
     @patch('builtins.open', new_callable=mock_open)
     def test_schema_caching(self, mock_file, mock_glob, mock_exists, mock_jsonschema):
+        """
+        This asserts that schema parsing/validator init is cached across flows sharing the same resolved schema path.
+        """
         # Goal: Verify that when two flows use the same schema, the schema is loaded only once.
         schema_path = ".wgx/contracts/shared_schema.json"
 
         # Setup: 2 flows, same schema, distinct data
-        allowed_paths = {".wgx/flows.json", schema_path, "data1.json", "data2.json"}
+        # Allow both relative and absolute paths for robustness against implementation changes
+        base_paths = [".wgx/flows.json", schema_path, "data1.json", "data2.json"]
+        allowed_paths = set(base_paths)
+        for p in base_paths:
+            allowed_paths.add(str(pathlib.Path(p).resolve()))
+
         mock_exists.side_effect = lambda p: str(p) in allowed_paths
         mock_glob.return_value = [] # No glob expansion needed
 
