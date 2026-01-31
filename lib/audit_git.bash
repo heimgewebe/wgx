@@ -168,12 +168,6 @@ wgx_audit_git() {
   # write artifact
   mkdir -p .wgx/out
 
-  # Construct upstream object using jq arguments to avoid string concatenation issues
-  local upstream_json_arg="null"
-  if [[ -n "$upstream" ]]; then
-    upstream_json_arg="{\"name\":\"$upstream\", \"exists_locally\":true}"
-  fi
-
   # We use a temporary file to store the JSON content
   local out_json
   out_json="$(jq -n \
