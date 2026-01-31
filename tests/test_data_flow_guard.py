@@ -148,6 +148,9 @@ class TestDataFlowGuard(unittest.TestCase):
         mock_exists.side_effect = lambda p: str(p) in allowed_paths
         mock_glob.return_value = [] # No glob expansion needed
 
+        # Calculate expected absolute path for schema to ensure precise matching
+        expected_schema_abs = str(pathlib.Path(schema_path).resolve())
+
         config_content = json.dumps([
             {
                 "name": "flow1",
@@ -170,7 +173,8 @@ class TestDataFlowGuard(unittest.TestCase):
             s_file = str(file)
             if ".wgx/flows.json" in s_file:
                 return mock_open(read_data=config_content).return_value
-            elif "shared_schema.json" in s_file:
+            # Use exact match for schema to verify code uses absolute path as intended
+            elif s_file == expected_schema_abs:
                 return mock_open(read_data=schema_content).return_value
             elif "data1.json" in s_file:
                 return mock_open(read_data=data1_content).return_value
@@ -195,8 +199,6 @@ class TestDataFlowGuard(unittest.TestCase):
 
         # 1. Schema file should be opened exactly once (despite 2 flows)
         # Use exact absolute path matching for precision
-        expected_schema_abs = str(pathlib.Path(schema_path).resolve())
-
         schema_open_calls = [
             str(args[0])
             for args, kwargs in mock_file.call_args_list
