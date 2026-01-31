@@ -43,8 +43,8 @@ USAGE
         # shellcheck source=/dev/null
         source "$libpath"
       else
-         echo "Error: Routine library not found for $name" >&2
-         return 1
+        echo "Error: Routine library not found for $name" >&2
+        return 1
       fi
     fi
   }
