@@ -1,9 +1,8 @@
 import unittest
-from unittest.mock import patch, mock_open, MagicMock, ANY
+from unittest.mock import patch, mock_open, MagicMock
 import sys
 import os
 import json
-import pathlib
 
 # Ensure the guard can be imported
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -177,30 +176,29 @@ class TestDataFlowGuard(unittest.TestCase):
         mock_jsonschema.validators.validator_for.return_value = mock_validator_cls
         mock_jsonschema.RefResolver = MagicMock()
 
-        with patch('guards.data_flow_guard.yaml', None):
-            ret = data_flow_guard.main()
+        # Run main without patching yaml (not needed for this test)
+        ret = data_flow_guard.main()
 
         self.assertEqual(ret, 0)
 
         # Assertions
 
         # 1. Schema file should be opened exactly once (despite 2 flows)
-        # Note: We resolve path to absolute in code, so we check if absolute path was opened.
-        # Since we can't easily predict exact absolute path in test env without mocking pathlib.Path.resolve,
-        # we check calls arguments string content.
+        schema_open_calls = [
+            str(args[0])
+            for args, kwargs in mock_file.call_args_list
+            if "shared_schema.json" in str(args[0])
+        ]
 
-        schema_open_calls = 0
-        for call in mock_file.mock_calls:
-            name, args, kwargs = call
-            if name == '': # open() call
-                filename = str(args[0])
-                if "shared_schema.json" in filename:
-                     schema_open_calls += 1
+        self.assertEqual(
+            len(schema_open_calls),
+            1,
+            f"Expected schema to be opened exactly once, but was opened {len(schema_open_calls)} times: {schema_open_calls}"
+        )
 
-        self.assertEqual(schema_open_calls, 1, f"Expected schema to be opened exactly once, but was opened {schema_open_calls} times")
-
-        # 2. Validator class should be instantiated exactly once
-        self.assertEqual(mock_validator_cls.call_count, 1, f"Expected validator to be instantiated exactly once, but was {mock_validator_cls.call_count}")
+        # 2. Validator class/factory should be accessed exactly once
+        self.assertEqual(mock_jsonschema.validators.validator_for.call_count, 1,
+                         f"Expected validator_for to be called exactly once, but was {mock_jsonschema.validators.validator_for.call_count}")
 
         # 3. Validation should happen twice (once for d1, once for d2)
         # Since we use the same validator instance (cached), we check calls on it.
