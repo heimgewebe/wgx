@@ -220,6 +220,10 @@ def main():
     # Key: Absolute path string, Value: validator instance
     schema_cache = {}
 
+    # Cache for loaded data files to avoid redundant I/O and parsing
+    # Key: Absolute path string, Value: items (list)
+    data_cache = {}
+
     total_errors = 0
     checks_run = 0
 
@@ -304,8 +308,17 @@ def main():
 
         for df in data_files:
             checks_run += 1
+
             try:
-                items = load_data(df)
+                # Use absolute path for reliable caching
+                df_abs_path = str(pathlib.Path(df).resolve())
+
+                if df_abs_path in data_cache:
+                    items = data_cache[df_abs_path]
+                else:
+                    items = load_data(df)
+                    data_cache[df_abs_path] = items
+
             except Exception as e:
                 print(f"[wgx][guard][data_flow] ERROR flow={flow_name} data={df} error='Failed to parse data: {e}'", file=sys.stderr)
                 total_errors += 1
