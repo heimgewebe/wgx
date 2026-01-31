@@ -314,8 +314,13 @@ class TestDataFlowGuard(unittest.TestCase):
         data_b = "data_b.json"
 
         mock_glob.return_value = []
-        # Allow all paths
-        mock_exists.return_value = True
+
+        # Stricter path checking
+        allowed_files = {schema_path, data_a, data_b, ".wgx/flows.json"}
+        # Note: resolve() might be called in code, so we should allow resolved paths too if strict,
+        # but here we rely on the fact that check_ssot_path or resolve_data checks strict existence.
+        # For simplicity in this mock, we allow paths that end with our known filenames or are in the set.
+        mock_exists.side_effect = lambda p: str(p) in allowed_files or str(p).endswith(tuple(allowed_files))
 
         config_content = json.dumps([
             {"name": "flow1", "schema_path": schema_path, "data_pattern": [data_a]},

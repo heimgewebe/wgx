@@ -231,7 +231,8 @@ def main():
              val = int(os.environ["DATA_FLOW_GUARD_DATA_CACHE_MAX"])
              data_cache_max = max(0, val)
     except ValueError:
-        print("[wgx][guard][data_flow] WARN invalid DATA_FLOW_GUARD_DATA_CACHE_MAX, using default 256", file=sys.stderr)
+        invalid_val = os.environ.get("DATA_FLOW_GUARD_DATA_CACHE_MAX", "")
+        print(f"[wgx][guard][data_flow] WARN invalid DATA_FLOW_GUARD_DATA_CACHE_MAX='{invalid_val}', using default 256", file=sys.stderr)
         data_cache_max = 256
 
     total_errors = 0
