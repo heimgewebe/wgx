@@ -14,6 +14,12 @@ cmd_audit() {
   shift || true
   case "$sub" in
   git)
+    if ! declare -F wgx_audit_git >/dev/null 2>&1; then
+      if [[ -r "$WGX_DIR/lib/audit_git.bash" ]]; then
+        # shellcheck source=/dev/null
+        source "$WGX_DIR/lib/audit_git.bash"
+      fi
+    fi
     if declare -F wgx_audit_git >/dev/null 2>&1; then
       wgx_audit_git "$@"
     else
