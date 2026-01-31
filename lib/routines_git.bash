@@ -61,12 +61,12 @@ wgx_routine_git_repair_remote_head() {
     # Run command without aborting the script on error
     # Security: Allowlist specific git commands to prevent injection
     case "$cmd" in
-      "git remote set-head origin --auto"|"git fetch origin --prune") ;;
-      *)
-        log_stderr+="Refusing unexpected command: $cmd"$'\n'
-        ok=false
-        break
-        ;;
+    "git remote set-head origin --auto" | "git fetch origin --prune") ;;
+    *)
+      log_stderr+="Refusing unexpected command: $cmd"$'\n'
+      ok=false
+      break
+      ;;
     esac
 
     bash -c "$cmd" >"$t_out" 2>"$t_err" || rc=$?
