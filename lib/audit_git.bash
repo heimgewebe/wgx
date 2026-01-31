@@ -19,7 +19,6 @@ wgx_audit_git() {
       stdout_json=1
       ;;
     *)
-      # Ignore unknown args or handle positional args if needed
       if [[ -z "$repo_key" && ! "$1" =~ ^- ]]; then
         repo_key="$1"
       fi
@@ -31,7 +30,6 @@ wgx_audit_git() {
   local cwd
   cwd="$(pwd)"
 
-  # helper to append check/routine (needs jq)
   if ! command -v jq >/dev/null 2>&1; then
     echo "Error: jq is required for wgx audit git" >&2
     return 1
@@ -74,7 +72,6 @@ wgx_audit_git() {
     upstream="$(git rev-parse --abbrev-ref --symbolic-full-name "@{u}" 2>/dev/null || true)"
     if [[ -n "$upstream" ]]; then
       upstream_exists_bool=true
-      # Only consider it an origin upstream if it starts with origin/
       if [[ "$upstream" == origin/* ]]; then
         origin_upstream_bool=true
       fi
@@ -83,7 +80,6 @@ wgx_audit_git() {
 
   local ahead=0 behind=0
   if [[ "$upstream_exists_bool" == "true" ]]; then
-    # ahead behind
     local ab
     ab="$(git rev-list --left-right --count "${upstream}...HEAD" 2>/dev/null || echo "0 0")"
     behind="$(awk '{print $1}' <<<"$ab")"
@@ -121,7 +117,8 @@ wgx_audit_git() {
       checks_json="$(jq -c --arg id "git.fetch.ok" --arg st "error" --arg msg "git fetch origin failed." \
         '. + [{"id":$id,"status":$st,"message":$msg}]' <<<"$checks_json")"
     else
-      checks_json="$(jq -c --arg id "git.fetch.ok" --arg st "ok" --arg msg "Fetched remote refs." \
+      # Info check that fetch was performed
+      checks_json="$(jq -c --arg id "git.fetch.performed" --arg st "ok" --arg msg "Fetched remote refs." \
         '. + [{"id":$id,"status":$st,"message":$msg}]' <<<"$checks_json")"
     fi
   fi
@@ -170,7 +167,6 @@ wgx_audit_git() {
   # write artifact
   mkdir -p .wgx/out
 
-  # We use a temporary file to store the JSON content
   local out_json
   out_json="$(jq -n \
     --arg kind "audit.git" \
@@ -186,6 +182,8 @@ wgx_audit_git() {
     --arg local_branch "${local_branch:-}" \
     --arg upstream_name "${upstream:-}" \
     --argjson upstream_exists "$upstream_exists_bool" \
+    --argjson origin_present "$origin_present_bool" \
+    --argjson fetch_performed "$fetch_ok_bool" \
     --argjson origin_head "$origin_head_bool" \
     --argjson origin_main "$origin_main_bool" \
     --argjson origin_upstream "$origin_upstream_bool" \
@@ -215,7 +213,8 @@ wgx_audit_git() {
         is_detached_head:$detached,
         local_branch:(if $local_branch=="" then null else $local_branch end),
         upstream:(if $upstream_exists then {name:$upstream_name, exists_locally:true} else null end),
-        remotes:(["origin"]),
+        remotes:(if $origin_present then ["origin"] else [] end),
+        did_fetch:$fetch_performed,
         remote_default_branch:(if $remote_default_branch=="" then null else $remote_default_branch end),
         remote_refs:{
           origin_main:$origin_main,
@@ -237,19 +236,13 @@ wgx_audit_git() {
     if [[ -n "$correlation_id" ]]; then
       filename="audit.git.v1.${correlation_id}.json"
     else
-      # If no correlation_id, use timestamp to ensure uniqueness if needed,
-      # but contract says "standardmäßig ... .json (oder <ts>...)"
-      # I'll use timestamp if correlation_id is missing to be safe against overwrites.
       local ts
       ts="$(date -u +%s)"
       filename="audit.git.v1.${ts}.json"
     fi
 
     echo "$out_json" >".wgx/out/${filename}"
-
-    # Create the generic fallback file as a copy (or symlink, but copy is safer/easier)
     cp ".wgx/out/${filename}" ".wgx/out/audit.git.v1.json"
-
     echo ".wgx/out/${filename}"
   fi
 }

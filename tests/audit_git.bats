@@ -3,6 +3,10 @@
 load test_helper
 
 setup() {
+  # Resolve absolute path to WGX root
+  export WGX_DIR="$(cd "$BATS_TEST_DIRNAME/.." && pwd)"
+  PATH="$WGX_DIR:$PATH"
+
   # Setup temp git repo
   TEST_TEMP_DIR="$(mktemp -d)"
   cd "$TEST_TEMP_DIR"
@@ -11,10 +15,8 @@ setup() {
   git config user.name "Your Name"
   git commit --allow-empty -m "Initial commit"
 
-  # Ensure wgx can be found and libs are loaded
-  # WGX_DIR is exported by test_helper or we set it here
-  export WGX_DIR="$BATS_TEST_DIRNAME/.."
-  PATH="$WGX_DIR:$PATH"
+  # Create .wgx/out for artifacts
+  mkdir -p .wgx/out
 }
 
 teardown() {
@@ -26,7 +28,10 @@ teardown() {
   run wgx audit git --correlation-id run-A
   assert_success
 
-  # Check output contains the file path
+  # Check output contains the file path (which is absolute or relative to CWD)
+  # wgx audit git prints relative path usually, but we are in temp dir.
+  # It writes to .wgx/out relative to CWD.
+
   assert_output --partial ".wgx/out/audit.git.v1.run-A.json"
 
   # Check file exists

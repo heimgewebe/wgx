@@ -34,11 +34,20 @@ USAGE
   case "$routine_id" in
   git.repair.remote-head)
     if ! declare -F wgx_routine_git_repair_remote_head >/dev/null 2>&1; then
-      # WGX_DIR might not be set if invoked directly, try to deduce?
-      # Assuming WGX_DIR is exported by wrapper or caller.
-      if [[ -n "${WGX_DIR:-}" ]] && [[ -r "$WGX_DIR/lib/routines_git.bash" ]]; then
+      local lib_path=""
+      if [[ -n "${WGX_DIR:-}" ]]; then
+        lib_path="$WGX_DIR/lib/routines_git.bash"
+      else
+        # Try to find relative to this script
+        local script_dir
+        script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+        # Normalize path
+        lib_path="$(cd "$script_dir/../lib" && pwd)/routines_git.bash" 2>/dev/null
+      fi
+
+      if [[ -n "$lib_path" && -r "$lib_path" ]]; then
         # shellcheck source=/dev/null
-        source "$WGX_DIR/lib/routines_git.bash"
+        source "$lib_path"
       fi
     fi
 
