@@ -135,7 +135,8 @@ class TestDataFlowGuard(unittest.TestCase):
         schema_path = ".wgx/contracts/shared_schema.json"
 
         # Setup: 2 flows, same schema, distinct data
-        mock_exists.side_effect = lambda p: p in [".wgx/flows.json", schema_path, "data1.json", "data2.json"]
+        allowed_paths = {".wgx/flows.json", schema_path, "data1.json", "data2.json"}
+        mock_exists.side_effect = lambda p: str(p) in allowed_paths
         mock_glob.return_value = [] # No glob expansion needed
 
         config_content = json.dumps([
@@ -199,6 +200,10 @@ class TestDataFlowGuard(unittest.TestCase):
         # 2. Validator class/factory should be accessed exactly once
         self.assertEqual(mock_jsonschema.validators.validator_for.call_count, 1,
                          f"Expected validator_for to be called exactly once, but was {mock_jsonschema.validators.validator_for.call_count}")
+
+        # Validator class instantiation check
+        self.assertEqual(mock_validator_cls.call_count, 1,
+                        f"Expected validator class to be instantiated exactly once, but was {mock_validator_cls.call_count}")
 
         # 3. Validation should happen twice (once for d1, once for d2)
         # Since we use the same validator instance (cached), we check calls on it.
