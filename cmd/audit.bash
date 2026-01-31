@@ -66,6 +66,7 @@ Usage:
   wgx audit git
 
 Verwaltet das Audit-Ledger von wgx und führt Audits aus.
+Ergebnisse werden als JSON-Artefakte in .wgx/out/ gespeichert.
 USAGE
     ;;
   *)

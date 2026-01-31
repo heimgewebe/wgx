@@ -6,45 +6,55 @@ wgx_audit_git() {
   local cwd
   cwd="$(pwd)"
 
-  local head_sha head_ref local_branch detached
+  # helper to append check/routine (needs jq)
+  if ! command -v jq >/dev/null 2>&1; then
+    echo "Error: jq is required for wgx audit git" >&2
+    exit 1
+  fi
+
+  local head_sha head_ref local_branch detached_bool
   head_sha="$(git rev-parse --short=12 HEAD 2>/dev/null || echo "")"
   head_ref="$(git rev-parse --symbolic-full-name HEAD 2>/dev/null || echo "")"
   local_branch="$(git branch --show-current 2>/dev/null || true)"
-  detached="false"
-  [[ -z "$local_branch" ]] && detached="true"
+  detached_bool="false"
+  [[ -z "$local_branch" ]] && detached_bool="true"
 
-  local origin_present="false"
-  git remote get-url origin >/dev/null 2>&1 && origin_present="true"
+  local origin_present_bool="false"
+  git remote get-url origin >/dev/null 2>&1 && origin_present_bool="true"
 
   # fetch
-  local fetch_ok="false"
-  if [[ "$origin_present" == "true" ]]; then
+  local fetch_ok_bool="false"
+  if [[ "$origin_present_bool" == "true" ]]; then
     if git fetch origin --prune >/dev/null 2>&1; then
-      fetch_ok="true"
+      fetch_ok_bool="true"
     fi
   fi
 
-  local origin_head="false"
-  git show-ref --verify --quiet refs/remotes/origin/HEAD && origin_head="true"
+  local origin_head_bool="false"
+  git show-ref --verify --quiet refs/remotes/origin/HEAD && origin_head_bool="true"
 
-  local origin_main="false"
-  git show-ref --verify --quiet refs/remotes/origin/main && origin_main="true"
+  local origin_main_bool="false"
+  git show-ref --verify --quiet refs/remotes/origin/main && origin_main_bool="true"
 
   local remote_default_branch=""
-  if [[ "$origin_head" == "true" ]]; then
+  if [[ "$origin_head_bool" == "true" ]]; then
     remote_default_branch="$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null || true)"
   fi
 
   # upstream
   local upstream=""
-  local upstream_exists="false"
+  local upstream_exists_bool="false"
+  local origin_upstream_bool="false"
   if [[ -n "$local_branch" ]]; then
     upstream="$(git rev-parse --abbrev-ref --symbolic-full-name "@{u}" 2>/dev/null || true)"
-    [[ -n "$upstream" ]] && upstream_exists="true"
+    if [[ -n "$upstream" ]]; then
+      upstream_exists_bool="true"
+      origin_upstream_bool="true"
+    fi
   fi
 
   local ahead=0 behind=0
-  if [[ "$upstream_exists" == "true" ]]; then
+  if [[ "$upstream_exists_bool" == "true" ]]; then
     # ahead behind
     local ab
     ab="$(git rev-list --left-right --count "${upstream}...HEAD" 2>/dev/null || echo "0 0")"
@@ -53,28 +63,22 @@ wgx_audit_git() {
   fi
 
   # worktree
-  local staged unstaged untracked clean
+  local staged unstaged untracked clean_bool
   staged="$(git diff --cached --name-only | wc -l | tr -d ' ')"
   unstaged="$(git diff --name-only | wc -l | tr -d ' ')"
   untracked="$(git ls-files --others --exclude-standard | wc -l | tr -d ' ')"
-  clean="false"
-  [[ "$staged" == "0" && "$unstaged" == "0" && "$untracked" == "0" ]] && clean="true"
+  clean_bool="false"
+  [[ "$staged" == "0" && "$unstaged" == "0" && "$untracked" == "0" ]] && clean_bool="true"
 
   # checks + routines
   local status="ok"
   local checks_json="[]"
   local routines_json="[]"
 
-  # helper to append check/routine (needs jq)
-  if ! command -v jq >/dev/null 2>&1; then
-    echo "Error: jq is required for wgx audit git" >&2
-    exit 1
-  fi
-
   checks_json="$(jq -c --arg id "git.repo.present" --arg st "ok" --arg msg "Repo detected." \
     '. + [{"id":$id,"status":$st,"message":$msg}]' <<<"$checks_json")"
 
-  if [[ "$origin_present" != "true" ]]; then
+  if [[ "$origin_present_bool" != "true" ]]; then
     status="error"
     checks_json="$(jq -c --arg id "git.remote.origin.present" --arg st "error" --arg msg "Remote origin missing." \
       '. + [{"id":$id,"status":$st,"message":$msg}]' <<<"$checks_json")"
@@ -83,7 +87,7 @@ wgx_audit_git() {
       '. + [{"id":$id,"status":$st,"message":$msg}]' <<<"$checks_json")"
   fi
 
-  if [[ "$origin_present" == "true" && "$fetch_ok" != "true" ]]; then
+  if [[ "$origin_present_bool" == "true" && "$fetch_ok_bool" != "true" ]]; then
     status="error"
     checks_json="$(jq -c --arg id "git.fetch.ok" --arg st "error" --arg msg "git fetch origin failed." \
       '. + [{"id":$id,"status":$st,"message":$msg}]' <<<"$checks_json")"
@@ -92,7 +96,7 @@ wgx_audit_git() {
       '. + [{"id":$id,"status":$st,"message":$msg}]' <<<"$checks_json")"
   fi
 
-  if [[ "$origin_head" != "true" ]]; then
+  if [[ "$origin_head_bool" != "true" ]]; then
     status="error"
     checks_json="$(jq -c --arg id "git.remote_head.discoverable" --arg st "error" --arg msg "origin/HEAD missing or dangling." \
       '. + [{"id":$id,"status":$st,"message":$msg}]' <<<"$checks_json")"
@@ -107,7 +111,7 @@ wgx_audit_git() {
       '. + [{"id":$id,"status":$st,"message":$msg}]' <<<"$checks_json")"
   fi
 
-  if [[ "$origin_main" != "true" ]]; then
+  if [[ "$origin_main_bool" != "true" ]]; then
     status="error"
     checks_json="$(jq -c --arg id "git.origin_main.present" --arg st "error" --arg msg "refs/remotes/origin/main missing." \
       '. + [{"id":$id,"status":$st,"message":$msg}]' <<<"$checks_json")"
@@ -127,11 +131,21 @@ wgx_audit_git() {
   local u_level="0.15"
   local u_meta="productive"
   local u_causes='[{"kind":"remote_ref_inconsistency","note":"Remote tracking refs may be incomplete or pruned unexpectedly."}]'
-  if [[ "$origin_present" != "true" || "$fetch_ok" != "true" ]]; then
+  if [[ "$origin_present_bool" != "true" || "$fetch_ok_bool" != "true" ]]; then
     u_level="0.35"
     u_meta="systemic"
     u_causes='[{"kind":"environment_variance","note":"Remote or network/tooling state prevents reliable ref discovery."}]'
   fi
+
+  # Handle nulls for jq args
+  local local_branch_json="null"
+  if [[ -n "$local_branch" ]]; then local_branch_json="\"$local_branch\""; fi
+
+  local upstream_json="null"
+  if [[ -n "$upstream" ]]; then upstream_json="{\"name\":\"$upstream\", \"exists_locally\":true}"; fi
+
+  local remote_default_branch_json="null"
+  if [[ -n "$remote_default_branch" ]]; then remote_default_branch_json="\"$remote_default_branch\""; fi
 
   # write artifact
   mkdir -p .wgx/out
@@ -144,16 +158,17 @@ wgx_audit_git() {
     --arg status "$status" \
     --arg head_sha "$head_sha" \
     --arg head_ref "$head_ref" \
-    --argjson detached "$detached" \
-    --arg local_branch "${local_branch:-null}" \
-    --arg upstream "${upstream:-}" \
-    --argjson origin_head "$origin_head" \
-    --argjson origin_main "$origin_main" \
-    --arg remote_default_branch "$remote_default_branch" \
+    --argjson detached "$detached_bool" \
+    --argjson local_branch "$local_branch_json" \
+    --argjson upstream "$upstream_json" \
+    --argjson origin_head "$origin_head_bool" \
+    --argjson origin_main "$origin_main_bool" \
+    --argjson origin_upstream "$origin_upstream_bool" \
+    --argjson remote_default_branch "$remote_default_branch_json" \
     --argjson staged "$staged" \
     --argjson unstaged "$unstaged" \
     --argjson untracked "$untracked" \
-    --argjson clean "$clean" \
+    --argjson clean "$clean_bool" \
     --argjson ahead "$ahead" \
     --argjson behind "$behind" \
     --argjson checks "$checks_json" \
@@ -171,15 +186,15 @@ wgx_audit_git() {
       facts:{
         head_sha:$head_sha,
         head_ref:$head_ref,
-        is_detached_head:($detached=="true"),
-        local_branch:(if $local_branch=="null" or $local_branch=="" then null else $local_branch end),
-        upstream:(if $upstream=="" then null else {name:$upstream, exists_locally:true} end),
+        is_detached_head:$detached,
+        local_branch:$local_branch,
+        upstream:$upstream,
         remotes:(["origin"]),
-        remote_default_branch:(if $remote_default_branch=="" then null else $remote_default_branch end),
+        remote_default_branch:$remote_default_branch,
         remote_refs:{
           origin_main:$origin_main,
           origin_head:$origin_head,
-          origin_upstream:(if $upstream=="" then false else true end)
+          origin_upstream:$origin_upstream
         },
         working_tree:{is_clean:$clean, staged:$staged, unstaged:$unstaged, untracked:$untracked},
         ahead_behind:{ahead:$ahead, behind:$behind}

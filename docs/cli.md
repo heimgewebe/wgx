@@ -57,6 +57,7 @@ Usage:
   wgx audit git
 
 Verwaltet das Audit-Ledger von wgx und führt Audits aus.
+Ergebnisse werden als JSON-Artefakte in .wgx/out/ gespeichert.
 ```
 
 ### clean
@@ -325,6 +326,8 @@ Usage:
 
 Available routines:
   git.repair.remote-head
+
+Ergebnisse werden als JSON-Artefakte in .wgx/out/ gespeichert.
 ```
 
 ### run

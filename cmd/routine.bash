@@ -18,6 +18,8 @@ Usage:
 
 Available routines:
   git.repair.remote-head
+
+Ergebnisse werden als JSON-Artefakte in .wgx/out/ gespeichert.
 USAGE
     return 0
   fi
