@@ -16,15 +16,15 @@ teardown() {
   run wgx audit git --correlation-id run-A
   assert_success
   assert_output --partial ".wgx/out/audit.git.v1.run-A.json"
-  assert_exists ".wgx/out/audit.git.v1.run-A.json"
+  [ -f ".wgx/out/audit.git.v1.run-A.json" ]
 
   run wgx audit git --correlation-id run-B
   assert_success
   assert_output --partial ".wgx/out/audit.git.v1.run-B.json"
-  assert_exists ".wgx/out/audit.git.v1.run-B.json"
+  [ -f ".wgx/out/audit.git.v1.run-B.json" ]
 
   # Verify both exist
-  assert_exists ".wgx/out/audit.git.v1.run-A.json"
+  [ -f ".wgx/out/audit.git.v1.run-A.json" ]
 }
 
 @test "audit git: stdout-json does not write file" {
@@ -32,10 +32,6 @@ teardown() {
   assert_success
   assert_output --partial '"kind": "audit.git"'
 
-  # Should not write the default file if stdout-json is used?
-  # The implementation:
-  # if [[ "$stdout_json" -eq 1 ]]; then echo "$out_json"; else echo "$out_json" > ...; fi
-  # So it should NOT write to file.
-
-  assert_not_exists ".wgx/out/audit.git.v1.json"
+  # Should not write the default file if stdout-json is used
+  [ ! -f ".wgx/out/audit.git.v1.json" ]
 }
