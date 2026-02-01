@@ -60,9 +60,11 @@ wgx_routine_git_repair_remote_head() {
 
   # apply requires git repo
   if ! "$git_bin" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    local err_msg="Apply abgebrochen: nicht in einem Git-Repo (work tree) ausgeführt."
+    echo "$err_msg" >&2
     local result_file="routine.result.${routine_id}.${ts}.json"
     "$jq_bin" -n --arg id "$routine_id" --arg mode "$mode" --arg risk "low" \
-      --arg stderr "Apply abgebrochen: nicht in einem Git-Repo (work tree) ausgeführt." \
+      --arg stderr "$err_msg" \
       --arg steps "$steps" \
       '{
         kind:"routine.result",
