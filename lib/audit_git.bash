@@ -287,7 +287,7 @@ wgx_audit_git() {
   else
     local out_dir=".wgx/out"
     mkdir -p "$out_dir"
-    local filename="audit.git.${correlation_id}.json"
+    local filename="audit.git.v1.${correlation_id}.json"
     echo "$artifact" > "$out_dir/$filename"
     echo "$out_dir/$filename"
   fi
