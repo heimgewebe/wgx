@@ -53,13 +53,26 @@ More:
 
 ```text
 Usage:
-  wgx audit <type> [options]
+  wgx audit verify [--strict]
+  wgx audit git [--repo <key>] [--correlation-id <id>] [--stdout-json] [--fetch]
 
 Types:
-  git    Audit git repository state (read-only)
+  verify   Verifies the audit ledger chain (.wgx/audit/ledger.jsonl).
+  git      Audits the local git repository state.
 
-Options:
-  --json    Output results as JSON artifact (default behavior for 'git')
+Options (git):
+  --fetch  Performs 'git fetch origin --prune' before auditing (mutating).
+           Default is read-only (no fetch).
+  --repo <key>
+           Logical repo key for the audit artifact (default: detected).
+  --correlation-id <id>
+           Trace ID for the audit run (default: generated).
+  --stdout-json
+           Output JSON artifact to stdout (do not write to file).
+
+General:
+  Exit code is 0 even if audit findings are 'error' (check JSON output).
+  Non-zero exit codes indicate execution failures (e.g. missing dependencies).
 ```
 
 ### clean

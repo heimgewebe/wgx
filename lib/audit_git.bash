@@ -1,202 +1,257 @@
 #!/usr/bin/env bash
 
 wgx_audit_git() {
-  local repo_key=""
+  local repo=""
   local correlation_id=""
-  local stdout_json=0
+  local stdout_json="false"
+  local do_fetch="false"
+  local jq_bin="${WGX_JQ_BIN:-jq}"
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
     --repo)
-      shift
-      repo_key="$1"
+      repo="$2"
+      shift 2
       ;;
     --correlation-id)
-      shift
-      correlation_id="$1"
+      correlation_id="$2"
+      shift 2
       ;;
     --stdout-json)
-      stdout_json=1
+      stdout_json="true"
+      shift
+      ;;
+    --fetch)
+      do_fetch="true"
+      shift
       ;;
     *)
-      if [[ -z "$repo_key" && ! "$1" =~ ^- ]]; then
-        repo_key="$1"
-      fi
+      # Ignore unknown args or break? For now break to allow other flags if needed
+      break
       ;;
     esac
-    shift || true
   done
 
+  # Generate ID if missing
+  if [[ -z "$correlation_id" ]]; then
+    if [[ -r /proc/sys/kernel/random/uuid ]]; then
+      correlation_id="$(cat /proc/sys/kernel/random/uuid)"
+    else
+      correlation_id="$(date +%s)-$RANDOM"
+    fi
+  fi
+
+  local ts
+  ts="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
   local cwd
   cwd="$(pwd)"
 
-  if ! command -v jq >/dev/null 2>&1; then
-    echo "Error: jq is required for wgx audit git" >&2
-    return 1
-  fi
-
-  local head_sha head_ref local_branch detached_bool
+  # Facts gathering
+  local head_sha head_ref local_branch detached
   head_sha="$(git rev-parse --short=12 HEAD 2>/dev/null || echo "")"
   head_ref="$(git rev-parse --symbolic-full-name HEAD 2>/dev/null || echo "")"
   local_branch="$(git branch --show-current 2>/dev/null || true)"
-  detached_bool=false
-  [[ -z "$local_branch" ]] && detached_bool=true
+  detached="false"
+  [[ -z "$local_branch" ]] && detached="true"
 
-  local origin_present_bool=false
-  git remote get-url origin >/dev/null 2>&1 && origin_present_bool=true
+  local origin_url=""
+  local origin_present="false"
+  origin_url="$(git remote get-url origin 2>/dev/null || true)"
+  if [[ -n "$origin_url" ]]; then origin_present="true"; fi
 
-  # fetch
-  local fetch_ok_bool=false
-  if [[ "$origin_present_bool" == "true" ]]; then
-    if git fetch origin --prune >/dev/null 2>&1; then
-      fetch_ok_bool=true
-    fi
-  fi
-
-  local origin_head_bool=false
-  git show-ref --verify --quiet refs/remotes/origin/HEAD && origin_head_bool=true
-
-  local origin_main_bool=false
-  git show-ref --verify --quiet refs/remotes/origin/main && origin_main_bool=true
-
-  local remote_default_branch=""
-  if [[ "$origin_head_bool" == "true" ]]; then
-    remote_default_branch="$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null || true)"
-  fi
-
-  # upstream
-  local upstream=""
-  local upstream_exists_bool=false
-  local origin_upstream_bool=false
-  if [[ -n "$local_branch" ]]; then
-    upstream="$(git rev-parse --abbrev-ref --symbolic-full-name "@{u}" 2>/dev/null || true)"
-    if [[ -n "$upstream" ]]; then
-      upstream_exists_bool=true
-      if [[ "$upstream" == origin/* ]]; then
-        origin_upstream_bool=true
+  # Fetch only if requested
+  local fetch_ok="false"
+  local fetch_skipped="true"
+  if [[ "$do_fetch" == "true" ]]; then
+    fetch_skipped="false"
+    if [[ "$origin_present" == "true" ]]; then
+      if git fetch origin --prune >/dev/null 2>&1; then
+        fetch_ok="true"
       fi
     fi
   fi
 
-  local ahead=0 behind=0
-  if [[ "$upstream_exists_bool" == "true" ]]; then
-    local ab
-    ab="$(git rev-list --left-right --count "${upstream}...HEAD" 2>/dev/null || echo "0 0")"
-    behind="$(awk '{print $1}' <<<"$ab")"
-    ahead="$(awk '{print $2}' <<<"$ab")"
+  local origin_head="false"
+  git show-ref --verify --quiet refs/remotes/origin/HEAD && origin_head="true"
+
+  local origin_main="false"
+  git show-ref --verify --quiet refs/remotes/origin/main && origin_main="true"
+
+  local remote_default_branch=""
+  if [[ "$origin_head" == "true" ]]; then
+    # sed to strip 'refs/remotes/' prefix for cleaner reading if desired,
+    # but symbolic-ref output is canonical
+    remote_default_branch="$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null || true)"
   fi
 
-  # worktree
-  local staged unstaged untracked clean_bool
+  # Upstream
+  local upstream=""
+  local upstream_exists="false"
+  if [[ -n "$local_branch" ]]; then
+    upstream="$(git rev-parse --abbrev-ref --symbolic-full-name "@{u}" 2>/dev/null || true)"
+    [[ -n "$upstream" ]] && upstream_exists="true"
+  fi
+
+  local ahead=0 behind=0
+  if [[ "$upstream_exists" == "true" ]]; then
+    local ab
+    ab="$(git rev-list --left-right --count "${upstream}...HEAD" 2>/dev/null || echo "0 0")"
+    behind="$(echo "$ab" | awk '{print $1}')"
+    ahead="$(echo "$ab" | awk '{print $2}')"
+  fi
+
+  # Worktree
+  local staged unstaged untracked clean
+  # Use porcelain for robustness
   staged="$(git diff --cached --name-only | wc -l | tr -d ' ')"
   unstaged="$(git diff --name-only | wc -l | tr -d ' ')"
   untracked="$(git ls-files --others --exclude-standard | wc -l | tr -d ' ')"
-  clean_bool=false
-  [[ "$staged" == "0" && "$unstaged" == "0" && "$untracked" == "0" ]] && clean_bool=true
+  clean="false"
+  [[ "$staged" == "0" && "$unstaged" == "0" && "$untracked" == "0" ]] && clean="true"
 
-  # checks + routines
+  # Logic: Checks & Routines
   local status="ok"
   local checks_json="[]"
   local routines_json="[]"
+  local u_level="0.0"
+  local u_causes="[]"
+  local u_meta="productive"
 
-  checks_json="$(jq -c --arg id "git.repo.present" --arg st "ok" --arg msg "Repo detected." \
+  # 1. Repo present
+  checks_json="$("$jq_bin" -c --arg id "git.repo.present" --arg st "ok" --arg msg "Repo detected." \
     '. + [{"id":$id,"status":$st,"message":$msg}]' <<<"$checks_json")"
 
-  if [[ "$origin_present_bool" != "true" ]]; then
+  # 2. Remote origin
+  if [[ "$origin_present" != "true" ]]; then
     status="error"
-    checks_json="$(jq -c --arg id "git.remote.origin.present" --arg st "error" --arg msg "Remote origin missing." \
+    checks_json="$("$jq_bin" -c --arg id "git.remote.origin.present" --arg st "error" --arg msg "Remote origin missing." \
       '. + [{"id":$id,"status":$st,"message":$msg}]' <<<"$checks_json")"
   else
-    checks_json="$(jq -c --arg id "git.remote.origin.present" --arg st "ok" --arg msg "Remote origin present." \
+    checks_json="$("$jq_bin" -c --arg id "git.remote.origin.present" --arg st "ok" --arg msg "Remote origin present." \
       '. + [{"id":$id,"status":$st,"message":$msg}]' <<<"$checks_json")"
   fi
 
-  if [[ "$origin_present_bool" == "true" ]]; then
-    if [[ "$fetch_ok_bool" != "true" ]]; then
+  # 3. Fetch status (conditional)
+  if [[ "$fetch_skipped" == "true" ]]; then
+    checks_json="$("$jq_bin" -c --arg id "git.fetch.skipped" --arg st "ok" --arg msg "Fetch skipped (default/read-only)." \
+      '. + [{"id":$id,"status":$st,"message":$msg}]' <<<"$checks_json")"
+
+    # If we didn't fetch, remote refs might be stale. Increase uncertainty.
+    u_level="0.2"
+    u_causes="$("$jq_bin" -c '. + [{"kind":"stale_data","note":"Remote refs not refreshed (use --fetch to sync)."}]' <<<"$u_causes")"
+  else
+    if [[ "$origin_present" == "true" && "$fetch_ok" != "true" ]]; then
       status="error"
-      checks_json="$(jq -c --arg id "git.fetch.ok" --arg st "error" --arg msg "git fetch origin failed." \
+      checks_json="$("$jq_bin" -c --arg id "git.fetch.performed" --arg st "error" --arg msg "git fetch origin failed." \
         '. + [{"id":$id,"status":$st,"message":$msg}]' <<<"$checks_json")"
+      u_level="0.35"
+      u_causes="$("$jq_bin" -c '. + [{"kind":"environment_variance","note":"Fetch failed, remote state uncertain."}]' <<<"$u_causes")"
     else
-      # Info check that fetch was performed
-      checks_json="$(jq -c --arg id "git.fetch.performed" --arg st "ok" --arg msg "Fetched remote refs." \
+      checks_json="$("$jq_bin" -c --arg id "git.fetch.performed" --arg st "ok" --arg msg "Fetched remote refs." \
         '. + [{"id":$id,"status":$st,"message":$msg}]' <<<"$checks_json")"
     fi
   fi
 
-  if [[ "$origin_head_bool" != "true" ]]; then
-    status="error"
-    checks_json="$(jq -c --arg id "git.remote_head.discoverable" --arg st "error" --arg msg "origin/HEAD missing or dangling." \
-      '. + [{"id":$id,"status":$st,"message":$msg}]' <<<"$checks_json")"
-    routines_json="$(jq -c \
-      --arg id "git.repair.remote-head" \
-      --arg risk "low" \
-      --arg reason "origin/HEAD missing/dangling; restore remote head + refs." \
-      '. + [{"id":$id,"risk":$risk,"mutating":true,"dry_run_supported":true,"reason":$reason,"requires":["git","jq"]}]' \
-      <<<"$routines_json")"
+  # 4. Remote HEAD
+  if [[ "$origin_head" != "true" ]]; then
+    # If not fetched, this might be expected stale state, but still technically an error for operations relying on it.
+    # However, if origin is missing completely, we already flagged that.
+    if [[ "$origin_present" == "true" ]]; then
+        status="error"
+        checks_json="$("$jq_bin" -c --arg id "git.remote_head.discoverable" --arg st "error" --arg msg "origin/HEAD missing or dangling." \
+          '. + [{"id":$id,"status":$st,"message":$msg}]' <<<"$checks_json")"
+
+        # Suggest routine
+        routines_json="$("$jq_bin" -c \
+          --arg id "git.repair.remote-head" \
+          --arg risk "low" \
+          --arg reason "origin/HEAD missing/dangling; restore remote head + refs." \
+          '. + [{"id":$id,"risk":$risk,"mutating":true,"dry_run_supported":true,"reason":$reason,"requires":["git","jq"]}]' \
+          <<<"$routines_json")"
+    else
+        # If origin missing, remote head missing is consequent
+        checks_json="$("$jq_bin" -c --arg id "git.remote_head.discoverable" --arg st "warn" --arg msg "Cannot check origin/HEAD (no origin)." \
+          '. + [{"id":$id,"status":$st,"message":$msg}]' <<<"$checks_json")"
+    fi
   else
-    checks_json="$(jq -c --arg id "git.remote_head.discoverable" --arg st "ok" --arg msg "origin/HEAD present." \
+    checks_json="$("$jq_bin" -c --arg id "git.remote_head.discoverable" --arg st "ok" --arg msg "origin/HEAD present." \
       '. + [{"id":$id,"status":$st,"message":$msg}]' <<<"$checks_json")"
   fi
 
-  if [[ "$origin_main_bool" != "true" ]]; then
-    status="error"
-    checks_json="$(jq -c --arg id "git.origin_main.present" --arg st "error" --arg msg "refs/remotes/origin/main missing." \
-      '. + [{"id":$id,"status":$st,"message":$msg}]' <<<"$checks_json")"
-    # same routine helps
-    routines_json="$(jq -c \
-      --arg id "git.repair.remote-head" \
-      --arg risk "low" \
-      --arg reason "origin/main missing; likely remote head/ref tracking broken locally." \
-      '(. + [{"id":$id,"risk":$risk,"mutating":true,"dry_run_supported":true,"reason":$reason,"requires":["git","jq"]}]) | unique_by(.id)' \
-      <<<"$routines_json")"
+  # 5. Remote main (canonical check)
+  if [[ "$origin_main" != "true" ]]; then
+    # similar logic, if origin present but main missing -> likely weird fetch state or different default branch
+    if [[ "$origin_present" == "true" ]]; then
+        # We don't error hard on 'main' missing if 'master' exists, but currently we just check main.
+        # Let's emit a warning or info if we think it's just naming.
+        # But for this specific audit scope (repair remote head often fixes this too), we flag it.
+        checks_json="$("$jq_bin" -c --arg id "git.origin_main.present" --arg st "warn" --arg msg "refs/remotes/origin/main missing." \
+          '. + [{"id":$id,"status":$st,"message":$msg}]' <<<"$checks_json")"
+
+        # Suggest routine if not already suggested?
+        # We assume repair-remote-head helps here too.
+         routines_json="$("$jq_bin" -c \
+          --arg id "git.repair.remote-head" \
+          --arg risk "low" \
+          --arg reason "origin/main missing; likely remote head/ref tracking broken locally." \
+          '(. + [{"id":$id,"risk":$risk,"mutating":true,"dry_run_supported":true,"reason":$reason,"requires":["git","jq"]}]) | unique_by(.id)' \
+          <<<"$routines_json")"
+    fi
   else
-    checks_json="$(jq -c --arg id "git.origin_main.present" --arg st "ok" --arg msg "origin/main present." \
+    checks_json="$("$jq_bin" -c --arg id "git.origin_main.present" --arg st "ok" --arg msg "origin/main present." \
       '. + [{"id":$id,"status":$st,"message":$msg}]' <<<"$checks_json")"
   fi
 
-  # uncertainty
-  local u_level="0.15"
-  local u_meta="productive"
-  local u_causes='[{"kind":"remote_ref_inconsistency","note":"Remote tracking refs may be incomplete or pruned unexpectedly."}]'
-  if [[ "$origin_present_bool" != "true" || "$fetch_ok_bool" != "true" ]]; then
-    u_level="0.35"
-    u_meta="systemic"
-    u_causes='[{"kind":"environment_variance","note":"Remote or network/tooling state prevents reliable ref discovery."}]'
-  fi
+  # Construct artifacts
+  # Ensure valid JSON numbers for stats
+  local fact_staged
+  fact_staged=$(("$staged" + 0))
+  local fact_unstaged
+  fact_unstaged=$(("$unstaged" + 0))
+  local fact_untracked
+  fact_untracked=$(("$untracked" + 0))
+  local fact_ahead
+  fact_ahead=$(("$ahead" + 0))
+  local fact_behind
+  fact_behind=$(("$behind" + 0))
 
-  # write artifact
-  mkdir -p .wgx/out
+  # Booleans for jq need to be raw true/false or --argjson
+  # We used strings "true"/"false" above. Convert for JSON construction.
+  local json_detached="$detached"
+  local json_clean="$clean"
+  local json_origin_present="$origin_present"
+  local json_origin_head="$origin_head"
+  local json_origin_main="$origin_main"
+  local json_upstream_exists="$upstream_exists"
 
-  local out_json
-  out_json="$(jq -n \
+  local artifact
+  artifact="$("$jq_bin" -n \
     --arg kind "audit.git" \
     --arg schema_version "v1" \
-    --arg ts "$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
-    --arg correlation_id "${correlation_id:-}" \
-    --arg repo "${repo_key:-unknown}" \
+    --arg ts "$ts" \
+    --arg correlation_id "$correlation_id" \
+    --arg repo "${repo:-unknown}" \
     --arg cwd "$cwd" \
     --arg status "$status" \
     --arg head_sha "$head_sha" \
     --arg head_ref "$head_ref" \
-    --argjson detached "$detached_bool" \
-    --arg local_branch "${local_branch:-}" \
-    --arg upstream_name "${upstream:-}" \
-    --argjson upstream_exists "$upstream_exists_bool" \
-    --argjson origin_present "$origin_present_bool" \
-    --argjson origin_head "$origin_head_bool" \
-    --argjson origin_main "$origin_main_bool" \
-    --argjson origin_upstream "$origin_upstream_bool" \
-    --arg remote_default_branch "${remote_default_branch:-}" \
-    --argjson staged "$staged" \
-    --argjson unstaged "$unstaged" \
-    --argjson untracked "$untracked" \
-    --argjson clean "$clean_bool" \
-    --argjson ahead "$ahead" \
-    --argjson behind "$behind" \
-    --arg checks "$checks_json" \
-    --arg routines "$routines_json" \
-    --arg u_level "$u_level" \
-    --arg u_causes "$u_causes" \
+    --argjson detached "$json_detached" \
+    --arg local_branch "${local_branch:-null}" \
+    --arg upstream "${upstream:-}" \
+    --argjson upstream_exists "$json_upstream_exists" \
+    --argjson origin_head "$json_origin_head" \
+    --argjson origin_main "$json_origin_main" \
+    --arg remote_default_branch "$remote_default_branch" \
+    --argjson staged "$fact_staged" \
+    --argjson unstaged "$fact_unstaged" \
+    --argjson untracked "$fact_untracked" \
+    --argjson clean "$json_clean" \
+    --argjson ahead "$fact_ahead" \
+    --argjson behind "$fact_behind" \
+    --argjson checks "$checks_json" \
+    --argjson routines "$routines_json" \
+    --argjson u_level "$u_level" \
+    --argjson u_causes "$u_causes" \
     --arg u_meta "$u_meta" \
     '{
       kind:$kind,
@@ -210,37 +265,32 @@ wgx_audit_git() {
         head_sha:$head_sha,
         head_ref:$head_ref,
         is_detached_head:$detached,
-        local_branch:(if $local_branch=="" then null else $local_branch end),
-        upstream:(if $upstream_exists then {name:$upstream_name, exists_locally:true} else null end),
-        remotes:(if $origin_present then ["origin"] else [] end),
+        local_branch:(if $local_branch=="null" or $local_branch=="" then null else $local_branch end),
+        upstream:(if $upstream=="" then null else {name:$upstream, exists_locally:true} end),
+        remotes:(["origin"]),
         remote_default_branch:(if $remote_default_branch=="" then null else $remote_default_branch end),
         remote_refs:{
           origin_main:$origin_main,
           origin_head:$origin_head,
-          origin_upstream:$origin_upstream
+          origin_upstream:$upstream_exists
         },
         working_tree:{is_clean:$clean, staged:$staged, unstaged:$unstaged, untracked:$untracked},
         ahead_behind:{ahead:$ahead, behind:$behind}
       },
-      checks:($checks|fromjson),
-      uncertainty:{level:($u_level|tonumber), causes:($u_causes|fromjson), meta:$u_meta},
-      suggested_routines:($routines|fromjson)
+      checks:$checks,
+      uncertainty:{level:($u_level|tonumber), causes:$u_causes, meta:$u_meta},
+      suggested_routines:$routines
     }')"
 
-  if [[ "$stdout_json" -eq 1 ]]; then
-    echo "$out_json"
+  if [[ "$stdout_json" == "true" ]]; then
+    echo "$artifact"
   else
-    local filename="audit.git.v1.json"
-    if [[ -n "$correlation_id" ]]; then
-      filename="audit.git.v1.${correlation_id}.json"
-    else
-      local ts
-      ts="$(date -u +%s)"
-      filename="audit.git.v1.${ts}.json"
-    fi
-
-    echo "$out_json" >".wgx/out/${filename}"
-    cp ".wgx/out/${filename}" ".wgx/out/audit.git.v1.json"
-    echo ".wgx/out/${filename}"
+    local out_dir=".wgx/out"
+    mkdir -p "$out_dir"
+    local filename="audit.git.${correlation_id}.json"
+    echo "$artifact" > "$out_dir/$filename"
+    echo "$out_dir/$filename"
   fi
+
+  return 0
 }
