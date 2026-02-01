@@ -53,14 +53,13 @@ More:
 
 ```text
 Usage:
-  wgx audit verify [--strict]
-  wgx audit git [--repo <key>] [--correlation-id <id>] [--stdout-json]
+  wgx audit <type> [options]
 
-Verwaltet das Audit-Ledger von wgx und führt Audits aus.
-Ergebnisse werden als eindeutige JSON-Artefakte in .wgx/out/ gespeichert.
-Audit may refresh remote-tracking refs via fetch.
-Exit code is 0 even if audit status is error (check JSON output).
-Non-zero exit codes indicate execution failures (e.g. missing dependencies).
+Types:
+  git    Audit git repository state (read-only)
+
+Options:
+  --json    Output results as JSON artifact (default behavior for 'git')
 ```
 
 ### clean
@@ -325,7 +324,7 @@ Options:
 
 ```text
 Usage:
-  wgx routine <routine_id> [preview|apply]
+  wgx routine <id> [preview|apply|dry-run]
 
 Available routines:
   git.repair.remote-head
