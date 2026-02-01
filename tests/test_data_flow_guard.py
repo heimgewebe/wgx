@@ -229,5 +229,182 @@ class TestDataFlowGuard(unittest.TestCase):
         self.assertIn({"id": "d1", "val": "one"}, args_list)
         self.assertIn({"id": "d2", "val": "two"}, args_list)
 
+    @patch('guards.data_flow_guard.load_data')
+    @patch('guards.data_flow_guard.jsonschema')
+    @patch('guards.data_flow_guard.os.path.exists')
+    @patch('guards.data_flow_guard.glob.glob')
+    @patch('builtins.open', new_callable=mock_open)
+    def test_data_caching(self, mock_file, mock_glob, mock_exists, mock_jsonschema, mock_load_data):
+        """
+        Verify that data file parsing is cached across flows sharing the same data file.
+        Mocks load_data directly to be robust against file system details.
+        """
+        schema_path = ".wgx/contracts/schema.json"
+        data_path = "shared_data.json"
+
+        # Allow both relative and absolute paths
+        base_paths = [".wgx/flows.json", schema_path, data_path]
+        allowed_paths = set(base_paths)
+        for p in base_paths:
+            allowed_paths.add(str(pathlib.Path(p).resolve()))
+
+        mock_exists.side_effect = lambda p: str(p) in allowed_paths
+        mock_glob.return_value = []
+
+        config_content = json.dumps([
+            {
+                "name": "flow1",
+                "schema_path": schema_path,
+                "data_pattern": [data_path]
+            },
+            {
+                "name": "flow2",
+                "schema_path": schema_path,
+                "data_pattern": [data_path]
+            }
+        ])
+
+        schema_content = '{"type": "object"}'
+
+        # Mock load_data to return a predictable list
+        mock_load_data.return_value = [{"id": "d1", "val": "one"}]
+
+        def open_side_effect(file, mode='r', encoding='utf-8'):
+            s_file = str(file)
+            if ".wgx/flows.json" in s_file:
+                return mock_open(read_data=config_content).return_value
+            elif schema_path in s_file:
+                return mock_open(read_data=schema_content).return_value
+            return mock_open(read_data="").return_value
+
+        mock_file.side_effect = open_side_effect
+
+        mock_validator_instance = MagicMock()
+        mock_jsonschema.validators.validator_for.return_value = MagicMock(return_value=mock_validator_instance)
+        mock_jsonschema.RefResolver = MagicMock()
+
+        # Run main with explicit cache size to ensure test stability
+        with patch.dict(os.environ, {"DATA_FLOW_GUARD_DATA_CACHE_MAX": "256"}):
+            ret = data_flow_guard.main()
+
+        self.assertEqual(ret, 0)
+
+        # load_data should be called exactly once despite 2 flows
+        self.assertEqual(mock_load_data.call_count, 1,
+                         f"Expected load_data to be called once, but was called {mock_load_data.call_count} times")
+
+        # Validation should happen twice (once per flow)
+        # 1 item per file * 2 flows = 2 validations
+        self.assertEqual(mock_validator_instance.validate.call_count, 2)
+
+    @patch('guards.data_flow_guard.load_data')
+    @patch('guards.data_flow_guard.jsonschema')
+    @patch('guards.data_flow_guard.os.path.exists')
+    @patch('guards.data_flow_guard.glob.glob')
+    @patch('builtins.open', new_callable=mock_open)
+    def test_data_cache_eviction(self, mock_file, mock_glob, mock_exists, mock_jsonschema, mock_load_data):
+        """
+        Verify that LRU eviction works (max cache size = 1).
+        Load flow1 (data A) -> Cache: [A]
+        Load flow2 (data B) -> Cache: [B] (A evicted)
+        Load flow3 (data A) -> Cache: [A] (B evicted, A reloaded)
+        """
+        schema_path = "schema.json"
+        data_a = "data_a.json"
+        data_b = "data_b.json"
+
+        mock_glob.return_value = []
+
+        # Stricter path checking
+        allowed_files = {schema_path, data_a, data_b, ".wgx/flows.json"}
+        allowed_resolved = {str(pathlib.Path(p).resolve()) for p in allowed_files}
+
+        def exists_side_effect(p):
+            sp = str(p)
+            return sp in allowed_files or sp in allowed_resolved
+
+        mock_exists.side_effect = exists_side_effect
+
+        config_content = json.dumps([
+            {"name": "flow1", "schema_path": schema_path, "data_pattern": [data_a]},
+            {"name": "flow2", "schema_path": schema_path, "data_pattern": [data_b]},
+            {"name": "flow3", "schema_path": schema_path, "data_pattern": [data_a]}
+        ])
+
+        # Setup mock file system
+        def open_side_effect(file, mode='r', encoding='utf-8'):
+            s_file = str(file)
+            if ".wgx/flows.json" in s_file:
+                return mock_open(read_data=config_content).return_value
+            elif schema_path in s_file:
+                return mock_open(read_data='{"type":"object"}').return_value
+            return mock_open(read_data="").return_value # data content handled by load_data mock
+
+        mock_file.side_effect = open_side_effect
+
+        mock_validator_instance = MagicMock()
+        mock_jsonschema.validators.validator_for.return_value = MagicMock(return_value=mock_validator_instance)
+
+        # Mock load_data to return simple items
+        mock_load_data.return_value = [{"id": "x"}]
+
+        # Run with Cache Max = 1
+        with patch.dict(os.environ, {"DATA_FLOW_GUARD_DATA_CACHE_MAX": "1"}):
+            ret = data_flow_guard.main()
+
+        self.assertEqual(ret, 0)
+
+        # Expected load_data calls:
+        # 1. data_a (miss) -> cache [data_a]
+        # 2. data_b (miss) -> eviction -> cache [data_b]
+        # 3. data_a (miss because evicted) -> eviction -> cache [data_a]
+        # Total: 3 calls
+        self.assertEqual(mock_load_data.call_count, 3,
+                         f"Expected load_data to be called 3 times due to eviction, but called {mock_load_data.call_count}")
+
+    @patch('guards.data_flow_guard.load_data')
+    @patch('guards.data_flow_guard.jsonschema')
+    @patch('guards.data_flow_guard.os.path.exists')
+    @patch('guards.data_flow_guard.glob.glob')
+    @patch('builtins.open', new_callable=mock_open)
+    def test_data_cache_disabled(self, mock_file, mock_glob, mock_exists, mock_jsonschema, mock_load_data):
+        """
+        Verify that setting DATA_FLOW_GUARD_DATA_CACHE_MAX=0 disables caching.
+        """
+        schema_path = "schema.json"
+        data_path = "shared_data.json"
+
+        mock_glob.return_value = []
+        # Allow paths
+        mock_exists.side_effect = lambda p: True
+
+        config_content = json.dumps([
+            {"name": "flow1", "schema_path": schema_path, "data_pattern": [data_path]},
+            {"name": "flow2", "schema_path": schema_path, "data_pattern": [data_path]}
+        ])
+
+        def open_side_effect(file, mode='r', encoding='utf-8'):
+            if ".wgx/flows.json" in str(file):
+                return mock_open(read_data=config_content).return_value
+            elif schema_path in str(file):
+                return mock_open(read_data='{"type":"object"}').return_value
+            return mock_open(read_data="").return_value
+
+        mock_file.side_effect = open_side_effect
+        mock_load_data.return_value = [{"id": "x"}]
+
+        mock_validator_instance = MagicMock()
+        mock_jsonschema.validators.validator_for.return_value = MagicMock(return_value=mock_validator_instance)
+
+        # Run with Cache Disabled
+        with patch.dict(os.environ, {"DATA_FLOW_GUARD_DATA_CACHE_MAX": "0"}):
+            ret = data_flow_guard.main()
+
+        self.assertEqual(ret, 0)
+
+        # load_data should be called twice (once per flow) because caching is disabled
+        self.assertEqual(mock_load_data.call_count, 2,
+                         f"Expected load_data to be called 2 times (caching disabled), but called {mock_load_data.call_count}")
+
 if __name__ == '__main__':
     unittest.main()

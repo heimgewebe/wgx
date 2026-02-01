@@ -25,6 +25,8 @@ SSOT Philosophy:
 Strict Mode & Policy:
 - WGX_STRICT=1: Missing dependencies (jsonschema) -> FAIL (Exit 1).
 - Default: Missing dependencies -> SKIP (Exit 0).
+- DATA_FLOW_GUARD_DATA_CACHE_MAX: Integer (default 256). Controls LRU cache size for data files.
+  - Set to 0 to disable data caching.
 - Reference Resolution ($ref):
   - If schema uses $ref and no resolver (RefResolver) is available -> ALWAYS FAIL (Exit 1).
   - This prevents false negatives/security theatre.
@@ -51,6 +53,7 @@ import json
 import glob
 import os
 import pathlib
+import collections
 
 # Try imports
 try:
@@ -220,6 +223,20 @@ def main():
     # Key: Absolute path string, Value: validator instance
     schema_cache = {}
 
+    # Cache for loaded data files to avoid redundant I/O and parsing
+    # Key: Absolute path string, Value: items (tuple)
+    # LRU Strategy: bounded size to prevent unbounded memory growth
+    data_cache = collections.OrderedDict()
+    data_cache_max = 256
+    try:
+        if "DATA_FLOW_GUARD_DATA_CACHE_MAX" in os.environ:
+             val = int(os.environ["DATA_FLOW_GUARD_DATA_CACHE_MAX"])
+             data_cache_max = max(0, val)
+    except ValueError:
+        invalid_val = os.environ.get("DATA_FLOW_GUARD_DATA_CACHE_MAX", "")
+        print(f"[wgx][guard][data_flow] WARN invalid DATA_FLOW_GUARD_DATA_CACHE_MAX='{invalid_val}', using default 256", file=sys.stderr)
+        data_cache_max = 256
+
     total_errors = 0
     checks_run = 0
 
@@ -304,8 +321,30 @@ def main():
 
         for df in data_files:
             checks_run += 1
+
             try:
-                items = load_data(df)
+                # Use absolute path for reliable caching
+                df_abs_path = str(pathlib.Path(df).resolve())
+
+                # LRU Cache Logic
+                if data_cache_max > 0:
+                    if df_abs_path in data_cache:
+                        items = data_cache[df_abs_path]
+                        data_cache.move_to_end(df_abs_path)
+                    else:
+                        # Load data and cache as immutable tuple to prevent side effects
+                        loaded_items = load_data(df)
+                        items = tuple(loaded_items)
+
+                        # Evict oldest if full
+                        if len(data_cache) >= data_cache_max:
+                            data_cache.popitem(last=False)
+
+                        data_cache[df_abs_path] = items
+                else:
+                    # Caching disabled
+                    items = load_data(df)
+
             except Exception as e:
                 print(f"[wgx][guard][data_flow] ERROR flow={flow_name} data={df} error='Failed to parse data: {e}'", file=sys.stderr)
                 total_errors += 1
