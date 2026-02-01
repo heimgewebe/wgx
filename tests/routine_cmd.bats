@@ -2,10 +2,9 @@
 
 load test_helper
 
-# Optional: helper to run wgx with stable env
+# Wrapper only; use 'run wgx ...' at call sites.
 wgx() {
-  # Call wgx directly with modified PATH (don't use 'run' inside this function)
-  bash -c "PATH=\"$WGX_DIR/bin:$WGX_DIR:\$PATH\" wgx $*"
+  PATH="$WGX_DIR/bin:$WGX_DIR:$PATH" command wgx "$@"
 }
 
 setup() {
