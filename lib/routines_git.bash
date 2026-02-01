@@ -1,13 +1,23 @@
 #!/usr/bin/env bash
 
 wgx_routine_git_repair_remote_head() {
-  local mode="${1:-dry-run}" # dry-run | apply
+  local mode="${1:-dry-run}" # internal: "dry-run" (CLI "preview") | "apply"
+  local jq_bin="${WGX_JQ_BIN:-jq}"
+  local git_bin="${WGX_GIT_BIN:-git}"
   local out_dir=".wgx/out"
   mkdir -p "$out_dir"
+
+  if [[ "$mode" != "dry-run" && "$mode" != "apply" ]]; then
+    echo "wgx routine git.repair.remote-head: invalid mode: $mode" >&2
+    return 2
+  fi
 
   local routine_id="git.repair.remote-head"
   local ts
   ts="$(date -u +%s)"
+
+  # NOTE: This routine assumes the remote is named "origin".
+  # The audit logic currently makes the same assumption.
 
   local steps='[
     {"cmd":"git remote set-head origin --auto","why":"Restore origin/HEAD from remote HEAD"},
@@ -15,17 +25,30 @@ wgx_routine_git_repair_remote_head() {
   ]'
 
   # Check for jq presence
-  if ! command -v jq >/dev/null 2>&1; then
-    echo "Error: jq is required for wgx routines" >&2
+  if ! command -v "$jq_bin" >/dev/null 2>&1; then
+    echo "wgx routine: jq fehlt (setze WGX_JQ_BIN oder installiere jq)." >&2
     return 1
   fi
+
+  # Policy:
+  # - dry-run (preview): allowed even outside a git repo (viewer-mode).
+  # - apply: must run inside a git repo (actor-mode).
 
   if [[ "$mode" == "dry-run" ]]; then
     local preview_file="routine.preview.${routine_id}.${ts}.json"
 
-    jq -n --arg id "$routine_id" --arg mode "$mode" --arg risk "low" \
+    "$jq_bin" -n --arg id "$routine_id" --arg mode "$mode" --arg risk "low" \
       --arg steps "$steps" \
-      '{kind:"routine.preview", id:$id, mode:$mode, mutating:true, risk:$risk, steps:($steps|fromjson)}' \
+      --arg note "Preview kann außerhalb eines Git-Repos erzeugt werden. Apply erfordert ein Git-Repo." \
+      '{
+        kind:"routine.preview",
+        id:$id,
+        mode:$mode,
+        mutating:true,
+        risk:$risk,
+        steps:($steps|fromjson),
+        note:$note
+      }' \
       >"$out_dir/$preview_file"
 
     # Create generic fallback
@@ -35,16 +58,37 @@ wgx_routine_git_repair_remote_head() {
     return 0
   fi
 
+  # apply requires git repo
+  if ! "$git_bin" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    local result_file="routine.result.${routine_id}.${ts}.json"
+    "$jq_bin" -n --arg id "$routine_id" --arg mode "$mode" --arg risk "low" \
+      --arg stderr "Apply abgebrochen: nicht in einem Git-Repo (work tree) ausgeführt." \
+      --arg steps "$steps" \
+      '{
+        kind:"routine.result",
+        id:$id,
+        mode:$mode,
+        mutating:true,
+        risk:$risk,
+        steps:($steps|fromjson),
+        ok:false,
+        stderr:$stderr
+      }' >"$out_dir/$result_file"
+    cp "$out_dir/$result_file" "$out_dir/routine.result.json"
+    echo "$out_dir/$result_file"
+    return 1
+  fi
+
   # apply
   local before
-  before="$(git show-ref 2>/dev/null | sha256sum | awk '{print $1}')"
+  before="$("$git_bin" show-ref 2>/dev/null | sha256sum | awk '{print $1}')"
 
   local log_stdout=""
   local log_stderr=""
   local ok=true
 
   # Validate steps JSON early (avoid jq hard-fail later)
-  if ! jq -e . >/dev/null 2>&1 <<<"$steps"; then
+  if ! "$jq_bin" -e . >/dev/null 2>&1 <<<"$steps"; then
     echo "Error: steps JSON invalid" >&2
     return 1
   fi
@@ -83,14 +127,14 @@ wgx_routine_git_repair_remote_head() {
       log_stderr+="Command failed with exit code $rc: $cmd"$'\n'
       break
     fi
-  done < <(jq -r '.[].cmd' <<<"$steps")
+  done < <("$jq_bin" -r '.[].cmd' <<<"$steps")
 
   local after
-  after="$(git show-ref 2>/dev/null | sha256sum | awk '{print $1}')"
+  after="$("$git_bin" show-ref 2>/dev/null | sha256sum | awk '{print $1}')"
 
   local result_file="routine.result.${routine_id}.${ts}.json"
 
-  jq -n --arg id "$routine_id" --arg mode "$mode" --arg risk "low" \
+  "$jq_bin" -n --arg id "$routine_id" --arg mode "$mode" --arg risk "low" \
     --arg before "$before" --arg after "$after" \
     --arg stdout "$log_stdout" --arg stderr "$log_stderr" \
     --argjson ok "$ok" \
