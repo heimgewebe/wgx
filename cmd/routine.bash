@@ -3,7 +3,7 @@
 # routine command dispatch
 cmd_routine() {
   local routine_id="${1:-}"
-  local mode="${2:-preview}"
+  local mode_arg="${2:-preview}" # CLI default: preview
   local rest_args=("${@:3}")
 
   # Help / No Args
@@ -30,39 +30,43 @@ USAGE
   # shellcheck source=lib/routines_git.bash
   source "${WGX_DIR}/lib/routines_git.bash"
 
-  # Normalize Mode
-  if [[ "$mode" == "dry-run" ]]; then
-    mode="preview"
-  fi
-
   # Handle Flags as Mode (if user did `wgx routine <id> --help`)
-  if [[ "$mode" == -* ]]; then
+  if [[ "$mode_arg" == -* ]]; then
     # e.g. --help passed as second arg -> treat as flag for the routine, default mode to preview
-    rest_args=("$mode" "${rest_args[@]}")
-    mode="preview"
+    rest_args=("$mode_arg" "${rest_args[@]}")
+    mode_arg="preview"
   fi
 
-  # Validate Mode
-  if [[ "$mode" != "preview" && "$mode" != "apply" ]]; then
-    # Printing Usage here because tests expect "Usage:" on invalid arguments
-    cat <<USAGE >&2
+  local mode_internal=""
+
+  # Normalize CLI Mode -> Internal Mode
+  case "$mode_arg" in
+    preview|dry-run|"")
+      mode_internal="dry-run"
+      ;;
+    apply)
+      mode_internal="apply"
+      ;;
+    *)
+      # Test expectation: Invalid mode must print "Usage:" to stderr and exit 1
+      cat <<USAGE >&2
 Usage:
   wgx routine <id> [preview|apply|dry-run]
 USAGE
-    return 1
-  fi
-
-  # Require Repo for Apply
-  if [[ "$mode" == "apply" ]]; then
-    require_repo
-  fi
+      return 1
+      ;;
+  esac
 
   # Dispatch Routine
+  # NOTE: Do NOT call require_repo here. The routine implementation handles the check
+  # and writes the necessary JSON artifact for "apply failed".
+
   case "$routine_id" in
     git.repair.remote-head)
-      wgx_routine_git_repair_remote_head "$mode" "${rest_args[@]}"
+      wgx_routine_git_repair_remote_head "$mode_internal" "${rest_args[@]}"
       ;;
     *)
+      # Test expectation: Unknown routine must print "unknown routine" to stderr
       echo "wgx routine: unknown routine '$routine_id'" >&2
       return 1
       ;;
