@@ -37,6 +37,7 @@ wgx_routine_git_repair_remote_head() {
   if [[ "$mode" == "dry-run" ]]; then
     local preview_file="routine.preview.${routine_id}.${ts}.json"
 
+    # shellcheck disable=SC2016
     "$jq_bin" -n --arg id "$routine_id" --arg mode "$mode" --arg risk "low" \
       --arg steps "$steps" \
       --arg note "Preview kann außerhalb eines Git-Repos erzeugt werden. Apply erfordert ein Git-Repo." \
@@ -64,6 +65,7 @@ wgx_routine_git_repair_remote_head() {
     echo "$err_msg" >&2
 
     local result_file="routine.result.${routine_id}.${ts}.json"
+    # shellcheck disable=SC2016
     "$jq_bin" -n --arg id "$routine_id" --arg mode "$mode" --arg risk "low" \
       --arg stderr "$err_msg" \
       --arg steps "$steps" \
@@ -137,6 +139,7 @@ wgx_routine_git_repair_remote_head() {
 
   local result_file="routine.result.${routine_id}.${ts}.json"
 
+  # shellcheck disable=SC2016
   "$jq_bin" -n --arg id "$routine_id" --arg mode "$mode" --arg risk "low" \
     --arg before "$before" --arg after "$after" \
     --arg stdout "$log_stdout" --arg stderr "$log_stderr" \
