@@ -4,7 +4,7 @@ load test_helper
 
 setup() {
   export WGX_DIR="$(cd "$BATS_TEST_DIRNAME/.." && pwd)"
-  # Set PATH to find wgx: cli/ contains the real executable, root contains the wrapper
+  # Ensure wgx is found for tests (prefer repo-local entrypoints).
   PATH="$WGX_DIR/cli:$WGX_DIR:$PATH"
   export PATH
   TEST_TEMP_DIR="$(mktemp -d)"
