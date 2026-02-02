@@ -3,4 +3,4 @@ set -euo pipefail
 WGX_DIR="${WGX_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 export WGX_DIR
 export PATH="$WGX_DIR/bin:$WGX_DIR:$PATH"
-exec wgx "$@"
+exec "$WGX_DIR/wgx" "$@"
