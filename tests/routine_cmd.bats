@@ -15,7 +15,8 @@ setup() {
   local wgx_path
   wgx_path="$(command -v wgx)"
   if [[ "$wgx_path" != "$WGX_DIR/cli/wgx" && "$wgx_path" != "$WGX_DIR/wgx" ]]; then
-    echo "ERROR: wgx resolved to: $wgx_path (expected $WGX_DIR/cli/wgx or $WGX_DIR/wgx)" >&2
+    echo "ERROR: wgx resolved to: $wgx_path" >&2
+    echo "       Expected either: $WGX_DIR/cli/wgx or $WGX_DIR/wgx" >&2
     return 1
   fi
   
