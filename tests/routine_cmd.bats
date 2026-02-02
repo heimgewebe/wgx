@@ -3,10 +3,9 @@
 load test_helper
 
 # Optional: helper to run wgx with stable env
+# Note: Do NOT use 'run' inside this function, as tests will call 'run wgx ...'
 wgx() {
-  # We use run bash -lc to simulate full shell environment but keep BATS trapping
-  # but here we call ./wgx directly or via PATH
-  run bash -c "PATH=\"$WGX_DIR/bin:$WGX_DIR:\$PATH\" wgx $*"
+  PATH="$WGX_DIR/cli:$WGX_DIR:$PATH" command wgx "$@"
 }
 
 setup() {
