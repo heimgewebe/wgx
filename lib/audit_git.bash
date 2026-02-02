@@ -161,15 +161,15 @@ wgx_audit_git() {
       checks_json="$("$jq_bin" -c --arg id "git.remote_head.discoverable" --arg st "error" --arg msg "origin/HEAD missing or dangling." \
         '. + [{"id":$id,"status":$st,"message":$msg}]' <<<"$checks_json")"
 
-        # Suggest routine
-        routines_json="$("$jq_bin" -c \
-          --arg id "git.repair.remote-head" \
-          --arg risk "low" \
-          --arg reason "origin/HEAD missing/dangling; restore remote head + refs." \
-          '. + [{"id":$id,"risk":$risk,"mutating":true,"dry_run_supported":true,"reason":$reason,"requires":["git","jq"]}]' \
-          <<<"$routines_json")"
+      # Suggest routine
+      routines_json="$("$jq_bin" -c \
+        --arg id "git.repair.remote-head" \
+        --arg risk "low" \
+        --arg reason "origin/HEAD missing/dangling; restore remote head + refs." \
+        '. + [{"id":$id,"risk":$risk,"mutating":true,"dry_run_supported":true,"reason":$reason,"requires":["git","jq"]}]' \
+        <<<"$routines_json")"
     else
-        # If origin missing, remote head missing is consequent
+      # If origin missing, remote head missing is consequent
       checks_json="$("$jq_bin" -c --arg id "git.remote_head.discoverable" --arg st "warn" --arg msg "Cannot check origin/HEAD (no origin)." \
         '. + [{"id":$id,"status":$st,"message":$msg}]' <<<"$checks_json")"
     fi
@@ -188,14 +188,14 @@ wgx_audit_git() {
       checks_json="$("$jq_bin" -c --arg id "git.origin_main.present" --arg st "warn" --arg msg "refs/remotes/origin/main missing." \
         '. + [{"id":$id,"status":$st,"message":$msg}]' <<<"$checks_json")"
 
-        # Suggest routine if not already suggested?
-        # We assume repair-remote-head helps here too.
-         routines_json="$("$jq_bin" -c \
-          --arg id "git.repair.remote-head" \
-          --arg risk "low" \
-          --arg reason "origin/main missing; likely remote head/ref tracking broken locally." \
-          '(. + [{"id":$id,"risk":$risk,"mutating":true,"dry_run_supported":true,"reason":$reason,"requires":["git","jq"]}]) | unique_by(.id)' \
-          <<<"$routines_json")"
+      # Suggest routine if not already suggested?
+      # We assume repair-remote-head helps here too.
+      routines_json="$("$jq_bin" -c \
+        --arg id "git.repair.remote-head" \
+        --arg risk "low" \
+        --arg reason "origin/main missing; likely remote head/ref tracking broken locally." \
+        '(. + [{"id":$id,"risk":$risk,"mutating":true,"dry_run_supported":true,"reason":$reason,"requires":["git","jq"]}]) | unique_by(.id)' \
+        <<<"$routines_json")"
     fi
   else
     checks_json="$("$jq_bin" -c --arg id "git.origin_main.present" --arg st "ok" --arg msg "origin/main present." \
