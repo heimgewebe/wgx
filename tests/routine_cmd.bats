@@ -8,6 +8,12 @@ load test_helper
 setup() {
   export WGX_DIR="$(cd "$BATS_TEST_DIRNAME/.." && pwd)"
   
+  # Sanity check: ensure the CLI binary is executable
+  [ -x "$WGX_DIR/cli/wgx" ] || {
+    echo "ERROR: wgx CLI not executable: $WGX_DIR/cli/wgx" >&2
+    return 1
+  }
+  
   TEST_TEMP_DIR="$(mktemp -d)"
   cd "$TEST_TEMP_DIR"
   mkdir -p .wgx/out
