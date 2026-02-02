@@ -1,0 +1,18 @@
+{
+  "kind": "routine.preview",
+  "id": "git.repair.remote-head",
+  "mode": "dry-run",
+  "mutating": true,
+  "risk": "low",
+  "steps": [
+    {
+      "cmd": "git remote set-head origin --auto",
+      "why": "Restore origin/HEAD from remote HEAD"
+    },
+    {
+      "cmd": "git fetch origin --prune",
+      "why": "Rebuild remote-tracking refs after head repair"
+    }
+  ],
+  "note": "Preview kann außerhalb eines Git-Repos erzeugt werden. Apply erfordert ein Git-Repo."
+}

@@ -2,13 +2,6 @@
 
 load test_helper
 
-# Optional: helper to run wgx with stable env
-wgx() {
-  # Execute wgx with proper PATH (do not use 'run' here - the test will call 'run wgx')
-  # We use $@ with proper quoting to preserve arguments
-  bash -c "PATH=\"$WGX_DIR/bin:$WGX_DIR:\$PATH\" wgx \"\$@\"" -- "$@"
-}
-
 setup() {
   export WGX_DIR="$(cd "$BATS_TEST_DIRNAME/.." && pwd)"
   PATH="$WGX_DIR/bin:$WGX_DIR:$PATH"
