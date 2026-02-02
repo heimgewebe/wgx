@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# shellcheck disable=SC2016
+# jq filter expressions intentionally use single quotes so that jq interprets
+# variables like $id, $mode, $risk as jq variables (passed via --arg), not shell expansions.
 wgx_routine_git_repair_remote_head() {
   local mode="${1:-dry-run}" # internal: "dry-run" (CLI "preview") | "apply"
   local jq_bin="${WGX_JQ_BIN:-jq}"

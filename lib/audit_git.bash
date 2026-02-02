@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# shellcheck disable=SC2016
+# jq filter expressions intentionally use single quotes so that jq interprets
+# variables like $id, $st, $msg as jq variables (passed via --arg), not shell expansions.
 wgx_audit_git() {
   local repo=""
   local correlation_id=""
