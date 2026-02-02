@@ -45,34 +45,34 @@ USAGE
 
   # Normalize CLI Mode -> Internal Mode
   case "$mode_arg" in
-    preview|dry-run|"")
-      mode_internal="dry-run"
-      ;;
-    apply)
-      mode_internal="apply"
-      ;;
+  preview | dry-run | "")
+    mode_internal="dry-run"
+    ;;
+  apply)
+    mode_internal="apply"
+    ;;
   *)
-      # Test 121 expectation: Invalid mode must print "Usage:" to stderr and exit 1
-      # "assert_failure"
+    # Test 121 expectation: Invalid mode must print "Usage:" to stderr and exit 1
+    # "assert_failure"
     echo "Error: Invalid mode '$mode_arg'" >&2
-      cat <<USAGE >&2
+    cat <<USAGE >&2
 Usage:
   wgx routine <id> [preview|apply|dry-run]
 USAGE
     return 1
-      ;;
+    ;;
   esac
 
   # Dispatch Routine
   case "$routine_id" in
   git.repair.remote-head)
-      wgx_routine_git_repair_remote_head "$mode_internal" "${rest_args[@]}"
-      ;;
+    wgx_routine_git_repair_remote_head "$mode_internal" "${rest_args[@]}"
+    ;;
   *)
-      # Test 118 expectation: Unknown routine must print "unknown routine" to stderr and exit 1
+    # Test 118 expectation: Unknown routine must print "unknown routine" to stderr and exit 1
     echo "wgx routine: unknown routine '$routine_id'" >&2
     return 1
-      ;;
+    ;;
   esac
 }
 
