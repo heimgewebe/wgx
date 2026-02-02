@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# shellcheck disable=SC2016
+# jq filter expressions intentionally use single quotes so that jq interprets
+# variables like $id, $st, $msg as jq variables (passed via --arg), not shell expansions.
 wgx_audit_git() {
   local repo=""
   local correlation_id=""
@@ -118,43 +121,35 @@ wgx_audit_git() {
   local u_meta="productive"
 
   # 1. Repo present
-  # shellcheck disable=SC2016
   checks_json="$("$jq_bin" -c --arg id "git.repo.present" --arg st "ok" --arg msg "Repo detected." \
     '. + [{"id":$id,"status":$st,"message":$msg}]' <<<"$checks_json")"
 
   # 2. Remote origin
   if [[ "$origin_present" != "true" ]]; then
     status="error"
-    # shellcheck disable=SC2016
     checks_json="$("$jq_bin" -c --arg id "git.remote.origin.present" --arg st "error" --arg msg "Remote origin missing." \
       '. + [{"id":$id,"status":$st,"message":$msg}]' <<<"$checks_json")"
   else
-    # shellcheck disable=SC2016
     checks_json="$("$jq_bin" -c --arg id "git.remote.origin.present" --arg st "ok" --arg msg "Remote origin present." \
       '. + [{"id":$id,"status":$st,"message":$msg}]' <<<"$checks_json")"
   fi
 
   # 3. Fetch status (conditional)
   if [[ "$fetch_skipped" == "true" ]]; then
-    # shellcheck disable=SC2016
     checks_json="$("$jq_bin" -c --arg id "git.fetch.skipped" --arg st "ok" --arg msg "Fetch skipped (default/read-only)." \
       '. + [{"id":$id,"status":$st,"message":$msg}]' <<<"$checks_json")"
 
     # If we didn't fetch, remote refs might be stale. Increase uncertainty.
     u_level="0.2"
-    # shellcheck disable=SC2016
     u_causes="$("$jq_bin" -c '. + [{"kind":"stale_data","note":"Remote refs not refreshed (use --fetch to sync)."}]' <<<"$u_causes")"
   else
     if [[ "$origin_present" == "true" && "$fetch_ok" != "true" ]]; then
       status="error"
-      # shellcheck disable=SC2016
       checks_json="$("$jq_bin" -c --arg id "git.fetch.performed" --arg st "error" --arg msg "git fetch origin failed." \
         '. + [{"id":$id,"status":$st,"message":$msg}]' <<<"$checks_json")"
       u_level="0.35"
-      # shellcheck disable=SC2016
       u_causes="$("$jq_bin" -c '. + [{"kind":"environment_variance","note":"Fetch failed, remote state uncertain."}]' <<<"$u_causes")"
     else
-      # shellcheck disable=SC2016
       checks_json="$("$jq_bin" -c --arg id "git.fetch.performed" --arg st "ok" --arg msg "Fetched remote refs." \
         '. + [{"id":$id,"status":$st,"message":$msg}]' <<<"$checks_json")"
     fi
@@ -166,12 +161,10 @@ wgx_audit_git() {
     # However, if origin is missing completely, we already flagged that.
     if [[ "$origin_present" == "true" ]]; then
       status="error"
-      # shellcheck disable=SC2016
       checks_json="$("$jq_bin" -c --arg id "git.remote_head.discoverable" --arg st "error" --arg msg "origin/HEAD missing or dangling." \
         '. + [{"id":$id,"status":$st,"message":$msg}]' <<<"$checks_json")"
 
       # Suggest routine
-      # shellcheck disable=SC2016
       routines_json="$("$jq_bin" -c \
         --arg id "git.repair.remote-head" \
         --arg risk "low" \
@@ -180,12 +173,10 @@ wgx_audit_git() {
         <<<"$routines_json")"
     else
       # If origin missing, remote head missing is consequent
-      # shellcheck disable=SC2016
       checks_json="$("$jq_bin" -c --arg id "git.remote_head.discoverable" --arg st "warn" --arg msg "Cannot check origin/HEAD (no origin)." \
         '. + [{"id":$id,"status":$st,"message":$msg}]' <<<"$checks_json")"
     fi
   else
-    # shellcheck disable=SC2016
     checks_json="$("$jq_bin" -c --arg id "git.remote_head.discoverable" --arg st "ok" --arg msg "origin/HEAD present." \
       '. + [{"id":$id,"status":$st,"message":$msg}]' <<<"$checks_json")"
   fi
@@ -197,13 +188,11 @@ wgx_audit_git() {
       # We don't error hard on 'main' missing if 'master' exists, but currently we just check main.
       # Let's emit a warning or info if we think it's just naming.
       # But for this specific audit scope (repair remote head often fixes this too), we flag it.
-      # shellcheck disable=SC2016
       checks_json="$("$jq_bin" -c --arg id "git.origin_main.present" --arg st "warn" --arg msg "refs/remotes/origin/main missing." \
         '. + [{"id":$id,"status":$st,"message":$msg}]' <<<"$checks_json")"
 
       # Suggest routine if not already suggested?
       # We assume repair-remote-head helps here too.
-      # shellcheck disable=SC2016
       routines_json="$("$jq_bin" -c \
         --arg id "git.repair.remote-head" \
         --arg risk "low" \
@@ -212,7 +201,6 @@ wgx_audit_git() {
         <<<"$routines_json")"
     fi
   else
-    # shellcheck disable=SC2016
     checks_json="$("$jq_bin" -c --arg id "git.origin_main.present" --arg st "ok" --arg msg "origin/main present." \
       '. + [{"id":$id,"status":$st,"message":$msg}]' <<<"$checks_json")"
   fi
@@ -240,7 +228,6 @@ wgx_audit_git() {
   local json_upstream_exists="$upstream_exists"
 
   local artifact
-  # shellcheck disable=SC2016
   artifact="$("$jq_bin" -n \
     --arg kind "audit.git" \
     --arg schema_version "v1" \
