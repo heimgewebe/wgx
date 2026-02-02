@@ -15,6 +15,27 @@ wgx_routine_git_repair_remote_head() {
     return 2
   fi
 
+  # Check for dependencies early
+  if ! command -v "$jq_bin" >/dev/null 2>&1; then
+    echo "wgx routine: jq fehlt (setze WGX_JQ_BIN oder installiere jq)." >&2
+    return 1
+  fi
+  if ! command -v "$git_bin" >/dev/null 2>&1; then
+    echo "wgx routine: git fehlt (setze WGX_GIT_BIN oder installiere git)." >&2
+    return 1
+  fi
+
+  # Detect SHA256 command
+  local sha_cmd=""
+  if command -v sha256sum >/dev/null 2>&1; then
+    sha_cmd="sha256sum"
+  elif command -v shasum >/dev/null 2>&1; then
+    sha_cmd="shasum -a 256"
+  else
+    echo "wgx routine: sha256sum or shasum required but not found." >&2
+    return 1
+  fi
+
   local routine_id="git.repair.remote-head"
   local ts
   ts="$(date -u +%s)"
@@ -26,12 +47,6 @@ wgx_routine_git_repair_remote_head() {
     {"cmd":"git remote set-head origin --auto","why":"Restore origin/HEAD from remote HEAD"},
     {"cmd":"git fetch origin --prune","why":"Rebuild remote-tracking refs after head repair"}
   ]'
-
-  # Check for jq presence
-  if ! command -v "$jq_bin" >/dev/null 2>&1; then
-    echo "wgx routine: jq fehlt (setze WGX_JQ_BIN oder installiere jq)." >&2
-    return 1
-  fi
 
   # Policy:
   # - dry-run (preview): allowed even outside a git repo (viewer-mode).
@@ -54,8 +69,8 @@ wgx_routine_git_repair_remote_head() {
       }' \
       >"$out_dir/$preview_file"
 
-    # Create generic fallback
-    cp "$out_dir/$preview_file" "$out_dir/routine.preview.json"
+    # Create generic fallback (best effort)
+    cp "$out_dir/$preview_file" "$out_dir/routine.preview.json" 2>/dev/null || true
 
     echo "$out_dir/$preview_file"
     return 0
@@ -80,14 +95,14 @@ wgx_routine_git_repair_remote_head() {
         ok:false,
         stderr:$stderr
       }' >"$out_dir/$result_file"
-    cp "$out_dir/$result_file" "$out_dir/routine.result.json"
+    cp "$out_dir/$result_file" "$out_dir/routine.result.json" 2>/dev/null || true
     echo "$out_dir/$result_file"
     return 1
   fi
 
   # apply
   local before
-  before="$("$git_bin" show-ref 2>/dev/null | sha256sum | awk '{print $1}')"
+  before="$("$git_bin" show-ref 2>/dev/null | $sha_cmd | awk '{print $1}')"
 
   local log_stdout=""
   local log_stderr=""
@@ -136,7 +151,7 @@ wgx_routine_git_repair_remote_head() {
   done < <("$jq_bin" -r '.[].cmd' <<<"$steps")
 
   local after
-  after="$("$git_bin" show-ref 2>/dev/null | sha256sum | awk '{print $1}')"
+  after="$("$git_bin" show-ref 2>/dev/null | $sha_cmd | awk '{print $1}')"
 
   local result_file="routine.result.${routine_id}.${ts}.json"
 
@@ -158,8 +173,8 @@ wgx_routine_git_repair_remote_head() {
       stderr:$stderr
     }' >"$out_dir/$result_file"
 
-  # Create generic fallback
-  cp "$out_dir/$result_file" "$out_dir/routine.result.json"
+  # Create generic fallback (best effort)
+  cp "$out_dir/$result_file" "$out_dir/routine.result.json" 2>/dev/null || true
 
   echo "$out_dir/$result_file"
 
