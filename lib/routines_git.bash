@@ -25,7 +25,7 @@ wgx_routine_git_repair_remote_head() {
   ]'
 
   # Check for jq presence
-  if ! command -v "$jq_bin" >/dev/null 2>&1; then
+  if ! command -v "$jq_bin" > /dev/null 2>&1; then
     echo "wgx routine: jq fehlt (setze WGX_JQ_BIN oder installiere jq)." >&2
     return 1
   fi
@@ -49,7 +49,7 @@ wgx_routine_git_repair_remote_head() {
         steps:($steps|fromjson),
         note:$note
       }' \
-      >"$out_dir/$preview_file"
+      > "$out_dir/$preview_file"
 
     # Create generic fallback
     cp "$out_dir/$preview_file" "$out_dir/routine.preview.json"
@@ -59,10 +59,12 @@ wgx_routine_git_repair_remote_head() {
   fi
 
   # apply requires git repo
-  if ! "$git_bin" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  if ! "$git_bin" rev-parse --is-inside-work-tree > /dev/null 2>&1; then
+    local err_msg="Apply abgebrochen: nicht in einem Git-Repo (work tree) ausgeführt."
+    echo "$err_msg" >&2
     local result_file="routine.result.${routine_id}.${ts}.json"
     "$jq_bin" -n --arg id "$routine_id" --arg mode "$mode" --arg risk "low" \
-      --arg stderr "Apply abgebrochen: nicht in einem Git-Repo (work tree) ausgeführt." \
+      --arg stderr "$err_msg" \
       --arg steps "$steps" \
       '{
         kind:"routine.result",
@@ -73,7 +75,7 @@ wgx_routine_git_repair_remote_head() {
         steps:($steps|fromjson),
         ok:false,
         stderr:$stderr
-      }' >"$out_dir/$result_file"
+      }' > "$out_dir/$result_file"
     cp "$out_dir/$result_file" "$out_dir/routine.result.json"
     echo "$out_dir/$result_file"
     return 1
@@ -81,14 +83,14 @@ wgx_routine_git_repair_remote_head() {
 
   # apply
   local before
-  before="$("$git_bin" show-ref 2>/dev/null | sha256sum | awk '{print $1}')"
+  before="$("$git_bin" show-ref 2> /dev/null | sha256sum | awk '{print $1}')"
 
   local log_stdout=""
   local log_stderr=""
   local ok=true
 
   # Validate steps JSON early (avoid jq hard-fail later)
-  if ! "$jq_bin" -e . >/dev/null 2>&1 <<<"$steps"; then
+  if ! "$jq_bin" -e . > /dev/null 2>&1 <<< "$steps"; then
     echo "Error: steps JSON invalid" >&2
     return 1
   fi
@@ -105,15 +107,15 @@ wgx_routine_git_repair_remote_head() {
     # Run command without aborting the script on error
     # Security: Allowlist specific git commands to prevent injection
     case "$cmd" in
-    "git remote set-head origin --auto" | "git fetch origin --prune") ;;
-    *)
-      log_stderr+="Refusing unexpected command: $cmd"$'\n'
-      ok=false
-      break
-      ;;
+      "git remote set-head origin --auto" | "git fetch origin --prune") ;;
+      *)
+        log_stderr+="Refusing unexpected command: $cmd"$'\n'
+        ok=false
+        break
+        ;;
     esac
 
-    bash -c "$cmd" >"$t_out" 2>"$t_err" || rc=$?
+    bash -c "$cmd" > "$t_out" 2> "$t_err" || rc=$?
 
     out="$(cat "$t_out")"
     err="$(cat "$t_err")"
@@ -127,10 +129,10 @@ wgx_routine_git_repair_remote_head() {
       log_stderr+="Command failed with exit code $rc: $cmd"$'\n'
       break
     fi
-  done < <("$jq_bin" -r '.[].cmd' <<<"$steps")
+  done < <("$jq_bin" -r '.[].cmd' <<< "$steps")
 
   local after
-  after="$("$git_bin" show-ref 2>/dev/null | sha256sum | awk '{print $1}')"
+  after="$("$git_bin" show-ref 2> /dev/null | sha256sum | awk '{print $1}')"
 
   local result_file="routine.result.${routine_id}.${ts}.json"
 
@@ -150,7 +152,7 @@ wgx_routine_git_repair_remote_head() {
       state_hash:{before:$before, after:$after},
       stdout:$stdout,
       stderr:$stderr
-    }' >"$out_dir/$result_file"
+    }' > "$out_dir/$result_file"
 
   # Create generic fallback
   cp "$out_dir/$result_file" "$out_dir/routine.result.json"
