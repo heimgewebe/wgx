@@ -219,7 +219,6 @@ wgx_audit_git() {
   # We used strings "true"/"false" above. Convert for JSON construction.
   local json_detached="$detached"
   local json_clean="$clean"
-  # local json_origin_present="$origin_present" # Removed unused variable
   local json_origin_head="$origin_head"
   local json_origin_main="$origin_main"
   local json_upstream_exists="$upstream_exists"
