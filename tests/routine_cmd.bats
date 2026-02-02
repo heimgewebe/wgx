@@ -12,11 +12,10 @@ setup() {
   export PATH
   
   # Hard assert: verify we're testing the correct wgx binary
-  local wgx_path
   wgx_path="$(command -v wgx)"
-  if [[ "$wgx_path" != "$WGX_DIR/cli/wgx" && "$wgx_path" != "$WGX_DIR/wgx" ]]; then
+  if [[ "$wgx_path" != "$WGX_DIR/cli/wgx" ]]; then
     echo "ERROR: wgx resolved to: $wgx_path" >&2
-    echo "       Expected either: $WGX_DIR/cli/wgx or $WGX_DIR/wgx" >&2
+    echo "       Expected: $WGX_DIR/cli/wgx" >&2
     return 1
   fi
   
