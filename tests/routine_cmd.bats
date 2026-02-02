@@ -7,7 +7,18 @@ load test_helper
 
 setup() {
   export WGX_DIR="$(cd "$BATS_TEST_DIRNAME/.." && pwd)"
-  PATH="$WGX_DIR/bin:$WGX_DIR:$PATH"
+  # Ensure we test repo-local wgx, not system-installed one
+  PATH="$WGX_DIR/cli:$WGX_DIR:$PATH"
+  export PATH
+  
+  # Hard assert: verify we're testing the correct wgx binary
+  local wgx_path
+  wgx_path="$(command -v wgx)"
+  if [[ "$wgx_path" != "$WGX_DIR/cli/wgx" && "$wgx_path" != "$WGX_DIR/wgx" ]]; then
+    echo "ERROR: wgx resolved to: $wgx_path (expected $WGX_DIR/cli/wgx or $WGX_DIR/wgx)" >&2
+    return 1
+  fi
+  
   TEST_TEMP_DIR="$(mktemp -d)"
   cd "$TEST_TEMP_DIR"
   mkdir -p .wgx/out
