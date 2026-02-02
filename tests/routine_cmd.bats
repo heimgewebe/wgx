@@ -2,8 +2,8 @@
 
 load test_helper
 
-# No custom wgx() helper needed - tests use `run wgx routine` directly
-# and the PATH is already set in setup()
+# No custom wgx() helper needed - tests invoke the CLI entrypoint directly
+# via "$WGX_DIR/cli/wgx" for maximum determinism
 
 setup() {
   export WGX_DIR="$(cd "$BATS_TEST_DIRNAME/.." && pwd)"
