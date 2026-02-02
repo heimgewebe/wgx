@@ -7,8 +7,8 @@ load test_helper
 
 setup() {
   export WGX_DIR="$(cd "$BATS_TEST_DIRNAME/.." && pwd)"
-  # Ensure we test repo-local wgx, not system-installed one
-  PATH="$WGX_DIR/cli:$WGX_DIR:$PATH"
+  # Align with other tests: test the real CLI entrypoint only
+  PATH="$WGX_DIR/cli:$PATH"
   export PATH
   
   # Hard assert: verify we're testing the correct wgx binary
