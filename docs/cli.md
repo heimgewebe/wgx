@@ -26,6 +26,7 @@ Commands:
   quick
   release
   reload
+  routine
   run
   selftest
   send
@@ -53,8 +54,25 @@ More:
 ```text
 Usage:
   wgx audit verify [--strict]
+  wgx audit git [--repo <key>] [--correlation-id <id>] [--stdout-json] [--fetch]
 
-Verwaltet das Audit-Ledger von wgx.
+Types:
+  verify   Verifies the audit ledger chain (.wgx/audit/ledger.jsonl).
+  git      Audits the local git repository state.
+
+Options (git):
+  --fetch  Performs 'git fetch origin --prune' before auditing (mutating).
+           Default is read-only (no fetch).
+  --repo <key>
+           Logical repo key for the audit artifact (default: detected).
+  --correlation-id <id>
+           Trace ID for the audit run (default: generated).
+  --stdout-json
+           Output JSON artifact to stdout (do not write to file).
+
+General:
+  Exit code is 0 even if audit findings are 'error' (check JSON output).
+  Non-zero exit codes indicate execution failures (e.g. missing dependencies).
 ```
 
 ### clean
@@ -118,7 +136,7 @@ Usage: wgx env doctor [--fix] [--strict] [--json]
 
 ```text
 Usage:
-  wgx guard [--lint] [--test]
+  wgx guard [--lint] [--test] [--only <guard_name>]
 
 Description:
   Führt eine Reihe von Sicherheits- und Qualitätsprüfungen für das Repository aus.
@@ -135,6 +153,9 @@ Checks:
 Options:
   --lint        Nur die Linting-Prüfungen ausführen.
   --test        Nur die Test-Prüfungen ausführen.
+  --only        Nur einen spezifischen Guard ausführen.
+                Erlaubte Werte: profile, filesize, conflict, ci_deps, contracts_ownership, contracts_meta, insights,
+                integrity, data_flow.
   -h, --help    Diese Hilfe anzeigen.
 ```
 
@@ -185,6 +206,7 @@ Commands:
   quick
   release
   reload
+  routine
   run
   selftest
   send
@@ -309,6 +331,18 @@ Options:
   --dry-run     Zeigt nur an, was getan würde, ohne Änderungen vorzunehmen.
   --snapshot    Erstellt vorher einen Git-Stash als Sicherheitskopie.
   -h, --help    Diese Hilfe anzeigen.
+```
+
+### routine
+
+```text
+Usage:
+  wgx routine <id> [preview|apply|dry-run]
+
+Available routines:
+  git.repair.remote-head
+
+Ergebnisse werden als eindeutige JSON-Artefakte in .wgx/out/ gespeichert.
 ```
 
 ### run

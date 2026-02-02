@@ -13,6 +13,20 @@ cmd_audit() {
   local sub="${1:-}"
   shift || true
   case "$sub" in
+  git)
+    if ! declare -F wgx_audit_git >/dev/null 2>&1; then
+      if [[ -r "$WGX_DIR/lib/audit_git.bash" ]]; then
+        # shellcheck source=/dev/null
+        source "$WGX_DIR/lib/audit_git.bash"
+      fi
+    fi
+    if declare -F wgx_audit_git >/dev/null 2>&1; then
+      wgx_audit_git "$@"
+    else
+      printf 'wgx audit git: logic not loaded.\n' >&2
+      return 1
+    fi
+    ;;
   verify)
     local strict=0
     while [[ $# -gt 0 ]]; do
@@ -55,8 +69,25 @@ USAGE
     cat <<'USAGE'
 Usage:
   wgx audit verify [--strict]
+  wgx audit git [--repo <key>] [--correlation-id <id>] [--stdout-json] [--fetch]
 
-Verwaltet das Audit-Ledger von wgx.
+Types:
+  verify   Verifies the audit ledger chain (.wgx/audit/ledger.jsonl).
+  git      Audits the local git repository state.
+
+Options (git):
+  --fetch  Performs 'git fetch origin --prune' before auditing (mutating).
+           Default is read-only (no fetch).
+  --repo <key>
+           Logical repo key for the audit artifact (default: detected).
+  --correlation-id <id>
+           Trace ID for the audit run (default: generated).
+  --stdout-json
+           Output JSON artifact to stdout (do not write to file).
+
+General:
+  Exit code is 0 even if audit findings are 'error' (check JSON output).
+  Non-zero exit codes indicate execution failures (e.g. missing dependencies).
 USAGE
     ;;
   *)
