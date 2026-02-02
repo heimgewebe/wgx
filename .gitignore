@@ -22,6 +22,9 @@ __pycache__/
 .wgx/audit/*.sig
 .wgx/audit/ledger.jsonl
 
+# Routine and audit output artifacts
+.wgx/out/
+
 # Local cache directory (created by helper scripts)
 /.local/*
 !/.local/README.md
