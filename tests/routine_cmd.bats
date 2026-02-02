@@ -9,10 +9,10 @@ setup() {
   export WGX_DIR="$(cd "$BATS_TEST_DIRNAME/.." && pwd)"
   
   # Sanity check: ensure the CLI binary is executable
-  [ -x "$WGX_DIR/cli/wgx" ] || {
+  if [ ! -x "$WGX_DIR/cli/wgx" ]; then
     echo "ERROR: wgx CLI not executable: $WGX_DIR/cli/wgx" >&2
-    return 1
-  }
+    exit 1
+  fi
   
   TEST_TEMP_DIR="$(mktemp -d)"
   cd "$TEST_TEMP_DIR"
