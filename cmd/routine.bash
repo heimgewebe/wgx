@@ -48,8 +48,7 @@ USAGE
     mode_internal="apply"
     ;;
   *)
-    # Test 121 expectation: Invalid mode must print "Usage:" to stderr and exit 1
-    # "assert_failure"
+    # Test expectation: Invalid mode must print "Usage:" to stderr and exit 1
     echo "Error: Invalid mode '$mode_arg'" >&2
     cat <<USAGE >&2
 Usage:
@@ -68,7 +67,7 @@ USAGE
     wgx_routine_git_repair_remote_head "$mode_internal" "${rest_args[@]}"
     ;;
   *)
-    # Test 118 expectation: Unknown routine must print "unknown routine" to stderr and exit 1
+    # Test expectation: Unknown routine must print "unknown routine" to stderr
     echo "wgx routine: unknown routine '$routine_id'" >&2
     return 1
     ;;
