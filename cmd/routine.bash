@@ -17,10 +17,8 @@ Available routines:
 
 Ergebnisse werden als eindeutige JSON-Artefakte in .wgx/out/ gespeichert.
 USAGE
-    # If no args were provided, it's an error in usage (per typical BATS expectations for "help when no args" if it asserts failure,
-    # but here test 117 expects success? Let's check the test file content again.
-    # The test file says: `run wgx routine`, `assert_success`, `assert_output --partial "Usage:"`
-    # So we must return 0.
+    # If no args were provided, return 0 as per "help" behavior, OR check if tests expect failure.
+    # Test 117 expects success with usage.
     return 0
   fi
 
@@ -53,7 +51,6 @@ USAGE
     ;;
   *)
     # Test 121 expectation: Invalid mode must print "Usage:" to stderr and exit 1
-    # "assert_failure"
     echo "Error: Invalid mode '$mode_arg'" >&2
     cat <<USAGE >&2
 Usage:
@@ -64,6 +61,9 @@ USAGE
   esac
 
   # Dispatch Routine
+  # NOTE: Do NOT call require_repo here. The routine implementation handles the check
+  # and writes the necessary JSON artifact for "apply failed".
+
   case "$routine_id" in
   git.repair.remote-head)
     wgx_routine_git_repair_remote_head "$mode_internal" "${rest_args[@]}"
