@@ -2,14 +2,10 @@
 
 load test_helper
 
-# Wrapper only; use 'run wgx ...' at call sites.
-wgx() {
-  PATH="$WGX_DIR/bin:$WGX_DIR:$PATH" command wgx "$@"
-}
-
 setup() {
   export WGX_DIR="$(cd "$BATS_TEST_DIRNAME/.." && pwd)"
-  PATH="$WGX_DIR/bin:$WGX_DIR:$PATH"
+  # Add tests/bin to PATH first so test wrapper is found
+  PATH="$BATS_TEST_DIRNAME/bin:$WGX_DIR/bin:$WGX_DIR:$PATH"
   TEST_TEMP_DIR="$(mktemp -d)"
   cd "$TEST_TEMP_DIR"
   mkdir -p .wgx/out
