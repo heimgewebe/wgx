@@ -12,10 +12,24 @@ setup() {
   export PATH
   
   # Hard assert: verify we're testing the correct wgx binary
+  # Use canonical path comparison to handle symlinks robustly
+  local wgx_path expected resolved_wgx resolved_expected
   wgx_path="$(command -v wgx)"
-  if [[ "$wgx_path" != "$WGX_DIR/cli/wgx" ]]; then
-    echo "ERROR: wgx resolved to: $wgx_path" >&2
-    echo "       Expected: $WGX_DIR/cli/wgx" >&2
+  expected="$WGX_DIR/cli/wgx"
+  
+  # Canonicalize paths (try realpath first, fallback to Python)
+  if command -v realpath >/dev/null 2>&1; then
+    resolved_wgx="$(realpath "$wgx_path" 2>/dev/null || echo "$wgx_path")"
+    resolved_expected="$(realpath "$expected" 2>/dev/null || echo "$expected")"
+  else
+    resolved_wgx="$(python3 -c "import os,sys; print(os.path.realpath(sys.argv[1]))" "$wgx_path" 2>/dev/null || echo "$wgx_path")"
+    resolved_expected="$(python3 -c "import os,sys; print(os.path.realpath(sys.argv[1]))" "$expected" 2>/dev/null || echo "$expected")"
+  fi
+  
+  if [[ "$resolved_wgx" != "$resolved_expected" ]]; then
+    echo "ERROR: wgx resolved to wrong binary" >&2
+    echo "       Resolved: $wgx_path -> $resolved_wgx" >&2
+    echo "       Expected: $expected -> $resolved_expected" >&2
     return 1
   fi
   
