@@ -2,15 +2,11 @@
 
 load test_helper
 
-# Optional: helper to run wgx with stable env
-# Note: Do NOT use 'run' inside this function, as tests will call 'run wgx ...'
-wgx() {
-  PATH="$WGX_DIR/cli:$WGX_DIR:$PATH" command wgx "$@"
-}
-
 setup() {
   export WGX_DIR="$(cd "$BATS_TEST_DIRNAME/.." && pwd)"
-  PATH="$WGX_DIR/bin:$WGX_DIR:$PATH"
+  # Set PATH to find wgx: cli/ contains the real executable, root contains the wrapper
+  PATH="$WGX_DIR/cli:$WGX_DIR:$PATH"
+  export PATH
   TEST_TEMP_DIR="$(mktemp -d)"
   cd "$TEST_TEMP_DIR"
   mkdir -p .wgx/out
