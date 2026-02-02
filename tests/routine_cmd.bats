@@ -13,18 +13,26 @@ setup() {
   
   # Hard assert: verify we're testing the correct wgx binary
   # Use canonical path comparison to handle symlinks robustly
-  local wgx_path expected resolved_wgx resolved_expected
+  local wgx_path
+  local expected
+  local resolved_wgx
+  local resolved_expected
+  
   wgx_path="$(command -v wgx)"
   expected="$WGX_DIR/cli/wgx"
   
-  # Canonicalize paths (try realpath first, fallback to Python)
-  if command -v realpath >/dev/null 2>&1; then
-    resolved_wgx="$(realpath "$wgx_path" 2>/dev/null || echo "$wgx_path")"
-    resolved_expected="$(realpath "$expected" 2>/dev/null || echo "$expected")"
-  else
-    resolved_wgx="$(python3 -c "import os,sys; print(os.path.realpath(sys.argv[1]))" "$wgx_path" 2>/dev/null || echo "$wgx_path")"
-    resolved_expected="$(python3 -c "import os,sys; print(os.path.realpath(sys.argv[1]))" "$expected" 2>/dev/null || echo "$expected")"
-  fi
+  # Helper to canonicalize a path (handles symlinks)
+  _canonicalize_path() {
+    local path="$1"
+    if command -v realpath >/dev/null 2>&1; then
+      realpath "$path" 2>/dev/null || echo "$path"
+    else
+      python3 -c "import os,sys; print(os.path.realpath(sys.argv[1]))" "$path" 2>/dev/null || echo "$path"
+    fi
+  }
+  
+  resolved_wgx="$(_canonicalize_path "$wgx_path")"
+  resolved_expected="$(_canonicalize_path "$expected")"
   
   if [[ "$resolved_wgx" != "$resolved_expected" ]]; then
     echo "ERROR: wgx resolved to wrong binary" >&2
