@@ -8,7 +8,7 @@ cmd_routine() {
 
   # Help / No Args
   if [[ -z "$routine_id" || "$routine_id" == "-h" || "$routine_id" == "--help" ]]; then
-    cat <<USAGE >&2
+    cat <<USAGE
 Usage:
   wgx routine <id> [preview|apply|dry-run]
 
@@ -17,10 +17,6 @@ Available routines:
 
 Ergebnisse werden als eindeutige JSON-Artefakte in .wgx/out/ gespeichert.
 USAGE
-    # If no args were provided, it's an error in usage (per typical BATS expectations for "help when no args" if it asserts failure,
-    # but here test 117 expects success? Let's check the test file content again.
-    # The test file says: `run wgx routine`, `assert_success`, `assert_output --partial "Usage:"`
-    # So we must return 0.
     return 0
   fi
 
@@ -64,6 +60,9 @@ USAGE
   esac
 
   # Dispatch Routine
+  # NOTE: Do NOT call require_repo here. The routine implementation handles the check
+  # and writes the necessary JSON artifact for "apply failed".
+
   case "$routine_id" in
   git.repair.remote-head)
     wgx_routine_git_repair_remote_head "$mode_internal" "${rest_args[@]}"
