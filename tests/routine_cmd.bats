@@ -2,12 +2,16 @@
 
 load test_helper
 
-# No custom wgx() helper needed - tests use `run wgx` directly
-# and the PATH is already set in setup()
-
 setup() {
   export WGX_DIR="$(cd "$BATS_TEST_DIRNAME/.." && pwd)"
-  PATH="$WGX_DIR/bin:$WGX_DIR:$PATH"
+  WGX_CLI="$WGX_DIR/cli/wgx"
+
+  # Ensure CLI is executable
+  if [[ ! -x "$WGX_CLI" ]]; then
+    echo "ERROR: wgx CLI not executable: $WGX_CLI" >&2
+    return 1
+  fi
+
   TEST_TEMP_DIR="$(mktemp -d)"
   cd "$TEST_TEMP_DIR"
   mkdir -p .wgx/out
@@ -19,21 +23,21 @@ teardown() {
 }
 
 @test "wgx routine: help when no args" {
-  run wgx routine
+  run "$WGX_CLI" routine
   assert_success
   assert_output --partial "Usage:"
   assert_output --partial "Available routines:"
 }
 
 @test "wgx routine: unknown routine rejected" {
-  run wgx routine does.not.exist preview
+  run "$WGX_CLI" routine does.not.exist preview
   assert_failure
   assert_output --partial "unknown routine"
 }
 
 @test "wgx routine: mode normalization preview -> dry-run (allowed outside git repo)" {
   # This should run preview path of routine and create preview json even outside git repo
-  run wgx routine git.repair.remote-head preview
+  run "$WGX_CLI" routine git.repair.remote-head preview
   assert_success
   # Should print a file path under .wgx/out
   assert_output --partial ".wgx/out/"
@@ -48,7 +52,7 @@ teardown() {
 
 @test "wgx routine: apply requires git repo (exit 1 + ok false)" {
   # Ensure we are NOT in a git repo (setup creates clean temp dir)
-  run wgx routine git.repair.remote-head apply
+  run "$WGX_CLI" routine git.repair.remote-head apply
   assert_failure
   # Check stderr message
   assert_output --partial "nicht in einem Git-Repo"
@@ -60,7 +64,7 @@ teardown() {
 }
 
 @test "wgx routine: invalid mode rejected" {
-  run wgx routine git.repair.remote-head bananas
+  run "$WGX_CLI" routine git.repair.remote-head bananas
   assert_failure
   assert_output --partial "Usage:"
 }
@@ -70,7 +74,7 @@ teardown() {
   # The dispatcher whitelisting ensures --help is NOT consumed as mode.
   # So mode defaults to "dry-run".
   # Then routine implementation runs in dry-run mode.
-  run wgx routine git.repair.remote-head --help
+  run "$WGX_CLI" routine git.repair.remote-head --help
   assert_success
   assert_output --partial ".wgx/out/"
   [ -f ".wgx/out/routine.preview.json" ]
