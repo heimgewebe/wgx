@@ -77,7 +77,6 @@ class TestProfileParser(unittest.TestCase):
 
     def test_strip_inline_comment_compact_hash(self):
         """Test that 'value#comment' is NOT stripped (must have space)."""
-        # This is expected to FAIL until we fix the implementation
         self.assertEqual(profile_parser._strip_inline_comment("value#comment"), "value#comment")
 
     def test_strip_inline_comment_quoted(self):
