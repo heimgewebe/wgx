@@ -76,8 +76,16 @@ class TestProfileParser(unittest.TestCase):
         self.assertEqual(profile_parser._strip_inline_comment("value # comment"), "value ")
 
     def test_strip_inline_comment_compact_hash(self):
-        """Test that 'value#comment' is NOT stripped (must have space)."""
+        """Inline comments must be preceded by whitespace (space/tab); otherwise treated as literal."""
         self.assertEqual(profile_parser._strip_inline_comment("value#comment"), "value#comment")
+
+    def test_strip_inline_comment_tabs(self):
+        """Test that tabs count as whitespace for inline comments."""
+        self.assertEqual(profile_parser._strip_inline_comment("value\t# comment"), "value\t")
+
+    def test_strip_inline_comment_double_quoted_hash(self):
+        """Hashes inside double quotes are preserved."""
+        self.assertEqual(profile_parser._strip_inline_comment('"foo # bar"'), '"foo # bar"')
 
     def test_strip_inline_comment_quoted(self):
         """Test that hashes inside quotes are preserved."""
