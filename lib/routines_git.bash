@@ -134,6 +134,12 @@ wgx_routine_git_repair_remote_head() {
       ;;
     esac
 
+    # Ensure we use the configured git binary
+    # If the command starts with 'git ', replace it with '$git_bin '
+    if [[ "$cmd" == git* ]]; then
+      cmd="${git_bin}${cmd#git}"
+    fi
+
     bash -c "$cmd" >"$t_out" 2>"$t_err" || rc=$?
 
     out="$(cat "$t_out")"
