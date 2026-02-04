@@ -77,50 +77,30 @@ teardown() {
   # If we call `wgx routine <id> --help`, it should show usage (return 0) not try to apply
   # This tests the argument shifting logic in cmd_routine
   run wgx routine git.repair.remote-head --help
-  # Currently usage prints to stderr and returns 0 or 1?
-  # Wait, existing code: "return 0" if mode is empty/help/noargs.
-  # But routine logic might handle it differently.
-  # Let's check existing implementation logic in cmd/routine.bash:
-  # if [[ -z "$routine_id" || "$routine_id" == "-h" ... ]]; then ... return 0; fi
-
-  # If I pass `git.repair.remote-head --help` as args:
-  # id="git.repair.remote-head", mode="--help"
-  # Logic: `if [[ "$mode_arg" == -* ]]; then rest_args... mode_arg="preview"`.
-  # Then runs routine with "preview".
-  # Wait, the routine function itself doesn't seem to implement --help, it expects mode.
-  # So `wgx routine <id> --help` actually runs a preview currently?
-  # Let's see: `wgx_routine_git_repair_remote_head "preview" "--help"`
-  # It ignores extra args. So it runs a preview.
-
-  # The test title says "flags preserved".
-  # Let's just ensure it doesn't crash.
-  run wgx routine git.repair.remote-head --help
   assert_success
   assert_output --partial "routine.preview"
 }
 
 @test "wgx routine: uses WGX_GIT_BIN for execution" {
+  # Resolve real git path portably
+  local real_git
+  real_git="$(command -v git)" || fail "git not found"
+
   # Create a wrapper script that acts as 'git' but logs usage
   local mock_git="$TEST_TEMP_DIR/mock_git.sh"
+
+  # Ensure the mock delegates to real git for EVERYTHING,
+  # so behavior is identical to real execution, but we get a log.
   cat <<EOF >"$mock_git"
 #!/bin/bash
-if [[ "\$1" == "rev-parse" ]]; then
-  # Passthrough real git for initial checks (is-inside-work-tree)
-  /usr/bin/git "\$@"
-elif [[ "\$1" == "show-ref" ]]; then
-  /usr/bin/git "\$@"
-else
-  # For other commands (remote, fetch), log execution and pretend success
-  echo "MOCK_GIT_EXEC: \$*" >> "$TEST_TEMP_DIR/git_log.txt"
-  exit 0
-fi
+# Log every invocation arguments
+echo "MOCK_GIT_EXEC: \$*" >> "$TEST_TEMP_DIR/git_log.txt"
+# Passthrough to real git
+exec "$real_git" "\$@"
 EOF
   chmod +x "$mock_git"
 
-  # We need to ensure 'git' command is usable inside the routine for 'rev-parse' and 'show-ref'
-  # The mock handles this by calling /usr/bin/git.
-  # Note: `command -v git` check in routine will verify this mock exists.
-
+  # We use the mock as our git binary
   WGX_GIT_BIN="$mock_git" run wgx routine git.repair.remote-head apply
 
   assert_success
