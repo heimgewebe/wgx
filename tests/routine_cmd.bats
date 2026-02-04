@@ -8,14 +8,32 @@ setup() {
 
   # Setup temp git repo
   TEST_TEMP_DIR="$(mktemp -d)"
-  cd "$TEST_TEMP_DIR"
+
+  # Create a separate upstream repo to act as origin
+  UPSTREAM_DIR="$TEST_TEMP_DIR/upstream.git"
+  mkdir -p "$UPSTREAM_DIR"
+  git init --bare --initial-branch=main "$UPSTREAM_DIR"
+
+  # Create local repo
+  LOCAL_DIR="$TEST_TEMP_DIR/local"
+  mkdir -p "$LOCAL_DIR"
+  cd "$LOCAL_DIR"
+
+  # Configure git to be quiet about init
+  git config --global init.defaultBranch main 2>/dev/null || true
+
   git init
-  # Needed for routines to work (need origin)
   git config user.email "test@example.com"
   git config user.name "Test User"
-  git commit --allow-empty -m "init"
-  # Mock origin
-  git remote add origin "$TEST_TEMP_DIR"
+
+  # Add remote
+  git remote add origin "$UPSTREAM_DIR"
+
+  # Create a commit and push to populate upstream
+  echo "init" > README.md
+  git add README.md
+  git commit -m "init"
+  git push -u origin main
 
   mkdir -p .wgx/out
 }
@@ -63,8 +81,6 @@ teardown() {
 
   assert_failure
   assert_output --partial "routine.result"
-  # The script prints the filename to stdout, logs error to stderr.
-  # We should check the content of the file or just that it failed.
 }
 
 @test "wgx routine: invalid mode rejected" {
@@ -74,8 +90,6 @@ teardown() {
 }
 
 @test "wgx routine: flags preserved when mode is absent" {
-  # If we call `wgx routine <id> --help`, it should show usage (return 0) not try to apply
-  # This tests the argument shifting logic in cmd_routine
   run wgx routine git.repair.remote-head --help
   assert_success
   assert_output --partial "routine.preview"
@@ -87,14 +101,16 @@ teardown() {
   real_git="$(command -v git)" || fail "git not found"
 
   # Create a wrapper script that acts as 'git' but logs usage
+  # We assume we are in LOCAL_DIR from setup
   local mock_git="$TEST_TEMP_DIR/mock_git.sh"
+  local git_log="$TEST_TEMP_DIR/git_log.txt"
 
   # Ensure the mock delegates to real git for EVERYTHING,
   # so behavior is identical to real execution, but we get a log.
   cat <<EOF >"$mock_git"
 #!/bin/bash
 # Log every invocation arguments
-echo "MOCK_GIT_EXEC: \$*" >> "$TEST_TEMP_DIR/git_log.txt"
+echo "MOCK_GIT_EXEC: \$*" >> "$git_log"
 # Passthrough to real git
 exec "$real_git" "\$@"
 EOF
@@ -106,11 +122,11 @@ EOF
   assert_success
 
   # Check if our mock was called for the actual steps
-  if [ ! -f "$TEST_TEMP_DIR/git_log.txt" ]; then
+  if [ ! -f "$git_log" ]; then
     fail "Mock git was not executed for steps"
   fi
 
-  run cat "$TEST_TEMP_DIR/git_log.txt"
+  run cat "$git_log"
   assert_output --partial "MOCK_GIT_EXEC: remote set-head origin --auto"
   assert_output --partial "MOCK_GIT_EXEC: fetch origin --prune"
 }
