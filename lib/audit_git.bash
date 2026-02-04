@@ -245,9 +245,9 @@ wgx_audit_git() {
   # Try to auto-detect repo name if not provided
   if [[ -z "$repo" ]]; then
     if [[ "$is_repo" == "true" ]]; then
-       repo="$("$git_bin" rev-parse --show-toplevel 2>/dev/null | xargs basename 2>/dev/null || basename "$cwd")"
+      repo="$("$git_bin" rev-parse --show-toplevel 2>/dev/null | xargs basename 2>/dev/null || basename "$cwd")"
     else
-       repo="$(basename "$cwd")"
+      repo="$(basename "$cwd")"
     fi
   fi
 

@@ -73,7 +73,6 @@ Options (git):
 General:
   Exit code is 0 even if audit findings are 'error' (check JSON output).
   Non-zero exit codes indicate execution failures (e.g. missing dependencies).
-  If not in a Git repository, status is 'error' but exit code is 0.
 ```
 
 ### clean
