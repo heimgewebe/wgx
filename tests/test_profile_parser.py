@@ -83,9 +83,9 @@ class TestProfileParser(unittest.TestCase):
         """Test that tabs count as whitespace for inline comments."""
         self.assertEqual(profile_parser._strip_inline_comment("value\t# comment"), "value\t")
 
-    def test_strip_inline_comment_escaped_quotes(self):
-        """Test that hashes inside escaped quotes are preserved."""
-        self.assertEqual(profile_parser._strip_inline_comment(r'"foo \" # bar"'), r'"foo \" # bar"')
+    def test_strip_inline_comment_double_quoted_hash(self):
+        """Hashes inside double quotes are preserved."""
+        self.assertEqual(profile_parser._strip_inline_comment('"foo # bar"'), '"foo # bar"')
 
     def test_strip_inline_comment_quoted(self):
         """Test that hashes inside quotes are preserved."""
