@@ -144,7 +144,10 @@ def main():
             continue
 
         for i, item in enumerate(items):
-            item_id = item.get("id", f"item-{i}")
+            if "id" in item:
+                item_id = item["id"]
+            else:
+                item_id = f"item-{i}"
             schema_failed = False
 
             # Schema Validation
