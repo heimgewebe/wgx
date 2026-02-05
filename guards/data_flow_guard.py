@@ -365,6 +365,13 @@ def main():
                     if len(msg) > 200: msg = msg[:200] + "..."
                     print(f"[wgx][guard][data_flow] FAIL flow={flow_name} schema={schema_rel_path} data={df} id={item_id} error='{msg}'", file=sys.stderr)
                     total_errors += 1
+                except Exception as e:
+                    # Catch unexpected validation crashes
+                    item_id = safe_item_id(item, i)
+                    msg = str(e)
+                    if len(msg) > 200: msg = msg[:200] + "..."
+                    print(f"[wgx][guard][data_flow] ERROR flow={flow_name} schema={schema_rel_path} data={df} id={item_id} error='Validator error: {msg}'", file=sys.stderr)
+                    total_errors += 1
 
     if total_errors > 0:
         print(f"[wgx][guard][data_flow] FAILED: {total_errors} error(s) found.", file=sys.stderr)
