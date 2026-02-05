@@ -149,6 +149,13 @@ wgx_routine_git_repair_remote_head() {
       ;;
     esac
 
+    # Safety Guard: Reject shell metacharacters
+    if [[ "$cmd" =~ [';&|<>`$'] ]]; then
+      log_stderr+="wgx routine: unsafe step command detected (shell metacharacters): $cmd"$'\n'
+      ok=false
+      break
+    fi
+
     # Ensure we use the configured git binary
     # If the command starts with 'git ', replace it with '$git_bin '
     if [[ "$cmd" == "git "* ]]; then
