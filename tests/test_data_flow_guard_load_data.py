@@ -46,8 +46,7 @@ class TestLoadData(unittest.TestCase):
 
     def test_empty_file(self):
         path = self._write_file("empty.json", "")
-        # Expect empty list (based on insight_guard behavior and previous analysis)
-        # Original implementation returned [] because valid_lines_count=0 and content.strip() was empty
+        # Expect empty list (treated as empty JSONL)
         data = data_flow_guard.load_data(path)
         self.assertEqual(data, [])
 
