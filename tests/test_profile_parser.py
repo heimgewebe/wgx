@@ -6,10 +6,7 @@ import unittest
 import tempfile
 from unittest.mock import patch, mock_open
 
-# Adjust path to import modules/profile_parser.py
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../modules')))
-
-import profile_parser
+from modules import profile_parser
 
 class TestProfileParser(unittest.TestCase):
 
