@@ -20,9 +20,9 @@ setup() {
   cd "$LOCAL_DIR"
 
   # Configure git to be quiet about init
-  git config --global init.defaultBranch main 2>/dev/null || true
+  # Note: Avoid global config changes in tests to prevent side effects
 
-  git init
+  git init --initial-branch=main
   git config user.email "test@example.com"
   git config user.name "Test User"
 

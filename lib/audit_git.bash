@@ -37,13 +37,28 @@ wgx_audit_git() {
   done
 
   # Dependency checks
-  if ! command -v "$git_bin" >/dev/null 2>&1; then
-    echo "Error: git executable not found at '$git_bin'." >&2
-    return 1
+  if [[ "$git_bin" == */* ]]; then
+    [[ -x "$git_bin" ]] || {
+      echo "Error: git executable not found or not executable at '$git_bin'." >&2
+      return 1
+    }
+  else
+    command -v "$git_bin" >/dev/null 2>&1 || {
+      echo "Error: git executable not found at '$git_bin'." >&2
+      return 1
+    }
   fi
-  if ! command -v "$jq_bin" >/dev/null 2>&1; then
-    echo "Error: jq executable not found at '$jq_bin'." >&2
-    return 1
+
+  if [[ "$jq_bin" == */* ]]; then
+    [[ -x "$jq_bin" ]] || {
+      echo "Error: jq executable not found or not executable at '$jq_bin'." >&2
+      return 1
+    }
+  else
+    command -v "$jq_bin" >/dev/null 2>&1 || {
+      echo "Error: jq executable not found at '$jq_bin'." >&2
+      return 1
+    }
   fi
 
   # Generate ID if missing

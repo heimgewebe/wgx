@@ -16,13 +16,28 @@ wgx_routine_git_repair_remote_head() {
   fi
 
   # Check for dependencies early
-  if ! command -v "$jq_bin" >/dev/null 2>&1; then
-    echo "wgx routine: jq fehlt (setze WGX_JQ_BIN oder installiere jq)." >&2
-    return 1
+  if [[ "$jq_bin" == */* ]]; then
+    [[ -x "$jq_bin" ]] || {
+      echo "wgx routine: jq executable not found or not executable at '$jq_bin'." >&2
+      return 1
+    }
+  else
+    command -v "$jq_bin" >/dev/null 2>&1 || {
+      echo "wgx routine: jq fehlt (setze WGX_JQ_BIN oder installiere jq)." >&2
+      return 1
+    }
   fi
-  if ! command -v "$git_bin" >/dev/null 2>&1; then
-    echo "wgx routine: git fehlt (setze WGX_GIT_BIN oder installiere git)." >&2
-    return 1
+
+  if [[ "$git_bin" == */* ]]; then
+    [[ -x "$git_bin" ]] || {
+      echo "wgx routine: git executable not found or not executable at '$git_bin'." >&2
+      return 1
+    }
+  else
+    command -v "$git_bin" >/dev/null 2>&1 || {
+      echo "wgx routine: git fehlt (setze WGX_GIT_BIN oder installiere git)." >&2
+      return 1
+    }
   fi
 
   # Detect SHA256 command
