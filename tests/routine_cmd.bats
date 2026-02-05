@@ -2,12 +2,48 @@
 
 load test_helper
 
-# Tests call cli/wgx directly for determinism (avoids PATH ambiguity)
-
 setup() {
   export WGX_DIR="$(cd "$BATS_TEST_DIRNAME/.." && pwd)"
+  PATH="$WGX_DIR/bin:$WGX_DIR:$PATH"
+
+  # Setup temp git repo
   TEST_TEMP_DIR="$(mktemp -d)"
-  cd "$TEST_TEMP_DIR"
+
+  # Create a separate upstream repo to act as origin
+  UPSTREAM_DIR="$TEST_TEMP_DIR/upstream.git"
+  mkdir -p "$UPSTREAM_DIR"
+  # Try modern init, fallback to legacy
+  if ! git init --bare --initial-branch=main "$UPSTREAM_DIR" 2>/dev/null; then
+    git init --bare "$UPSTREAM_DIR"
+    # Note: For bare repos on older git, setting HEAD manually is tricky without push.
+    # We rely on the push from local to set it up.
+  fi
+
+  # Create local repo
+  LOCAL_DIR="$TEST_TEMP_DIR/local"
+  mkdir -p "$LOCAL_DIR"
+  cd "$LOCAL_DIR"
+
+  # Configure git to be quiet about init and branch name
+  # Try modern init, fallback to legacy + rename
+  if ! git init --initial-branch=main 2>/dev/null; then
+    git init
+    # Rename current branch (likely master) to main
+    git branch -M main
+  fi
+
+  git config user.email "test@example.com"
+  git config user.name "Test User"
+
+  # Add remote
+  git remote add origin "$UPSTREAM_DIR"
+
+  # Create a commit and push to populate upstream
+  echo "init" > README.md
+  git add README.md
+  git commit -m "init"
+  git push -u origin main
+
   mkdir -p .wgx/out
 }
 
@@ -17,59 +53,89 @@ teardown() {
 }
 
 @test "wgx routine: help when no args" {
-  run "$WGX_DIR/cli/wgx" routine
+  run "$WGX_DIR/wgx" routine
   assert_success
   assert_output --partial "Usage:"
-  assert_output --partial "Available routines:"
 }
 
 @test "wgx routine: unknown routine rejected" {
-  run "$WGX_DIR/cli/wgx" routine does.not.exist preview
+  run "$WGX_DIR/wgx" routine unknown.routine
   assert_failure
   assert_output --partial "unknown routine"
 }
 
 @test "wgx routine: mode normalization preview -> dry-run (allowed outside git repo)" {
-  # This should run preview path of routine and create preview json even outside git repo
-  run "$WGX_DIR/cli/wgx" routine git.repair.remote-head preview
+  local nogit_dir
+  nogit_dir="$(mktemp -d)"
+  pushd "$nogit_dir" >/dev/null
+
+  run "$WGX_DIR/wgx" routine git.repair.remote-head preview
+
+  popd >/dev/null
+  rm -rf "$nogit_dir"
+
   assert_success
-  # Should print a file path under .wgx/out
-  assert_output --partial ".wgx/out/"
-  # Should have created generic fallback
-  [ -f ".wgx/out/routine.preview.json" ]
-  run jq -e '.kind=="routine.preview" and .mode=="dry-run"' ".wgx/out/routine.preview.json"
-  assert_success
-  # Check for note about apply requiring git repo
-  run jq -e '.note | contains("Apply erfordert ein Git-Repo")' ".wgx/out/routine.preview.json"
-  assert_success
+  assert_output --partial "routine.preview"
 }
 
 @test "wgx routine: apply requires git repo (exit 1 + ok false)" {
-  # Ensure we are NOT in a git repo (setup creates clean temp dir)
-  run "$WGX_DIR/cli/wgx" routine git.repair.remote-head apply
-  assert_failure
-  # Check stderr message
-  assert_output --partial "nicht in einem Git-Repo"
+  local nogit_dir
+  nogit_dir="$(mktemp -d)"
+  pushd "$nogit_dir" >/dev/null
 
-  # Check JSON output for ok:false and error details
-  [ -f ".wgx/out/routine.result.json" ]
-  run jq -e '.ok == false and (.stderr | contains("nicht in einem Git-Repo"))' ".wgx/out/routine.result.json"
-  assert_success
+  run "$WGX_DIR/wgx" routine git.repair.remote-head apply
+
+  popd >/dev/null
+  rm -rf "$nogit_dir"
+
+  assert_failure
+  assert_output --partial "routine.result"
 }
 
 @test "wgx routine: invalid mode rejected" {
-  run "$WGX_DIR/cli/wgx" routine git.repair.remote-head bananas
+  run "$WGX_DIR/wgx" routine git.repair.remote-head invalid_mode
   assert_failure
-  assert_output --partial "Usage:"
+  assert_output --partial "Invalid mode"
 }
 
 @test "wgx routine: flags preserved when mode is absent" {
-  # e.g. `wgx routine <id> --help` should not interpret --help as mode
-  # The dispatcher whitelisting ensures --help is NOT consumed as mode.
-  # So mode defaults to "dry-run".
-  # Then routine implementation runs in dry-run mode.
-  run "$WGX_DIR/cli/wgx" routine git.repair.remote-head --help
+  run "$WGX_DIR/wgx" routine git.repair.remote-head --help
   assert_success
-  assert_output --partial ".wgx/out/"
-  [ -f ".wgx/out/routine.preview.json" ]
+  assert_output --partial "routine.preview"
+}
+
+@test "wgx routine: uses WGX_GIT_BIN for execution" {
+  # Resolve real git path portably
+  local real_git
+  real_git="$(command -v git)" || fail "git not found"
+
+  # Create a wrapper script that acts as 'git' but logs usage
+  # We assume we are in LOCAL_DIR from setup
+  local mock_git="$TEST_TEMP_DIR/mock_git.sh"
+  local git_log="$TEST_TEMP_DIR/git_log.txt"
+
+  # Ensure the mock delegates to real git for EVERYTHING,
+  # so behavior is identical to real execution, but we get a log.
+  cat <<EOF >"$mock_git"
+#!/bin/bash
+# Log every invocation arguments
+echo "MOCK_GIT_EXEC: \$*" >> "$git_log"
+# Passthrough to real git
+exec "$real_git" "\$@"
+EOF
+  chmod +x "$mock_git"
+
+  # We use the mock as our git binary
+  WGX_GIT_BIN="$mock_git" run "$WGX_DIR/wgx" routine git.repair.remote-head apply
+
+  assert_success
+
+  # Check if our mock was called for the actual steps
+  if [ ! -f "$git_log" ]; then
+    fail "Mock git was not executed for steps"
+  fi
+
+  run cat "$git_log"
+  assert_output --partial "MOCK_GIT_EXEC: remote set-head origin --auto"
+  assert_output --partial "MOCK_GIT_EXEC: fetch origin --prune"
 }

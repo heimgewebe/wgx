@@ -25,13 +25,10 @@ teardown() {
 }
 
 @test "audit git: creates unique artifacts per correlation_id" {
-  run wgx audit git --correlation-id run-A
+  run "$WGX_DIR/wgx" audit git --correlation-id run-A
   assert_success
 
   # Check output contains the file path (which is absolute or relative to CWD)
-  # wgx audit git prints relative path usually, but we are in temp dir.
-  # It writes to .wgx/out relative to CWD.
-
   assert_output --partial ".wgx/out/audit.git.v1.run-A.json"
 
   # Check file exists
@@ -52,7 +49,7 @@ teardown() {
 
 @test "audit git: stdout-json does not write file" {
   rm -f ".wgx/out/audit.git.v1.json"
-  run wgx audit git --stdout-json
+  run "$WGX_DIR/wgx" audit git --stdout-json
   assert_success
   assert_output --partial '"kind": "audit.git"'
 
@@ -65,7 +62,7 @@ teardown() {
   git remote add origin https://example.com/repo.git || true
   git remote remove origin
 
-  run wgx audit git --stdout-json
+  run "$WGX_DIR/wgx" audit git --stdout-json
   assert_success
 
   # Verify status is error in JSON
@@ -77,58 +74,35 @@ teardown() {
 }
 
 @test "audit git: missing jq returns non-zero" {
-  local old_path="$PATH"
-  local tmp
-  tmp="$(mktemp -d)"
+  # Use env var injection to force failure
+  WGX_JQ_BIN="/nonexistent-jq" run "$WGX_DIR/wgx" audit git --stdout-json
+  assert_failure 1
+  assert_output --partial "Error: jq executable not found"
+}
 
-  # Ensure wgx is in the new PATH, but jq is NOT
-  ln -s "$WGX_DIR/wgx" "$tmp/wgx"
-  ln -s "$WGX_DIR/cli" "$tmp/cli" # Ensure cli wrapper logic works if split
+@test "audit git: runs outside git repo (returns status error, exit 0)" {
+  local nogit_dir
+  nogit_dir="$(mktemp -d)"
 
-  # Minimal git needs to be available or audit will fail for wrong reason
-  # Assuming git is in /usr/bin or /bin, we add those but filter out jq
-  # Harder than it looks. Simpler: mock jq as failing command.
+  # Run inside the clean dir
+  pushd "$nogit_dir" >/dev/null
 
-  PATH="$tmp:$PATH"
+  run "$WGX_DIR/wgx" audit git --stdout-json
 
-  # Mock jq to fail or not be found (if we control PATH fully)
-  # But we rely on system git.
+  popd >/dev/null
+  rm -rf "$nogit_dir"
 
-  # Strategy: Create a 'jq' wrapper that fails or doesn't exist?
-  # Since we are testing 'command -v jq', let's shadow jq in our temp bin dir
-  # but make it non-executable or just ensure it's not there and we restrict PATH?
-  # Restricting PATH is hard because we need git, bash, sed, etc.
-
-  # Better Strategy: Just use the fact that we can prepend to PATH.
-  # If we prepend a directory where we *don't* put jq, it doesn't help if it's later in PATH.
-  # We need to effectively "hide" jq.
-
-  # Actually, the check is `command -v jq`.
-  # So if we create a `jq` that is NOT executable, does command -v find it?
-  # `command -v` finds executables.
-
-  # Let's rely on the fact that we can't easily hide system jq without breaking other tools.
-  # Instead, let's skip this test if we can't isolate jq, OR assume we can run in a restricted env.
-
-  # REVISED STRATEGY:
-  # Verify the script fails if jq fails.
-  # Create a `jq` mock that returns 127 or prints nothing?
-  # The check is: if ! command -v jq >/dev/null 2>&1; then
-
-  # So we need to ensure `command -v jq` fails.
-  # This is only possible if jq is NOT in PATH.
-
-  # Let's try to construct a minimal PATH that includes `wgx`, `git`, `bash` (sh), `date`, `wc`, `tr` but NOT `jq`.
-  # This is fragile across OSs.
-
-  # Alternative: Trust the code inspection for this specific check, or accept that this test is hard in BATS.
-  # Or, simpler:
-
-  skip "Cannot easily hide system jq in BATS environment without breaking git"
+  assert_success
+  assert_output --partial '"status": "error"'
+  assert_output --partial '"id": "git.repo.present"'
+  assert_output --partial '"message": "No git repository detected."'
+  # Check if repo name is auto-detected as the directory name (tmp dir name starts with tmp...)
+  # We can't predict exact name but we can check it's not "unknown" or empty if we care,
+  # but checking status is sufficient for now.
 }
 
 @test "audit git: type checks for numeric fields and booleans" {
-  run wgx audit git --stdout-json
+  run "$WGX_DIR/wgx" audit git --stdout-json
   assert_success
 
   run jq -e '
@@ -136,7 +110,8 @@ teardown() {
     (.facts.is_detached_head|type)=="boolean" and
     (.facts.working_tree.staged|type)=="number" and
     (.facts.working_tree.unstaged|type)=="number" and
-    (.facts.working_tree.untracked|type)=="number"
+    (.facts.working_tree.untracked|type)=="number" and
+    (.facts.upstream.ref_exists == null or (.facts.upstream.ref_exists|type)=="boolean")
   ' <<<"$output"
   assert_success
 }
