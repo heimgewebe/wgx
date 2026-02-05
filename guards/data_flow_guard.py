@@ -139,7 +139,7 @@ def load_data(filepath):
                     items.append(json.loads(line))
                 except json.JSONDecodeError as e:
                     # Provide clearer error context for operator
-                    raise ValueError(f"Line {i+1}: invalid JSON: {e.msg}")
+                    raise ValueError(f"Line {i+1}: invalid JSON: {e}")
 
             return items
 
