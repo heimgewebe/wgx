@@ -24,7 +24,7 @@ Halte Änderungen klein, portabel und mit Tests abgesichert.
 - Lint: `shellcheck -f gcc`.
 - Tests: Bats-Tests unter `tests/` ablegen und mit `bats -r tests` ausführen.
 - Python-Tests: `python3 -m unittest discover -s tests` vom Root ausführen.
-- Pytest: Einige Tests (z. B. `tests/test_insights_guard.py`) nutzen `pytest`.
+- Pytest: Einige Tests (z. B. `tests/test_insights_guard.py`) nutzen `pytest` (optional; `pytest -q`).
 
 ## Commits & PRs
 
