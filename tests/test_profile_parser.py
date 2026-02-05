@@ -79,6 +79,10 @@ class TestProfileParser(unittest.TestCase):
         """Inline comments must be preceded by whitespace (space/tab); otherwise treated as literal."""
         self.assertEqual(profile_parser._strip_inline_comment("value#comment"), "value#comment")
 
+    def test_strip_inline_comment_mixed(self):
+        """Test mixed usage of compact hash (literal) and spaced hash (comment)."""
+        self.assertEqual(profile_parser._strip_inline_comment("value#hash # comment"), "value#hash ")
+
     def test_strip_inline_comment_tabs(self):
         """Test that tabs count as whitespace for inline comments."""
         self.assertEqual(profile_parser._strip_inline_comment("value\t# comment"), "value\t")
