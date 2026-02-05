@@ -328,7 +328,7 @@ wgx_audit_git() {
         head_ref:$head_ref,
         is_detached_head:$detached,
         local_branch:(if $local_branch=="null" or $local_branch=="" then null else $local_branch end),
-        upstream:(if $upstream=="" then null else {name:$upstream, exists_locally:$upstream_exists, ref_exists:$upstream_ref_exists} end),
+        upstream:(if $upstream=="" then null else {name:$upstream, exists_locally:$upstream_ref_exists} end),
         remotes:(["origin"]),
         remote_default_branch:(if $remote_default_branch=="" then null else $remote_default_branch end),
         remote_refs:{
