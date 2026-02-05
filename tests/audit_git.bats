@@ -111,6 +111,7 @@ teardown() {
     (.facts.working_tree.staged|type)=="number" and
     (.facts.working_tree.unstaged|type)=="number" and
     (.facts.working_tree.untracked|type)=="number" and
+    (.facts.upstream.configured == null or (.facts.upstream.configured|type)=="boolean") and
     (.facts.upstream.exists_locally == null or (.facts.upstream.exists_locally|type)=="boolean")
   ' <<<"$output"
   assert_success
