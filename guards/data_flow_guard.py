@@ -116,35 +116,32 @@ def load_config():
 
 def load_data(filepath):
     with open(filepath, 'r', encoding='utf-8') as f:
-        content = f.read()
+        # Try JSON first
+        try:
+            data = json.load(f)
+            if isinstance(data, list):
+                return data
+            elif isinstance(data, dict):
+                return [data]
+            else:
+                raise ValueError("File content must be a JSON object or array")
+        except json.JSONDecodeError:
+            # Try JSONL
+            f.seek(0)
+            items = []
 
-    try:
-        data = json.loads(content)
-        if isinstance(data, list):
-            return data
-        elif isinstance(data, dict):
-            return [data]
-        else:
-            raise ValueError("File content must be a JSON object or array")
-    except json.JSONDecodeError:
-        # Try JSONL
-        items = []
-        lines = content.splitlines()
-        valid_lines_count = 0
-        for i, line in enumerate(lines):
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                items.append(json.loads(line))
-                valid_lines_count += 1
-            except json.JSONDecodeError as e:
-                raise ValueError(f"Line {i+1}: {e}")
+            # Empty/whitespace file yields [] (treated as empty JSONL).
+            for i, line in enumerate(f):
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    items.append(json.loads(line))
+                except json.JSONDecodeError as e:
+                    # Provide clearer error context for operator
+                    raise ValueError(f"Line {i+1}: invalid JSON: {e}")
 
-        if content.strip() and valid_lines_count == 0:
-            raise ValueError("File content is neither valid JSON nor valid JSONL")
-
-        return items
+            return items
 
 def resolve_data(patterns):
     files = []
