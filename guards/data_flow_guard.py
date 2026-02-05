@@ -356,15 +356,22 @@ def main():
                 continue
 
             for i, item in enumerate(items):
-                # Safe ID extraction
-                item_id = safe_item_id(item, i)
-
                 try:
                     validator.validate(item)
                 except jsonschema.ValidationError as e:
+                    # Safe ID extraction
+                    item_id = safe_item_id(item, i)
                     msg = e.message
                     if len(msg) > 200: msg = msg[:200] + "..."
                     print(f"[wgx][guard][data_flow] FAIL flow={flow_name} schema={schema_rel_path} data={df} id={item_id} error='{msg}'", file=sys.stderr)
+                    total_errors += 1
+                except Exception as e:
+                    # Catch unexpected validation crashes
+                    item_id = safe_item_id(item, i)
+                    exc_type = type(e).__name__
+                    msg = str(e)
+                    if len(msg) > 200: msg = msg[:200] + "..."
+                    print(f"[wgx][guard][data_flow] ERROR flow={flow_name} schema={schema_rel_path} data={df} id={item_id} error='Validator error ({exc_type}): {msg}'", file=sys.stderr)
                     total_errors += 1
 
     if total_errors > 0:
