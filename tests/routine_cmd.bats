@@ -12,17 +12,26 @@ setup() {
   # Create a separate upstream repo to act as origin
   UPSTREAM_DIR="$TEST_TEMP_DIR/upstream.git"
   mkdir -p "$UPSTREAM_DIR"
-  git init --bare --initial-branch=main "$UPSTREAM_DIR"
+  # Try modern init, fallback to legacy
+  if ! git init --bare --initial-branch=main "$UPSTREAM_DIR" 2>/dev/null; then
+    git init --bare "$UPSTREAM_DIR"
+    # Note: For bare repos on older git, setting HEAD manually is tricky without push.
+    # We rely on the push from local to set it up.
+  fi
 
   # Create local repo
   LOCAL_DIR="$TEST_TEMP_DIR/local"
   mkdir -p "$LOCAL_DIR"
   cd "$LOCAL_DIR"
 
-  # Configure git to be quiet about init
-  # Note: Avoid global config changes in tests to prevent side effects
+  # Configure git to be quiet about init and branch name
+  # Try modern init, fallback to legacy + rename
+  if ! git init --initial-branch=main 2>/dev/null; then
+    git init
+    # Rename current branch (likely master) to main
+    git branch -M main
+  fi
 
-  git init --initial-branch=main
   git config user.email "test@example.com"
   git config user.name "Test User"
 

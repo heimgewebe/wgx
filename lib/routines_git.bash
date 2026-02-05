@@ -149,8 +149,8 @@ wgx_routine_git_repair_remote_head() {
       ;;
     esac
 
-    # Safety Guard: Reject shell metacharacters
-    if [[ "$cmd" =~ [';&|<>`$'] ]]; then
+    # Safety Guard: Reject shell metacharacters (defense-in-depth for future static steps)
+    if [[ "$cmd" =~ [\;\&\|\<\>\`] ]]; then
       log_stderr+="wgx routine: unsafe step command detected (shell metacharacters): $cmd"$'\n'
       ok=false
       break
