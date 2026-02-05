@@ -23,6 +23,7 @@ Halte Änderungen klein, portabel und mit Tests abgesichert.
 - Format-Check: `shfmt -d`.
 - Lint: `shellcheck -f gcc`.
 - Tests: Bats-Tests unter `tests/` ablegen und mit `bats -r tests` ausführen.
+- Python-Tests: `python3 -m unittest` vom Root ausführen.
 
 ## Commits & PRs
 
@@ -41,6 +42,7 @@ bash -n $(git ls-files "*.sh" "*.bash")
 shfmt -d $(git ls-files "*.sh" "*.bash")
 shellcheck -S style $(git ls-files "*.sh" "*.bash")
 bats -r tests
+python3 -m unittest
 markdownlint $(git ls-files "*.md" "*.mdx")
 vale .
 ```

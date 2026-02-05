@@ -2,10 +2,7 @@ import unittest
 import tempfile
 import shutil
 import os
-import sys
 
-# Ensure imports work
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from guards import data_flow_guard
 
 class TestLoadData(unittest.TestCase):
