@@ -130,6 +130,7 @@ def load_data(filepath):
             f.seek(0)
             items = []
 
+            # Empty/whitespace file yields [] (treated as empty JSONL).
             for i, line in enumerate(f):
                 line = line.strip()
                 if not line:
@@ -137,7 +138,8 @@ def load_data(filepath):
                 try:
                     items.append(json.loads(line))
                 except json.JSONDecodeError as e:
-                    raise ValueError(f"Line {i+1}: {e}")
+                    # Provide clearer error context for operator
+                    raise ValueError(f"Line {i+1}: invalid JSON: {e}")
 
             return items
 

@@ -60,14 +60,18 @@ class TestLoadData(unittest.TestCase):
         path = self._write_file("garbage.json", "this is garbage")
         with self.assertRaises(ValueError) as cm:
             data_flow_guard.load_data(path)
-        self.assertIn("Line 1", str(cm.exception))
+        msg = str(cm.exception)
+        self.assertIn("Line 1", msg)
+        self.assertIn("invalid JSON", msg)
 
     def test_mixed_valid_invalid_jsonl(self):
         content = '{"id": "1"}\nGARBAGE\n{"id": "2"}'
         path = self._write_file("mixed.jsonl", content)
         with self.assertRaises(ValueError) as cm:
             data_flow_guard.load_data(path)
-        self.assertIn("Line 2", str(cm.exception))
+        msg = str(cm.exception)
+        self.assertIn("Line 2", msg)
+        self.assertIn("invalid JSON", msg)
 
     def test_json_primitive(self):
         # A primitive like "123" or "true" is valid JSON but we enforce Object or Array
