@@ -27,6 +27,11 @@ except ImportError:
     # Defer exit until main() so imports (e.g. for testing) keep working.
     jsonschema = None
 
+try:
+    from guards._util import safe_item_id
+except ImportError:
+    from _util import safe_item_id
+
 def load_data(filepath):
     """
     Load data from JSON or JSONL file.
@@ -144,10 +149,7 @@ def main():
             continue
 
         for i, item in enumerate(items):
-            if isinstance(item, dict) and "id" in item:
-                item_id = item["id"]
-            else:
-                item_id = f"item-{i}"
+            item_id = safe_item_id(item, i)
             schema_failed = False
 
             # Schema Validation
