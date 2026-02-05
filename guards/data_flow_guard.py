@@ -352,7 +352,10 @@ def main():
 
             for i, item in enumerate(items):
                 # Safe ID extraction
-                item_id = item.get("id", f"item-{i}") if isinstance(item, dict) else f"item-{i}"
+                if isinstance(item, dict) and "id" in item:
+                    item_id = item["id"]
+                else:
+                    item_id = f"item-{i}"
 
                 try:
                     validator.validate(item)
