@@ -62,6 +62,11 @@ except ImportError:
     jsonschema = None
 
 try:
+    from guards._util import safe_item_id
+except ImportError:
+    from _util import safe_item_id
+
+try:
     import yaml
 except ImportError:
     yaml = None
@@ -352,10 +357,7 @@ def main():
 
             for i, item in enumerate(items):
                 # Safe ID extraction
-                if isinstance(item, dict) and "id" in item:
-                    item_id = item["id"]
-                else:
-                    item_id = f"item-{i}"
+                item_id = safe_item_id(item, i)
 
                 try:
                     validator.validate(item)
