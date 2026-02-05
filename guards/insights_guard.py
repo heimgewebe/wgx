@@ -144,7 +144,7 @@ def main():
             continue
 
         for i, item in enumerate(items):
-            if "id" in item:
+            if isinstance(item, dict) and "id" in item:
                 item_id = item["id"]
             else:
                 item_id = f"item-{i}"
