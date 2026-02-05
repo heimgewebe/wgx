@@ -25,7 +25,7 @@ teardown() {
 }
 
 @test "audit git: creates unique artifacts per correlation_id" {
-  run wgx audit git --correlation-id run-A
+  run "$WGX_DIR/wgx" audit git --correlation-id run-A
   assert_success
 
   # Check output contains the file path (which is absolute or relative to CWD)
@@ -49,7 +49,7 @@ teardown() {
 
 @test "audit git: stdout-json does not write file" {
   rm -f ".wgx/out/audit.git.v1.json"
-  run wgx audit git --stdout-json
+  run "$WGX_DIR/wgx" audit git --stdout-json
   assert_success
   assert_output --partial '"kind": "audit.git"'
 
@@ -62,7 +62,7 @@ teardown() {
   git remote add origin https://example.com/repo.git || true
   git remote remove origin
 
-  run wgx audit git --stdout-json
+  run "$WGX_DIR/wgx" audit git --stdout-json
   assert_success
 
   # Verify status is error in JSON
@@ -75,7 +75,7 @@ teardown() {
 
 @test "audit git: missing jq returns non-zero" {
   # Use env var injection to force failure
-  WGX_JQ_BIN="/nonexistent-jq" run wgx audit git --stdout-json
+  WGX_JQ_BIN="/nonexistent-jq" run "$WGX_DIR/wgx" audit git --stdout-json
   assert_failure 1
   assert_output --partial "Error: jq executable not found"
 }
@@ -87,7 +87,7 @@ teardown() {
   # Run inside the clean dir
   pushd "$nogit_dir" >/dev/null
 
-  run wgx audit git --stdout-json
+  run "$WGX_DIR/wgx" audit git --stdout-json
 
   popd >/dev/null
   rm -rf "$nogit_dir"
@@ -102,7 +102,7 @@ teardown() {
 }
 
 @test "audit git: type checks for numeric fields and booleans" {
-  run wgx audit git --stdout-json
+  run "$WGX_DIR/wgx" audit git --stdout-json
   assert_success
 
   run jq -e '
@@ -110,7 +110,8 @@ teardown() {
     (.facts.is_detached_head|type)=="boolean" and
     (.facts.working_tree.staged|type)=="number" and
     (.facts.working_tree.unstaged|type)=="number" and
-    (.facts.working_tree.untracked|type)=="number"
+    (.facts.working_tree.untracked|type)=="number" and
+    (.facts.upstream.ref_exists == null or (.facts.upstream.ref_exists|type)=="boolean")
   ' <<<"$output"
   assert_success
 }

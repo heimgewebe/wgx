@@ -53,13 +53,13 @@ teardown() {
 }
 
 @test "wgx routine: help when no args" {
-  run wgx routine
+  run "$WGX_DIR/wgx" routine
   assert_success
   assert_output --partial "Usage:"
 }
 
 @test "wgx routine: unknown routine rejected" {
-  run wgx routine unknown.routine
+  run "$WGX_DIR/wgx" routine unknown.routine
   assert_failure
   assert_output --partial "unknown routine"
 }
@@ -69,7 +69,7 @@ teardown() {
   nogit_dir="$(mktemp -d)"
   pushd "$nogit_dir" >/dev/null
 
-  run wgx routine git.repair.remote-head preview
+  run "$WGX_DIR/wgx" routine git.repair.remote-head preview
 
   popd >/dev/null
   rm -rf "$nogit_dir"
@@ -83,7 +83,7 @@ teardown() {
   nogit_dir="$(mktemp -d)"
   pushd "$nogit_dir" >/dev/null
 
-  run wgx routine git.repair.remote-head apply
+  run "$WGX_DIR/wgx" routine git.repair.remote-head apply
 
   popd >/dev/null
   rm -rf "$nogit_dir"
@@ -93,13 +93,13 @@ teardown() {
 }
 
 @test "wgx routine: invalid mode rejected" {
-  run wgx routine git.repair.remote-head invalid_mode
+  run "$WGX_DIR/wgx" routine git.repair.remote-head invalid_mode
   assert_failure
   assert_output --partial "Invalid mode"
 }
 
 @test "wgx routine: flags preserved when mode is absent" {
-  run wgx routine git.repair.remote-head --help
+  run "$WGX_DIR/wgx" routine git.repair.remote-head --help
   assert_success
   assert_output --partial "routine.preview"
 }
@@ -126,7 +126,7 @@ EOF
   chmod +x "$mock_git"
 
   # We use the mock as our git binary
-  WGX_GIT_BIN="$mock_git" run wgx routine git.repair.remote-head apply
+  WGX_GIT_BIN="$mock_git" run "$WGX_DIR/wgx" routine git.repair.remote-head apply
 
   assert_success
 
