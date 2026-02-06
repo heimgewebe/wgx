@@ -44,6 +44,7 @@ shfmt -d $(git ls-files "*.sh" "*.bash")
 shellcheck -S style $(git ls-files "*.sh" "*.bash")
 bats -r tests
 python3 -m unittest discover -s tests
+pytest -q
 markdownlint $(git ls-files "*.md" "*.mdx")
 vale .
 ```
