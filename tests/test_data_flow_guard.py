@@ -1,12 +1,8 @@
 import unittest
 from unittest.mock import patch, mock_open, MagicMock
-import sys
 import os
 import json
 import pathlib
-
-# Ensure the guard can be imported
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from guards import data_flow_guard
 
