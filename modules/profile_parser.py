@@ -19,15 +19,17 @@ RE_NON_ALPHANUM_UNDERSCORE = re.compile(r'[^A-Za-z0-9_]')
 RE_DASH_SEQ = re.compile(r'-+')
 
 # Regex for stripping inline comments
-# Group 1: Single quoted string (matches valid or unclosed at EOL)
-# Group 2: Double quoted string (matches valid or unclosed at EOL)
-# Group 3: Hash (#)
-# Group 4: Safe text (anything that isn't quote or hash)
+# We scan for Quotes and Hashes. Everything else is ignored.
+# - Group 1: Single quoted string. Matches SQL-style escapes ('') or unclosed at EOL.
+# - Group 2: Double quoted string. Matches backslash escapes (\.) or unclosed at EOL.
+# - Group 3: Hash (#). Potential comment starter.
+#
+# Note: Unclosed quotes consume the rest of the line to prevent Hashes inside them
+# from being interpreted as comments.
 RE_STRIP_COMMENT_TOKENS = re.compile(r"""
     ( ' (?: '' | [^'] )* (?: ' | $ ) ) |
     ( " (?: \\. | [^"\\] )* (?: " | $ ) ) |
-    ( \# ) |
-    ( [^'"#]+ )
+    ( \# )
 """, re.VERBOSE)
 
 # --- YAML Parser (Minimal Subset) ---
@@ -75,13 +77,14 @@ def _convert_frame(frame: Dict[str, Any], kind: str) -> None:
         frame["type"] = "dict"
 
 def _strip_inline_comment(line: str) -> str:
-    # Iterate over tokens
+    # Iterate over tokens (Quotes and Hashes)
+    # We rely on the regex to skip "safe text" automatically.
     for match in RE_STRIP_COMMENT_TOKENS.finditer(line):
         if match.group(3):  # Found a Hash (#)
             start = match.start()
             # Check if it is a valid comment starter:
             # - At start of line
-            # - Preceded by whitespace
+            # - Preceded by whitespace (space or tab)
             if start == 0 or line[start - 1] in " \t":
                 return line[:start]
             # Otherwise, it's a literal hash (e.g. in "foo#bar"), continue scanning

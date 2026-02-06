@@ -88,6 +88,10 @@ class TestProfileParser(unittest.TestCase):
         """Hashes inside double quotes are preserved."""
         self.assertEqual(profile_parser._strip_inline_comment('"foo # bar"'), '"foo # bar"')
 
+    def test_strip_inline_comment_hash_in_quotes_then_comment(self):
+        """Test hash in quotes followed by a real comment."""
+        self.assertEqual(profile_parser._strip_inline_comment('"foo # bar" # comment'), '"foo # bar" ')
+
     def test_strip_inline_comment_quoted(self):
         """Test that hashes inside quotes are preserved."""
         self.assertEqual(profile_parser._strip_inline_comment("val '# not comment'"), "val '# not comment'")
