@@ -486,5 +486,22 @@ class TestDataFlowGuard(unittest.TestCase):
         # Verify RefResolver used
         mock_jsonschema.RefResolver.assert_called()
 
+    @patch('guards.data_flow_guard.HAS_REFERENCING', True)
+    @patch('guards.data_flow_guard.urllib.request.urlopen')
+    def test_retrieve_resource_forbids_network(self, mock_urlopen):
+        """Verify that retrieve_resource strictly forbids http/https."""
+        from guards.data_flow_guard import retrieve_resource
+
+        with self.assertRaises(ValueError) as cm:
+            retrieve_resource("http://example.com/schema.json")
+        self.assertIn("Network reference forbidden", str(cm.exception))
+
+        with self.assertRaises(ValueError) as cm:
+            retrieve_resource("https://example.com/schema.json")
+        self.assertIn("Network reference forbidden", str(cm.exception))
+
+        # Verify urlopen NOT called
+        mock_urlopen.assert_not_called()
+
 if __name__ == '__main__':
     unittest.main()

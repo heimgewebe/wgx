@@ -85,8 +85,13 @@ def is_strict():
 
 def retrieve_resource(uri):
     """
-    Retrieve a resource from a URI (file://, http://, etc.) for 'referencing' library.
+    Retrieve a resource from a URI for 'referencing' library.
+    STRICT: Only allows 'file://' scheme or no scheme (local path).
+    Network access (http/https) is strictly forbidden.
     """
+    if uri.startswith("http://") or uri.startswith("https://"):
+        raise ValueError(f"Network reference forbidden: {uri}")
+
     try:
         with urllib.request.urlopen(uri) as f:
             data = json.load(f)
