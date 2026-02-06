@@ -24,7 +24,8 @@ Halte Änderungen klein, portabel und mit Tests abgesichert.
 - Lint: `shellcheck -f gcc`.
 - Tests: Bats-Tests unter `tests/` ablegen und mit `bats -r tests` ausführen.
 - Python-Tests: `python3 -m unittest discover -s tests` vom Root ausführen.
-- Pytest: Einige Tests (z. B. `tests/test_insights_guard.py`) nutzen `pytest` (optional; `pytest -q`).
+  > Hinweis: Tests nicht via `python tests/foo.py` starten, da dies Importpfade brechen kann.
+- Pytest: Einige Tests (z. B. `tests/test_insights_guard.py`) nutzen `pytest` (optional; `python3 -m pytest -q`).
 
 ## Commits & PRs
 
@@ -44,7 +45,7 @@ shfmt -d $(git ls-files "*.sh" "*.bash")
 shellcheck -S style $(git ls-files "*.sh" "*.bash")
 bats -r tests
 python3 -m unittest discover -s tests
-command -v pytest >/dev/null && pytest -q || echo "pytest not installed; skipping"
+command -v pytest >/dev/null && python3 -m pytest -q || echo "pytest not installed; skipping"
 markdownlint $(git ls-files "*.md" "*.mdx")
 vale .
 ```
