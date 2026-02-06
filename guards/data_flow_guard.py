@@ -55,6 +55,7 @@ import os
 import pathlib
 import collections
 import urllib.request
+import urllib.parse
 
 # Try imports
 try:
@@ -89,19 +90,28 @@ def retrieve_resource(uri):
     STRICT: Only allows 'file://' scheme or no scheme (local path).
     Network access (http/https) is strictly forbidden.
     """
-    if uri.startswith("http://") or uri.startswith("https://"):
+    if not HAS_REFERENCING:
+         raise RuntimeError("retrieve_resource called but referencing is not available")
+
+    parsed = urllib.parse.urlparse(uri)
+    if parsed.scheme in ("http", "https", "ftp"):
         raise ValueError(f"Network reference forbidden: {uri}")
 
+    # Resolve local path
+    if parsed.scheme == "file":
+        path = urllib.request.url2pathname(parsed.path)
+    elif parsed.scheme == "":
+        path = parsed.path
+    else:
+        # Unknown scheme (e.g. unknown://...) -> Reject
+        raise ValueError(f"Unsupported URI scheme: {parsed.scheme}")
+
     try:
-        with urllib.request.urlopen(uri) as f:
+        with open(path, 'r', encoding='utf-8') as f:
             data = json.load(f)
             return Resource.from_contents(data, default_specification=DRAFT202012)
     except Exception as e:
-        # We raise Unresolvable to let referencing know we failed
-        # If Unresolvable is not available (old env), this function won't be called anyway.
-        if HAS_REFERENCING:
-             raise Unresolvable(ref=uri) from e
-        raise e
+        raise Unresolvable(ref=uri) from e
 
 def load_config():
     """
@@ -323,6 +333,8 @@ def main():
                     if HAS_REFERENCING:
                         # Ensure schema has an ID matching its file path so relative refs resolve correctly
                         if "$id" not in schema:
+                            # Create a copy to avoid side effects on cached schema or re-runs
+                            schema = dict(schema)
                             schema["$id"] = base_uri
 
                         resource = Resource.from_contents(schema, default_specification=DRAFT202012)

@@ -402,6 +402,7 @@ class TestDataFlowGuard(unittest.TestCase):
         self.assertEqual(mock_load_data.call_count, 2,
                          f"Expected load_data to be called 2 times (caching disabled), but called {mock_load_data.call_count}")
 
+    @patch('guards.data_flow_guard.DRAFT202012', MagicMock())
     @patch('guards.data_flow_guard.HAS_REFERENCING', True)
     @patch('guards.data_flow_guard.Registry')
     @patch('guards.data_flow_guard.Resource')
@@ -435,7 +436,8 @@ class TestDataFlowGuard(unittest.TestCase):
         mock_registry.return_value = mock_registry_instance
         mock_registry_instance.with_resource.return_value = mock_registry_instance # Chaining
 
-        ret = data_flow_guard.main()
+        with patch('guards.data_flow_guard.yaml', None):
+            ret = data_flow_guard.main()
 
         self.assertEqual(ret, 0)
 
@@ -443,7 +445,10 @@ class TestDataFlowGuard(unittest.TestCase):
         mock_resource.from_contents.assert_called()
 
         # Verify Registry usage
-        mock_registry.assert_called() # Checked constructor called with retrieve=...
+        mock_registry.assert_called()
+        args, kwargs = mock_registry.call_args
+        self.assertIn('retrieve', kwargs)
+        self.assertTrue(callable(kwargs['retrieve']))
         mock_registry_instance.with_resource.assert_called()
 
         # Verify validator initialized with registry
@@ -451,6 +456,9 @@ class TestDataFlowGuard(unittest.TestCase):
             unittest.mock.ANY,
             registry=mock_registry_instance
         )
+
+        # Verify validation called
+        mock_validator_instance.validate.assert_called()
 
     @patch('guards.data_flow_guard.HAS_REFERENCING', False)
     @patch('guards.data_flow_guard.jsonschema')
@@ -479,7 +487,8 @@ class TestDataFlowGuard(unittest.TestCase):
         mock_jsonschema.validators.validator_for.return_value = MagicMock(return_value=mock_validator_instance)
         mock_jsonschema.RefResolver = MagicMock()
 
-        ret = data_flow_guard.main()
+        with patch('guards.data_flow_guard.yaml', None):
+            ret = data_flow_guard.main()
 
         self.assertEqual(ret, 0)
 
@@ -487,8 +496,7 @@ class TestDataFlowGuard(unittest.TestCase):
         mock_jsonschema.RefResolver.assert_called()
 
     @patch('guards.data_flow_guard.HAS_REFERENCING', True)
-    @patch('guards.data_flow_guard.urllib.request.urlopen')
-    def test_retrieve_resource_forbids_network(self, mock_urlopen):
+    def test_retrieve_resource_forbids_network(self):
         """Verify that retrieve_resource strictly forbids http/https."""
         from guards.data_flow_guard import retrieve_resource
 
@@ -499,9 +507,6 @@ class TestDataFlowGuard(unittest.TestCase):
         with self.assertRaises(ValueError) as cm:
             retrieve_resource("https://example.com/schema.json")
         self.assertIn("Network reference forbidden", str(cm.exception))
-
-        # Verify urlopen NOT called
-        mock_urlopen.assert_not_called()
 
 if __name__ == '__main__':
     unittest.main()
