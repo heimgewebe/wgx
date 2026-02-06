@@ -88,23 +88,28 @@ def retrieve_resource(uri):
     """
     Retrieve a resource from a URI for 'referencing' library.
     STRICT: Only allows 'file://' scheme or no scheme (local path).
-    Network access (http/https) is strictly forbidden.
+    Network access (http/https, ftp, UNC paths) is strictly forbidden.
     """
     if not HAS_REFERENCING:
-         raise RuntimeError("retrieve_resource called but referencing is not available")
+        raise RuntimeError("retrieve_resource called but referencing is not available")
 
     parsed = urllib.parse.urlparse(uri)
-    if parsed.scheme in ("http", "https", "ftp"):
-        raise ValueError(f"Network reference forbidden: {uri}")
+
+    if parsed.scheme not in ("", "file"):
+        raise ValueError(f"Network/Unsupported reference forbidden: {uri}")
+
+    # Check for non-empty netloc in file URIs (indicates remote server/UNC path)
+    if parsed.scheme == "file" and parsed.netloc:
+        raise ValueError(f"Network reference (UNC/remote) forbidden: {uri}")
 
     # Resolve local path
     if parsed.scheme == "file":
         path = urllib.request.url2pathname(parsed.path)
-    elif parsed.scheme == "":
-        path = parsed.path
     else:
-        # Unknown scheme (e.g. unknown://...) -> Reject
-        raise ValueError(f"Unsupported URI scheme: {parsed.scheme}")
+        path = parsed.path
+
+    # Normalize path (handle ../ etc)
+    path = os.path.normpath(path)
 
     try:
         with open(path, 'r', encoding='utf-8') as f:

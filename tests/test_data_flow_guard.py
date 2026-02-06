@@ -402,6 +402,7 @@ class TestDataFlowGuard(unittest.TestCase):
         self.assertEqual(mock_load_data.call_count, 2,
                          f"Expected load_data to be called 2 times (caching disabled), but called {mock_load_data.call_count}")
 
+    @patch('guards.data_flow_guard.retrieve_resource', new_callable=MagicMock)
     @patch('guards.data_flow_guard.DRAFT202012', MagicMock())
     @patch('guards.data_flow_guard.HAS_REFERENCING', True)
     @patch('guards.data_flow_guard.Registry')
@@ -410,7 +411,7 @@ class TestDataFlowGuard(unittest.TestCase):
     @patch('guards.data_flow_guard.os.path.exists')
     @patch('guards.data_flow_guard.glob.glob')
     @patch('builtins.open', new_callable=mock_open)
-    def test_main_referencing_path(self, mock_file, mock_glob, mock_exists, mock_jsonschema, mock_resource, mock_registry):
+    def test_main_referencing_path(self, mock_file, mock_glob, mock_exists, mock_jsonschema, mock_resource, mock_registry, mock_retrieve_resource):
         # Setup: Config exists at .wgx/flows.json
         mock_exists.side_effect = lambda p: p in [".wgx/flows.json", "schema.json", "data.json"]
         mock_glob.return_value = []
@@ -444,11 +445,11 @@ class TestDataFlowGuard(unittest.TestCase):
         # Verify Resource creation
         mock_resource.from_contents.assert_called()
 
-        # Verify Registry usage
+        # Verify Registry usage: must be called with our specific mocked retrieve_resource
         mock_registry.assert_called()
         args, kwargs = mock_registry.call_args
         self.assertIn('retrieve', kwargs)
-        self.assertTrue(callable(kwargs['retrieve']))
+        self.assertEqual(kwargs['retrieve'], mock_retrieve_resource)
         mock_registry_instance.with_resource.assert_called()
 
         # Verify validator initialized with registry
@@ -497,16 +498,24 @@ class TestDataFlowGuard(unittest.TestCase):
 
     @patch('guards.data_flow_guard.HAS_REFERENCING', True)
     def test_retrieve_resource_forbids_network(self):
-        """Verify that retrieve_resource strictly forbids http/https."""
+        """Verify that retrieve_resource strictly forbids http/https and UNC paths."""
         from guards.data_flow_guard import retrieve_resource
 
         with self.assertRaises(ValueError) as cm:
             retrieve_resource("http://example.com/schema.json")
-        self.assertIn("Network reference forbidden", str(cm.exception))
+        self.assertIn("Network/Unsupported reference forbidden", str(cm.exception))
 
         with self.assertRaises(ValueError) as cm:
             retrieve_resource("https://example.com/schema.json")
-        self.assertIn("Network reference forbidden", str(cm.exception))
+        self.assertIn("Network/Unsupported reference forbidden", str(cm.exception))
+
+        with self.assertRaises(ValueError) as cm:
+            retrieve_resource("ftp://example.com/schema.json")
+        self.assertIn("Network/Unsupported reference forbidden", str(cm.exception))
+
+        with self.assertRaises(ValueError) as cm:
+            retrieve_resource("file://hostname/share/schema.json")
+        self.assertIn("Network reference (UNC/remote) forbidden", str(cm.exception))
 
 if __name__ == '__main__':
     unittest.main()
