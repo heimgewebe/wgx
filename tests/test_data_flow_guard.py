@@ -402,5 +402,89 @@ class TestDataFlowGuard(unittest.TestCase):
         self.assertEqual(mock_load_data.call_count, 2,
                          f"Expected load_data to be called 2 times (caching disabled), but called {mock_load_data.call_count}")
 
+    @patch('guards.data_flow_guard.HAS_REFERENCING', True)
+    @patch('guards.data_flow_guard.Registry')
+    @patch('guards.data_flow_guard.Resource')
+    @patch('guards.data_flow_guard.jsonschema')
+    @patch('guards.data_flow_guard.os.path.exists')
+    @patch('guards.data_flow_guard.glob.glob')
+    @patch('builtins.open', new_callable=mock_open)
+    def test_main_referencing_path(self, mock_file, mock_glob, mock_exists, mock_jsonschema, mock_resource, mock_registry):
+        # Setup: Config exists at .wgx/flows.json
+        mock_exists.side_effect = lambda p: p in [".wgx/flows.json", "schema.json", "data.json"]
+        mock_glob.return_value = []
+
+        config_content = json.dumps([
+            {
+                "name": "ref_flow",
+                "schema_path": "schema.json",
+                "data_pattern": ["data.json"]
+            }
+        ])
+
+        mock_file.side_effect = lambda f, m='r', encoding='utf-8': \
+            mock_open(read_data=config_content).return_value if "flows.json" in str(f) else \
+            mock_open(read_data='{"type":"object"}').return_value if "schema.json" in str(f) else \
+            mock_open(read_data='[{"id":"1"}]').return_value
+
+        mock_validator_instance = MagicMock()
+        mock_jsonschema.validators.validator_for.return_value = MagicMock(return_value=mock_validator_instance)
+
+        # Verify Registry is used
+        mock_registry_instance = MagicMock()
+        mock_registry.return_value = mock_registry_instance
+        mock_registry_instance.with_resource.return_value = mock_registry_instance # Chaining
+
+        ret = data_flow_guard.main()
+
+        self.assertEqual(ret, 0)
+
+        # Verify Resource creation
+        mock_resource.from_contents.assert_called()
+
+        # Verify Registry usage
+        mock_registry.assert_called() # Checked constructor called with retrieve=...
+        mock_registry_instance.with_resource.assert_called()
+
+        # Verify validator initialized with registry
+        mock_jsonschema.validators.validator_for.return_value.assert_called_with(
+            unittest.mock.ANY,
+            registry=mock_registry_instance
+        )
+
+    @patch('guards.data_flow_guard.HAS_REFERENCING', False)
+    @patch('guards.data_flow_guard.jsonschema')
+    @patch('guards.data_flow_guard.os.path.exists')
+    @patch('guards.data_flow_guard.glob.glob')
+    @patch('builtins.open', new_callable=mock_open)
+    def test_main_legacy_fallback(self, mock_file, mock_glob, mock_exists, mock_jsonschema):
+        # Setup: same as above
+        mock_exists.side_effect = lambda p: p in [".wgx/flows.json", "schema.json", "data.json"]
+        mock_glob.return_value = []
+
+        config_content = json.dumps([
+            {
+                "name": "legacy_flow",
+                "schema_path": "schema.json",
+                "data_pattern": ["data.json"]
+            }
+        ])
+
+        mock_file.side_effect = lambda f, m='r', encoding='utf-8': \
+            mock_open(read_data=config_content).return_value if "flows.json" in str(f) else \
+            mock_open(read_data='{"type":"object"}').return_value if "schema.json" in str(f) else \
+            mock_open(read_data='[{"id":"1"}]').return_value
+
+        mock_validator_instance = MagicMock()
+        mock_jsonschema.validators.validator_for.return_value = MagicMock(return_value=mock_validator_instance)
+        mock_jsonschema.RefResolver = MagicMock()
+
+        ret = data_flow_guard.main()
+
+        self.assertEqual(ret, 0)
+
+        # Verify RefResolver used
+        mock_jsonschema.RefResolver.assert_called()
+
 if __name__ == '__main__':
     unittest.main()

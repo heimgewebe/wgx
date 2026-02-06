@@ -54,12 +54,21 @@ import glob
 import os
 import pathlib
 import collections
+import urllib.request
 
 # Try imports
 try:
     import jsonschema
 except ImportError:
     jsonschema = None
+
+try:
+    from referencing import Registry, Resource
+    from referencing.exceptions import Unresolvable
+    from referencing.jsonschema import DRAFT202012
+    HAS_REFERENCING = True
+except ImportError:
+    HAS_REFERENCING = False
 
 try:
     from guards._util import safe_item_id
@@ -73,6 +82,21 @@ except ImportError:
 
 def is_strict():
     return os.environ.get("WGX_STRICT") == "1"
+
+def retrieve_resource(uri):
+    """
+    Retrieve a resource from a URI (file://, http://, etc.) for 'referencing' library.
+    """
+    try:
+        with urllib.request.urlopen(uri) as f:
+            data = json.load(f)
+            return Resource.from_contents(data, default_specification=DRAFT202012)
+    except Exception as e:
+        # We raise Unresolvable to let referencing know we failed
+        # If Unresolvable is not available (old env), this function won't be called anyway.
+        if HAS_REFERENCING:
+             raise Unresolvable(ref=uri) from e
+        raise e
 
 def load_config():
     """
@@ -290,8 +314,18 @@ def main():
                 validator = None
 
                 try:
-                    # 1. Try RefResolver (Legacy)
-                    if hasattr(jsonschema, 'RefResolver'):
+                    # 1. Try referencing (New, jsonschema >= 4.18)
+                    if HAS_REFERENCING:
+                        # Ensure schema has an ID matching its file path so relative refs resolve correctly
+                        if "$id" not in schema:
+                            schema["$id"] = base_uri
+
+                        resource = Resource.from_contents(schema, default_specification=DRAFT202012)
+                        registry = Registry(retrieve=retrieve_resource).with_resource(base_uri, resource)
+                        validator = validator_cls(schema, registry=registry)
+
+                    # 2. Try RefResolver (Legacy)
+                    elif hasattr(jsonschema, 'RefResolver'):
                         resolver = jsonschema.RefResolver(base_uri=base_uri, referrer=schema)
                         validator = validator_cls(schema, resolver=resolver)
                     else:
