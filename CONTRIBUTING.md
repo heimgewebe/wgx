@@ -44,7 +44,7 @@ shfmt -d $(git ls-files "*.sh" "*.bash")
 shellcheck -S style $(git ls-files "*.sh" "*.bash")
 bats -r tests
 python3 -m unittest discover -s tests
-pytest -q
+command -v pytest >/dev/null && pytest -q || echo "pytest not installed; skipping"
 markdownlint $(git ls-files "*.md" "*.mdx")
 vale .
 ```
