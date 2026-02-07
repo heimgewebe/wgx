@@ -84,39 +84,61 @@ except ImportError:
 def is_strict():
     return os.environ.get("WGX_STRICT") == "1"
 
-def retrieve_resource(uri):
+def create_retriever(allowed_roots):
     """
-    Retrieve a resource from a URI for 'referencing' library.
-    STRICT: Only allows 'file://' scheme or no scheme (local path).
-    Network access (http/https, ftp, UNC paths) is strictly forbidden.
+    Factory for a retrieve function that enforces root-jail.
+    Only allows access to files within the specified allowed_roots.
     """
-    if not HAS_REFERENCING:
-        raise RuntimeError("retrieve_resource called but referencing is not available")
+    # Normalize roots to absolute paths for robust comparison
+    roots = [os.path.abspath(r) for r in allowed_roots]
 
-    parsed = urllib.parse.urlparse(uri)
+    def retrieve(uri):
+        if not HAS_REFERENCING:
+            raise RuntimeError("retrieve called but referencing is not available")
 
-    if parsed.scheme not in ("", "file"):
-        raise ValueError(f"Network/Unsupported reference forbidden: {uri}")
+        parsed = urllib.parse.urlparse(uri)
 
-    # Check for non-empty netloc in file URIs (indicates remote server/UNC path)
-    if parsed.scheme == "file" and parsed.netloc:
-        raise ValueError(f"Network reference (UNC/remote) forbidden: {uri}")
+        if parsed.scheme not in ("", "file"):
+            raise ValueError(f"Network/Unsupported reference forbidden: {uri}")
 
-    # Resolve local path
-    if parsed.scheme == "file":
-        path = urllib.request.url2pathname(parsed.path)
-    else:
-        path = parsed.path
+        # Check for non-empty netloc in file URIs (indicates remote server/UNC path)
+        if parsed.scheme == "file" and parsed.netloc:
+            raise ValueError(f"Network reference (UNC/remote) forbidden: {uri}")
 
-    # Normalize path (handle ../ etc)
-    path = os.path.normpath(path)
+        # Resolve local path
+        if parsed.scheme == "file":
+            path = urllib.request.url2pathname(parsed.path)
+        else:
+            path = parsed.path
 
-    try:
-        with open(path, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-            return Resource.from_contents(data, default_specification=DRAFT202012)
-    except Exception as e:
-        raise Unresolvable(ref=uri) from e
+        # Normalize and make absolute
+        abs_path = os.path.abspath(path)
+
+        # Enforce Root Jail
+        allowed = False
+        for root in roots:
+            # os.path.commonpath returns the longest common sub-path.
+            # If the file is inside root, commonpath([root, file]) should be root.
+            try:
+                if os.path.commonpath([root, abs_path]) == root:
+                    allowed = True
+                    break
+            except ValueError:
+                # Can happen on Windows if drives match/don't match confusingly
+                continue
+
+        if not allowed:
+            # We wrap this in Unresolvable so referencing handles it gracefully (or fails if strict)
+            raise Unresolvable(ref=uri)
+
+        try:
+            with open(abs_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                return Resource.from_contents(data, default_specification=DRAFT202012)
+        except Exception as e:
+            raise Unresolvable(ref=uri) from e
+
+    return retrieve
 
 def load_config():
     """
@@ -343,7 +365,22 @@ def main():
                             schema["$id"] = base_uri
 
                         resource = Resource.from_contents(schema, default_specification=DRAFT202012)
-                        registry = Registry(retrieve=retrieve_resource).with_resource(base_uri, resource)
+
+                        # Define allowed roots for $ref resolution
+                        # 1. The directory of the current schema (for relative refs)
+                        schema_dir = os.path.dirname(str(schema_abs_path))
+                        allowed_roots = [schema_dir]
+
+                        # 2. Canonical contract roots (if they exist)
+                        # This allows schemas to reference shared contracts in .wgx/contracts or contracts
+                        cwd = os.getcwd()
+                        for d in [".wgx/contracts", "contracts"]:
+                            d_abs = os.path.abspath(os.path.join(cwd, d))
+                            if os.path.exists(d_abs):
+                                allowed_roots.append(d_abs)
+
+                        retrieve = create_retriever(allowed_roots)
+                        registry = Registry(retrieve=retrieve).with_resource(base_uri, resource)
                         validator = validator_cls(schema, registry=registry)
 
                     # 2. Try RefResolver (Legacy)

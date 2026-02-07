@@ -402,7 +402,7 @@ class TestDataFlowGuard(unittest.TestCase):
         self.assertEqual(mock_load_data.call_count, 2,
                          f"Expected load_data to be called 2 times (caching disabled), but called {mock_load_data.call_count}")
 
-    @patch('guards.data_flow_guard.retrieve_resource', new_callable=MagicMock)
+    @patch('guards.data_flow_guard.create_retriever')
     @patch('guards.data_flow_guard.DRAFT202012', MagicMock())
     @patch('guards.data_flow_guard.HAS_REFERENCING', True)
     @patch('guards.data_flow_guard.Registry')
@@ -411,7 +411,7 @@ class TestDataFlowGuard(unittest.TestCase):
     @patch('guards.data_flow_guard.os.path.exists')
     @patch('guards.data_flow_guard.glob.glob')
     @patch('builtins.open', new_callable=mock_open)
-    def test_main_referencing_path(self, mock_file, mock_glob, mock_exists, mock_jsonschema, mock_resource, mock_registry, mock_retrieve_resource):
+    def test_main_referencing_path(self, mock_file, mock_glob, mock_exists, mock_jsonschema, mock_resource, mock_registry, mock_create_retriever):
         # Setup: Config exists at .wgx/flows.json
         mock_exists.side_effect = lambda p: p in [".wgx/flows.json", "schema.json", "data.json"]
         mock_glob.return_value = []
@@ -432,6 +432,10 @@ class TestDataFlowGuard(unittest.TestCase):
         mock_validator_instance = MagicMock()
         mock_jsonschema.validators.validator_for.return_value = MagicMock(return_value=mock_validator_instance)
 
+        # Mock the retriever factory
+        mock_retriever_func = MagicMock()
+        mock_create_retriever.return_value = mock_retriever_func
+
         # Verify Registry is used
         mock_registry_instance = MagicMock()
         mock_registry.return_value = mock_registry_instance
@@ -445,11 +449,13 @@ class TestDataFlowGuard(unittest.TestCase):
         # Verify Resource creation
         mock_resource.from_contents.assert_called()
 
-        # Verify Registry usage: must be called with our specific mocked retrieve_resource
+        # Verify create_retriever called with expected roots
+        mock_create_retriever.assert_called()
+        # Verify Registry usage: must be called with the function returned by create_retriever
         mock_registry.assert_called()
         args, kwargs = mock_registry.call_args
         self.assertIn('retrieve', kwargs)
-        self.assertEqual(kwargs['retrieve'], mock_retrieve_resource)
+        self.assertEqual(kwargs['retrieve'], mock_retriever_func)
         mock_registry_instance.with_resource.assert_called()
 
         # Verify validator initialized with registry
@@ -497,25 +503,57 @@ class TestDataFlowGuard(unittest.TestCase):
         mock_jsonschema.RefResolver.assert_called()
 
     @patch('guards.data_flow_guard.HAS_REFERENCING', True)
-    def test_retrieve_resource_forbids_network(self):
-        """Verify that retrieve_resource strictly forbids http/https and UNC paths."""
-        from guards.data_flow_guard import retrieve_resource
+    @patch('guards.data_flow_guard.Unresolvable', Exception) # Patch Unresolvable as normal Exception for test simplicity if not importable
+    def test_create_retriever_jail_security(self):
+        """Verify that the retriever enforces root jail and network restrictions."""
+        from guards.data_flow_guard import create_retriever
+        import tempfile
+        import shutil
 
-        with self.assertRaises(ValueError) as cm:
-            retrieve_resource("http://example.com/schema.json")
-        self.assertIn("Network/Unsupported reference forbidden", str(cm.exception))
+        # Create a temporary directory structure
+        # /tmp/jail_root/safe.json
+        # /tmp/outside.json
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            jail_root = os.path.join(tmp_dir, "jail_root")
+            os.makedirs(jail_root)
 
-        with self.assertRaises(ValueError) as cm:
-            retrieve_resource("https://example.com/schema.json")
-        self.assertIn("Network/Unsupported reference forbidden", str(cm.exception))
+            safe_file = os.path.join(jail_root, "safe.json")
+            with open(safe_file, "w") as f:
+                f.write('{"foo": "bar"}')
 
-        with self.assertRaises(ValueError) as cm:
-            retrieve_resource("ftp://example.com/schema.json")
-        self.assertIn("Network/Unsupported reference forbidden", str(cm.exception))
+            unsafe_file = os.path.join(tmp_dir, "outside.json")
+            with open(unsafe_file, "w") as f:
+                f.write('{"unsafe": true}')
 
-        with self.assertRaises(ValueError) as cm:
-            retrieve_resource("file://hostname/share/schema.json")
-        self.assertIn("Network reference (UNC/remote) forbidden", str(cm.exception))
+            # Create retriever restricted to jail_root
+            retrieve = create_retriever([jail_root])
+
+            # 1. Allowed access
+            # Absolute path inside jail
+            safe_uri = pathlib.Path(safe_file).as_uri()
+            # We mock Resource.from_contents to avoid needing referencing installed for this logic test if we wanted,
+            # but create_retriever calls it. Assuming HAS_REFERENCING=True implies we can use real referencing logic
+            # or we need to patch Resource.
+            with patch('guards.data_flow_guard.Resource') as mock_resource:
+                 # Call retrieve
+                 retrieve(safe_uri)
+                 mock_resource.from_contents.assert_called()
+
+            # 2. Denied access (Path Traversal / Outside Root)
+            unsafe_uri = pathlib.Path(unsafe_file).as_uri()
+            with self.assertRaises(Exception) as cm: # Unresolvable is raised
+                retrieve(unsafe_uri)
+            # Depending on implementation, might raise Unresolvable wrapping nothing or ValueError
+            # Our impl raises Unresolvable directly if not allowed
+
+            # 3. Network forbidden
+            with self.assertRaises(ValueError) as cm:
+                retrieve("http://example.com/schema.json")
+            self.assertIn("Network/Unsupported reference forbidden", str(cm.exception))
+
+            with self.assertRaises(ValueError) as cm:
+                retrieve("file://hostname/share/schema.json")
+            self.assertIn("Network reference (UNC/remote) forbidden", str(cm.exception))
 
 if __name__ == '__main__':
     unittest.main()
