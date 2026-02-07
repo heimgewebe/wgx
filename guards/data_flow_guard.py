@@ -94,14 +94,14 @@ def create_retriever(base_dir, allowed_roots):
     Only allows access to files within the specified allowed_roots.
     Resolves relative paths against base_dir.
     """
+    if not HAS_REFERENCING:
+        raise RuntimeError("create_retriever called but referencing is not available")
+
     # Normalize roots to absolute real paths for robust comparison (symlink-safe)
     roots = [os.path.realpath(os.path.abspath(r)) for r in allowed_roots]
     base_dir_abs = os.path.realpath(os.path.abspath(base_dir))
 
     def retrieve(uri):
-        if not HAS_REFERENCING:
-            raise RuntimeError("retrieve called but referencing is not available")
-
         # Strip fragment and query for path resolution, but keep original uri for errors
         uri_norm = uri.split("#", 1)[0].split("?", 1)[0]
 
