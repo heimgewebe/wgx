@@ -70,6 +70,10 @@ try:
     HAS_REFERENCING = True
 except ImportError:
     HAS_REFERENCING = False
+    Registry = None
+    Resource = None
+    DRAFT202012 = None
+    Unresolvable = None
 
 try:
     from guards._util import safe_item_id
