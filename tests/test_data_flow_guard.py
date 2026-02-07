@@ -503,9 +503,9 @@ class TestDataFlowGuard(unittest.TestCase):
         mock_jsonschema.RefResolver.assert_called()
 
     @patch('guards.data_flow_guard.HAS_REFERENCING', True)
-    @patch('guards.data_flow_guard.Unresolvable', Exception) # Patch Unresolvable as normal Exception for test simplicity if not importable
+    @patch('guards.data_flow_guard.Unresolvable', Exception)
     def test_create_retriever_jail_security(self):
-        """Verify that the retriever enforces root jail and network restrictions."""
+        """Verify that the retriever enforces root jail, network restrictions, and correct base_dir usage."""
         from guards.data_flow_guard import create_retriever
         import tempfile
         import shutil
@@ -525,28 +525,32 @@ class TestDataFlowGuard(unittest.TestCase):
             with open(unsafe_file, "w") as f:
                 f.write('{"unsafe": true}')
 
-            # Create retriever restricted to jail_root
-            retrieve = create_retriever([jail_root])
+            # Create retriever restricted to jail_root, with jail_root as base_dir
+            retrieve = create_retriever(base_dir=jail_root, allowed_roots=[jail_root])
 
-            # 1. Allowed access
-            # Absolute path inside jail
+            # 1. Allowed access (Absolute path inside jail)
             safe_uri = pathlib.Path(safe_file).as_uri()
-            # We mock Resource.from_contents to avoid needing referencing installed for this logic test if we wanted,
-            # but create_retriever calls it. Assuming HAS_REFERENCING=True implies we can use real referencing logic
-            # or we need to patch Resource.
             with patch('guards.data_flow_guard.Resource') as mock_resource:
-                 # Call retrieve
                  retrieve(safe_uri)
                  mock_resource.from_contents.assert_called()
 
-            # 2. Denied access (Path Traversal / Outside Root)
-            unsafe_uri = pathlib.Path(unsafe_file).as_uri()
-            with self.assertRaises(Exception) as cm: # Unresolvable is raised
-                retrieve(unsafe_uri)
-            # Depending on implementation, might raise Unresolvable wrapping nothing or ValueError
-            # Our impl raises Unresolvable directly if not allowed
+            # 2. Allowed access (Relative path, resolved against base_dir)
+            # Using just "safe.json" (scheme "") should resolve to jail_root/safe.json
+            with patch('guards.data_flow_guard.Resource') as mock_resource:
+                retrieve("safe.json")
+                mock_resource.from_contents.assert_called()
 
-            # 3. Network forbidden
+            # 3. Denied access (Path Traversal / Outside Root)
+            unsafe_uri = pathlib.Path(unsafe_file).as_uri()
+            with self.assertRaises(Exception): # Unresolvable
+                retrieve(unsafe_uri)
+
+            # 4. Denied access (Relative path traversal escaping jail)
+            # "../outside.json" relative to jail_root
+            with self.assertRaises(Exception):
+                retrieve("../outside.json")
+
+            # 5. Network forbidden
             with self.assertRaises(ValueError) as cm:
                 retrieve("http://example.com/schema.json")
             self.assertIn("Network/Unsupported reference forbidden", str(cm.exception))
@@ -554,6 +558,21 @@ class TestDataFlowGuard(unittest.TestCase):
             with self.assertRaises(ValueError) as cm:
                 retrieve("file://hostname/share/schema.json")
             self.assertIn("Network reference (UNC/remote) forbidden", str(cm.exception))
+
+            # 6. Symlink Escape (if supported)
+            if hasattr(os, "symlink"):
+                try:
+                    symlink_path = os.path.join(jail_root, "link_to_outside.json")
+                    os.symlink(unsafe_file, symlink_path)
+
+                    # Try accessing the symlink (which resides inside jail, but points outside)
+                    # Should be denied because we use realpath() in jail check
+                    symlink_uri = pathlib.Path(symlink_path).as_uri()
+                    with self.assertRaises(Exception):
+                        retrieve(symlink_uri)
+                except OSError:
+                    # Symlinks might fail on some platforms/permissions (e.g. Windows without dev mode)
+                    pass
 
 if __name__ == '__main__':
     unittest.main()

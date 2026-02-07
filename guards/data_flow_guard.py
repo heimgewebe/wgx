@@ -84,13 +84,15 @@ except ImportError:
 def is_strict():
     return os.environ.get("WGX_STRICT") == "1"
 
-def create_retriever(allowed_roots):
+def create_retriever(base_dir, allowed_roots):
     """
     Factory for a retrieve function that enforces root-jail.
     Only allows access to files within the specified allowed_roots.
+    Resolves relative paths against base_dir.
     """
-    # Normalize roots to absolute paths for robust comparison
-    roots = [os.path.abspath(r) for r in allowed_roots]
+    # Normalize roots to absolute real paths for robust comparison (symlink-safe)
+    roots = [os.path.realpath(os.path.abspath(r)) for r in allowed_roots]
+    base_dir_abs = os.path.abspath(base_dir)
 
     def retrieve(uri):
         if not HAS_REFERENCING:
@@ -109,10 +111,14 @@ def create_retriever(allowed_roots):
         if parsed.scheme == "file":
             path = urllib.request.url2pathname(parsed.path)
         else:
-            path = parsed.path
+            # Relative path: resolve against base_dir, NOT cwd
+            if not os.path.isabs(parsed.path):
+                path = os.path.join(base_dir_abs, parsed.path)
+            else:
+                path = parsed.path
 
-        # Normalize and make absolute
-        abs_path = os.path.abspath(path)
+        # Normalize and make absolute real path (resolve symlinks)
+        abs_path = os.path.realpath(os.path.abspath(path))
 
         # Enforce Root Jail
         allowed = False
@@ -379,7 +385,7 @@ def main():
                             if os.path.exists(d_abs):
                                 allowed_roots.append(d_abs)
 
-                        retrieve = create_retriever(allowed_roots)
+                        retrieve = create_retriever(base_dir=schema_dir, allowed_roots=allowed_roots)
                         registry = Registry(retrieve=retrieve).with_resource(base_uri, resource)
                         validator = validator_cls(schema, registry=registry)
 
