@@ -92,7 +92,7 @@ def create_retriever(base_dir, allowed_roots):
     """
     # Normalize roots to absolute real paths for robust comparison (symlink-safe)
     roots = [os.path.realpath(os.path.abspath(r)) for r in allowed_roots]
-    base_dir_abs = os.path.abspath(base_dir)
+    base_dir_abs = os.path.realpath(os.path.abspath(base_dir))
 
     def retrieve(uri):
         if not HAS_REFERENCING:

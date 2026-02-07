@@ -502,6 +502,7 @@ class TestDataFlowGuard(unittest.TestCase):
         # Verify RefResolver used
         mock_jsonschema.RefResolver.assert_called()
 
+    @patch('guards.data_flow_guard.DRAFT202012', MagicMock())
     @patch('guards.data_flow_guard.HAS_REFERENCING', True)
     @patch('guards.data_flow_guard.Unresolvable', Exception)
     def test_create_retriever_jail_security(self):
@@ -514,7 +515,9 @@ class TestDataFlowGuard(unittest.TestCase):
         # /tmp/jail_root/safe.json
         # /tmp/outside.json
         with tempfile.TemporaryDirectory() as tmp_dir:
-            jail_root = os.path.join(tmp_dir, "jail_root")
+            # Use realpath for jail_root to avoid /tmp symlink issues on some OSes (e.g. macOS /var -> /private/var)
+            # This ensures the test environment matches the realpath logic in create_retriever
+            jail_root = os.path.realpath(os.path.join(tmp_dir, "jail_root"))
             os.makedirs(jail_root)
 
             safe_file = os.path.join(jail_root, "safe.json")
