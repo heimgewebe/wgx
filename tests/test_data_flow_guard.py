@@ -504,78 +504,83 @@ class TestDataFlowGuard(unittest.TestCase):
 
     @patch('guards.data_flow_guard.DRAFT202012', MagicMock())
     @patch('guards.data_flow_guard.HAS_REFERENCING', True)
-    @patch('guards.data_flow_guard.Unresolvable', Exception)
     def test_create_retriever_jail_security(self):
         """Verify that the retriever enforces root jail, network restrictions, and correct base_dir usage."""
         from guards.data_flow_guard import create_retriever
         import tempfile
         import shutil
 
-        # Create a temporary directory structure
-        # /tmp/jail_root/safe.json
-        # /tmp/outside.json
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            # Use realpath for jail_root to avoid /tmp symlink issues on some OSes (e.g. macOS /var -> /private/var)
-            # This ensures the test environment matches the realpath logic in create_retriever
-            jail_root = os.path.realpath(os.path.join(tmp_dir, "jail_root"))
-            os.makedirs(jail_root)
+        # Helper exception that accepts kwargs (like ref=...) to match Unresolvable's signature
+        class DummyUnresolvable(Exception):
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args)
 
-            safe_file = os.path.join(jail_root, "safe.json")
-            with open(safe_file, "w") as f:
-                f.write('{"foo": "bar"}')
+        with patch('guards.data_flow_guard.Unresolvable', DummyUnresolvable):
+            # Create a temporary directory structure
+            # /tmp/jail_root/safe.json
+            # /tmp/outside.json
+            with tempfile.TemporaryDirectory() as tmp_dir:
+                # Use realpath for jail_root to avoid /tmp symlink issues on some OSes (e.g. macOS /var -> /private/var)
+                # This ensures the test environment matches the realpath logic in create_retriever
+                jail_root = os.path.realpath(os.path.join(tmp_dir, "jail_root"))
+                os.makedirs(jail_root)
 
-            unsafe_file = os.path.join(tmp_dir, "outside.json")
-            with open(unsafe_file, "w") as f:
-                f.write('{"unsafe": true}')
+                safe_file = os.path.join(jail_root, "safe.json")
+                with open(safe_file, "w") as f:
+                    f.write('{"foo": "bar"}')
 
-            # Create retriever restricted to jail_root, with jail_root as base_dir
-            retrieve = create_retriever(base_dir=jail_root, allowed_roots=[jail_root])
+                unsafe_file = os.path.join(tmp_dir, "outside.json")
+                with open(unsafe_file, "w") as f:
+                    f.write('{"unsafe": true}')
 
-            # 1. Allowed access (Absolute path inside jail)
-            safe_uri = pathlib.Path(safe_file).as_uri()
-            with patch('guards.data_flow_guard.Resource') as mock_resource:
-                 retrieve(safe_uri)
-                 mock_resource.from_contents.assert_called()
+                # Create retriever restricted to jail_root, with jail_root as base_dir
+                retrieve = create_retriever(base_dir=jail_root, allowed_roots=[jail_root])
 
-            # 2. Allowed access (Relative path, resolved against base_dir)
-            # Using just "safe.json" (scheme "") should resolve to jail_root/safe.json
-            with patch('guards.data_flow_guard.Resource') as mock_resource:
-                retrieve("safe.json")
-                mock_resource.from_contents.assert_called()
+                # 1. Allowed access (Absolute path inside jail)
+                safe_uri = pathlib.Path(safe_file).as_uri()
+                with patch('guards.data_flow_guard.Resource') as mock_resource:
+                     retrieve(safe_uri)
+                     mock_resource.from_contents.assert_called()
 
-            # 3. Denied access (Path Traversal / Outside Root)
-            unsafe_uri = pathlib.Path(unsafe_file).as_uri()
-            with self.assertRaises(Exception): # Unresolvable
-                retrieve(unsafe_uri)
+                # 2. Allowed access (Relative path, resolved against base_dir)
+                # Using just "safe.json" (scheme "") should resolve to jail_root/safe.json
+                with patch('guards.data_flow_guard.Resource') as mock_resource:
+                    retrieve("safe.json")
+                    mock_resource.from_contents.assert_called()
 
-            # 4. Denied access (Relative path traversal escaping jail)
-            # "../outside.json" relative to jail_root
-            with self.assertRaises(Exception):
-                retrieve("../outside.json")
+                # 3. Denied access (Path Traversal / Outside Root)
+                unsafe_uri = pathlib.Path(unsafe_file).as_uri()
+                with self.assertRaises(DummyUnresolvable):
+                    retrieve(unsafe_uri)
 
-            # 5. Network forbidden
-            with self.assertRaises(ValueError) as cm:
-                retrieve("http://example.com/schema.json")
-            self.assertIn("Network/Unsupported reference forbidden", str(cm.exception))
+                # 4. Denied access (Relative path traversal escaping jail)
+                # "../outside.json" relative to jail_root
+                with self.assertRaises(DummyUnresolvable):
+                    retrieve("../outside.json")
 
-            with self.assertRaises(ValueError) as cm:
-                retrieve("file://hostname/share/schema.json")
-            self.assertIn("Network reference (UNC/remote) forbidden", str(cm.exception))
+                # 5. Network forbidden
+                with self.assertRaises(ValueError) as cm:
+                    retrieve("http://example.com/schema.json")
+                self.assertIn("Network/Unsupported reference forbidden", str(cm.exception))
 
-            # 6. Symlink Escape (if supported)
-            if hasattr(os, "symlink"):
-                try:
-                    symlink_path = os.path.join(jail_root, "link_to_outside.json")
-                    os.symlink(unsafe_file, symlink_path)
+                with self.assertRaises(ValueError) as cm:
+                    retrieve("file://hostname/share/schema.json")
+                self.assertIn("Network reference (UNC/remote) forbidden", str(cm.exception))
 
-                    # Try accessing the symlink (which resides inside jail, but points outside)
-                    # Should be denied because we use realpath() in jail check
-                    symlink_uri = pathlib.Path(symlink_path).as_uri()
-                    with self.assertRaises(Exception):
-                        retrieve(symlink_uri)
-                except OSError:
-                    # Symlinks might fail on some platforms/permissions (e.g. Windows without dev mode)
-                    pass
+                # 6. Symlink Escape (if supported)
+                if hasattr(os, "symlink"):
+                    try:
+                        symlink_path = os.path.join(jail_root, "link_to_outside.json")
+                        os.symlink(unsafe_file, symlink_path)
+
+                        # Try accessing the symlink (which resides inside jail, but points outside)
+                        # Should be denied because we use realpath() in jail check
+                        symlink_uri = pathlib.Path(symlink_path).as_uri()
+                        with self.assertRaises(DummyUnresolvable):
+                            retrieve(symlink_uri)
+                    except OSError:
+                        # Symlinks might fail on some platforms/permissions (e.g. Windows without dev mode)
+                        pass
 
 if __name__ == '__main__':
     unittest.main()
