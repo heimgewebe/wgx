@@ -102,24 +102,36 @@ def create_retriever(base_dir, allowed_roots):
         if not HAS_REFERENCING:
             raise RuntimeError("retrieve called but referencing is not available")
 
-        parsed = urllib.parse.urlparse(uri)
+        # Detect Windows absolute paths (e.g. C:\...) manually because urlparse interprets the drive as scheme
+        is_win_path = len(uri) > 1 and uri[1] == ":" and uri[0].isalpha()
 
-        if parsed.scheme not in ("", "file"):
+        if is_win_path:
+            # Treat as local path with empty scheme
+            parsed = urllib.parse.urlparse("")
+            path_candidate = uri
+        else:
+            parsed = urllib.parse.urlparse(uri)
+            if parsed.scheme == "file":
+                path_candidate = urllib.request.url2pathname(parsed.path)
+            else:
+                path_candidate = parsed.path
+
+        if not is_win_path and parsed.scheme not in ("", "file"):
             raise ValueError(f"Network/Unsupported reference forbidden: {uri}")
 
         # Check for non-empty netloc in file URIs (indicates remote server/UNC path)
         if parsed.scheme == "file" and parsed.netloc:
             raise ValueError(f"Network reference (UNC/remote) forbidden: {uri}")
 
-        # Resolve local path
-        if parsed.scheme == "file":
-            path = urllib.request.url2pathname(parsed.path)
+        # Resolve path
+        if is_win_path or parsed.scheme == "file":
+            path = path_candidate
         else:
-            # Relative path: resolve against base_dir, NOT cwd
-            if not os.path.isabs(parsed.path):
-                path = os.path.join(base_dir_abs, parsed.path)
+            # Relative path (scheme ""): resolve against base_dir, NOT cwd
+            if not os.path.isabs(path_candidate):
+                path = os.path.join(base_dir_abs, path_candidate)
             else:
-                path = parsed.path
+                path = path_candidate
 
         # Normalize and make absolute real path (resolve symlinks)
         abs_path = os.path.realpath(os.path.abspath(path))
