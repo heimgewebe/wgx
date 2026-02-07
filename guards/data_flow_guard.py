@@ -102,15 +102,20 @@ def create_retriever(base_dir, allowed_roots):
         if not HAS_REFERENCING:
             raise RuntimeError("retrieve called but referencing is not available")
 
+        # Strip fragment and query for path resolution, but keep original uri for errors
+        uri_norm = uri.split("#", 1)[0].split("?", 1)[0]
+
         # Detect Windows absolute paths (e.g. C:\...) manually because urlparse interprets the drive as scheme
-        is_win_path = len(uri) > 1 and uri[1] == ":" and uri[0].isalpha()
+        # Requires drive letter, colon, and separator to be safe
+        is_win_path = (len(uri_norm) >= 3 and uri_norm[1] == ":"
+                       and uri_norm[0].isalpha() and uri_norm[2] in ("\\", "/"))
 
         if is_win_path:
             # Treat as local path with empty scheme
             parsed = urllib.parse.urlparse("")
-            path_candidate = uri
+            path_candidate = uri_norm
         else:
-            parsed = urllib.parse.urlparse(uri)
+            parsed = urllib.parse.urlparse(uri_norm)
             if parsed.scheme == "file":
                 path_candidate = urllib.request.url2pathname(parsed.path)
             else:
