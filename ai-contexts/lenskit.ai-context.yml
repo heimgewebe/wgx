@@ -1,0 +1,78 @@
+---
+ai_context_version: 1.1
+
+project:
+  name: lenskit
+  summary: Merger-/Scanner-Kern des Heimgewebe für epistemische Konsolidierung, Prüfpfade und auswertbare Artefakte.
+  role: epistemic_merger_scanner_core
+  primary_language: mixed
+  visibility: internal
+
+heimgewebe:
+  axis: [Motorik, Semantik]
+  fleet:
+    enabled: true
+  wgx:
+    profile_expected: false
+    guard_smoke_expected: false
+
+interfaces:
+  consumes:
+    - "events/records from producers"
+    - "metarepo contracts/schemas for validation"
+    - "repo snapshots / state inputs"
+  produces:
+    - "merged knowledge views"
+    - "scanner/verification reports"
+    - "index/graph artifacts"
+
+dependencies:
+  internal:
+    - name: metarepo
+      relationship: uses
+      interface: [contracts/schemas, governance, templates]
+  external:
+    - name: bash
+      version: ">=4"
+    - name: python
+      version: ">=3.11"
+
+architecture:
+  note: "Eintragspfade bewusst konzeptionell; konkrete Lenskit-Topologie vor Änderung verifizieren (Null-Interpolation)."
+  entrypoints:
+    - "merger execution paths (verify in lenskit repo)"
+    - "scanner/verification execution paths (verify in lenskit repo)"
+  key_paths:
+    - path: reports/
+      purpose: Konsolidierte Analyse- und Prüfartefakte
+    - path: docs/
+      purpose: Operator-Hinweise, ADRs und Ablaufdokumentation
+  data_flow:
+    input: contracts + repo/events snapshots
+    processing: merge + scan + consistency evaluation
+    output: validated knowledge artifacts + verification outputs
+
+boundaries:
+  not_responsible_for:
+    - "Source-of-truth ownership externer Producer-Repos"
+  dangerous_assumptions:
+    - "Assume contract compatibility without explicit schema checks"
+    - "Assume metarepo contract paths are local repo paths"
+
+conventions:
+  branching: "main, feature/*"
+  commit_prefix: "lenskit"
+  ci_platform: github_actions
+
+documentation:
+  runbook: docs/runbook.md
+
+ai_guidance:
+  do:
+    - treat lenskit as semantic/epistemic core, not as generic tooling bucket
+    - keep repo references explicit and contract-driven
+    - verify WGX/profile and guard expectations in-repo before tightening flags
+  dont:
+    - reduce lenskit scope to installer/pinning scripts only
+    - reinterpret ambiguous "tools" tokens without semantic check
+    - assert local contracts/lenskit paths without repository evidence
