@@ -508,7 +508,6 @@ class TestDataFlowGuard(unittest.TestCase):
         """Verify that the retriever enforces root jail, network restrictions, and correct base_dir usage."""
         from guards.data_flow_guard import create_retriever
         import tempfile
-        import shutil
 
         # Helper exception that accepts kwargs (like ref=...) to match Unresolvable's signature
         class DummyUnresolvable(Exception):
@@ -548,17 +547,29 @@ class TestDataFlowGuard(unittest.TestCase):
                     retrieve("safe.json")
                     mock_resource.from_contents.assert_called()
 
-                # 3. Denied access (Path Traversal / Outside Root)
+                # 3. Allowed access with Fragments/Query (stripped before resolution)
+                # "safe.json#/definitions/foo" -> should match safe.json inside jail
+                with patch('guards.data_flow_guard.Resource') as mock_resource:
+                    retrieve("safe.json#/definitions/foo")
+                    mock_resource.from_contents.assert_called()
+
+                # "safe.json?v=1" -> should match safe.json inside jail
+                with patch('guards.data_flow_guard.Resource') as mock_resource:
+                    retrieve("safe.json?v=1")
+                    mock_resource.from_contents.assert_called()
+
+                # 4. Denied access (Path Traversal / Outside Root)
+                # 5. Denied access (Path Traversal / Outside Root)
                 unsafe_uri = pathlib.Path(unsafe_file).as_uri()
                 with self.assertRaises(DummyUnresolvable):
                     retrieve(unsafe_uri)
 
-                # 4. Denied access (Relative path traversal escaping jail)
+                # 6. Denied access (Relative path traversal escaping jail)
                 # "../outside.json" relative to jail_root
                 with self.assertRaises(DummyUnresolvable):
                     retrieve("../outside.json")
 
-                # 5. Network forbidden
+                # 7. Network forbidden
                 with self.assertRaises(ValueError) as cm:
                     retrieve("http://example.com/schema.json")
                 self.assertIn("Network/Unsupported reference forbidden", str(cm.exception))
