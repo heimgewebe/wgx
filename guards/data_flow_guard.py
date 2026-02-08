@@ -54,12 +54,26 @@ import glob
 import os
 import pathlib
 import collections
+import urllib.request
+import urllib.parse
 
 # Try imports
 try:
     import jsonschema
 except ImportError:
     jsonschema = None
+
+try:
+    from referencing import Registry, Resource
+    from referencing.exceptions import Unresolvable
+    from referencing.jsonschema import DRAFT202012
+    HAS_REFERENCING = True
+except ImportError:
+    HAS_REFERENCING = False
+    Registry = None
+    Resource = None
+    DRAFT202012 = None
+    Unresolvable = None
 
 try:
     from guards._util import safe_item_id
@@ -73,6 +87,85 @@ except ImportError:
 
 def is_strict():
     return os.environ.get("WGX_STRICT") == "1"
+
+def create_retriever(base_dir, allowed_roots):
+    """
+    Factory for a retrieve function that enforces root-jail.
+    Only allows access to files within the specified allowed_roots.
+    Resolves relative paths against base_dir.
+    """
+    if not HAS_REFERENCING:
+        raise RuntimeError("create_retriever called but referencing is not available")
+
+    # Normalize roots to absolute real paths for robust comparison (symlink-safe)
+    roots = [os.path.realpath(os.path.abspath(r)) for r in allowed_roots]
+    base_dir_abs = os.path.realpath(os.path.abspath(base_dir))
+
+    def retrieve(uri):
+        # Strip fragment and query for path resolution, but keep original uri for errors
+        uri_norm = uri.split("#", 1)[0].split("?", 1)[0]
+
+        # Detect Windows absolute paths (e.g. C:\...) manually because urlparse interprets the drive as scheme
+        # Requires drive letter, colon, and separator to be safe
+        is_win_path = (len(uri_norm) >= 3 and uri_norm[1] == ":"
+                       and uri_norm[0].isalpha() and uri_norm[2] in ("\\", "/"))
+
+        if is_win_path:
+            # Treat as local path with empty scheme
+            parsed = urllib.parse.urlparse("")
+            path_candidate = uri_norm
+        else:
+            parsed = urllib.parse.urlparse(uri_norm)
+            if parsed.scheme == "file":
+                path_candidate = urllib.request.url2pathname(parsed.path)
+            else:
+                path_candidate = parsed.path
+
+        if not is_win_path and parsed.scheme not in ("", "file"):
+            raise ValueError(f"Network/Unsupported reference forbidden: {uri}")
+
+        # Check for non-empty netloc in file URIs (indicates remote server/UNC path)
+        if parsed.scheme == "file" and parsed.netloc:
+            raise ValueError(f"Network reference (UNC/remote) forbidden: {uri}")
+
+        # Resolve path
+        if is_win_path or parsed.scheme == "file":
+            path = path_candidate
+        else:
+            # Relative path (scheme ""): resolve against base_dir, NOT cwd
+            if not os.path.isabs(path_candidate):
+                path = os.path.join(base_dir_abs, path_candidate)
+            else:
+                path = path_candidate
+
+        # Normalize and make absolute real path (resolve symlinks)
+        abs_path = os.path.realpath(os.path.abspath(path))
+
+        # Enforce Root Jail
+        allowed = False
+        for root in roots:
+            # os.path.commonpath returns the longest common sub-path.
+            # If the file is inside root, commonpath([root, file]) should be root.
+            try:
+                if os.path.commonpath([root, abs_path]) == root:
+                    allowed = True
+                    break
+            except ValueError:
+                # Can happen on Windows if drives match/don't match confusingly
+                continue
+
+        if not allowed:
+            # We wrap this in Unresolvable so referencing handles it gracefully (or fails if strict)
+            raise Unresolvable(ref=uri)
+
+        try:
+            with open(abs_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                return Resource.from_contents(data, default_specification=DRAFT202012)
+        except Exception as e:
+            raise Unresolvable(ref=uri) from e
+
+    return retrieve
 
 def load_config():
     """
@@ -290,8 +383,35 @@ def main():
                 validator = None
 
                 try:
-                    # 1. Try RefResolver (Legacy)
-                    if hasattr(jsonschema, 'RefResolver'):
+                    # 1. Try referencing (New, jsonschema >= 4.18)
+                    if HAS_REFERENCING:
+                        # Ensure schema has an ID matching its file path so relative refs resolve correctly
+                        if "$id" not in schema:
+                            # Create a copy to avoid side effects on cached schema or re-runs
+                            schema = dict(schema)
+                            schema["$id"] = base_uri
+
+                        resource = Resource.from_contents(schema, default_specification=DRAFT202012)
+
+                        # Define allowed roots for $ref resolution
+                        # 1. The directory of the current schema (for relative refs)
+                        schema_dir = os.path.dirname(str(schema_abs_path))
+                        allowed_roots = [schema_dir]
+
+                        # 2. Canonical contract roots (if they exist)
+                        # This allows schemas to reference shared contracts in .wgx/contracts or contracts
+                        cwd = os.getcwd()
+                        for d in [".wgx/contracts", "contracts"]:
+                            d_abs = os.path.abspath(os.path.join(cwd, d))
+                            if os.path.exists(d_abs):
+                                allowed_roots.append(d_abs)
+
+                        retrieve = create_retriever(base_dir=schema_dir, allowed_roots=allowed_roots)
+                        registry = Registry(retrieve=retrieve).with_resource(base_uri, resource)
+                        validator = validator_cls(schema, registry=registry)
+
+                    # 2. Try RefResolver (Legacy)
+                    elif hasattr(jsonschema, 'RefResolver'):
                         resolver = jsonschema.RefResolver(base_uri=base_uri, referrer=schema)
                         validator = validator_cls(schema, resolver=resolver)
                     else:

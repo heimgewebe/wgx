@@ -402,5 +402,196 @@ class TestDataFlowGuard(unittest.TestCase):
         self.assertEqual(mock_load_data.call_count, 2,
                          f"Expected load_data to be called 2 times (caching disabled), but called {mock_load_data.call_count}")
 
+    @patch('guards.data_flow_guard.create_retriever')
+    @patch('guards.data_flow_guard.DRAFT202012', MagicMock())
+    @patch('guards.data_flow_guard.HAS_REFERENCING', True)
+    @patch('guards.data_flow_guard.Registry')
+    @patch('guards.data_flow_guard.Resource')
+    @patch('guards.data_flow_guard.jsonschema')
+    @patch('guards.data_flow_guard.os.path.exists')
+    @patch('guards.data_flow_guard.glob.glob')
+    @patch('builtins.open', new_callable=mock_open)
+    def test_main_referencing_path(self, mock_file, mock_glob, mock_exists, mock_jsonschema, mock_resource, mock_registry, mock_create_retriever):
+        # Setup: Config exists at .wgx/flows.json
+        mock_exists.side_effect = lambda p: p in [".wgx/flows.json", "schema.json", "data.json"]
+        mock_glob.return_value = []
+
+        config_content = json.dumps([
+            {
+                "name": "ref_flow",
+                "schema_path": "schema.json",
+                "data_pattern": ["data.json"]
+            }
+        ])
+
+        mock_file.side_effect = lambda f, m='r', encoding='utf-8': \
+            mock_open(read_data=config_content).return_value if "flows.json" in str(f) else \
+            mock_open(read_data='{"type":"object"}').return_value if "schema.json" in str(f) else \
+            mock_open(read_data='[{"id":"1"}]').return_value
+
+        mock_validator_instance = MagicMock()
+        mock_jsonschema.validators.validator_for.return_value = MagicMock(return_value=mock_validator_instance)
+
+        # Mock the retriever factory
+        mock_retriever_func = MagicMock()
+        mock_create_retriever.return_value = mock_retriever_func
+
+        # Verify Registry is used
+        mock_registry_instance = MagicMock()
+        mock_registry.return_value = mock_registry_instance
+        mock_registry_instance.with_resource.return_value = mock_registry_instance # Chaining
+
+        with patch('guards.data_flow_guard.yaml', None):
+            ret = data_flow_guard.main()
+
+        self.assertEqual(ret, 0)
+
+        # Verify Resource creation
+        mock_resource.from_contents.assert_called()
+
+        # Verify create_retriever called with expected roots
+        mock_create_retriever.assert_called()
+        # Verify Registry usage: must be called with the function returned by create_retriever
+        mock_registry.assert_called()
+        args, kwargs = mock_registry.call_args
+        self.assertIn('retrieve', kwargs)
+        self.assertEqual(kwargs['retrieve'], mock_retriever_func)
+        mock_registry_instance.with_resource.assert_called()
+
+        # Verify validator initialized with registry
+        mock_jsonschema.validators.validator_for.return_value.assert_called_with(
+            unittest.mock.ANY,
+            registry=mock_registry_instance
+        )
+
+        # Verify validation called
+        mock_validator_instance.validate.assert_called()
+
+    @patch('guards.data_flow_guard.HAS_REFERENCING', False)
+    @patch('guards.data_flow_guard.jsonschema')
+    @patch('guards.data_flow_guard.os.path.exists')
+    @patch('guards.data_flow_guard.glob.glob')
+    @patch('builtins.open', new_callable=mock_open)
+    def test_main_legacy_fallback(self, mock_file, mock_glob, mock_exists, mock_jsonschema):
+        # Setup: same as above
+        mock_exists.side_effect = lambda p: p in [".wgx/flows.json", "schema.json", "data.json"]
+        mock_glob.return_value = []
+
+        config_content = json.dumps([
+            {
+                "name": "legacy_flow",
+                "schema_path": "schema.json",
+                "data_pattern": ["data.json"]
+            }
+        ])
+
+        mock_file.side_effect = lambda f, m='r', encoding='utf-8': \
+            mock_open(read_data=config_content).return_value if "flows.json" in str(f) else \
+            mock_open(read_data='{"type":"object"}').return_value if "schema.json" in str(f) else \
+            mock_open(read_data='[{"id":"1"}]').return_value
+
+        mock_validator_instance = MagicMock()
+        mock_jsonschema.validators.validator_for.return_value = MagicMock(return_value=mock_validator_instance)
+        mock_jsonschema.RefResolver = MagicMock()
+
+        with patch('guards.data_flow_guard.yaml', None):
+            ret = data_flow_guard.main()
+
+        self.assertEqual(ret, 0)
+
+        # Verify RefResolver used
+        mock_jsonschema.RefResolver.assert_called()
+
+    @patch('guards.data_flow_guard.DRAFT202012', MagicMock())
+    @patch('guards.data_flow_guard.HAS_REFERENCING', True)
+    def test_create_retriever_jail_security(self):
+        """Verify that the retriever enforces root jail, network restrictions, and correct base_dir usage."""
+        from guards.data_flow_guard import create_retriever
+        import tempfile
+
+        # Helper exception that accepts kwargs (like ref=...) to match Unresolvable's signature
+        class DummyUnresolvable(Exception):
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args)
+
+        with patch('guards.data_flow_guard.Unresolvable', DummyUnresolvable):
+            # Create a temporary directory structure
+            # /tmp/jail_root/safe.json
+            # /tmp/outside.json
+            with tempfile.TemporaryDirectory() as tmp_dir:
+                # Use realpath for jail_root to avoid /tmp symlink issues on some OSes (e.g. macOS /var -> /private/var)
+                # This ensures the test environment matches the realpath logic in create_retriever
+                jail_root = os.path.realpath(os.path.join(tmp_dir, "jail_root"))
+                os.makedirs(jail_root)
+
+                safe_file = os.path.join(jail_root, "safe.json")
+                with open(safe_file, "w") as f:
+                    f.write('{"foo": "bar"}')
+
+                unsafe_file = os.path.join(tmp_dir, "outside.json")
+                with open(unsafe_file, "w") as f:
+                    f.write('{"unsafe": true}')
+
+                # Create retriever restricted to jail_root, with jail_root as base_dir
+                retrieve = create_retriever(base_dir=jail_root, allowed_roots=[jail_root])
+
+                # 1. Allowed access (Absolute path inside jail)
+                safe_uri = pathlib.Path(safe_file).as_uri()
+                with patch('guards.data_flow_guard.Resource') as mock_resource:
+                     retrieve(safe_uri)
+                     mock_resource.from_contents.assert_called()
+
+                # 2. Allowed access (Relative path, resolved against base_dir)
+                # Using just "safe.json" (scheme "") should resolve to jail_root/safe.json
+                with patch('guards.data_flow_guard.Resource') as mock_resource:
+                    retrieve("safe.json")
+                    mock_resource.from_contents.assert_called()
+
+                # 3. Allowed access with Fragments/Query (stripped before resolution)
+                # "safe.json#/definitions/foo" -> should match safe.json inside jail
+                with patch('guards.data_flow_guard.Resource') as mock_resource:
+                    retrieve("safe.json#/definitions/foo")
+                    mock_resource.from_contents.assert_called()
+
+                # "safe.json?v=1" -> should match safe.json inside jail
+                with patch('guards.data_flow_guard.Resource') as mock_resource:
+                    retrieve("safe.json?v=1")
+                    mock_resource.from_contents.assert_called()
+
+                # 4. Denied access (Path Traversal / Outside Root)
+                # 5. Denied access (Path Traversal / Outside Root)
+                unsafe_uri = pathlib.Path(unsafe_file).as_uri()
+                with self.assertRaises(DummyUnresolvable):
+                    retrieve(unsafe_uri)
+
+                # 6. Denied access (Relative path traversal escaping jail)
+                # "../outside.json" relative to jail_root
+                with self.assertRaises(DummyUnresolvable):
+                    retrieve("../outside.json")
+
+                # 7. Network forbidden
+                with self.assertRaises(ValueError) as cm:
+                    retrieve("http://example.com/schema.json")
+                self.assertIn("Network/Unsupported reference forbidden", str(cm.exception))
+
+                with self.assertRaises(ValueError) as cm:
+                    retrieve("file://hostname/share/schema.json")
+                self.assertIn("Network reference (UNC/remote) forbidden", str(cm.exception))
+
+                # 6. Symlink Escape (if supported)
+                if hasattr(os, "symlink"):
+                    try:
+                        symlink_path = os.path.join(jail_root, "link_to_outside.json")
+                        os.symlink(unsafe_file, symlink_path)
+
+                        # Try accessing the symlink (which resides inside jail, but points outside)
+                        # Should be denied because we use realpath() in jail check
+                        symlink_uri = pathlib.Path(symlink_path).as_uri()
+                        with self.assertRaises(DummyUnresolvable):
+                            retrieve(symlink_uri)
+                    except OSError:
+                        # Symlinks might fail on some platforms/permissions (e.g. Windows without dev mode)
+                        pass
+
 if __name__ == '__main__':
     unittest.main()
