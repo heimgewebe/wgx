@@ -1,0 +1,32 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://wgx.example.com/schemas/insight.schema.json",
+  "title": "Insight Schema",
+  "description": "Schema for validating insights in the wgx repository.",
+  "type": "object",
+  "properties": {
+    "type": { "type": "string" }
+  },
+  "required": ["type"],
+  "allOf": [
+    {
+      "if": {
+        "properties": { "type": { "const": "insight.negation" } },
+        "required": ["type"]
+      },
+      "then": {
+        "required": ["relation"],
+        "properties": {
+          "relation": {
+            "type": "object",
+            "required": ["thesis", "antithesis"],
+            "properties": {
+              "thesis": { "type": "string" },
+              "antithesis": { "type": "string" }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

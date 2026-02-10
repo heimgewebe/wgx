@@ -167,8 +167,7 @@ def main():
             # NOTE: Ideally, the requirement for 'relation', 'thesis', and 'antithesis' should be enforced
             # by the contract (schema) itself. We perform this manual check as "Defense-in-Depth" to ensure
             # structural integrity even if the local contract is lenient.
-            # TODO: Advocate for upstreaming strict negation logic (mandatory relation.thesis/antithesis)
-            # into the canonical Metarepo contracts. Once standardized, this manual check might become redundant.
+            # This logic is now also enforced by the local contract (contracts/insights.schema.json).
 
             # Only run if schema validation passed (to avoid duplicate errors if schema already catches it)
             if not schema_failed and item.get("type") == "insight.negation":
