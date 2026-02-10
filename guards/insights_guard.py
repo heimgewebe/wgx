@@ -167,22 +167,26 @@ def main():
             # NOTE: Ideally, the requirement for 'relation', 'thesis', and 'antithesis' should be enforced
             # by the contract (schema) itself. We perform this manual check as "Defense-in-Depth" to ensure
             # structural integrity even if the local contract is lenient.
-            # TODO: Advocate for upstreaming strict negation logic (mandatory relation.thesis/antithesis)
-            # into the canonical Metarepo contracts. Once standardized, this manual check might become redundant.
+            # Defense-in-depth: even if contracts are lenient/out-of-date, enforce relation.thesis/antithesis.
 
             # Only run if schema validation passed (to avoid duplicate errors if schema already catches it)
             if not schema_failed and item.get("type") == "insight.negation":
                 relation = item.get("relation")
                 if not isinstance(relation, dict):
-                     print(f"[wgx][guard][insights]\nschema: {schema_path}\ndata: {df}\nid: {item_id}\nerror: missing relation for insight.negation", file=sys.stderr)
-                     errors += 1
+                    print(f"[wgx][guard][insights]\nschema: {schema_path}\ndata: {df}\nid: {item_id}\nerror: invalid relation for insight.negation (expected object)", file=sys.stderr)
+                    errors += 1
                 else:
-                    if "thesis" not in relation:
-                        print(f"[wgx][guard][insights]\nschema: {schema_path}\ndata: {df}\nid: {item_id}\nerror: missing relation.thesis for insight.negation", file=sys.stderr)
+                    # Thesis check
+                    thesis = relation.get("thesis")
+                    if not isinstance(thesis, str) or not thesis.strip():
+                        print(f"[wgx][guard][insights]\nschema: {schema_path}\ndata: {df}\nid: {item_id}\nerror: invalid relation.thesis for insight.negation (expected non-empty string)", file=sys.stderr)
                         errors += 1
-                    if "antithesis" not in relation:
-                         print(f"[wgx][guard][insights]\nschema: {schema_path}\ndata: {df}\nid: {item_id}\nerror: missing relation.antithesis for insight.negation", file=sys.stderr)
-                         errors += 1
+
+                    # Antithesis check
+                    antithesis = relation.get("antithesis")
+                    if not isinstance(antithesis, str) or not antithesis.strip():
+                        print(f"[wgx][guard][insights]\nschema: {schema_path}\ndata: {df}\nid: {item_id}\nerror: invalid relation.antithesis for insight.negation (expected non-empty string)", file=sys.stderr)
+                        errors += 1
 
     if errors > 0:
         print(f"[wgx][guard][insights] FAILED: {errors} error(s) found.", file=sys.stderr)
