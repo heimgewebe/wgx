@@ -167,7 +167,7 @@ def main():
             # NOTE: Ideally, the requirement for 'relation', 'thesis', and 'antithesis' should be enforced
             # by the contract (schema) itself. We perform this manual check as "Defense-in-Depth" to ensure
             # structural integrity even if the local contract is lenient.
-            # This logic is now also enforced by the local contract (contracts/insights.schema.json).
+            # Defense-in-depth: even if contracts are lenient/out-of-date, enforce relation.thesis/antithesis.
 
             # Only run if schema validation passed (to avoid duplicate errors if schema already catches it)
             if not schema_failed and item.get("type") == "insight.negation":
@@ -176,10 +176,15 @@ def main():
                      print(f"[wgx][guard][insights]\nschema: {schema_path}\ndata: {df}\nid: {item_id}\nerror: missing relation for insight.negation", file=sys.stderr)
                      errors += 1
                 else:
-                    if "thesis" not in relation:
+                    # Thesis check
+                    thesis = relation.get("thesis")
+                    if not isinstance(thesis, str) or not thesis.strip():
                         print(f"[wgx][guard][insights]\nschema: {schema_path}\ndata: {df}\nid: {item_id}\nerror: missing relation.thesis for insight.negation", file=sys.stderr)
                         errors += 1
-                    if "antithesis" not in relation:
+
+                    # Antithesis check
+                    antithesis = relation.get("antithesis")
+                    if not isinstance(antithesis, str) or not antithesis.strip():
                          print(f"[wgx][guard][insights]\nschema: {schema_path}\ndata: {df}\nid: {item_id}\nerror: missing relation.antithesis for insight.negation", file=sys.stderr)
                          errors += 1
 

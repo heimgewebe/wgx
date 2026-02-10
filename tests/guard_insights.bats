@@ -155,6 +155,86 @@ JSON
   [[ "$output" =~ "error: missing relation for insight.negation" ]]
 }
 
+@test "guard insights: fails on missing thesis in insight.negation (manual check)" {
+  mkdir -p contracts artifacts
+  cat <<JSON > contracts/insights.schema.json
+{ "type": "object", "properties": { "type": { "type": "string" } } }
+JSON
+
+  cat <<JSON > artifacts/insights.json
+[
+  { "type": "insight.negation", "relation": { "antithesis": "B" } }
+]
+JSON
+
+  git add contracts artifacts
+
+  run wgx guard --lint
+  echo "Output: $output"
+  [ "$status" -eq 1 ]
+  [[ "$output" =~ "error: missing relation.thesis for insight.negation" ]]
+}
+
+@test "guard insights: fails on empty thesis in insight.negation (manual check)" {
+  mkdir -p contracts artifacts
+  cat <<JSON > contracts/insights.schema.json
+{ "type": "object", "properties": { "type": { "type": "string" } } }
+JSON
+
+  cat <<JSON > artifacts/insights.json
+[
+  { "type": "insight.negation", "relation": { "thesis": "   ", "antithesis": "B" } }
+]
+JSON
+
+  git add contracts artifacts
+
+  run wgx guard --lint
+  echo "Output: $output"
+  [ "$status" -eq 1 ]
+  [[ "$output" =~ "error: missing relation.thesis for insight.negation" ]]
+}
+
+@test "guard insights: fails on missing antithesis in insight.negation (manual check)" {
+  mkdir -p contracts artifacts
+  cat <<JSON > contracts/insights.schema.json
+{ "type": "object", "properties": { "type": { "type": "string" } } }
+JSON
+
+  cat <<JSON > artifacts/insights.json
+[
+  { "type": "insight.negation", "relation": { "thesis": "A" } }
+]
+JSON
+
+  git add contracts artifacts
+
+  run wgx guard --lint
+  echo "Output: $output"
+  [ "$status" -eq 1 ]
+  [[ "$output" =~ "error: missing relation.antithesis for insight.negation" ]]
+}
+
+@test "guard insights: fails on empty antithesis in insight.negation (manual check)" {
+  mkdir -p contracts artifacts
+  cat <<JSON > contracts/insights.schema.json
+{ "type": "object", "properties": { "type": { "type": "string" } } }
+JSON
+
+  cat <<JSON > artifacts/insights.json
+[
+  { "type": "insight.negation", "relation": { "thesis": "A", "antithesis": "" } }
+]
+JSON
+
+  git add contracts artifacts
+
+  run wgx guard --lint
+  echo "Output: $output"
+  [ "$status" -eq 1 ]
+  [[ "$output" =~ "error: missing relation.antithesis for insight.negation" ]]
+}
+
 @test "guard insights: no double error if schema catches missing relation" {
   mkdir -p contracts artifacts
   # Schema enforces 'relation'
