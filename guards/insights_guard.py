@@ -173,19 +173,19 @@ def main():
             if not schema_failed and item.get("type") == "insight.negation":
                 relation = item.get("relation")
                 if not isinstance(relation, dict):
-                     print(f"[wgx][guard][insights]\nschema: {schema_path}\ndata: {df}\nid: {item_id}\nerror: missing relation for insight.negation", file=sys.stderr)
+                     print(f"[wgx][guard][insights]\nschema: {schema_path}\ndata: {df}\nid: {item_id}\nerror: invalid relation for insight.negation (expected object)", file=sys.stderr)
                      errors += 1
                 else:
                     # Thesis check
                     thesis = relation.get("thesis")
                     if not isinstance(thesis, str) or not thesis.strip():
-                        print(f"[wgx][guard][insights]\nschema: {schema_path}\ndata: {df}\nid: {item_id}\nerror: missing relation.thesis for insight.negation", file=sys.stderr)
+                        print(f"[wgx][guard][insights]\nschema: {schema_path}\ndata: {df}\nid: {item_id}\nerror: invalid relation.thesis for insight.negation (expected non-empty string)", file=sys.stderr)
                         errors += 1
 
                     # Antithesis check
                     antithesis = relation.get("antithesis")
                     if not isinstance(antithesis, str) or not antithesis.strip():
-                         print(f"[wgx][guard][insights]\nschema: {schema_path}\ndata: {df}\nid: {item_id}\nerror: missing relation.antithesis for insight.negation", file=sys.stderr)
+                         print(f"[wgx][guard][insights]\nschema: {schema_path}\ndata: {df}\nid: {item_id}\nerror: invalid relation.antithesis for insight.negation (expected non-empty string)", file=sys.stderr)
                          errors += 1
 
     if errors > 0:
