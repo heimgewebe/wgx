@@ -208,33 +208,99 @@ def load_config():
     return None, None
 
 def load_data(filepath):
+    """
+    Load data from JSON or JSONL file.
+    Returns a list of items or raises an exception.
+    """
     with open(filepath, 'r', encoding='utf-8') as f:
-        # Try JSON first
-        try:
-            data = json.load(f)
-            if isinstance(data, list):
-                return data
-            elif isinstance(data, dict):
-                return [data]
-            else:
-                raise ValueError("File content must be a JSON object or array")
-        except json.JSONDecodeError:
-            # Try JSONL
-            f.seek(0)
-            items = []
+        # 1. Peek at the first character to detect format
+        first_char = ""
+        while True:
+            char = f.read(1)
+            if not char:
+                break
+            if not char.isspace():
+                first_char = char
+                break
 
-            # Empty/whitespace file yields [] (treated as empty JSONL).
-            for i, line in enumerate(f):
-                line = line.strip()
-                if not line:
-                    continue
+        if not first_char:
+            return []
+
+        f.seek(0)
+
+        if first_char == '[':
+            # Likely a JSON array, use json.load directly
+            try:
+                data = json.load(f)
+                if isinstance(data, list):
+                    return data
+                elif isinstance(data, dict):
+                    return [data]
+                else:
+                    raise ValueError("File content must be a JSON object or array (got primitive value)")
+            except json.JSONDecodeError:
+                # If json.load fails, fallback to JSONL line-by-line
+                f.seek(0)
+                return _load_jsonl(f)
+
+        # 2. Not starting with '['. Could be JSONL or a single JSON object.
+        # We try line-by-line first. If the first line is not a complete object,
+        # we fallback to json.load.
+        items = []
+        line_idx = 0
+        found_first = False
+        for line in f:
+            line_idx += 1
+            stripped = line.strip()
+            if not stripped:
+                continue
+
+            if not found_first:
                 try:
-                    items.append(json.loads(line))
+                    first_obj = json.loads(stripped)
+                    items.append(first_obj)
+                    found_first = True
+                except json.JSONDecodeError:
+                    # First non-empty line is not a valid JSON object.
+                    # It might be a pretty-printed JSON object or array.
+                    f.seek(0)
+                    try:
+                        data = json.load(f)
+                        if isinstance(data, list):
+                            return data
+                        elif isinstance(data, dict):
+                            return [data]
+                        else:
+                            raise ValueError("File content must be a JSON object or array (got primitive value)")
+                    except json.JSONDecodeError:
+                        # If that also fails, fallback to line-by-line for error reporting
+                        f.seek(0)
+                        return _load_jsonl(f)
+            else:
+                # Subsequent lines for JSONL
+                try:
+                    items.append(json.loads(stripped))
                 except json.JSONDecodeError as e:
-                    # Provide clearer error context for operator
-                    raise ValueError(f"Line {i+1}: invalid JSON: {e}")
+                    raise ValueError(f"Line {line_idx}: invalid JSON: {e}")
 
-            return items
+        # If we reached here, we found at least one valid object.
+        # Check if it was a single primitive that we allowed during line-by-line parsing.
+        if len(items) == 1 and not isinstance(items[0], (dict, list)):
+            raise ValueError("File content must be a JSON object or array (got primitive value)")
+
+        return items
+
+def _load_jsonl(f):
+    items = []
+    for i, line in enumerate(f):
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            items.append(json.loads(line))
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Line {i+1}: invalid JSON: {e}")
+    return items
 
 def resolve_data(patterns):
     files = []

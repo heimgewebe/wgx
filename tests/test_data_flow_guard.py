@@ -3,6 +3,7 @@ from unittest.mock import patch, mock_open, MagicMock
 import os
 import json
 import pathlib
+import io
 
 from guards import data_flow_guard
 
@@ -41,12 +42,12 @@ class TestDataFlowGuard(unittest.TestCase):
 
         def open_side_effect(file, mode='r', encoding='utf-8'):
             if ".wgx/flows.json" in str(file):
-                return mock_open(read_data=config_content).return_value
+                return io.StringIO(config_content)
             elif "schema.json" in str(file):
-                return mock_open(read_data=schema_content).return_value
+                return io.StringIO(schema_content)
             elif "data.json" in str(file):
-                return mock_open(read_data=data_content).return_value
-            return mock_open(read_data="").return_value
+                return io.StringIO(data_content)
+            return io.StringIO("")
 
         mock_file.side_effect = open_side_effect
 
@@ -108,9 +109,9 @@ class TestDataFlowGuard(unittest.TestCase):
         data_content = '["valid_string_item"]' # Not a dict!
 
         mock_file.side_effect = lambda f, m='r', encoding='utf-8': \
-            mock_open(read_data=config_content).return_value if "flows.json" in str(f) else \
-            mock_open(read_data=data_content).return_value if "data.json" in str(f) else \
-            mock_open(read_data='{}').return_value
+            io.StringIO(config_content) if "flows.json" in str(f) else \
+            io.StringIO(data_content) if "data.json" in str(f) else \
+            io.StringIO('{}')
 
         mock_validator = MagicMock()
         mock_jsonschema.validators.validator_for.return_value = MagicMock(return_value=mock_validator)
@@ -168,15 +169,15 @@ class TestDataFlowGuard(unittest.TestCase):
         def open_side_effect(file, mode='r', encoding='utf-8'):
             s_file = str(file)
             if ".wgx/flows.json" in s_file:
-                return mock_open(read_data=config_content).return_value
+                return io.StringIO(config_content)
             # Use exact match for schema to verify code uses absolute path as intended
             elif s_file == expected_schema_abs:
-                return mock_open(read_data=schema_content).return_value
+                return io.StringIO(schema_content)
             elif "data1.json" in s_file:
-                return mock_open(read_data=data1_content).return_value
+                return io.StringIO(data1_content)
             elif "data2.json" in s_file:
-                return mock_open(read_data=data2_content).return_value
-            return mock_open(read_data="").return_value
+                return io.StringIO(data2_content)
+            return io.StringIO("")
 
         mock_file.side_effect = open_side_effect
 
@@ -268,10 +269,10 @@ class TestDataFlowGuard(unittest.TestCase):
         def open_side_effect(file, mode='r', encoding='utf-8'):
             s_file = str(file)
             if ".wgx/flows.json" in s_file:
-                return mock_open(read_data=config_content).return_value
+                return io.StringIO(config_content)
             elif schema_path in s_file:
-                return mock_open(read_data=schema_content).return_value
-            return mock_open(read_data="").return_value
+                return io.StringIO(schema_content)
+            return io.StringIO("")
 
         mock_file.side_effect = open_side_effect
 
@@ -331,10 +332,10 @@ class TestDataFlowGuard(unittest.TestCase):
         def open_side_effect(file, mode='r', encoding='utf-8'):
             s_file = str(file)
             if ".wgx/flows.json" in s_file:
-                return mock_open(read_data=config_content).return_value
+                return io.StringIO(config_content)
             elif schema_path in s_file:
-                return mock_open(read_data='{"type":"object"}').return_value
-            return mock_open(read_data="").return_value # data content handled by load_data mock
+                return io.StringIO('{"type":"object"}')
+            return io.StringIO("") # data content handled by load_data mock
 
         mock_file.side_effect = open_side_effect
 
@@ -381,10 +382,10 @@ class TestDataFlowGuard(unittest.TestCase):
 
         def open_side_effect(file, mode='r', encoding='utf-8'):
             if ".wgx/flows.json" in str(file):
-                return mock_open(read_data=config_content).return_value
+                return io.StringIO(config_content)
             elif schema_path in str(file):
-                return mock_open(read_data='{"type":"object"}').return_value
-            return mock_open(read_data="").return_value
+                return io.StringIO('{"type":"object"}')
+            return io.StringIO("")
 
         mock_file.side_effect = open_side_effect
         mock_load_data.return_value = [{"id": "x"}]
@@ -425,9 +426,9 @@ class TestDataFlowGuard(unittest.TestCase):
         ])
 
         mock_file.side_effect = lambda f, m='r', encoding='utf-8': \
-            mock_open(read_data=config_content).return_value if "flows.json" in str(f) else \
-            mock_open(read_data='{"type":"object"}').return_value if "schema.json" in str(f) else \
-            mock_open(read_data='[{"id":"1"}]').return_value
+            io.StringIO(config_content) if "flows.json" in str(f) else \
+            io.StringIO('{"type":"object"}') if "schema.json" in str(f) else \
+            io.StringIO('[{"id":"1"}]')
 
         mock_validator_instance = MagicMock()
         mock_jsonschema.validators.validator_for.return_value = MagicMock(return_value=mock_validator_instance)

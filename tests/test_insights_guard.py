@@ -1,7 +1,11 @@
 import json
 from pathlib import Path
 
-import pytest
+try:
+    import pytest
+except ImportError:
+    import unittest
+    raise unittest.SkipTest("pytest not installed")
 
 import guards.insights_guard as insights_guard
 
