@@ -76,9 +76,9 @@ except ImportError:
     Unresolvable = None
 
 try:
-    from guards._util import safe_item_id
+    from guards._util import safe_item_id, load_data
 except ImportError:
-    from _util import safe_item_id
+    from _util import safe_item_id, load_data
 
 try:
     import yaml
@@ -206,35 +206,6 @@ def load_config():
                     sys.exit(1)
 
     return None, None
-
-def load_data(filepath):
-    with open(filepath, 'r', encoding='utf-8') as f:
-        # Try JSON first
-        try:
-            data = json.load(f)
-            if isinstance(data, list):
-                return data
-            elif isinstance(data, dict):
-                return [data]
-            else:
-                raise ValueError("File content must be a JSON object or array")
-        except json.JSONDecodeError:
-            # Try JSONL
-            f.seek(0)
-            items = []
-
-            # Empty/whitespace file yields [] (treated as empty JSONL).
-            for i, line in enumerate(f):
-                line = line.strip()
-                if not line:
-                    continue
-                try:
-                    items.append(json.loads(line))
-                except json.JSONDecodeError as e:
-                    # Provide clearer error context for operator
-                    raise ValueError(f"Line {i+1}: invalid JSON: {e}")
-
-            return items
 
 def resolve_data(patterns):
     files = []
