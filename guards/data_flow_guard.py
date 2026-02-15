@@ -76,48 +76,9 @@ except ImportError:
     Unresolvable = None
 
 try:
-    from guards._util import safe_item_id
+    from guards._util import safe_item_id, load_data
 except ImportError:
-    from _util import safe_item_id
-
-def load_data(filepath):
-    """
-    Load data from JSON or JSONL file.
-    Returns a list of items or raises an exception.
-    """
-    with open(filepath, 'r', encoding='utf-8') as f:
-        # Try JSON first
-        try:
-            data = json.load(f)
-            if isinstance(data, list):
-                return data
-            elif isinstance(data, dict):
-                return [data]
-            else:
-                # Valid JSON but wrong shape (e.g. primitive) – surface as error so
-                # callers do not silently skip validation.
-                raise ValueError(
-                    "File content must be a JSON object or array (got primitive value)"
-                )
-        except json.JSONDecodeError:
-            # Try JSONL
-            f.seek(0)
-            items = []
-
-            for i, line in enumerate(f):
-                line = line.strip()
-                if not line:
-                    continue
-                try:
-                    items.append(json.loads(line))
-                except json.JSONDecodeError as e:
-                    # Provide clearer error context for operator
-                    raise ValueError(f"Line {i+1}: invalid JSON: {e}")
-
-            # If we reached here, either file is empty, whitespace only, or we parsed some lines.
-            # If no valid lines were found, it's an empty or whitespace-only file (since invalid lines raise).
-            # We return empty list in that case.
-            return items
+    from _util import safe_item_id, load_data
 
 try:
     import yaml
