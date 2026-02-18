@@ -9,7 +9,7 @@ def main():
 
     try:
         values = json.loads(sys.argv[1])
-    except Exception:
+    except (json.JSONDecodeError, TypeError):
         sys.exit(1)
 
     if not isinstance(values, list):

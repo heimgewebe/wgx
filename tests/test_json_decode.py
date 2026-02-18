@@ -56,5 +56,12 @@ class TestJsonDecode(unittest.TestCase):
                 json_decode.main()
             self.assertEqual(cm.exception.code, 1)
 
+    def test_decode_nested_structures(self):
+        """Test decoding a list containing nested structures (list and dict)."""
+        with patch.object(sys, 'argv', ['json_decode.py', '[1, ["nested"], {"key": "value"}]']):
+            with patch('sys.stdout', new=io.StringIO()) as mock_stdout:
+                json_decode.main()
+                self.assertEqual(mock_stdout.getvalue(), "1\n['nested']\n{'key': 'value'}\n")
+
 if __name__ == '__main__':
     unittest.main()
