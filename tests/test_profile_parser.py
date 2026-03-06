@@ -134,5 +134,46 @@ class TestProfileParser(unittest.TestCase):
                     stderr = mock_stderr.getvalue()
                     self.assertIn("task name collision", stderr)
 
+    def test_parse_scalar(self):
+        """Test _parse_scalar for various YAML scalar types."""
+        # Empty/Whitespace
+        self.assertEqual(profile_parser._parse_scalar(""), "")
+        self.assertEqual(profile_parser._parse_scalar("  "), "")
+
+        # Booleans (True)
+        self.assertTrue(profile_parser._parse_scalar("true"))
+        self.assertTrue(profile_parser._parse_scalar("True"))
+        self.assertTrue(profile_parser._parse_scalar("TRUE"))
+        self.assertTrue(profile_parser._parse_scalar("yes"))
+        self.assertTrue(profile_parser._parse_scalar("on"))
+
+        # Booleans (False)
+        self.assertFalse(profile_parser._parse_scalar("false"))
+        self.assertFalse(profile_parser._parse_scalar("no"))
+        self.assertFalse(profile_parser._parse_scalar("off"))
+
+        # Nulls
+        self.assertIsNone(profile_parser._parse_scalar("null"))
+        self.assertIsNone(profile_parser._parse_scalar("none"))
+        self.assertIsNone(profile_parser._parse_scalar("~"))
+
+        # Numbers
+        self.assertEqual(profile_parser._parse_scalar("123"), 123)
+        self.assertEqual(profile_parser._parse_scalar("-456"), -456)
+        self.assertEqual(profile_parser._parse_scalar("3.14"), 3.14)
+        self.assertEqual(profile_parser._parse_scalar("1e-10"), 1e-10)
+
+        # Quoted strings (handled by ast.literal_eval)
+        self.assertEqual(profile_parser._parse_scalar("'hello'"), "hello")
+        self.assertEqual(profile_parser._parse_scalar('"world"'), "world")
+
+        # Literal strings
+        self.assertEqual(profile_parser._parse_scalar("hello"), "hello")
+        self.assertEqual(profile_parser._parse_scalar("123-abc"), "123-abc")
+
+        # Complex types (ast.literal_eval fallback)
+        self.assertEqual(profile_parser._parse_scalar("[1, 2]"), [1, 2])
+        self.assertEqual(profile_parser._parse_scalar("{'a': 1}"), {'a': 1})
+
 if __name__ == '__main__':
     unittest.main()
