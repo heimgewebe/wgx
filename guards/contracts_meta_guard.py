@@ -58,11 +58,11 @@ def _schema_basename(schema: Path) -> str:
 def _collect_files(root: Path) -> list[Path]:
     if not root.exists() or not root.is_dir():
         raise FileNotFoundError(str(root))
-    return sorted([p for p in root.iterdir() if p.is_file()])
+    return sorted(p for p in root.iterdir() if p.is_file())
 
 
 def _has_forbidden_x_keys(schema_obj: dict[str, Any]) -> list[str]:
-    return sorted([k for k in schema_obj.keys() if isinstance(k, str) and k.startswith("x-")])
+    return sorted(k for k in schema_obj.keys() if isinstance(k, str) and k.startswith("x-"))
 
 
 def _validate_meta(meta: dict[str, Any], meta_path: Path, schema_path: Path, require_meta_fields: bool) -> list[Finding]:
