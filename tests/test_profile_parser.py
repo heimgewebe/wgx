@@ -135,7 +135,7 @@ class TestProfileParser(unittest.TestCase):
                     self.assertIn("task name collision", stderr)
 
     def test_parse_scalar(self):
-        """Test _parse_scalar for various YAML scalar types."""
+        """Test _parse_scalar for common scalar values and literal-eval fallbacks."""
         # Empty/Whitespace
         self.assertEqual(profile_parser._parse_scalar(""), "")
         self.assertEqual(profile_parser._parse_scalar("  "), "")
@@ -149,12 +149,20 @@ class TestProfileParser(unittest.TestCase):
 
         # Booleans (False)
         self.assertFalse(profile_parser._parse_scalar("false"))
+        self.assertFalse(profile_parser._parse_scalar("False"))
+        self.assertFalse(profile_parser._parse_scalar("FALSE"))
         self.assertFalse(profile_parser._parse_scalar("no"))
+        self.assertFalse(profile_parser._parse_scalar("No"))
         self.assertFalse(profile_parser._parse_scalar("off"))
+        self.assertFalse(profile_parser._parse_scalar("OFF"))
 
         # Nulls
         self.assertIsNone(profile_parser._parse_scalar("null"))
+        self.assertIsNone(profile_parser._parse_scalar("Null"))
+        self.assertIsNone(profile_parser._parse_scalar("NULL"))
         self.assertIsNone(profile_parser._parse_scalar("none"))
+        self.assertIsNone(profile_parser._parse_scalar("None"))
+        self.assertIsNone(profile_parser._parse_scalar("NONE"))
         self.assertIsNone(profile_parser._parse_scalar("~"))
 
         # Numbers
@@ -171,9 +179,13 @@ class TestProfileParser(unittest.TestCase):
         self.assertEqual(profile_parser._parse_scalar("hello"), "hello")
         self.assertEqual(profile_parser._parse_scalar("123-abc"), "123-abc")
 
-        # Complex types (ast.literal_eval fallback)
+        # Python-literal fallbacks (via ast.literal_eval)
+        # Note: These are NOT standard YAML scalars but supported via fallback.
         self.assertEqual(profile_parser._parse_scalar("[1, 2]"), [1, 2])
         self.assertEqual(profile_parser._parse_scalar("{'a': 1}"), {'a': 1})
+
+        # Non-Python-literal flow mapping (should fall back to string)
+        self.assertEqual(profile_parser._parse_scalar("{a: 1}"), "{a: 1}")
 
 if __name__ == '__main__':
     unittest.main()
