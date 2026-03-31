@@ -16,7 +16,7 @@ audit::_ledger_path() {
 audit::log() {
   local event="${1:-}"
   local payload
-  payload="$2"
+  payload="${2:-}"
   if [[ -z "$payload" ]]; then
     payload="{}"
   fi

@@ -26,7 +26,7 @@ _quick_guard_available() {
 }
 
 _quick_send_available() {
-  declare -F send_cmd >/dev/null 2>&1
+  declare -F cmd_send >/dev/null 2>&1
 }
 
 cmd_quick() {
@@ -80,7 +80,7 @@ cmd_quick() {
   fi
 
   local send_status=0
-  if ! send_cmd "${send_args[@]}"; then
+  if ! cmd_send "${send_args[@]}"; then
     send_status=$?
   fi
 

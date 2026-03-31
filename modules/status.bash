@@ -87,5 +87,5 @@ USAGE
   fi
 
   # OFFLINE?
-  [[ -n "${OFFLINE:-}" ]] && echo "▶ OFFLINE=1 aktiv"
+  [[ "${OFFLINE:-0}" != "0" ]] && echo "▶ OFFLINE=1 aktiv"
 }
