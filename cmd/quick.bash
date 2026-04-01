@@ -80,9 +80,7 @@ cmd_quick() {
   fi
 
   local send_status=0
-  if ! cmd_send "${send_args[@]}"; then
-    send_status=$?
-  fi
+  cmd_send "${send_args[@]}" || send_status=$?
 
   if ((send_status != 0)); then
     return $send_status
