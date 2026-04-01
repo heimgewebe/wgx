@@ -30,6 +30,7 @@ teardown() {
 }
 
 @test "audit::log: missing payload defaults to {}" {
+  command -v python3 >/dev/null 2>&1 || skip "python3 not available"
   source "$WGX_ROOT/lib/audit.bash"
   audit::log "test_event"
   [ -f "$WGX_AUDIT_LOG" ]

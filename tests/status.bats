@@ -19,7 +19,7 @@ teardown() {
 }
 
 @test "status: OFFLINE=0 does not display offline message" {
-  OFFLINE=0 run wgx status
+  run env OFFLINE=0 wgx status
   assert_success
   if [[ "$output" == *"OFFLINE=1 aktiv"* ]]; then
     _assert_fail "Expected no OFFLINE message but got: $output"
@@ -27,7 +27,7 @@ teardown() {
 }
 
 @test "status: OFFLINE=1 displays offline message" {
-  OFFLINE=1 run wgx status
+  run env OFFLINE=1 wgx status
   assert_success
   assert_output --partial "OFFLINE=1 aktiv"
 }
