@@ -34,7 +34,8 @@ semver_ge() {
 
 semver_gt() {
   semver_cmp "$1" "$2"
-  [[ $? -eq 1 ]]
+  local cmp=$?
+  [[ $cmp -eq 1 ]]
 }
 
 semver_le() {
@@ -45,7 +46,8 @@ semver_le() {
 
 semver_lt() {
   semver_cmp "$1" "$2"
-  [[ $? -eq 2 ]]
+  local cmp=$?
+  [[ $cmp -eq 2 ]]
 }
 
 semver_in_caret_range() {
