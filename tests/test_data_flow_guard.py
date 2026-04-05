@@ -620,5 +620,124 @@ class TestDataFlowGuard(unittest.TestCase):
                         # Symlinks might fail on some platforms/permissions (e.g. Windows without dev mode)
                         pass
 
+    def test_main_with_real_local_ref_resolution(self):
+        """
+        End-to-end integration test with real files (in a temp directory)
+        to prove that local $ref resolution works via referencing.
+        """
+        import tempfile
+        import shutil
+        import pathlib
+
+        if not data_flow_guard.HAS_REFERENCING:
+            self.skipTest("referencing library not available")
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = pathlib.Path(tmp_dir).resolve()
+
+            # Setup contracts dir
+            contracts_dir = tmp_path / "contracts"
+            contracts_dir.mkdir()
+
+            # Create schema with $ref
+            schema_file = contracts_dir / "schema.json"
+            schema_file.write_text(json.dumps({
+                "type": "object",
+                "properties": {
+                    "foo": { "$ref": "foo.json" }
+                },
+                "required": ["foo"]
+            }))
+
+            # Create referenced schema
+            ref_file = contracts_dir / "foo.json"
+            ref_file.write_text(json.dumps({
+                "type": "string"
+            }))
+
+            # Create data file
+            artifacts_dir = tmp_path / "artifacts"
+            artifacts_dir.mkdir()
+            data_file = artifacts_dir / "data.json"
+            data_file.write_text(json.dumps([
+                {"foo": "valid_string"}
+            ]))
+
+            # Create flows config
+            flows_file = tmp_path / ".wgx" / "flows.json"
+            flows_file.parent.mkdir()
+            flows_file.write_text(json.dumps([
+                {
+                    "name": "integration_flow",
+                    "schema_path": str(schema_file),
+                    "data_pattern": [str(data_file)]
+                }
+            ]))
+
+            # Run main() in the temp directory context
+            old_cwd = os.getcwd()
+            os.chdir(tmp_dir)
+            try:
+                # We need to make sure we are not using mocked os.path.exists etc. from other tests
+                # if this were running in the same process with shared state, but unittest should be fine.
+                ret = data_flow_guard.main()
+                self.assertEqual(ret, 0, "Expected integration flow to succeed")
+            finally:
+                os.chdir(old_cwd)
+
+    def test_main_with_out_of_bounds_ref_resolution(self):
+        """
+        Prove that the retriever enforces root jail by attempting to resolve a ref outside allowed roots.
+        """
+        import tempfile
+        import shutil
+        import pathlib
+
+        if not data_flow_guard.HAS_REFERENCING:
+            self.skipTest("referencing library not available")
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = pathlib.Path(tmp_dir).resolve()
+
+            # Setup contracts dir (jail)
+            jail_dir = tmp_path / "jail"
+            jail_dir.mkdir()
+
+            # Setup outside dir
+            outside_dir = tmp_path / "outside"
+            outside_dir.mkdir()
+            outside_file = outside_dir / "secret.json"
+            outside_file.write_text('{"type": "string"}')
+
+            # Create schema with $ref pointing outside (using relative path)
+            schema_file = jail_dir / "schema.json"
+            schema_file.write_text(json.dumps({
+                "type": "object",
+                "properties": {
+                    "foo": { "$ref": "../outside/secret.json" }
+                }
+            }))
+
+            # Create data file
+            data_file = jail_dir / "data.json"
+            data_file.write_text(json.dumps([{"foo": "anything"}]))
+
+            # Create flows config
+            flows_file = jail_dir / "flows.json"
+            flows_file.write_text(json.dumps([
+                {
+                    "name": "jailbreak_flow",
+                    "schema_path": str(schema_file),
+                    "data_pattern": [str(data_file)]
+                }
+            ]))
+
+            # Run main() pointing to our flows file
+            # Mock load_config to return our custom flows
+            with patch('guards.data_flow_guard.load_config', return_value=(json.loads(flows_file.read_text()), str(flows_file))):
+                ret = data_flow_guard.main()
+                # Should fail because schema resolution fails due to root jail
+                self.assertEqual(ret, 1, "Expected flow to fail due to out-of-bounds $ref")
+
 if __name__ == '__main__':
     unittest.main()

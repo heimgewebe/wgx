@@ -28,9 +28,11 @@ Strict Mode & Policy:
 - DATA_FLOW_GUARD_DATA_CACHE_MAX: Integer (default 256). Controls LRU cache size for data files.
   - Set to 0 to disable data caching.
 - Reference Resolution ($ref):
-  - If schema uses $ref and the 'referencing' library is missing -> ALWAYS FAIL (Exit 1).
-  - This prevents false negatives/security theatre.
-  - Migrated from legacy jsonschema.RefResolver to 'referencing' (jsonschema >=4).
+  - Support for $ref is strictly mandatory: If a schema uses $ref and the 'referencing' library
+    is missing, the guard ALWAYS FAILS (Exit 1).
+  - This prevents false negatives/security theatre by ensuring all parts of a contract are validated.
+  - Migrated from legacy jsonschema.RefResolver (removed) to the modern 'referencing' library
+    (requires jsonschema >= 4.18).
 
 Logic:
 1. Load configuration (prioritizing .wgx/flows.json).
