@@ -52,7 +52,6 @@ class TestDataFlowGuard(unittest.TestCase):
 
         mock_validator_instance = MagicMock()
         mock_jsonschema.validators.validator_for.return_value = MagicMock(return_value=mock_validator_instance)
-        mock_jsonschema.RefResolver = MagicMock()
 
         with patch('guards.data_flow_guard.yaml', None):
             ret = data_flow_guard.main()
@@ -114,7 +113,6 @@ class TestDataFlowGuard(unittest.TestCase):
 
         mock_validator = MagicMock()
         mock_jsonschema.validators.validator_for.return_value = MagicMock(return_value=mock_validator)
-        mock_jsonschema.RefResolver = MagicMock()
 
         with patch('guards.data_flow_guard.yaml', None):
             ret = data_flow_guard.main()
@@ -184,7 +182,6 @@ class TestDataFlowGuard(unittest.TestCase):
         mock_validator_instance = MagicMock()
         mock_validator_cls = MagicMock(return_value=mock_validator_instance)
         mock_jsonschema.validators.validator_for.return_value = mock_validator_cls
-        mock_jsonschema.RefResolver = MagicMock()
 
         # Run main without patching yaml (not needed for this test)
         ret = data_flow_guard.main()
@@ -277,7 +274,6 @@ class TestDataFlowGuard(unittest.TestCase):
 
         mock_validator_instance = MagicMock()
         mock_jsonschema.validators.validator_for.return_value = MagicMock(return_value=mock_validator_instance)
-        mock_jsonschema.RefResolver = MagicMock()
 
         # Run main with explicit cache size to ensure test stability
         with patch.dict(os.environ, {"DATA_FLOW_GUARD_DATA_CACHE_MAX": "256"}):
@@ -426,7 +422,7 @@ class TestDataFlowGuard(unittest.TestCase):
 
         mock_file.side_effect = lambda f, m='r', encoding='utf-8': \
             mock_open(read_data=config_content).return_value if "flows.json" in str(f) else \
-            mock_open(read_data='{"type":"object"}').return_value if "schema.json" in str(f) else \
+            mock_open(read_data='{"$ref":"foo.json"}').return_value if "schema.json" in str(f) else \
             mock_open(read_data='[{"id":"1"}]').return_value
 
         mock_validator_instance = MagicMock()
@@ -472,35 +468,66 @@ class TestDataFlowGuard(unittest.TestCase):
     @patch('guards.data_flow_guard.os.path.exists')
     @patch('guards.data_flow_guard.glob.glob')
     @patch('builtins.open', new_callable=mock_open)
-    def test_main_legacy_fallback(self, mock_file, mock_glob, mock_exists, mock_jsonschema):
-        # Setup: same as above
+    def test_main_fail_missing_referencing_with_ref(self, mock_file, mock_glob, mock_exists, mock_jsonschema):
+        # Setup: Schema uses $ref but referencing is missing
         mock_exists.side_effect = lambda p: p in [".wgx/flows.json", "schema.json", "data.json"]
         mock_glob.return_value = []
 
         config_content = json.dumps([
             {
-                "name": "legacy_flow",
+                "name": "ref_fail_flow",
                 "schema_path": "schema.json",
                 "data_pattern": ["data.json"]
             }
         ])
+        # Schema with $ref
+        schema_content = '{"$ref": "other.json"}'
 
         mock_file.side_effect = lambda f, m='r', encoding='utf-8': \
             mock_open(read_data=config_content).return_value if "flows.json" in str(f) else \
-            mock_open(read_data='{"type":"object"}').return_value if "schema.json" in str(f) else \
+            mock_open(read_data=schema_content).return_value if "schema.json" in str(f) else \
+            mock_open(read_data='[{"id":"1"}]').return_value
+
+        mock_jsonschema.validators.validator_for.return_value = MagicMock()
+
+        with patch('guards.data_flow_guard.yaml', None):
+            ret = data_flow_guard.main()
+
+        self.assertEqual(ret, 1) # Should fail due to missing 'referencing'
+
+    @patch('guards.data_flow_guard.HAS_REFERENCING', False)
+    @patch('guards.data_flow_guard.jsonschema')
+    @patch('guards.data_flow_guard.os.path.exists')
+    @patch('guards.data_flow_guard.glob.glob')
+    @patch('builtins.open', new_callable=mock_open)
+    def test_main_success_missing_referencing_without_ref(self, mock_file, mock_glob, mock_exists, mock_jsonschema):
+        # Setup: Schema does NOT use $ref, and referencing is missing -> Should succeed
+        mock_exists.side_effect = lambda p: p in [".wgx/flows.json", "schema.json", "data.json"]
+        mock_glob.return_value = []
+
+        config_content = json.dumps([
+            {
+                "name": "simple_flow",
+                "schema_path": "schema.json",
+                "data_pattern": ["data.json"]
+            }
+        ])
+        # Schema without $ref
+        schema_content = '{"type": "object"}'
+
+        mock_file.side_effect = lambda f, m='r', encoding='utf-8': \
+            mock_open(read_data=config_content).return_value if "flows.json" in str(f) else \
+            mock_open(read_data=schema_content).return_value if "schema.json" in str(f) else \
             mock_open(read_data='[{"id":"1"}]').return_value
 
         mock_validator_instance = MagicMock()
         mock_jsonschema.validators.validator_for.return_value = MagicMock(return_value=mock_validator_instance)
-        mock_jsonschema.RefResolver = MagicMock()
 
         with patch('guards.data_flow_guard.yaml', None):
             ret = data_flow_guard.main()
 
         self.assertEqual(ret, 0)
-
-        # Verify RefResolver used
-        mock_jsonschema.RefResolver.assert_called()
+        mock_validator_instance.validate.assert_called()
 
     @patch('guards.data_flow_guard.DRAFT202012', MagicMock())
     @patch('guards.data_flow_guard.HAS_REFERENCING', True)

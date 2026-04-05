@@ -28,10 +28,9 @@ Strict Mode & Policy:
 - DATA_FLOW_GUARD_DATA_CACHE_MAX: Integer (default 256). Controls LRU cache size for data files.
   - Set to 0 to disable data caching.
 - Reference Resolution ($ref):
-  - If schema uses $ref and no resolver (RefResolver) is available -> ALWAYS FAIL (Exit 1).
+  - If schema uses $ref and the 'referencing' library is missing -> ALWAYS FAIL (Exit 1).
   - This prevents false negatives/security theatre.
-  - Currently supports `jsonschema.RefResolver` (Legacy). Modern `referencing` support is planned but not active.
-  - TODO: Migration von RefResolver -> referencing (jsonschema >=4)
+  - Migrated from legacy jsonschema.RefResolver to 'referencing' (jsonschema >=4).
 
 Logic:
 1. Load configuration (prioritizing .wgx/flows.json).
@@ -354,8 +353,13 @@ def main():
                 validator = None
 
                 try:
-                    # 1. Try referencing (New, jsonschema >= 4.18)
-                    if HAS_REFERENCING:
+                    # Resolve references ($ref)
+                    if has_ref(schema):
+                        if not HAS_REFERENCING:
+                             # If schema uses refs but we lack 'referencing' library -> HARD FAIL always.
+                             # This prevents security theater / false negatives.
+                             raise ImportError("The 'referencing' library is required to resolve $ref in schema.")
+
                         # Ensure schema has an ID matching its file path so relative refs resolve correctly
                         if "$id" not in schema:
                             # Create a copy to avoid side effects on cached schema or re-runs
@@ -380,19 +384,9 @@ def main():
                         retrieve = create_retriever(base_dir=schema_dir, allowed_roots=allowed_roots)
                         registry = Registry(retrieve=retrieve).with_resource(base_uri, resource)
                         validator = validator_cls(schema, registry=registry)
-
-                    # 2. Try RefResolver (Legacy)
-                    elif hasattr(jsonschema, 'RefResolver'):
-                        resolver = jsonschema.RefResolver(base_uri=base_uri, referrer=schema)
-                        validator = validator_cls(schema, resolver=resolver)
                     else:
-                        # Missing RefResolver.
-                        if has_ref(schema):
-                             # If schema uses refs but we lack resolver capability -> HARD FAIL always.
-                             raise ImportError("RefResolver missing and schema uses $ref. Resolution capability required.")
-                        else:
-                            # Safe to proceed without resolver for simple schemas
-                            validator = validator_cls(schema)
+                        # Simple schema without $ref -> No resolver needed
+                        validator = validator_cls(schema)
 
                     schema_cache[schema_key] = validator
 
