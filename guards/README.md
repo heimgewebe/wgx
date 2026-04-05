@@ -19,7 +19,7 @@ Validiert Datenartefakte gegen JSON-Schemas basierend auf einer Flow-Definition.
 **Abhängigkeiten:**
 
 - `python3`
-- `jsonschema` (>= 4.18 für $ref-Support empfohlen)
+- `jsonschema` (>= 4.18 erforderlich für $ref-Support via `referencing`)
 - `referencing` (zwingend erforderlich für $ref-Support)
 
 **Strict Mode (CI):**

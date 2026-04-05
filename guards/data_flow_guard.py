@@ -260,11 +260,6 @@ def has_ref(schema_obj):
                         return True
 
         # Keywords that contain an array of schemas
-        for kw in ["allOf", "anyOf", "oneOf", "dependentRequired"]:
-             # Note: dependentRequired contains lists of strings, but we check if we recurse into a schema-like structure.
-             # Actually, dependentRequired is not for schemas.
-             pass
-
         for kw in ["allOf", "anyOf", "oneOf"]:
             if kw in schema_obj and isinstance(schema_obj[kw], list):
                 for subschema in schema_obj[kw]:
@@ -418,11 +413,11 @@ def main():
                         try:
                             validator = validator_cls(schema, registry=registry)
                         except TypeError as e:
-                             # This specifically catches jsonschema versions < 4.18 which don't support 'registry'
-                             raise ImportError(
-                                 "The installed 'jsonschema' version does not support the 'registry' keyword. "
-                                 "Upgrade 'jsonschema' to >= 4.18 to use 'referencing' for $ref resolution."
-                             ) from e
+                            # This specifically catches jsonschema versions < 4.18 which don't support 'registry'
+                            raise ImportError(
+                                "The installed 'jsonschema' version does not support the 'registry' keyword. "
+                                "Upgrade 'jsonschema' to >= 4.18 to use 'referencing' for $ref resolution."
+                            ) from e
                     else:
                         # Simple schema without $ref -> No resolver needed
                         validator = validator_cls(schema)
@@ -430,9 +425,9 @@ def main():
                     schema_cache[schema_key] = validator
 
                 except (ImportError, RuntimeError) as e:
-                     print(f"[wgx][guard][data_flow] ERROR flow={flow_name} error='{e}'", file=sys.stderr)
-                     total_errors += 1
-                     continue
+                    print(f"[wgx][guard][data_flow] ERROR flow={flow_name} error='{e}'", file=sys.stderr)
+                    total_errors += 1
+                    continue
                 except Exception as e:
                     print(f"[wgx][guard][data_flow] ERROR flow={flow_name} error='Validator init failed: {e}'", file=sys.stderr)
                     total_errors += 1
