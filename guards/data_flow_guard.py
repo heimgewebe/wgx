@@ -233,6 +233,21 @@ def check_ssot_path(path):
     if not (path.startswith(".wgx/contracts/") or path.startswith("contracts/")):
         print(f"[wgx][guard][data_flow] WARN schema={path} message='Schema is outside canonical vendor paths (.wgx/contracts/ or contracts/). This may cause drift.'", file=sys.stderr)
 
+# JSON Schema keywords that contain sub-schemas (Heuristic for has_ref)
+# Keywords containing a single schema
+SINGLE_SCHEMA_KEYWORDS = (
+    "additionalProperties", "items", "not", "if", "then", "else",
+    "unevaluatedProperties", "unevaluatedItems", "propertyNames", "contains"
+)
+# Keywords containing a dictionary mapping (key -> schema)
+SCHEMA_MAP_KEYWORDS = (
+    "properties", "patternProperties", "dependentSchemas", "$defs", "definitions"
+)
+# Keywords containing an array of schemas
+SCHEMA_LIST_KEYWORDS = (
+    "allOf", "anyOf", "oneOf", "prefixItems"
+)
+
 def has_ref(schema_obj):
     """
     Recursively check if schema object contains '$ref' key as a keyword.
@@ -245,22 +260,22 @@ def has_ref(schema_obj):
             return True
 
         # 2. Recurse into common JSON Schema keyword structures
-        # This is a heuristic that covers most schemas while avoiding 'properties' leaf names.
+        # This heuristic covers most schemas while avoiding 'properties' leaf names.
 
         # Keywords that contain a single schema
-        for kw in ["additionalProperties", "items", "not", "if", "then", "else", "unevaluatedProperties", "unevaluatedItems", "propertyNames", "contains"]:
+        for kw in SINGLE_SCHEMA_KEYWORDS:
             if kw in schema_obj and has_ref(schema_obj[kw]):
                 return True
 
         # Keywords that contain an object mapping of schemas
-        for kw in ["properties", "patternProperties", "dependentSchemas", "$defs", "definitions"]:
+        for kw in SCHEMA_MAP_KEYWORDS:
             if kw in schema_obj and isinstance(schema_obj[kw], dict):
                 for subschema in schema_obj[kw].values():
                     if has_ref(subschema):
                         return True
 
         # Keywords that contain an array of schemas
-        for kw in ["allOf", "anyOf", "oneOf"]:
+        for kw in SCHEMA_LIST_KEYWORDS:
             if kw in schema_obj and isinstance(schema_obj[kw], list):
                 for subschema in schema_obj[kw]:
                     if has_ref(subschema):

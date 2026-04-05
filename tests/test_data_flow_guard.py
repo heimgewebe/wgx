@@ -819,6 +819,44 @@ class TestDataFlowGuard(unittest.TestCase):
                     self.assertTrue(mock_res.from_contents.called, "Resource creation should be called for deep $ref")
 
     @patch('guards.data_flow_guard.HAS_REFERENCING', True)
+    @patch('guards.data_flow_guard.jsonschema')
+    @patch('guards.data_flow_guard.os.path.exists')
+    @patch('guards.data_flow_guard.glob.glob')
+    @patch('builtins.open', new_callable=mock_open)
+    def test_has_ref_prefix_items_positive(self, mock_file, mock_glob, mock_exists, mock_jsonschema):
+        """
+        Verify that has_ref correctly identifies a $ref nested inside 'prefixItems'.
+        """
+        mock_exists.side_effect = lambda p: p in [".wgx/flows.json", "schema.json", "data.json"]
+        mock_glob.return_value = []
+
+        config_content = json.dumps([
+            {"name": "prefix_ref_flow", "schema_path": "schema.json", "data_pattern": ["data.json"]}
+        ])
+        # Schema with a $ref nested inside 'prefixItems'
+        schema_content = json.dumps({
+            "type": "array",
+            "prefixItems": [
+                {"$ref": "common.json"}
+            ]
+        })
+
+        mock_file.side_effect = lambda f, m='r', encoding='utf-8': \
+            mock_open(read_data=config_content).return_value if "flows.json" in str(f) else \
+            mock_open(read_data=schema_content).return_value if "schema.json" in str(f) else \
+            mock_open(read_data='[]').return_value
+
+        mock_validator_instance = MagicMock()
+        mock_jsonschema.validators.validator_for.return_value = MagicMock(return_value=mock_validator_instance)
+
+        with patch('guards.data_flow_guard.yaml', None):
+            with patch('guards.data_flow_guard.Registry'):
+                with patch('guards.data_flow_guard.Resource') as mock_res:
+                    data_flow_guard.main()
+                    # Resource.from_contents should be called for prefixItems $ref
+                    self.assertTrue(mock_res.from_contents.called, "Resource creation should be called for prefixItems $ref")
+
+    @patch('guards.data_flow_guard.HAS_REFERENCING', True)
     @patch('guards.data_flow_guard.Registry')
     @patch('guards.data_flow_guard.Resource', MagicMock())
     @patch('guards.data_flow_guard.jsonschema')
