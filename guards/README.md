@@ -16,7 +16,11 @@ Warum: Manche Strict-Validatoren brechen bei unbekannten Keywords; Governance-Me
 
 Validiert Datenartefakte gegen JSON-Schemas basierend auf einer Flow-Definition.
 
-**Abhängigkeiten:** Dieser Guard benötigt `python3` und `jsonschema`.
+**Abhängigkeiten:**
+
+- `python3`
+- `jsonschema` (>= 4.18 für $ref-Support empfohlen)
+- `referencing` (zwingend erforderlich für $ref-Support)
 
 **Strict Mode (CI):**
 

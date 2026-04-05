@@ -234,13 +234,43 @@ def check_ssot_path(path):
         print(f"[wgx][guard][data_flow] WARN schema={path} message='Schema is outside canonical vendor paths (.wgx/contracts/ or contracts/). This may cause drift.'", file=sys.stderr)
 
 def has_ref(schema_obj):
-    """Recursively check if schema object contains '$ref' key."""
+    """
+    Recursively check if schema object contains '$ref' key as a keyword.
+    To avoid false positives from property names literally named '$ref',
+    we only look into keys that are known to contain schemas or other keywords.
+    """
     if isinstance(schema_obj, dict):
+        # 1. Direct hit as a keyword
         if "$ref" in schema_obj:
             return True
-        for v in schema_obj.values():
-            if has_ref(v):
+
+        # 2. Recurse into common JSON Schema keyword structures
+        # This is a heuristic that covers most schemas while avoiding 'properties' leaf names.
+
+        # Keywords that contain a single schema
+        for kw in ["additionalProperties", "items", "not", "if", "then", "else", "unevaluatedProperties", "unevaluatedItems", "propertyNames", "contains"]:
+            if kw in schema_obj and has_ref(schema_obj[kw]):
                 return True
+
+        # Keywords that contain an object mapping of schemas
+        for kw in ["properties", "patternProperties", "dependentSchemas", "$defs", "definitions"]:
+            if kw in schema_obj and isinstance(schema_obj[kw], dict):
+                for subschema in schema_obj[kw].values():
+                    if has_ref(subschema):
+                        return True
+
+        # Keywords that contain an array of schemas
+        for kw in ["allOf", "anyOf", "oneOf", "dependentRequired"]:
+             # Note: dependentRequired contains lists of strings, but we check if we recurse into a schema-like structure.
+             # Actually, dependentRequired is not for schemas.
+             pass
+
+        for kw in ["allOf", "anyOf", "oneOf"]:
+            if kw in schema_obj and isinstance(schema_obj[kw], list):
+                for subschema in schema_obj[kw]:
+                    if has_ref(subschema):
+                        return True
+
     elif isinstance(schema_obj, list):
         for item in schema_obj:
             if has_ref(item):
@@ -385,14 +415,21 @@ def main():
 
                         retrieve = create_retriever(base_dir=schema_dir, allowed_roots=allowed_roots)
                         registry = Registry(retrieve=retrieve).with_resource(base_uri, resource)
-                        validator = validator_cls(schema, registry=registry)
+                        try:
+                            validator = validator_cls(schema, registry=registry)
+                        except TypeError as e:
+                             # This specifically catches jsonschema versions < 4.18 which don't support 'registry'
+                             raise ImportError(
+                                 "The installed 'jsonschema' version does not support the 'registry' keyword. "
+                                 "Upgrade 'jsonschema' to >= 4.18 to use 'referencing' for $ref resolution."
+                             ) from e
                     else:
                         # Simple schema without $ref -> No resolver needed
                         validator = validator_cls(schema)
 
                     schema_cache[schema_key] = validator
 
-                except ImportError as e:
+                except (ImportError, RuntimeError) as e:
                      print(f"[wgx][guard][data_flow] ERROR flow={flow_name} error='{e}'", file=sys.stderr)
                      total_errors += 1
                      continue
