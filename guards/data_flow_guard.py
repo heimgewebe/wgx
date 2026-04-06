@@ -28,10 +28,11 @@ Strict Mode & Policy:
 - DATA_FLOW_GUARD_DATA_CACHE_MAX: Integer (default 256). Controls LRU cache size for data files.
   - Set to 0 to disable data caching.
 - Reference Resolution ($ref):
-  - If schema uses $ref and no resolver (RefResolver) is available -> ALWAYS FAIL (Exit 1).
-  - This prevents false negatives/security theatre.
-  - Currently supports `jsonschema.RefResolver` (Legacy). Modern `referencing` support is planned but not active.
-  - TODO: Migration von RefResolver -> referencing (jsonschema >=4)
+  - Support for $ref is strictly mandatory: If a schema uses $ref and the 'referencing' library
+    is missing, the guard ALWAYS FAILS (Exit 1).
+  - This prevents false negatives/security theatre by ensuring all parts of a contract are validated.
+  - Migrated from legacy jsonschema.RefResolver (removed) to the modern 'referencing' library
+    (requires jsonschema >= 4.18).
 
 Logic:
 1. Load configuration (prioritizing .wgx/flows.json).
@@ -232,14 +233,54 @@ def check_ssot_path(path):
     if not (path.startswith(".wgx/contracts/") or path.startswith("contracts/")):
         print(f"[wgx][guard][data_flow] WARN schema={path} message='Schema is outside canonical vendor paths (.wgx/contracts/ or contracts/). This may cause drift.'", file=sys.stderr)
 
+# JSON Schema keywords that contain sub-schemas (Heuristic for has_ref)
+# Keywords containing a single schema
+SINGLE_SCHEMA_KEYWORDS = (
+    "additionalProperties", "items", "not", "if", "then", "else",
+    "unevaluatedProperties", "unevaluatedItems", "propertyNames", "contains"
+)
+# Keywords containing a dictionary mapping (key -> schema)
+SCHEMA_MAP_KEYWORDS = (
+    "properties", "patternProperties", "dependentSchemas", "$defs", "definitions"
+)
+# Keywords containing an array of schemas
+SCHEMA_LIST_KEYWORDS = (
+    "allOf", "anyOf", "oneOf", "prefixItems"
+)
+
 def has_ref(schema_obj):
-    """Recursively check if schema object contains '$ref' key."""
+    """
+    Recursively check if schema object contains '$ref' key as a keyword.
+    To avoid false positives from property names literally named '$ref',
+    we only look into keys that are known to contain schemas or other keywords.
+    """
     if isinstance(schema_obj, dict):
+        # 1. Direct hit as a keyword
         if "$ref" in schema_obj:
             return True
-        for v in schema_obj.values():
-            if has_ref(v):
+
+        # 2. Recurse into common JSON Schema keyword structures
+        # This heuristic covers most schemas while avoiding 'properties' leaf names.
+
+        # Keywords that contain a single schema
+        for kw in SINGLE_SCHEMA_KEYWORDS:
+            if kw in schema_obj and has_ref(schema_obj[kw]):
                 return True
+
+        # Keywords that contain an object mapping of schemas
+        for kw in SCHEMA_MAP_KEYWORDS:
+            if kw in schema_obj and isinstance(schema_obj[kw], dict):
+                for subschema in schema_obj[kw].values():
+                    if has_ref(subschema):
+                        return True
+
+        # Keywords that contain an array of schemas
+        for kw in SCHEMA_LIST_KEYWORDS:
+            if kw in schema_obj and isinstance(schema_obj[kw], list):
+                for subschema in schema_obj[kw]:
+                    if has_ref(subschema):
+                        return True
+
     elif isinstance(schema_obj, list):
         for item in schema_obj:
             if has_ref(item):
@@ -354,8 +395,13 @@ def main():
                 validator = None
 
                 try:
-                    # 1. Try referencing (New, jsonschema >= 4.18)
-                    if HAS_REFERENCING:
+                    # Resolve references ($ref)
+                    if has_ref(schema):
+                        if not HAS_REFERENCING:
+                             # If schema uses refs but we lack 'referencing' library -> HARD FAIL always.
+                             # This prevents security theater / false negatives.
+                             raise ImportError("The 'referencing' library is required to resolve $ref in schema.")
+
                         # Ensure schema has an ID matching its file path so relative refs resolve correctly
                         if "$id" not in schema:
                             # Create a copy to avoid side effects on cached schema or re-runs
@@ -379,27 +425,24 @@ def main():
 
                         retrieve = create_retriever(base_dir=schema_dir, allowed_roots=allowed_roots)
                         registry = Registry(retrieve=retrieve).with_resource(base_uri, resource)
-                        validator = validator_cls(schema, registry=registry)
-
-                    # 2. Try RefResolver (Legacy)
-                    elif hasattr(jsonschema, 'RefResolver'):
-                        resolver = jsonschema.RefResolver(base_uri=base_uri, referrer=schema)
-                        validator = validator_cls(schema, resolver=resolver)
+                        try:
+                            validator = validator_cls(schema, registry=registry)
+                        except TypeError as e:
+                            # This specifically catches jsonschema versions < 4.18 which don't support 'registry'
+                            raise ImportError(
+                                "The installed 'jsonschema' version does not support the 'registry' keyword. "
+                                "Upgrade 'jsonschema' to >= 4.18 to use 'referencing' for $ref resolution."
+                            ) from e
                     else:
-                        # Missing RefResolver.
-                        if has_ref(schema):
-                             # If schema uses refs but we lack resolver capability -> HARD FAIL always.
-                             raise ImportError("RefResolver missing and schema uses $ref. Resolution capability required.")
-                        else:
-                            # Safe to proceed without resolver for simple schemas
-                            validator = validator_cls(schema)
+                        # Simple schema without $ref -> No resolver needed
+                        validator = validator_cls(schema)
 
                     schema_cache[schema_key] = validator
 
-                except ImportError as e:
-                     print(f"[wgx][guard][data_flow] ERROR flow={flow_name} error='{e}'", file=sys.stderr)
-                     total_errors += 1
-                     continue
+                except (ImportError, RuntimeError) as e:
+                    print(f"[wgx][guard][data_flow] ERROR flow={flow_name} error='{e}'", file=sys.stderr)
+                    total_errors += 1
+                    continue
                 except Exception as e:
                     print(f"[wgx][guard][data_flow] ERROR flow={flow_name} error='Validator init failed: {e}'", file=sys.stderr)
                     total_errors += 1

@@ -52,7 +52,6 @@ class TestDataFlowGuard(unittest.TestCase):
 
         mock_validator_instance = MagicMock()
         mock_jsonschema.validators.validator_for.return_value = MagicMock(return_value=mock_validator_instance)
-        mock_jsonschema.RefResolver = MagicMock()
 
         with patch('guards.data_flow_guard.yaml', None):
             ret = data_flow_guard.main()
@@ -114,7 +113,6 @@ class TestDataFlowGuard(unittest.TestCase):
 
         mock_validator = MagicMock()
         mock_jsonschema.validators.validator_for.return_value = MagicMock(return_value=mock_validator)
-        mock_jsonschema.RefResolver = MagicMock()
 
         with patch('guards.data_flow_guard.yaml', None):
             ret = data_flow_guard.main()
@@ -184,7 +182,6 @@ class TestDataFlowGuard(unittest.TestCase):
         mock_validator_instance = MagicMock()
         mock_validator_cls = MagicMock(return_value=mock_validator_instance)
         mock_jsonschema.validators.validator_for.return_value = mock_validator_cls
-        mock_jsonschema.RefResolver = MagicMock()
 
         # Run main without patching yaml (not needed for this test)
         ret = data_flow_guard.main()
@@ -277,7 +274,6 @@ class TestDataFlowGuard(unittest.TestCase):
 
         mock_validator_instance = MagicMock()
         mock_jsonschema.validators.validator_for.return_value = MagicMock(return_value=mock_validator_instance)
-        mock_jsonschema.RefResolver = MagicMock()
 
         # Run main with explicit cache size to ensure test stability
         with patch.dict(os.environ, {"DATA_FLOW_GUARD_DATA_CACHE_MAX": "256"}):
@@ -426,7 +422,7 @@ class TestDataFlowGuard(unittest.TestCase):
 
         mock_file.side_effect = lambda f, m='r', encoding='utf-8': \
             mock_open(read_data=config_content).return_value if "flows.json" in str(f) else \
-            mock_open(read_data='{"type":"object"}').return_value if "schema.json" in str(f) else \
+            mock_open(read_data='{"$ref":"foo.json"}').return_value if "schema.json" in str(f) else \
             mock_open(read_data='[{"id":"1"}]').return_value
 
         mock_validator_instance = MagicMock()
@@ -472,35 +468,66 @@ class TestDataFlowGuard(unittest.TestCase):
     @patch('guards.data_flow_guard.os.path.exists')
     @patch('guards.data_flow_guard.glob.glob')
     @patch('builtins.open', new_callable=mock_open)
-    def test_main_legacy_fallback(self, mock_file, mock_glob, mock_exists, mock_jsonschema):
-        # Setup: same as above
+    def test_main_fail_missing_referencing_with_ref(self, mock_file, mock_glob, mock_exists, mock_jsonschema):
+        # Setup: Schema uses $ref but referencing is missing
         mock_exists.side_effect = lambda p: p in [".wgx/flows.json", "schema.json", "data.json"]
         mock_glob.return_value = []
 
         config_content = json.dumps([
             {
-                "name": "legacy_flow",
+                "name": "ref_fail_flow",
                 "schema_path": "schema.json",
                 "data_pattern": ["data.json"]
             }
         ])
+        # Schema with $ref
+        schema_content = '{"$ref": "other.json"}'
 
         mock_file.side_effect = lambda f, m='r', encoding='utf-8': \
             mock_open(read_data=config_content).return_value if "flows.json" in str(f) else \
-            mock_open(read_data='{"type":"object"}').return_value if "schema.json" in str(f) else \
+            mock_open(read_data=schema_content).return_value if "schema.json" in str(f) else \
+            mock_open(read_data='[{"id":"1"}]').return_value
+
+        mock_jsonschema.validators.validator_for.return_value = MagicMock()
+
+        with patch('guards.data_flow_guard.yaml', None):
+            ret = data_flow_guard.main()
+
+        self.assertEqual(ret, 1) # Should fail due to missing 'referencing'
+
+    @patch('guards.data_flow_guard.HAS_REFERENCING', False)
+    @patch('guards.data_flow_guard.jsonschema')
+    @patch('guards.data_flow_guard.os.path.exists')
+    @patch('guards.data_flow_guard.glob.glob')
+    @patch('builtins.open', new_callable=mock_open)
+    def test_main_success_missing_referencing_without_ref(self, mock_file, mock_glob, mock_exists, mock_jsonschema):
+        # Setup: Schema does NOT use $ref, and referencing is missing -> Should succeed
+        mock_exists.side_effect = lambda p: p in [".wgx/flows.json", "schema.json", "data.json"]
+        mock_glob.return_value = []
+
+        config_content = json.dumps([
+            {
+                "name": "simple_flow",
+                "schema_path": "schema.json",
+                "data_pattern": ["data.json"]
+            }
+        ])
+        # Schema without $ref
+        schema_content = '{"type": "object"}'
+
+        mock_file.side_effect = lambda f, m='r', encoding='utf-8': \
+            mock_open(read_data=config_content).return_value if "flows.json" in str(f) else \
+            mock_open(read_data=schema_content).return_value if "schema.json" in str(f) else \
             mock_open(read_data='[{"id":"1"}]').return_value
 
         mock_validator_instance = MagicMock()
         mock_jsonschema.validators.validator_for.return_value = MagicMock(return_value=mock_validator_instance)
-        mock_jsonschema.RefResolver = MagicMock()
 
         with patch('guards.data_flow_guard.yaml', None):
             ret = data_flow_guard.main()
 
         self.assertEqual(ret, 0)
-
-        # Verify RefResolver used
-        mock_jsonschema.RefResolver.assert_called()
+        mock_validator_instance.validate.assert_called()
 
     @patch('guards.data_flow_guard.DRAFT202012', MagicMock())
     @patch('guards.data_flow_guard.HAS_REFERENCING', True)
@@ -592,6 +619,283 @@ class TestDataFlowGuard(unittest.TestCase):
                     except OSError:
                         # Symlinks might fail on some platforms/permissions (e.g. Windows without dev mode)
                         pass
+
+    def test_main_with_real_local_ref_resolution(self):
+        """
+        End-to-end integration test with real files (in a temp directory)
+        to prove that local $ref resolution works via referencing.
+        """
+        import tempfile
+        import shutil
+        import pathlib
+
+        if not data_flow_guard.HAS_REFERENCING:
+            self.skipTest("referencing library not available")
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = pathlib.Path(tmp_dir).resolve()
+
+            # Setup contracts dir
+            contracts_dir = tmp_path / "contracts"
+            contracts_dir.mkdir()
+
+            # Create schema with $ref
+            schema_file = contracts_dir / "schema.json"
+            schema_file.write_text(json.dumps({
+                "type": "object",
+                "properties": {
+                    "foo": { "$ref": "foo.json" }
+                },
+                "required": ["foo"]
+            }))
+
+            # Create referenced schema
+            ref_file = contracts_dir / "foo.json"
+            ref_file.write_text(json.dumps({
+                "type": "string"
+            }))
+
+            # Create data file
+            artifacts_dir = tmp_path / "artifacts"
+            artifacts_dir.mkdir()
+            data_file = artifacts_dir / "data.json"
+            data_file.write_text(json.dumps([
+                {"foo": "valid_string"}
+            ]))
+
+            # Create flows config
+            flows_file = tmp_path / ".wgx" / "flows.json"
+            flows_file.parent.mkdir()
+            flows_file.write_text(json.dumps([
+                {
+                    "name": "integration_flow",
+                    "schema_path": str(schema_file),
+                    "data_pattern": [str(data_file)]
+                }
+            ]))
+
+            # Run main() in the temp directory context
+            old_cwd = os.getcwd()
+            os.chdir(tmp_dir)
+            try:
+                # We need to make sure we are not using mocked os.path.exists etc. from other tests
+                # if this were running in the same process with shared state, but unittest should be fine.
+                ret = data_flow_guard.main()
+                self.assertEqual(ret, 0, "Expected integration flow to succeed")
+            finally:
+                os.chdir(old_cwd)
+
+    def test_main_with_out_of_bounds_ref_resolution(self):
+        """
+        Prove that the retriever enforces root jail by attempting to resolve a ref outside allowed roots.
+        """
+        import tempfile
+        import shutil
+        import pathlib
+
+        if not data_flow_guard.HAS_REFERENCING:
+            self.skipTest("referencing library not available")
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = pathlib.Path(tmp_dir).resolve()
+
+            # Setup contracts dir (jail)
+            jail_dir = tmp_path / "jail"
+            jail_dir.mkdir()
+
+            # Setup outside dir
+            outside_dir = tmp_path / "outside"
+            outside_dir.mkdir()
+            outside_file = outside_dir / "secret.json"
+            outside_file.write_text('{"type": "string"}')
+
+            # Create schema with $ref pointing outside (using relative path)
+            schema_file = jail_dir / "schema.json"
+            schema_file.write_text(json.dumps({
+                "type": "object",
+                "properties": {
+                    "foo": { "$ref": "../outside/secret.json" }
+                }
+            }))
+
+            # Create data file
+            data_file = jail_dir / "data.json"
+            data_file.write_text(json.dumps([{"foo": "anything"}]))
+
+            # Create flows config
+            flows_file = jail_dir / "flows.json"
+            flows_file.write_text(json.dumps([
+                {
+                    "name": "jailbreak_flow",
+                    "schema_path": str(schema_file),
+                    "data_pattern": [str(data_file)]
+                }
+            ]))
+
+            # Run main() pointing to our flows file
+            # Mock load_config to return our custom flows
+            with patch('guards.data_flow_guard.load_config', return_value=(json.loads(flows_file.read_text()), str(flows_file))):
+                ret = data_flow_guard.main()
+                # Should fail because schema resolution fails due to root jail
+                self.assertEqual(ret, 1, "Expected flow to fail due to out-of-bounds $ref")
+
+    @patch('guards.data_flow_guard.jsonschema')
+    @patch('guards.data_flow_guard.os.path.exists')
+    @patch('guards.data_flow_guard.glob.glob')
+    @patch('builtins.open', new_callable=mock_open)
+    def test_has_ref_false_positive_check(self, mock_file, mock_glob, mock_exists, mock_jsonschema):
+        """
+        Verify if has_ref correctly distinguishes between $ref keyword and property named '$ref'.
+        If it's too broad, this test will fail as it will expect ret=1 due to missing referencing,
+        while we actually want simple schemas with a property named '$ref' to pass without referencing.
+        """
+        # Setup: referencing is missing
+        with patch('guards.data_flow_guard.HAS_REFERENCING', False):
+            mock_exists.side_effect = lambda p: p in [".wgx/flows.json", "schema.json", "data.json"]
+            mock_glob.return_value = []
+
+            config_content = json.dumps([
+                {"name": "p_ref_flow", "schema_path": "schema.json", "data_pattern": ["data.json"]}
+            ])
+            # Schema with a property named '$ref', but no ACTUAL $ref keyword at top-level or schema-logic level
+            schema_content = json.dumps({
+                "type": "object",
+                "properties": {
+                    "$ref": {"type": "string"}
+                }
+            })
+
+            mock_file.side_effect = lambda f, m='r', encoding='utf-8': \
+                mock_open(read_data=config_content).return_value if "flows.json" in str(f) else \
+                mock_open(read_data=schema_content).return_value if "schema.json" in str(f) else \
+                mock_open(read_data='[{"$ref": "value"}]').return_value
+
+            mock_validator_instance = MagicMock()
+            mock_jsonschema.validators.validator_for.return_value = MagicMock(return_value=mock_validator_instance)
+
+            with patch('guards.data_flow_guard.yaml', None):
+                ret = data_flow_guard.main()
+
+            # If has_ref is too broad, it will think we need referencing and return 1.
+            # If has_ref is precise (or if we want it to be), it should return 0.
+            self.assertEqual(ret, 0, "Schema with property named '$ref' should not require referencing")
+
+    @patch('guards.data_flow_guard.HAS_REFERENCING', True)
+    @patch('guards.data_flow_guard.jsonschema')
+    @patch('guards.data_flow_guard.os.path.exists')
+    @patch('guards.data_flow_guard.glob.glob')
+    @patch('builtins.open', new_callable=mock_open)
+    def test_has_ref_deep_positive(self, mock_file, mock_glob, mock_exists, mock_jsonschema):
+        """
+        Verify that has_ref correctly identifies a $ref nested inside a schema keyword.
+        """
+        mock_exists.side_effect = lambda p: p in [".wgx/flows.json", "schema.json", "data.json"]
+        mock_glob.return_value = []
+
+        config_content = json.dumps([
+            {"name": "deep_ref_flow", "schema_path": "schema.json", "data_pattern": ["data.json"]}
+        ])
+        # Schema with a $ref nested inside 'allOf'
+        schema_content = json.dumps({
+            "type": "object",
+            "allOf": [
+                {"$ref": "common.json"}
+            ]
+        })
+
+        mock_file.side_effect = lambda f, m='r', encoding='utf-8': \
+            mock_open(read_data=config_content).return_value if "flows.json" in str(f) else \
+            mock_open(read_data=schema_content).return_value if "schema.json" in str(f) else \
+            mock_open(read_data='[]').return_value
+
+        mock_validator_instance = MagicMock()
+        mock_jsonschema.validators.validator_for.return_value = MagicMock(return_value=mock_validator_instance)
+
+        with patch('guards.data_flow_guard.yaml', None):
+            with patch('guards.data_flow_guard.Registry') as mock_reg:
+                with patch('guards.data_flow_guard.Resource') as mock_res:
+                    data_flow_guard.main()
+                    # If has_ref worked, Resource.from_contents (or Registry) should have been called
+                    self.assertTrue(mock_res.from_contents.called, "Resource creation should be called for deep $ref")
+
+    @patch('guards.data_flow_guard.HAS_REFERENCING', True)
+    @patch('guards.data_flow_guard.jsonschema')
+    @patch('guards.data_flow_guard.os.path.exists')
+    @patch('guards.data_flow_guard.glob.glob')
+    @patch('builtins.open', new_callable=mock_open)
+    def test_has_ref_prefix_items_positive(self, mock_file, mock_glob, mock_exists, mock_jsonschema):
+        """
+        Verify that has_ref correctly identifies a $ref nested inside 'prefixItems'.
+        """
+        mock_exists.side_effect = lambda p: p in [".wgx/flows.json", "schema.json", "data.json"]
+        mock_glob.return_value = []
+
+        config_content = json.dumps([
+            {"name": "prefix_ref_flow", "schema_path": "schema.json", "data_pattern": ["data.json"]}
+        ])
+        # Schema with a $ref nested inside 'prefixItems'
+        schema_content = json.dumps({
+            "type": "array",
+            "prefixItems": [
+                {"$ref": "common.json"}
+            ]
+        })
+
+        mock_file.side_effect = lambda f, m='r', encoding='utf-8': \
+            mock_open(read_data=config_content).return_value if "flows.json" in str(f) else \
+            mock_open(read_data=schema_content).return_value if "schema.json" in str(f) else \
+            mock_open(read_data='[]').return_value
+
+        mock_validator_instance = MagicMock()
+        mock_jsonschema.validators.validator_for.return_value = MagicMock(return_value=mock_validator_instance)
+
+        with patch('guards.data_flow_guard.yaml', None):
+            with patch('guards.data_flow_guard.Registry'):
+                with patch('guards.data_flow_guard.Resource') as mock_res:
+                    data_flow_guard.main()
+                    # Resource.from_contents should be called for prefixItems $ref
+                    self.assertTrue(mock_res.from_contents.called, "Resource creation should be called for prefixItems $ref")
+
+    @patch('guards.data_flow_guard.HAS_REFERENCING', True)
+    @patch('guards.data_flow_guard.Registry')
+    @patch('guards.data_flow_guard.Resource', MagicMock())
+    @patch('guards.data_flow_guard.jsonschema')
+    @patch('guards.data_flow_guard.os.path.exists')
+    @patch('guards.data_flow_guard.glob.glob')
+    @patch('builtins.open', new_callable=mock_open)
+    def test_main_fail_incompatible_jsonschema_registry(self, mock_file, mock_glob, mock_exists, mock_jsonschema, mock_registry):
+        """
+        Verify that a TypeError during validator init (e.g. registry= not supported)
+        is caught and reported with a specific error message.
+        """
+        mock_exists.side_effect = lambda p: p in [".wgx/flows.json", "schema.json", "data.json"]
+        mock_glob.return_value = []
+
+        config_content = json.dumps([
+            {"name": "compat_flow", "schema_path": "schema.json", "data_pattern": ["data.json"]}
+        ])
+        schema_content = '{"$ref": "foo.json"}'
+
+        mock_file.side_effect = lambda f, m='r', encoding='utf-8': \
+            mock_open(read_data=config_content).return_value if "flows.json" in str(f) else \
+            mock_open(read_data=schema_content).return_value if "schema.json" in str(f) else \
+            mock_open(read_data='[]').return_value
+
+        mock_validator_cls = MagicMock(side_effect=TypeError("unexpected keyword argument 'registry'"))
+        mock_jsonschema.validators.validator_for.return_value = mock_validator_cls
+
+        # We need to capture stderr to check for our specific message
+        import io
+        from contextlib import redirect_stderr
+
+        f = io.StringIO()
+        with redirect_stderr(f):
+            with patch('guards.data_flow_guard.yaml', None):
+                ret = data_flow_guard.main()
+
+        output = f.getvalue()
+        self.assertEqual(ret, 1)
+        self.assertIn("The installed 'jsonschema' version does not support the 'registry' keyword", output)
 
 if __name__ == '__main__':
     unittest.main()

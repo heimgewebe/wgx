@@ -16,7 +16,11 @@ Warum: Manche Strict-Validatoren brechen bei unbekannten Keywords; Governance-Me
 
 Validiert Datenartefakte gegen JSON-Schemas basierend auf einer Flow-Definition.
 
-**Abhängigkeiten:** Dieser Guard benötigt `python3` und `jsonschema`.
+**Abhängigkeiten:**
+
+- `python3`
+- `jsonschema` (>= 4.18 erforderlich für $ref-Support via `referencing`)
+- `referencing` (zwingend erforderlich für $ref-Support)
 
 **Strict Mode (CI):**
 
@@ -25,9 +29,11 @@ Validiert Datenartefakte gegen JSON-Schemas basierend auf einer Flow-Definition.
 
 **Referenz-Validierung:**
 
-- Wenn ein Schema `$ref` verwendet, **MUSS** eine Referenzauflösung möglich sein (via `RefResolver`).
-  Andernfalls bricht der Guard mit einem Fehler ab (Exit 1), um Scheinsicherheit zu vermeiden –
-  unabhängig vom Strict Mode.
+- Wenn ein Schema `$ref` verwendet, **MUSS** eine Referenzauflösung möglich sein.
+- Die Migration auf die modernere `referencing` Library (erfordert `jsonschema >= 4.18`) ist vollzogen.
+  Der legacy `RefResolver` wurde vollständig entfernt.
+- **Wichtig:** Fehlt die `referencing` Library, bricht der Guard bei Schemas mit `$ref` hart ab (Exit 1),
+  um Scheinsicherheit (False Negatives) zu vermeiden – unabhängig vom Strict Mode.
 - Schemas *ohne* `$ref` werden auch ohne Resolver validiert.
 
 **Konfiguration:**
