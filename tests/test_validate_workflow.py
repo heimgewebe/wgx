@@ -14,7 +14,7 @@ class TestValidateWorkflow(unittest.TestCase):
     def setUp(self):
         # Default behavior: pretend PyYAML is present
         self.mock_yaml = MagicMock()
-        # Use patch.dict to safely inject 'yaml' into the module
+        # Use patch to safely inject 'HAS_YAML' into the module
         self.has_yaml_patch = patch('scripts.validate_workflow.HAS_YAML', True)
         self.has_yaml_patch.start()
 
@@ -30,10 +30,10 @@ class TestValidateWorkflow(unittest.TestCase):
                 tmp_path = tmp.name
 
             try:
-                with patch.object(sys, 'argv', ['validate_workflow.py', tmp_path]):
-                    with patch('sys.stdout', new=io.StringIO()) as mock_stdout:
-                        validate_workflow.main()
-                        self.assertIn(f"OK   {tmp_path}", mock_stdout.getvalue())
+                with patch('sys.stdout', new=io.StringIO()) as mock_stdout:
+                    rc = validate_workflow.main([tmp_path])
+                    self.assertEqual(rc, 0)
+                    self.assertIn(f"OK   {tmp_path}", mock_stdout.getvalue())
             finally:
                 if os.path.exists(tmp_path):
                     os.remove(tmp_path)
@@ -47,13 +47,11 @@ class TestValidateWorkflow(unittest.TestCase):
                 tmp_path = tmp.name
 
             try:
-                with patch.object(sys, 'argv', ['validate_workflow.py', tmp_path]):
-                    with patch('sys.stdout', new=io.StringIO()) as mock_stdout:
-                        with self.assertRaises(SystemExit) as cm:
-                            validate_workflow.main()
-                        self.assertEqual(cm.exception.code, 1)
-                        self.assertIn("FAIL", mock_stdout.getvalue())
-                        self.assertIn("workflow root must be a mapping", mock_stdout.getvalue())
+                with patch('sys.stderr', new=io.StringIO()) as mock_stderr:
+                    rc = validate_workflow.main([tmp_path])
+                    self.assertEqual(rc, 1)
+                    self.assertIn("FAIL", mock_stderr.getvalue())
+                    self.assertIn("workflow root must be a mapping", mock_stderr.getvalue())
             finally:
                 if os.path.exists(tmp_path):
                     os.remove(tmp_path)
@@ -61,33 +59,26 @@ class TestValidateWorkflow(unittest.TestCase):
     def test_missing_file(self):
         """Test with a non-existent file path."""
         with patch('scripts.validate_workflow.yaml', self.mock_yaml, create=True):
-            with patch.object(sys, 'argv', ['validate_workflow.py', 'non_existent.yml']):
-                with patch('sys.stdout', new=io.StringIO()) as mock_stdout:
-                    with self.assertRaises(SystemExit) as cm:
-                        validate_workflow.main()
-                    self.assertEqual(cm.exception.code, 1)
-                    self.assertIn("FAIL", mock_stdout.getvalue())
-                    self.assertIn("File not found", mock_stdout.getvalue())
+            with patch('sys.stderr', new=io.StringIO()) as mock_stderr:
+                rc = validate_workflow.main(['non_existent.yml'])
+                self.assertEqual(rc, 1)
+                self.assertIn("FAIL", mock_stderr.getvalue())
+                self.assertIn("File not found", mock_stderr.getvalue())
 
     def test_no_arguments(self):
         """Test execution without any arguments."""
-        with patch.object(sys, 'argv', ['validate_workflow.py']):
-            with patch('sys.stdout', new=io.StringIO()) as mock_stdout:
-                with self.assertRaises(SystemExit) as cm:
-                    validate_workflow.main()
-                self.assertEqual(cm.exception.code, 1)
-                self.assertIn("Usage:", mock_stdout.getvalue())
+        with patch('sys.stderr', new=io.StringIO()) as mock_stderr:
+            rc = validate_workflow.main([])
+            self.assertEqual(rc, 1)
+            self.assertIn("Usage:", mock_stderr.getvalue())
 
     def test_missing_pyyaml_library(self):
         """Test the case where PyYAML library is not installed."""
-        # Use patch.dict to safely ensure HAS_YAML is False and 'yaml' is not used
         with patch('scripts.validate_workflow.HAS_YAML', False):
-            with patch.object(sys, 'argv', ['validate_workflow.py', 'some_file.yml']):
-                with patch('sys.stdout', new=io.StringIO()) as mock_stdout:
-                    with self.assertRaises(SystemExit) as cm:
-                        validate_workflow.main()
-                    self.assertEqual(cm.exception.code, 1)
-                    self.assertIn("PyYAML' library is required", mock_stdout.getvalue())
+            with patch('sys.stderr', new=io.StringIO()) as mock_stderr:
+                rc = validate_workflow.main(['some_file.yml'])
+                self.assertEqual(rc, 1)
+                self.assertIn("PyYAML is required", mock_stderr.getvalue())
 
 if __name__ == '__main__':
     unittest.main()
