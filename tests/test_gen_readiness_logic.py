@@ -71,6 +71,13 @@ class TestGenReadinessBlackbox(unittest.TestCase):
             return None
         return json.loads(readiness_json.read_text())
 
+    def run_script_and_load_data(self):
+        res = self.run_script()
+        self.assertEqual(res.returncode, 0, f"Script failed with exit code {res.returncode}. STDERR: {res.stderr}")
+        data = self.get_readiness_data()
+        self.assertIsNotNone(data, "Expected artifacts/readiness.json to be created, but it was missing.")
+        return res, data
+
     def test_full_readiness(self):
         # Module 'foo' has everything: modules/, cmd/, tests/, and docs/
         self.create_structure(
@@ -80,11 +87,7 @@ class TestGenReadinessBlackbox(unittest.TestCase):
             docs=["foo.md"]
         )
 
-        res = self.run_script()
-        self.assertEqual(res.returncode, 0, f"Script failed: {res.stderr}")
-
-        data = self.get_readiness_data()
-        self.assertIsNotNone(data)
+        _, data = self.run_script_and_load_data()
 
         foo_entry = next((m for m in data["modules"] if m["module"] == "foo"), None)
         self.assertIsNotNone(foo_entry)
@@ -103,8 +106,7 @@ class TestGenReadinessBlackbox(unittest.TestCase):
             tests=["test_baz.bash"]
         )
 
-        self.run_script()
-        data = self.get_readiness_data()
+        _, data = self.run_script_and_load_data()
 
         bar = next(m for m in data["modules"] if m["module"] == "bar")
         # score = (1 if tests > 0 else 0) + (1 if cli else 0) + (1 if docs > 0 else 0)
@@ -121,8 +123,7 @@ class TestGenReadinessBlackbox(unittest.TestCase):
             docs=["doc_test.md", "doc_test.txt", "doc_test.rst", "doc_test.png", "doc_test.json"]
         )
 
-        self.run_script()
-        data = self.get_readiness_data()
+        _, data = self.run_script_and_load_data()
 
         entry = data["modules"][0]
         self.assertEqual(entry["docs"], 3) # .md, .txt, .rst
@@ -134,8 +135,7 @@ class TestGenReadinessBlackbox(unittest.TestCase):
             docs=["deep/path/nested.md"]
         )
 
-        self.run_script()
-        data = self.get_readiness_data()
+        _, data = self.run_script_and_load_data()
 
         entry = data["modules"][0]
         self.assertEqual(entry["tests"], 1)
@@ -145,10 +145,7 @@ class TestGenReadinessBlackbox(unittest.TestCase):
         # Should not crash if tests/ or docs/ are missing
         self.create_structure(modules=["minimal"])
 
-        res = self.run_script()
-        self.assertEqual(res.returncode, 0)
-
-        data = self.get_readiness_data()
+        _, data = self.run_script_and_load_data()
         entry = data["modules"][0]
         self.assertEqual(entry["tests"], 0)
         self.assertEqual(entry["docs"], 0)
