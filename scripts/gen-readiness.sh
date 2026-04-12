@@ -35,30 +35,42 @@ if cmd_dir.is_dir():
 
 modules = sorted(names)
 
-def iter_files(root: Path):
+def get_file_info(root: Path, allowed_suffixes=None):
+    """
+    Collects stem and name (lowercase) of all files under root.
+    If allowed_suffixes is provided, only files with those suffixes are included.
+    We materialize this information once to avoid redundant filesystem walks
+    during module analysis, trading a small amount of memory for significant I/O savings.
+    """
     if not root.exists():
-        return
+        return []
+    info = []
     for path in root.rglob("*"):
         if path.is_file():
-            yield path
+            if allowed_suffixes and path.suffix.lower() not in allowed_suffixes:
+                continue
+            info.append((path.stem.lower(), path.name.lower()))
+    return info
 
-def count_matches(root: Path, token: str, *, docs=False):
+def count_matches(file_info, token: str):
     token_lower = token.lower()
     total = 0
-    for path in iter_files(root):
-        stem = path.stem.lower()
-        name = path.name.lower()
-        if docs and path.suffix.lower() not in {".md", ".rst", ".txt"}:
-            continue
+    for stem, name in file_info:
         if token_lower in stem or token_lower in name:
             total += 1
     return total
 
+test_files = []
+doc_files = []
+if modules:
+    test_files = get_file_info(tests_dir)
+    doc_files = get_file_info(docs_dir, allowed_suffixes={".md", ".rst", ".txt"})
+
 rows = []
 summary_score = 0
 for name in modules:
-    tests = count_matches(tests_dir, name)
-    docs = count_matches(docs_dir, name, docs=True)
+    tests = count_matches(test_files, name)
+    docs = count_matches(doc_files, name)
     cli = (cmd_dir / f"{name}.bash").is_file()
     score = (1 if tests > 0 else 0) + (1 if cli else 0) + (1 if docs > 0 else 0)
     if score == 3:
