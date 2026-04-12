@@ -34,6 +34,20 @@ RE_STRIP_COMMENT_TOKENS = re.compile(r"""
 # --- YAML Parser (Minimal Subset) ---
 
 def _parse_scalar(value: str) -> Any:
+    """
+    Parses a scalar value from a YAML line.
+
+    Implements a minimal set of YAML-like scalar parsing:
+    - Booleans (true, false, yes, no, on, off)
+    - Nulls (null, none, ~)
+    - Numbers (integers, floats, hex, octal, binary)
+    - Quoted strings (single-quoted with '' escape, double-quoted via JSON)
+    - JSON collections (lists and dicts starting with [ or {)
+
+    NOTE: This explicitly replaces the unsafe 'ast.literal_eval' with a robust
+    JSON-only fallback. Python-specific literals like single-quoted dicts ({'a': 1}),
+    tuples, or sets are intentionally no longer parsed and will return as strings.
+    """
     text = value.strip()
     if text == "":
         return ""
@@ -74,14 +88,14 @@ def _parse_scalar(value: str) -> Any:
         if text.startswith('"') and text.endswith('"'):
             try:
                 return json.loads(text)
-            except (json.JSONDecodeError, TypeError):
+            except (ValueError, TypeError, RecursionError):
                 pass
 
     # Collections (JSON fallback for lists/dicts)
     if text.startswith(("[", "{")):
         try:
             return json.loads(text)
-        except (json.JSONDecodeError, TypeError):
+        except (ValueError, TypeError, RecursionError):
             pass
 
     return text

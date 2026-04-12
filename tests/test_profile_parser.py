@@ -193,28 +193,26 @@ class TestProfileParser(unittest.TestCase):
 
     def test_parse_scalar_dos_resilience(self):
         """Verify that _parse_scalar is resilient against deeply nested inputs (no RecursionError)."""
-        # Create a deeply nested JSON-like structure
-        depth = 1000
+        # Create a deeply nested JSON-like structure.
+        # Large depth should trigger RecursionError in vulnerable parsers.
+        depth = 10000
         malicious_input = "[" * depth + "1" + "]" * depth
 
-        # json.loads usually has a recursion limit or handles nesting safely.
-        # ast.literal_eval is known to crash with RecursionError on such inputs in many Python versions.
+        # json.loads may have a recursion limit.
+        # ast.literal_eval is known to crash with RecursionError on such inputs.
         try:
             result = profile_parser._parse_scalar(malicious_input)
-            # If it didn't crash, we're good.
-            # Depending on the JSON parser, it might parse it or return it as a string if it fails.
+            # If it didn't crash, it should either have parsed it or returned it as a string.
             if isinstance(result, list):
-                # Verify depth if parsed
+                # Verify depth if it actually parsed it (unlikely at 10k depth for most systems)
                 curr = result
                 for _ in range(depth - 1):
                     curr = curr[0]
                 self.assertEqual(curr, [1])
+            else:
+                self.assertEqual(result, malicious_input)
         except RecursionError:
             self.fail("_parse_scalar raised RecursionError on deeply nested input")
-        except Exception as e:
-            # Other exceptions like ValueError (from json.loads) are acceptable,
-            # as long as they don't crash the process with a stack overflow.
-            pass
 
 if __name__ == '__main__':
     unittest.main()
