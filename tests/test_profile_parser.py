@@ -135,7 +135,7 @@ class TestProfileParser(unittest.TestCase):
                     self.assertIn("task name collision", stderr)
 
     def test_parse_scalar(self):
-        """Test _parse_scalar for common scalar values and literal-eval fallbacks."""
+        """Test _parse_scalar for common scalar values and JSON fallbacks."""
         # Empty/Whitespace
         self.assertEqual(profile_parser._parse_scalar(""), "")
         self.assertEqual(profile_parser._parse_scalar("  "), "")
@@ -171,21 +171,50 @@ class TestProfileParser(unittest.TestCase):
         self.assertEqual(profile_parser._parse_scalar("3.14"), 3.14)
         self.assertEqual(profile_parser._parse_scalar("1e-10"), 1e-10)
 
-        # Quoted strings (handled by ast.literal_eval)
+        # Quoted strings
         self.assertEqual(profile_parser._parse_scalar("'hello'"), "hello")
         self.assertEqual(profile_parser._parse_scalar('"world"'), "world")
+        self.assertEqual(profile_parser._parse_scalar("'it''s'"), "it's")
 
         # Literal strings
         self.assertEqual(profile_parser._parse_scalar("hello"), "hello")
         self.assertEqual(profile_parser._parse_scalar("123-abc"), "123-abc")
 
-        # Python-literal fallbacks (via ast.literal_eval)
+        # JSON fallbacks
         # Note: These are NOT standard YAML scalars but supported via fallback.
         self.assertEqual(profile_parser._parse_scalar("[1, 2]"), [1, 2])
-        self.assertEqual(profile_parser._parse_scalar("{'a': 1}"), {'a': 1})
+        self.assertEqual(profile_parser._parse_scalar('{"a": 1}'), {"a": 1})
+
+        # Single quoted dict (should fall back to string because it's not valid JSON)
+        self.assertEqual(profile_parser._parse_scalar("{'a': 1}"), "{'a': 1}")
 
         # Non-Python-literal flow mapping (should fall back to string)
         self.assertEqual(profile_parser._parse_scalar("{a: 1}"), "{a: 1}")
+
+    def test_parse_scalar_dos_resilience(self):
+        """Verify that _parse_scalar is resilient against deeply nested inputs (no RecursionError)."""
+        # Create a deeply nested JSON-like structure
+        depth = 1000
+        malicious_input = "[" * depth + "1" + "]" * depth
+
+        # json.loads usually has a recursion limit or handles nesting safely.
+        # ast.literal_eval is known to crash with RecursionError on such inputs in many Python versions.
+        try:
+            result = profile_parser._parse_scalar(malicious_input)
+            # If it didn't crash, we're good.
+            # Depending on the JSON parser, it might parse it or return it as a string if it fails.
+            if isinstance(result, list):
+                # Verify depth if parsed
+                curr = result
+                for _ in range(depth - 1):
+                    curr = curr[0]
+                self.assertEqual(curr, [1])
+        except RecursionError:
+            self.fail("_parse_scalar raised RecursionError on deeply nested input")
+        except Exception as e:
+            # Other exceptions like ValueError (from json.loads) are acceptable,
+            # as long as they don't crash the process with a stack overflow.
+            pass
 
 if __name__ == '__main__':
     unittest.main()

@@ -6,7 +6,6 @@ This script parses .wgx/profile.yml files when PyYAML is not available.
 It implements a minimal subset of block-style YAML necessary for wgx profiles.
 It does NOT support the full YAML specification (e.g. flow style, complex keys, anchors).
 """
-import ast
 import json
 import os
 import re
@@ -45,10 +44,47 @@ def _parse_scalar(value: str) -> Any:
         return False
     if lowered in {"null", "none", "~"}:
         return None
-    try:
-        return ast.literal_eval(text)
-    except Exception:
-        return text
+
+    # Try numeric types
+    if text[0:1] in "0123456789+-" or text.startswith("."):
+        try:
+            # Handle hex, octal, binary (0x, 0o, 0b)
+            if len(text) > 2 and text[0] == "0" and text[1].lower() in "xob":
+                return int(text, 0)
+            # Standard integer or float
+            # Note: leading zeros (e.g. 0123) are treated as strings to match ast.literal_eval behavior in Py3
+            if text.startswith("0") and len(text) > 1 and text[1].isdigit() and "." not in text and "e" not in text.lower():
+                pass # fall through to string
+            elif "." in text or "e" in text.lower():
+                return float(text)
+            else:
+                try:
+                    return int(text)
+                except ValueError:
+                    # Fallback for things like '123-abc'
+                    pass
+        except (ValueError, TypeError):
+            pass
+
+    # Handle quoted strings
+    if len(text) >= 2:
+        if text.startswith("'") and text.endswith("'"):
+            # YAML single quotes: '' is an escaped '
+            return text[1:-1].replace("''", "'")
+        if text.startswith('"') and text.endswith('"'):
+            try:
+                return json.loads(text)
+            except (json.JSONDecodeError, TypeError):
+                pass
+
+    # Collections (JSON fallback for lists/dicts)
+    if text.startswith(("[", "{")):
+        try:
+            return json.loads(text)
+        except (json.JSONDecodeError, TypeError):
+            pass
+
+    return text
 
 def _convert_frame(frame: Dict[str, Any], kind: str) -> None:
     if frame["type"] == kind:
