@@ -60,8 +60,11 @@ def count_matches(file_info, token: str):
             total += 1
     return total
 
-test_files = get_file_info(tests_dir)
-doc_files = get_file_info(docs_dir, allowed_suffixes={".md", ".rst", ".txt"})
+test_files = []
+doc_files = []
+if modules:
+    test_files = get_file_info(tests_dir)
+    doc_files = get_file_info(docs_dir, allowed_suffixes={".md", ".rst", ".txt"})
 
 rows = []
 summary_score = 0

@@ -151,5 +151,13 @@ class TestGenReadinessBlackbox(unittest.TestCase):
         self.assertEqual(entry["docs"], 0)
         self.assertFalse(entry["cli"])
 
+    def test_empty_modules(self):
+        # Should handle the case where no modules exist
+        # This also tests the lazy indexing refinement
+        res, data = self.run_script_and_load_data()
+        self.assertEqual(data["modules"], [])
+        self.assertEqual(data["summary"]["count"], 0)
+        self.assertEqual(data["summary"]["average_completion"], 0)
+
 if __name__ == "__main__":
     unittest.main()
