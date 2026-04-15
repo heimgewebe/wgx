@@ -167,9 +167,24 @@ class TestProfileParser(unittest.TestCase):
 
         # Numbers
         self.assertEqual(profile_parser._parse_scalar("123"), 123)
+        self.assertEqual(profile_parser._parse_scalar("+123"), 123)
         self.assertEqual(profile_parser._parse_scalar("-456"), -456)
         self.assertEqual(profile_parser._parse_scalar("3.14"), 3.14)
         self.assertEqual(profile_parser._parse_scalar("1e-10"), 1e-10)
+
+        # Non-decimal numerics (hex, oct, bin)
+        self.assertEqual(profile_parser._parse_scalar("0x10"), 16)
+        self.assertEqual(profile_parser._parse_scalar("-0x10"), -16)
+        self.assertEqual(profile_parser._parse_scalar("+0x10"), 16)
+        self.assertEqual(profile_parser._parse_scalar("0b101"), 5)
+        self.assertEqual(profile_parser._parse_scalar("-0b101"), -5)
+        self.assertEqual(profile_parser._parse_scalar("0o7"), 7)
+        self.assertEqual(profile_parser._parse_scalar("-0o7"), -7)
+
+        # Leading zeros (should be treated as strings)
+        self.assertEqual(profile_parser._parse_scalar("0123"), "0123")
+        self.assertEqual(profile_parser._parse_scalar("+0123"), "+0123")
+        self.assertEqual(profile_parser._parse_scalar("-0123"), "-0123")
 
         # Quoted strings
         self.assertEqual(profile_parser._parse_scalar("'hello'"), "hello")

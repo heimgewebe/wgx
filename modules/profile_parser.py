@@ -62,13 +62,16 @@ def _parse_scalar(value: str) -> Any:
     # Try numeric types
     if text[0:1] in "0123456789+-" or text.startswith("."):
         try:
-            # Handle hex, octal, binary (0x, 0o, 0b)
-            if len(text) > 2 and text[0] == "0" and text[1].lower() in "xob":
+            # Handle hex, octal, binary (0x, 0o, 0b) with optional sign
+            u_text = text[1:] if text[0] in "+-" else text
+            if len(u_text) > 2 and u_text[0] == "0" and u_text[1].lower() in "xob":
                 return int(text, 0)
+
             # Standard integer or float
-            # Note: leading zeros (e.g. 0123) are treated as strings to match ast.literal_eval behavior in Py3
-            if text.startswith("0") and len(text) > 1 and text[1].isdigit() and "." not in text and "e" not in text.lower():
-                pass # fall through to string
+            # Note: leading zeros (e.g. 0123) are treated as strings to match ast.literal_eval behavior in Py3.
+            # This also applies to signed forms like +0123 or -0123.
+            if u_text.startswith("0") and len(u_text) > 1 and u_text[1].isdigit() and "." not in u_text and "e" not in u_text.lower():
+                pass  # fall through to string
             elif "." in text or "e" in text.lower():
                 return float(text)
             else:
