@@ -6,7 +6,6 @@ This script parses .wgx/profile.yml files when PyYAML is not available.
 It implements a minimal subset of block-style YAML necessary for wgx profiles.
 It does NOT support the full YAML specification (e.g. flow style, complex keys, anchors).
 """
-import ast
 import json
 import os
 import re
@@ -35,6 +34,20 @@ RE_STRIP_COMMENT_TOKENS = re.compile(r"""
 # --- YAML Parser (Minimal Subset) ---
 
 def _parse_scalar(value: str) -> Any:
+    """
+    Parses a scalar value from a YAML line.
+
+    Implements a minimal set of YAML-like scalar parsing:
+    - Booleans (true, false, yes, no, on, off)
+    - Nulls (null, none, ~)
+    - Numbers (integers, floats, hex, octal, binary)
+    - Quoted strings (single-quoted with '' escape, double-quoted via JSON)
+    - JSON collections (lists and dicts starting with [ or {)
+
+    NOTE: This explicitly replaces the unsafe 'ast.literal_eval' with a robust
+    JSON-only fallback. Python-specific literals like single-quoted dicts ({'a': 1}),
+    tuples, or sets are intentionally no longer parsed and will return as strings.
+    """
     text = value.strip()
     if text == "":
         return ""
@@ -45,10 +58,50 @@ def _parse_scalar(value: str) -> Any:
         return False
     if lowered in {"null", "none", "~"}:
         return None
-    try:
-        return ast.literal_eval(text)
-    except Exception:
-        return text
+
+    # Try numeric types
+    if text[0:1] in "0123456789+-" or text.startswith("."):
+        try:
+            # Handle hex, octal, binary (0x, 0o, 0b) with optional sign
+            u_text = text[1:] if text[0] in "+-" else text
+            if len(u_text) > 2 and u_text[0] == "0" and u_text[1].lower() in "xob":
+                return int(text, 0)
+
+            # Standard integer or float
+            # Note: leading zeros (e.g. 0123) are treated as strings to match ast.literal_eval behavior in Py3.
+            # This also applies to signed forms like +0123 or -0123.
+            if u_text.startswith("0") and len(u_text) > 1 and u_text[1].isdigit() and "." not in u_text and "e" not in u_text.lower():
+                pass  # fall through to string
+            elif "." in text or "e" in text.lower():
+                return float(text)
+            else:
+                try:
+                    return int(text)
+                except ValueError:
+                    # Fallback for things like '123-abc'
+                    pass
+        except (ValueError, TypeError):
+            pass
+
+    # Handle quoted strings
+    if len(text) >= 2:
+        if text.startswith("'") and text.endswith("'"):
+            # YAML single quotes: '' is an escaped '
+            return text[1:-1].replace("''", "'")
+        if text.startswith('"') and text.endswith('"'):
+            try:
+                return json.loads(text)
+            except (ValueError, TypeError, RecursionError):
+                pass
+
+    # Collections (JSON fallback for lists/dicts)
+    if text.startswith(("[", "{")):
+        try:
+            return json.loads(text)
+        except (ValueError, TypeError, RecursionError):
+            pass
+
+    return text
 
 def _convert_frame(frame: Dict[str, Any], kind: str) -> None:
     if frame["type"] == kind:
