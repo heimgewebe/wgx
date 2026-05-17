@@ -33,6 +33,10 @@ __pycache__/
 
 # Generated artifact directory (covers future additions)
 /artifacts/
+
+# Generated integrity report (Release-Asset ist kanonisch, siehe wgx-integrity.yml)
+/reports/integrity/summary.json
+/reports/integrity/event_payload.json
 actionlint
 *.err
 

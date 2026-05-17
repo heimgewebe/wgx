@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: write # für action-gh-release (Release-Asset hochladen)
 
 concurrency:
   group: integrity-${{ github.repository }}
@@ -83,11 +83,8 @@ jobs:
           echo "::notice title=Integrity Event::Event published (simulated)"
           echo "$EVENT_JSON" | jq .
 
-      # Release asset is canonical truth; commit is convenience.
-      # We do commit last to avoid confusion if release fails.
-      - name: Commit Report
-        if: success()
-        uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          commit_message: "chore(integrity): update summary [skip ci]"
-          file_pattern: "reports/integrity/summary.json"
+      # Hinweis: Es wird absichtlich kein Commit an reports/integrity/summary.json
+      # erzeugt. Das Release-Asset (Tag `integrity`) ist die kanonische Quelle;
+      # ein täglicher Commit würde nur den `generated_at`-Timestamp ändern und
+      # die History fluten. Lokale Konsumenten regenerieren via
+      # `wgx integrity --update`, externe Konsumenten ziehen vom Release-Asset.

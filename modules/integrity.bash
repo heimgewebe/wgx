@@ -34,14 +34,11 @@ integrity::generate() {
     count_artifacts=$(find "${target_root}/reports" -type f ! -name "summary.json" | wc -l | tr -d ' ')
   fi
 
-  # 3. Gaps (Missing expected files based on profile - simplified)
-  # "Missing ist ein valider Zustand" -> wir zählen nur offensichtliche Lücken
+  # 3. Gaps & 4. Unclear: derzeit bewusst 0 (Beobachter-Modus).
+  # "Missing ist ein valider Zustand" — wir melden Gaps/Unclear erst, wenn
+  # konkrete Heuristiken (z. B. Profil-zu-Artefakt-Mapping) definiert sind.
   local count_gaps=0
-  # (Placeholder logic)
-
-  # 4. Unclear (Files that are not tracked or unknown)
   local count_unclear=0
-  # (Placeholder logic)
 
   # Status determination
   local status="OK"
