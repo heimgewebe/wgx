@@ -274,6 +274,23 @@ JSON
 # Merged special characters test into the general robust repo handling tests
 # to avoid redundancy. The SSH and priority tests already cover complex parsing.
 
+@test "integrity: --update does not count event_payload.json as artifact" {
+  cd "$TEST_DIR"
+  git init >/dev/null 2>&1
+  git remote add origin https://github.com/org/repo.git >/dev/null 2>&1
+
+  # Place only the generated integrity files – no real artifacts
+  mkdir -p "$TEST_DIR/reports/integrity"
+  echo '{}' > "$TEST_DIR/reports/integrity/event_payload.json"
+
+  run wgx integrity --update
+  assert_success
+
+  run cat "$TEST_DIR/reports/integrity/summary.json"
+  assert_output --partial '"status": "MISSING"'
+  assert_output --partial '"artifacts": 0'
+}
+
 @test "integrity: --update detects repo from GITHUB_REPOSITORY (priority)" {
   cd "$TEST_DIR"
   # Mock git remote (should be ignored when GITHUB_REPOSITORY is set)
