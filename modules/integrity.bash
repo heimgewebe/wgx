@@ -35,8 +35,8 @@ integrity::generate() {
     count_artifacts=$(
       find "${target_root}/reports" -type f \
         ! -path "${target_root}/reports/integrity/summary.json" \
-        ! -path "${target_root}/reports/integrity/event_payload.json" |
-        wc -l | tr -d ' '
+        ! -path "${target_root}/reports/integrity/event_payload.json" \
+      | wc -l | tr -d ' '
     )
   fi
 
