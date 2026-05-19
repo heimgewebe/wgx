@@ -29,9 +29,15 @@ integrity::generate() {
   fi
 
   # 2. Artifacts (Reports)
+  # Generierte Integritätsdateien (summary.json, event_payload.json) zählen nicht als Artefakte.
   local count_artifacts=0
   if [[ -d "${target_root}/reports" ]]; then
-    count_artifacts=$(find "${target_root}/reports" -type f ! -name "summary.json" | wc -l | tr -d ' ')
+    count_artifacts=$(
+      find "${target_root}/reports" -type f \
+        ! -path "${target_root}/reports/integrity/summary.json" \
+        ! -path "${target_root}/reports/integrity/event_payload.json" \
+        | wc -l | tr -d ' '
+    )
   fi
 
   # 3. Gaps & 4. Unclear: derzeit bewusst 0 (Beobachter-Modus).
