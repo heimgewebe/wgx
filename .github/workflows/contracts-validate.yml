@@ -1,3 +1,4 @@
+---
 name: "contracts-validate"
 
 permissions:
@@ -8,7 +9,7 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
-on:
+"on":
   workflow_dispatch: {}
   push:
     paths:
@@ -42,9 +43,9 @@ jobs:
           fetch-depth: 1
           persist-credentials: false
 
-      - name: Verify 'uses:' pins for heimgewebe/contracts
+      - name: Verify 'uses:' pins for heimgewebe/contracts-mirror
         env:
-          REQUIRED_REPO: "heimgewebe/contracts/.github/workflows/contracts-ajv-reusable.yml"
+          REQUIRED_REPO: "heimgewebe/contracts-mirror/.github/workflows/contracts-ajv-reusable.yml"
           REQUIRED_REF: "contracts-v1"
         run: |
           set -euo pipefail
@@ -58,16 +59,21 @@ jobs:
 
           extract_pair() {
             local line="$1"
+            local re_single="^(-[[:space:]]*)?uses:[[:space:]]*'([^']+)'"
+            local re_double='^(-[[:space:]]*)?uses:[[:space:]]*"([^"]+)"'
+            local re_plain="^(-[[:space:]]*)?uses:[[:space:]]*([^[:space:]#]+)"
+
             line="${line%%#*}"
             line="${line##+([[:space:]])}"
             line="${line%%+([[:space:]])}"
-            if [[ "$line" =~ ^(-[[:space:]]*)?uses:[[:space:]]*'([^']+)' ]]; then
+
+            if [[ "$line" =~ $re_single ]]; then
               echo "${BASH_REMATCH[2]}"; return 0
             fi
-            if [[ "$line" =~ ^(-[[:space:]]*)?uses:[[:space:]]*\"([^\"]+)\" ]]; then
+            if [[ "$line" =~ $re_double ]]; then
               echo "${BASH_REMATCH[2]}"; return 0
             fi
-            if [[ "$line" =~ ^(-[[:space:]]*)?uses:[[:space:]]*([^[:space:]#]+) ]]; then
+            if [[ "$line" =~ $re_plain ]]; then
               echo "${BASH_REMATCH[2]}"; return 0
             fi
             return 1
@@ -76,7 +82,7 @@ jobs:
           check_pair() {
             local wf="$1" repo="$2" ref="$3"
             [[ "$repo" == "$REQUIRED_REPO" ]] || return 0
-            if [[ "$ref" =~ (\$\{|\$\(|\$[A-Za-z_]) ]]; then
+            if [[ "$ref" =~ \$\{ || "$ref" =~ \$\( || "$ref" =~ \$[A-Za-z_] ]]; then
               echo "::error file=$wf::Dynamic ref not allowed: $ref"; return 1
             fi
             if [[ "$ref" != "$REQUIRED_REF" ]]; then
@@ -182,7 +188,7 @@ jobs:
   validate:
     name: "Validate fixtures via reusable workflow"
     needs: [version-sync-check, guard]
-    uses: heimgewebe/contracts/.github/workflows/contracts-ajv-reusable.yml@contracts-v1
+    uses: heimgewebe/contracts-mirror/.github/workflows/contracts-ajv-reusable.yml@contracts-v1
     secrets: inherit
     with:
       fixtures_glob: ${{ vars.FIXTURES_GLOB || 'fixtures/**/*.jsonl' }}

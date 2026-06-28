@@ -1,0 +1,1 @@
+{"id":"wgx-contract-smoke-1","event_type":"wgx.contract.smoke","occurred_at":"2026-06-28T07:10:00Z","payload":{"description":"Validates the pinned contracts-mirror reusable workflow.","tags":["ci","contract"]}}
