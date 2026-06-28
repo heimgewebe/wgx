@@ -1,3 +1,4 @@
+---
 name: "contracts-validate"
 
 permissions:
@@ -8,7 +9,7 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
-on:
+"on":
   workflow_dispatch: {}
   push:
     paths:
@@ -42,9 +43,9 @@ jobs:
           fetch-depth: 1
           persist-credentials: false
 
-      - name: Verify 'uses:' pins for heimgewebe/contracts
+      - name: Verify 'uses:' pins for heimgewebe/contracts-mirror
         env:
-          REQUIRED_REPO: "heimgewebe/contracts/.github/workflows/contracts-ajv-reusable.yml"
+          REQUIRED_REPO: "heimgewebe/contracts-mirror/.github/workflows/contracts-ajv-reusable.yml"
           REQUIRED_REF: "contracts-v1"
         run: |
           set -euo pipefail
@@ -182,7 +183,7 @@ jobs:
   validate:
     name: "Validate fixtures via reusable workflow"
     needs: [version-sync-check, guard]
-    uses: heimgewebe/contracts/.github/workflows/contracts-ajv-reusable.yml@contracts-v1
+    uses: heimgewebe/contracts-mirror/.github/workflows/contracts-ajv-reusable.yml@contracts-v1
     secrets: inherit
     with:
       fixtures_glob: ${{ vars.FIXTURES_GLOB || 'fixtures/**/*.jsonl' }}
