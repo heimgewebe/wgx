@@ -59,16 +59,21 @@ jobs:
 
           extract_pair() {
             local line="$1"
+            local re_single="^(-[[:space:]]*)?uses:[[:space:]]*'([^']+)'"
+            local re_double='^(-[[:space:]]*)?uses:[[:space:]]*"([^"]+)"'
+            local re_plain="^(-[[:space:]]*)?uses:[[:space:]]*([^[:space:]#]+)"
+
             line="${line%%#*}"
             line="${line##+([[:space:]])}"
             line="${line%%+([[:space:]])}"
-            if [[ "$line" =~ ^(-[[:space:]]*)?uses:[[:space:]]*'([^']+)' ]]; then
+
+            if [[ "$line" =~ $re_single ]]; then
               echo "${BASH_REMATCH[2]}"; return 0
             fi
-            if [[ "$line" =~ ^(-[[:space:]]*)?uses:[[:space:]]*\"([^\"]+)\" ]]; then
+            if [[ "$line" =~ $re_double ]]; then
               echo "${BASH_REMATCH[2]}"; return 0
             fi
-            if [[ "$line" =~ ^(-[[:space:]]*)?uses:[[:space:]]*([^[:space:]#]+) ]]; then
+            if [[ "$line" =~ $re_plain ]]; then
               echo "${BASH_REMATCH[2]}"; return 0
             fi
             return 1
@@ -77,7 +82,7 @@ jobs:
           check_pair() {
             local wf="$1" repo="$2" ref="$3"
             [[ "$repo" == "$REQUIRED_REPO" ]] || return 0
-            if [[ "$ref" =~ (\$\{|\$\(|\$[A-Za-z_]) ]]; then
+            if [[ "$ref" =~ \$\{ || "$ref" =~ \$\( || "$ref" =~ \$[A-Za-z_] ]]; then
               echo "::error file=$wf::Dynamic ref not allowed: $ref"; return 1
             fi
             if [[ "$ref" != "$REQUIRED_REF" ]]; then
