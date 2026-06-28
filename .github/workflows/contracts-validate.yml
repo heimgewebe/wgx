@@ -42,10 +42,10 @@ jobs:
           fetch-depth: 1
           persist-credentials: false
 
-      - name: Verify 'uses:' pins for heimgewebe/contracts
+      - name: Verify 'uses:' pins for heimgewebe/contracts-mirror
         env:
-          REQUIRED_REPO: "heimgewebe/contracts/.github/workflows/contracts-ajv-reusable.yml"
-          REQUIRED_REF: "contracts-v1"
+          REQUIRED_REPO: "heimgewebe/contracts-mirror/.github/workflows/contracts-ajv-reusable.yml"
+          REQUIRED_REF: "0e5430c72b7948124e2b892da9473bdf8f8a120e"
         run: |
           set -euo pipefail
           shopt -s extglob
@@ -182,7 +182,7 @@ jobs:
   validate:
     name: "Validate fixtures via reusable workflow"
     needs: [version-sync-check, guard]
-    uses: heimgewebe/contracts/.github/workflows/contracts-ajv-reusable.yml@contracts-v1
-    secrets: inherit
+    uses: heimgewebe/contracts-mirror/.github/workflows/contracts-ajv-reusable.yml@0e5430c72b7948124e2b892da9473bdf8f8a120e
     with:
       fixtures_glob: ${{ vars.FIXTURES_GLOB || 'fixtures/**/*.jsonl' }}
+      contracts_ref: 0e5430c72b7948124e2b892da9473bdf8f8a120e
