@@ -1,9 +1,10 @@
 name: wgx-guard
 
-on:
+"on":
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
+  workflow_call:
 
 permissions:
   contents: read
@@ -13,8 +14,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout target repository
         uses: actions/checkout@v4
+
+      - name: Checkout pinned WGX CLI
+        uses: actions/checkout@v4
+        with:
+          repository: heimgewebe/wgx
+          ref: 5a02f83378add575b6230ee3f13a1a26158d730b
+          path: .wgx-cli
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -23,42 +31,37 @@ jobs:
 
       - name: Install dependencies
         run: |
-          sudo apt-get update -y
-          sudo apt-get install -y python3 python3-venv jq
-          # Verify Python 3 is working correctly
-          python3 --version
-          python3 -c "import json, sys, os" || {
-            echo "::error::Python3 installation verification failed"
-            exit 1
-          }
-          python3 -m pip install jsonschema
-
-      - name: Make wgx available in PATH
-        run: |
-          chmod +x ./wgx
-          echo "${PWD}" >> "$GITHUB_PATH"
-
-      - name: Verify wgx is available
-        run: |
-          if ! command -v wgx >/dev/null 2>&1; then
-            echo "::error::wgx binary not available"
-            exit 1
+          set -euo pipefail
+          if ! command -v jq >/dev/null 2>&1; then
+            sudo apt-get update -y
+            sudo apt-get install -y jq
           fi
-          wgx version || true
+          python3 -m pip install --disable-pip-version-check jsonschema
+
+      - name: Make pinned WGX available in PATH
+        run: |
+          set -euo pipefail
+          chmod +x .wgx-cli/wgx
+          echo "${PWD}/.wgx-cli" >> "$GITHUB_PATH"
+
+      - name: Verify WGX installation
+        run: |
+          set -euo pipefail
+          command -v wgx >/dev/null 2>&1
+          wgx version
 
       - name: Run WGX guard
         id: guard
         run: |
-          # Run guard task if available, fallback to smoke
-          tasks_json=$(wgx tasks --json 2>/dev/null || echo '{"tasks":[]}')
-          
+          set -euo pipefail
+          tasks_json="$(wgx tasks --json 2>/dev/null || printf '%s\n' '{"tasks":[]}')"
+
           if echo "$tasks_json" | jq -e '.tasks[] | select(.name == "guard")' >/dev/null 2>&1; then
             wgx task guard
           elif echo "$tasks_json" | jq -e '.tasks[] | select(.name == "smoke")' >/dev/null 2>&1; then
             wgx task smoke
           else
             echo "::warning::Neither guard nor smoke task found in profile"
-            exit 0
           fi
 
   validate-observatory:
