@@ -567,19 +567,18 @@ Options:
 ```text
 Usage:
   wgx vibe [options] <idea...>
+  wgx vibe status
+  wgx vibe doctor [--repo PATH]
+  wgx vibe adopt --repo PATH [--branch NAME] [--worktree PATH] [--name NAME] <idea...>
 
 Description:
-  Builds a deterministic Vibe lane plan for one idea: id, branch name,
-  proposed ephemeral worktree path, and local receipt path. This first MVP is
-  intentionally plan-first: it creates no branch, no worktree, no PR, and no
-  external task. It turns vague intent into a bounded lifecycle contract.
+  Builds and manages non-destructive Vibe lane receipts. The first lifecycle
+  slice is intentionally conservative: plan/status/doctor are read-only, and
+  adopt writes only a local receipt.
 
 Options:
   --repo PATH    Source repository. Default: current git repository.
   --root PATH    Worktree root. Default: $WGX_VIBE_ROOT or ~/repos/.vibe-lab-worktrees.
   --name NAME    Stable slug override.
   -h, --help     Show this help.
-
-Example:
-  wgx vibe --repo ~/repos/chronik "add event healthcheck"
 ```
