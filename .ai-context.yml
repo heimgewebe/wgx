@@ -2,14 +2,37 @@
 # Systemweiter Kontext durch Heimgeist:
 #   metarepo/ai-contexts/heimgeist.ai-context.yml
 
-ai_context_version: 1.0
+ai_context_version: 1.1
 
 project:
   name: wgx
-  summary: CLI orchestrator for dev/ops tasks and multi-agent flows.
-  role: tooling_orchestration
+  summary: Fleet motorics, guard and readiness metrics engine for Heimgewebe operator repositories.
+  role: fleet_motorics_and_guard_engine
   primary_language: bash
   visibility: internal
+
+role_contract:
+  name: fleet_motorics_and_guard_engine
+  authority: local_tooling_and_metrics
+  owns:
+    - repo_profiles
+    - guard_execution
+    - readiness_metrics
+    - reusable_ci_checks
+  consumes:
+    - repository_profiles
+    - contracts
+    - local_git_state
+  produces:
+    - readiness_reports
+    - metrics_snapshots
+    - guard_results
+  limits:
+    - no_task_truth
+    - no_worker_leases
+    - no_ledger_ownership
+    - no_policy_application
+  unavailable_effect: guard_and_metrics_degrade_without_changing_task_truth
 
 dependencies:
   internal:
