@@ -39,6 +39,7 @@ Commands:
   test
   validate
   version
+  vibe
 
 Env:
   WGX_BASE       Basis-Branch für reload (default: main)
@@ -219,6 +220,7 @@ Commands:
   test
   validate
   version
+  vibe
 
 Env:
   WGX_BASE       Basis-Branch für reload (default: main)
@@ -558,4 +560,26 @@ Subcommands:
 
 Options:
   -h, --help     Show this help.
+```
+
+### vibe
+
+```text
+Usage:
+  wgx vibe [options] <idea...>
+
+Description:
+  Builds a deterministic Vibe lane plan for one idea: id, branch name,
+  proposed ephemeral worktree path, and local receipt path. This first MVP is
+  intentionally plan-first: it creates no branch, no worktree, no PR, and no
+  external task. It turns vague intent into a bounded lifecycle contract.
+
+Options:
+  --repo PATH    Source repository. Default: current git repository.
+  --root PATH    Worktree root. Default: $WGX_VIBE_ROOT or ~/repos/.vibe-lab-worktrees.
+  --name NAME    Stable slug override.
+  -h, --help     Show this help.
+
+Example:
+  wgx vibe --repo ~/repos/chronik "add event healthcheck"
 ```
