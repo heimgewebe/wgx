@@ -79,7 +79,7 @@ cmd_vibe() {
   local repo_root repo_name slug stamp vibe_id branch worktree receipt
   repo_root="$(git -C "$repo" rev-parse --show-toplevel 2>/dev/null)" || _vibe_die "--repo ist kein Git-Repo: $repo" || return 1
   repo_name="$(basename "$repo_root")"
-  slug="${name:-$(_vibe_slug "$idea")}" 
+  slug="${name:-$(_vibe_slug "$idea")}"
   slug="$(_vibe_slug "$slug")"
   stamp="$(date -u +%Y%m%dT%H%M%SZ)"
   vibe_id="vibe-${stamp}-${slug}"
