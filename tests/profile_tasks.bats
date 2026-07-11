@@ -158,3 +158,30 @@ SH
   assert_line --index 3 -- "single_hash_cmd=STR:echo 'keep # single'"
   assert_line --index 4 -- "double_hash_cmd=STR:echo \"keep # double\" '#stay literal'"
 }
+
+
+@test "parser assignment safety rejects concatenated ANSI-C words before eval" {
+  marker="$BATS_TEST_TMPDIR/parser-eval-pwned"
+  helper_script="$BATS_TEST_TMPDIR/check_parser_assignment_safety.sh"
+  cat >"$helper_script" <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+REPO_ROOT="$1"
+MARKER="$2"
+LINE="$3"
+source "$REPO_ROOT/lib/core.bash"
+source "$REPO_ROOT/modules/profile.bash"
+if profile::_apply_parser_line "$LINE"; then
+  echo "unsafe line was accepted" >&2
+  exit 10
+fi
+[[ ! -e "$MARKER" ]]
+SH
+  chmod +x "$helper_script"
+
+  quoted_marker="$(printf '%q' "$marker")"
+  malicious_line="WGX_ENV_BASE_MAP_FOO=\$'x'\$(touch ${quoted_marker})\$'y'"
+  run "$helper_script" "$REPO_ROOT" "$marker" "$malicious_line"
+  assert_success
+  [[ ! -e "$marker" ]]
+}
