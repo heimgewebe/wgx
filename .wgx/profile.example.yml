@@ -3,6 +3,7 @@ wgx:
   requiredWgx: "^2.0"
   repoKind: "generic"
   tasks:
+    guard: "python3 scripts/check_wgx_guard_action_pins.py && python3 scripts/check_wgx_smoke_contract.py"
     smoke: "python3 scripts/validate_workflow.py .github/workflows/wgx-smoke.yml"
     test: "bats -r tests"
     lint: "FILES=$(git ls-files '*.sh' '*.bash'); shfmt -d $FILES && shellcheck -S style $FILES"

@@ -31,11 +31,18 @@ teardown() {
   assert_output --partial "is reusable and bound"
 }
 
-@test "WGX example profile declares an executable smoke task" {
+@test "WGX example profile declares executable guard and smoke tasks" {
   run env WGX_TARGET_ROOT="$WGX_PROJECT_ROOT" \
     "$WGX_PROJECT_ROOT/wgx" tasks --json
   assert_success
+  assert_output --partial '"name":"guard"'
   assert_output --partial '"name":"smoke"'
+
+  run env WGX_TARGET_ROOT="$WGX_PROJECT_ROOT" \
+    "$WGX_PROJECT_ROOT/wgx" task guard
+  assert_success
+  assert_output --partial "all external uses references"
+  assert_output --partial "is reusable and bound"
 
   run env WGX_TARGET_ROOT="$WGX_PROJECT_ROOT" \
     "$WGX_PROJECT_ROOT/wgx" task smoke
