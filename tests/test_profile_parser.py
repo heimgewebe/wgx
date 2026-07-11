@@ -4,7 +4,9 @@ import os
 import io
 import unittest
 import tempfile
+import subprocess
 from unittest.mock import patch, mock_open
+from pathlib import Path
 
 from modules import profile_parser
 
@@ -101,6 +103,49 @@ class TestProfileParser(unittest.TestCase):
         """Test comments at start of line."""
         self.assertEqual(profile_parser._strip_inline_comment("# comment"), "")
         self.assertEqual(profile_parser._strip_inline_comment("   # comment"), "   ")
+
+    def test_shell_quote_multiline_is_one_line_and_round_trips(self):
+        value = "echo one\nprintf '%s\n' 'two'\necho $(literal)"
+
+        quoted = profile_parser.shell_quote(value)
+
+        self.assertNotIn("\n", quoted)
+        self.assertTrue(quoted.startswith("$'"))
+        completed = subprocess.run(
+            ["bash", "-c", f"value={quoted}; printf %s \"$value\""],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(completed.stdout, value)
+
+    def test_profile_loader_runs_multiline_task_with_single_quotes(self):
+        root = Path(__file__).resolve().parents[1]
+        content = (
+            "tasks:\n"
+            "  smoke: |\n"
+            "    printf '%s\\n' one\n"
+            "    printf '%s\\n' 'two words'\n"
+        )
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            profile_dir = Path(tmp_dir) / ".wgx"
+            profile_dir.mkdir()
+            (profile_dir / "profile.yml").write_text(content, encoding="utf-8")
+            script = (
+                "set -euo pipefail; "
+                f"source {profile_parser.shell_quote(str(root / 'lib' / 'core.bash'))}; "
+                f"source {profile_parser.shell_quote(str(root / 'modules' / 'profile.bash'))}; "
+                f"cd {profile_parser.shell_quote(tmp_dir)}; "
+                "WGX_PROFILE_DEPRECATION=quiet; export WGX_PROFILE_DEPRECATION; "
+                "profile::load .wgx/profile.yml; profile::run_task smoke"
+            )
+            completed = subprocess.run(
+                ["bash", "-c", script],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+        self.assertEqual(completed.stdout, "one\ntwo words\n")
 
     def test_main_missing_args(self):
         """Test that main() exits with status 1 if arguments are missing."""

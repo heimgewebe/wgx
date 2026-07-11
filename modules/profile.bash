@@ -202,8 +202,9 @@ profile::_parser_line_is_safe() {
         fi
       fi
 
-      # Check if value starts with a quote (single or double)
-      if [[ $value_part == \"*\" || $value_part == \'*\' ]]; then
+      # Check if value is quoted. ANSI-C quotes are emitted for multiline
+      # parser values so every assignment remains one physical line.
+      if [[ $value_part == \$\'*\' || $value_part == \"*\" || $value_part == \'*\' ]]; then
         # Properly quoted value, allow special chars inside quotes
         return 0
       fi

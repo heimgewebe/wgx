@@ -342,6 +342,33 @@ def emit(line: str) -> None:
     sys.stdout.write(f"{line}\n")
 
 def shell_quote(value: str) -> str:
+    """Return one Bash-safe token without emitting physical newlines.
+
+    The Bash loader validates and evaluates parser output one line at a time.
+    ``shlex.quote`` preserves literal newlines, which turns one assignment into
+    several physical lines and breaks that contract. Bash ANSI-C quoting keeps
+    control characters escaped on one line and reconstructs them during eval.
+    """
+    if "\x00" in value:
+        raise ValueError("profile values cannot contain NUL bytes")
+    if any(ch in value for ch in "\n\r\t"):
+        escaped = []
+        for ch in value:
+            if ch == "\\":
+                escaped.append("\\\\")
+            elif ch == "'":
+                escaped.append("\\'")
+            elif ch == "\n":
+                escaped.append("\\n")
+            elif ch == "\r":
+                escaped.append("\\r")
+            elif ch == "\t":
+                escaped.append("\\t")
+            elif ord(ch) < 32 or ord(ch) == 127:
+                escaped.append(f"\\x{ord(ch):02x}")
+            else:
+                escaped.append(ch)
+        return "$'" + "".join(escaped) + "'"
     return shlex.quote(value)
 
 def emit_var(name: str, value: Any) -> None:
