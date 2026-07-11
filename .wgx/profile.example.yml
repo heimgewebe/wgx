@@ -3,5 +3,6 @@ wgx:
   requiredWgx: "^2.0"
   repoKind: "generic"
   tasks:
+    smoke: "python3 scripts/validate_workflow.py .github/workflows/wgx-smoke.yml"
     test: "bats -r tests"
     lint: "FILES=$(git ls-files '*.sh' '*.bash'); shfmt -d $FILES && shellcheck -S style $FILES"
