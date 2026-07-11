@@ -44,10 +44,11 @@ teardown() {
   assert_output --partial "all external uses references"
   assert_output --partial "is reusable and bound"
 
-  run env WGX_TARGET_ROOT="$WGX_PROJECT_ROOT" \
+  run env WGX_TARGET_ROOT="$WGX_PROJECT_ROOT" DRYRUN=1 \
     "$WGX_PROJECT_ROOT/wgx" task smoke
   assert_success
-  assert_output --partial "OK   .github/workflows/wgx-smoke.yml"
+  assert_output --partial "[DRY-RUN]"
+  assert_output --partial "scripts/validate_workflow.py .github/workflows/wgx-smoke.yml"
 }
 
 @test "WGX guard pin checker rejects mutable major tags" {
