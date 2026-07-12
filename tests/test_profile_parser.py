@@ -119,6 +119,35 @@ class TestProfileParser(unittest.TestCase):
         )
         self.assertEqual(completed.stdout, value)
 
+    def test_shell_quote_uses_one_ansi_c_word_for_unsafe_values(self):
+        for value in ("", "two words", "it's safe", "$(literal)"):
+            quoted = profile_parser.shell_quote(value)
+            self.assertTrue(quoted.startswith("$'"), quoted)
+            self.assertTrue(quoted.endswith("'"), quoted)
+            self.assertNotIn("'\"'\"'", quoted)
+
+    def test_simple_token_with_plus_equals_round_trips(self):
+        quoted = profile_parser.shell_quote("foo+=bar")
+        self.assertEqual(quoted, "foo+=bar")
+        completed = subprocess.run(
+            ["bash", "-c", f"source modules/profile.bash; profile::_apply_parser_line 'VALUE={quoted}'; printf %s \"$VALUE\""],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(completed.stdout, "foo+=bar")
+
+    def test_emit_var_rejects_invalid_shell_name(self):
+        with self.assertRaisesRegex(ValueError, "invalid shell variable name"):
+            profile_parser.emit_var("WGX_SAFE=$(touch /tmp/nope)", "value")
+
+    def test_emit_env_rejects_invalid_environment_key(self):
+        with self.assertRaisesRegex(ValueError, "invalid environment key"):
+            profile_parser.emit_env(
+                "WGX_ENV_BASE_MAP",
+                {"SAFE=$'x'$(touch /tmp/nope)$'y'": "value"},
+            )
+
     def test_profile_loader_runs_multiline_task_with_single_quotes(self):
         root = Path(__file__).resolve().parents[1]
         content = (

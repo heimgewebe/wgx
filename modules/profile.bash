@@ -148,6 +148,44 @@ profile::_normalize_task_name() {
   # which uses re.sub(r'-+', '-', name.replace(' ', '').replace('_', '-').lower())
 }
 
+profile::_ansi_c_word_is_safe() {
+  local value="${1-}"
+  local length=${#value}
+  ((length >= 3)) || return 1
+  [[ ${value:0:2} == \$\' && ${value:length-1:1} == \' ]] || return 1
+
+  local body="${value:2:length-3}"
+  local body_length=${#body}
+  local i=0 ch next hex
+  while ((i < body_length)); do
+    ch="${body:i:1}"
+    [[ $ch != "'" && $ch != $'\n' && $ch != $'\r' && $ch != $'\t' ]] || return 1
+    if [[ $ch != "\\" ]]; then
+      i=$((i + 1))
+      continue
+    fi
+
+    i=$((i + 1))
+    ((i < body_length)) || return 1
+    next="${body:i:1}"
+    case "$next" in
+    "\\" | "'" | n | r | t)
+      i=$((i + 1))
+      ;;
+    x)
+      ((i + 2 < body_length)) || return 1
+      hex="${body:i+1:2}"
+      [[ $hex =~ ^[0-9A-Fa-f]{2}$ ]] || return 1
+      i=$((i + 3))
+      ;;
+    *)
+      return 1
+      ;;
+    esac
+  done
+  return 0
+}
+
 profile::_parser_line_is_safe() {
   local line="${1:-}"
   # strip CR (Windows line endings)
@@ -162,58 +200,31 @@ profile::_parser_line_is_safe() {
     return 1
   fi
 
-  # allow only assignment-like forms:
-  #   VAR=...
-  #   VAR+=...
-  #   VAR+=(...)  (array append)
-  #   VAR_key=...  (flat variable naming)
-  #   declare -g[aA]? VAR=(...)
-  #   declare -g[aA]? VAR=...
-  if [[ $line =~ ^declare[[:space:]]+-g[aA]?[a-zA-Z-]*[[:space:]]+[A-Za-z_][A-Za-z0-9_]*= ]]; then
-    return 0
-  fi
-  if [[ $line =~ ^[A-Za-z_][A-Za-z0-9_]*(\+?=).+ ]]; then
-    # Extract the part before = to check it's a valid variable name
-    # This allows VAR=value and VAR_key=value but not VAR[key]=value
-    local var_part
-    if [[ $line == *"+="* ]]; then
-      var_part="${line%%+=*}"
-    else
-      var_part="${line%%=*}"
-    fi
+  # Accept only the two assignment forms emitted by profile_parser.py.
+  # Capturing the operator next to the variable name avoids mistaking a value
+  # such as "foo+=bar" for an array append.
+  if [[ $line =~ ^([A-Za-z_][A-Za-z0-9_]*)(\+?=)(.+)$ ]]; then
+    local var_part="${BASH_REMATCH[1]}"
+    local operator="${BASH_REMATCH[2]}"
+    local value_part="${BASH_REMATCH[3]}"
     if [[ $var_part =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]; then
-      # Valid flat variable name, now check the value
-      # Extract the value part (everything after = or +=)
-      local value_part
-      if [[ $line == *"+="* ]]; then
-        value_part="${line#*+=}"
-      else
-        value_part="${line#*=}"
-      fi
 
-      # Allow array append syntax: VAR+=(value)
-      if [[ $value_part == \(* && $value_part == *\) ]]; then
-        # Check content inside parentheses
+      # Allow exactly one parser-emitted word inside array append syntax.
+      if [[ $operator == "+=" && $value_part == \(* && $value_part == *\) ]]; then
         local inner="${value_part#\(}"
         inner="${inner%\)}"
-        # Allow if properly quoted or is a simple value (letters, digits, underscores, hyphens)
-        if [[ $inner == \"*\" || $inner == \'*\' || $inner =~ ^[A-Za-z0-9_-]+$ ]]; then
+        if [[ $inner =~ ^[A-Za-z0-9_@%+=:,./-]+$ ]] || profile::_ansi_c_word_is_safe "$inner"; then
           return 0
         fi
-      fi
-
-      # Check if value is quoted. ANSI-C quotes are emitted for multiline
-      # parser values so every assignment remains one physical line.
-      if [[ $value_part == \$\'*\' || $value_part == \"*\" || $value_part == \'*\' ]]; then
-        # Properly quoted value, allow special chars inside quotes
-        return 0
-      fi
-      # If not quoted, apply strict checks
-      # shellcheck disable=SC2016
-      if [[ $value_part == *'$('* || $value_part == *'`'* || $value_part == *';'* || $value_part == *'|'* || $value_part == *'&'* || $value_part == *'<'* || $value_part == *'>'* ]]; then
         return 1
       fi
-      return 0
+
+      # Scalar assignments accept one simple token or one complete ANSI-C word.
+      # Concatenated shell words and expansion syntax are rejected before eval.
+      if [[ $value_part =~ ^[A-Za-z0-9_@%+=:,./-]+$ ]] || profile::_ansi_c_word_is_safe "$value_part"; then
+        return 0
+      fi
+      return 1
     fi
   fi
 

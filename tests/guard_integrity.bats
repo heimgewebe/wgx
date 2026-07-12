@@ -38,7 +38,7 @@ teardown() {
   touch artifacts/integrity/forbidden.file
   git add artifacts/integrity/forbidden.file 2>/dev/null || true
 
-  run wgx guard
+  run wgx guard --only integrity
   assert_failure
   assert_output --regexp "artifacts/integrity/ is [Ff]orbidden"
 }
@@ -46,7 +46,7 @@ teardown() {
 @test "guard integrity: WARNS when reports/integrity/ exists but summary.json is missing" {
   mkdir -p reports/integrity
 
-  run wgx guard
+  run wgx guard --only integrity
   assert_success
   assert_output --partial "Integrity task detected but no reports/integrity/summary.json produced."
 }
@@ -64,7 +64,7 @@ wgx:
     lint: "echo lint"
 EOF
 
-  run wgx guard
+  run wgx guard --only integrity
   assert_success
   assert_output --partial "Integrity task detected but no reports/integrity/summary.json produced."
 }
@@ -74,7 +74,7 @@ EOF
   touch reports/integrity/summary.json
   echo '{"url": "https://example.com", "generated_at": "2024-01-01T00:00:00Z", "repo": "r", "status": "OK", "extra": "x"}' > reports/integrity/event_payload.json
 
-  run wgx guard
+  run wgx guard --only integrity
   assert_failure
   assert_output --regexp "Event payload contains [Ff]orbidden keys: extra"
 }
@@ -84,7 +84,7 @@ EOF
   touch reports/integrity/summary.json
   echo '{"url": "https://example.com", "generated_at": "2024-01-01T00:00:00Z", "repo": "r", "status": "OK", "counts": {"foo": 1}}' > reports/integrity/event_payload.json
 
-  run wgx guard
+  run wgx guard --only integrity
   assert_failure
   assert_output --regexp "Event payload contains [Ff]orbidden keys: counts" # Regex match for forbidden/Forbidden
 }
@@ -94,7 +94,7 @@ EOF
   touch reports/integrity/summary.json
   echo '{"url": "https://example.com", "generated_at": "2024-01-01T00:00:00Z", "repo": "r", "status": "OK"}' > reports/integrity/event_payload.json
 
-  run wgx guard
+  run wgx guard --only integrity
   assert_success
   assert_output --partial "Running integrity guard..."
   assert_output --partial "Integrity checks passed."
@@ -103,7 +103,7 @@ EOF
 @test "guard integrity: PASSES when artifacts/integrity exists but is empty" {
   mkdir -p artifacts/integrity
 
-  run wgx guard
+  run wgx guard --only integrity
   assert_success
   # Should not fail with forbidden message
   [[ ! "$output" =~ "artifacts/integrity/ is forbidden" ]]
@@ -114,7 +114,7 @@ EOF
   touch reports/integrity/summary.json
   echo '{"generated_at": "2024-01-01T00:00:00Z", "repo": "r", "status": "OK"}' > reports/integrity/event_payload.json
 
-  run wgx guard
+  run wgx guard --only integrity
   assert_failure
   assert_output --partial "Event payload missing mandatory key: url"
 }
@@ -124,7 +124,7 @@ EOF
   touch reports/integrity/summary.json
   echo '{"url": "https://example.com", "generated_at": "2024-01-01T00:00:00Z", "repo": "r"}' > reports/integrity/event_payload.json
 
-  run wgx guard
+  run wgx guard --only integrity
   assert_failure
   assert_output --partial "Event payload missing mandatory key: status"
 }
@@ -134,7 +134,7 @@ EOF
   touch reports/integrity/summary.json
   echo '"not-an-object"' > reports/integrity/event_payload.json
 
-  run wgx guard
+  run wgx guard --only integrity
   assert_failure
   assert_output --partial "Event payload must be an object."
 }
@@ -143,7 +143,7 @@ EOF
   mkdir -p reports/integrity
   echo '{"url": "https://example.com", "generated_at": "2024-01-01T00:00:00Z", "repo": "r", "status": "OK"}' > reports/integrity/event_payload.json
 
-  run wgx guard
+  run wgx guard --only integrity
   assert_success
   assert_output --partial "WARN: Integrity task detected but no reports/integrity/summary.json produced."
   # Should still validate event_payload.json and pass
@@ -155,7 +155,7 @@ EOF
   touch reports/integrity/summary.json
   echo '{"url": "https://example.com/other.json", "generated_at": "2024-01-01T00:00:00Z", "repo": "r", "status": "OK"}' > reports/integrity/event_payload.json
 
-  run wgx guard
+  run wgx guard --only integrity
   assert_success
   assert_output --partial "WARN: Event payload.url does not appear to point to a 'summary.json' report"
   assert_output --partial "Integrity checks passed."
@@ -194,7 +194,7 @@ EOF
   touch reports/integrity/summary.json
   echo '{"url": "https://example.com", "generated_at": "2024-01-01T00:00:00Z", "repo": "r", "status": "INVALID"}' > reports/integrity/event_payload.json
 
-  run wgx guard
+  run wgx guard --only integrity
   assert_failure
   assert_output --partial "Event payload.status must be one of: OK, WARN, FAIL, MISSING, UNCLEAR"
 }
@@ -204,7 +204,7 @@ EOF
   touch reports/integrity/summary.json
   echo '{"url": "ftp://example.com", "generated_at": "2024-01-01T00:00:00Z", "repo": "r", "status": "OK"}' > reports/integrity/event_payload.json
 
-  run wgx guard
+  run wgx guard --only integrity
   assert_failure
   assert_output --partial "Event payload.url must be a valid HTTP/HTTPS URL"
 }
@@ -214,7 +214,7 @@ EOF
   touch reports/integrity/summary.json
   echo '{"url": "https://example.com", "generated_at": "invalid-date", "repo": "r", "status": "OK"}' > reports/integrity/event_payload.json
 
-  run wgx guard
+  run wgx guard --only integrity
   assert_failure
   assert_output --partial "Event payload.generated_at must be in ISO-8601 format"
 }
@@ -224,7 +224,7 @@ EOF
   touch reports/integrity/summary.json
   echo '{"url": "https://example.com", "generated_at": "2024-01-01T00:00:00Z", "repo": "", "status": "OK"}' > reports/integrity/event_payload.json
 
-  run wgx guard
+  run wgx guard --only integrity
   assert_failure
   assert_output --partial "Event payload.repo must be a non-empty string."
 }
@@ -234,13 +234,13 @@ EOF
   touch reports/integrity/summary.json
   # url is number
   echo '{"url": 123, "generated_at": "2024-01-01T00:00:00Z", "repo": "r", "status": "OK"}' > reports/integrity/event_payload.json
-  run wgx guard
+  run wgx guard --only integrity
   assert_failure
   assert_output --partial "Event payload.url must be a string."
 
   # status is number
   echo '{"url": "https://a.com/summary.json", "generated_at": "2024-01-01T00:00:00Z", "repo": "r", "status": 123}' > reports/integrity/event_payload.json
-  run wgx guard
+  run wgx guard --only integrity
   assert_failure
   assert_output --partial "Event payload.status must be a string."
 }
