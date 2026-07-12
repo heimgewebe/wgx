@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Require immutable external action refs in the reusable WGX guard workflow."""
+"""Require immutable external action refs in reusable WGX workflows."""
 
 from __future__ import annotations
 
@@ -9,7 +9,10 @@ from pathlib import Path
 
 USES_RE = re.compile(r"^\s*(?:-\s*)?uses:\s*([^\s#]+)")
 FULL_COMMIT_RE = re.compile(r"^[0-9a-f]{40}$")
-DEFAULT_WORKFLOW = Path(".github/workflows/wgx-guard.yml")
+DEFAULT_WORKFLOWS = (
+    Path(".github/workflows/wgx-guard.yml"),
+    Path(".github/workflows/wgx-smoke.yml"),
+)
 
 
 def check_workflow(path: Path) -> list[str]:
@@ -45,16 +48,14 @@ def check_workflow(path: Path) -> list[str]:
 
 def main(argv: list[str] | None = None) -> int:
     args = sys.argv[1:] if argv is None else argv
-    if len(args) > 1:
-        print("usage: check_wgx_guard_action_pins.py [workflow]", file=sys.stderr)
-        return 2
-    path = Path(args[0]) if args else DEFAULT_WORKFLOW
-    findings = check_workflow(path)
+    paths = tuple(Path(arg) for arg in args) if args else DEFAULT_WORKFLOWS
+    findings = [finding for path in paths for finding in check_workflow(path)]
     if findings:
         for finding in findings:
             print(f"FAIL: {finding}", file=sys.stderr)
         return 1
-    print(f"PASS: all external uses references in {path} are full commit pins")
+    joined = ", ".join(str(path) for path in paths)
+    print(f"PASS: all external uses references in {joined} are full commit pins")
     return 0
 
 
