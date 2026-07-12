@@ -16,6 +16,8 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 # Pre-compiled regexes
 RE_NON_ALPHANUM_UNDERSCORE = re.compile(r'[^A-Za-z0-9_]')
 RE_DASH_SEQ = re.compile(r'-+')
+RE_SHELL_NAME = re.compile(r'^[A-Za-z_][A-Za-z0-9_]*$')
+RE_SIMPLE_SHELL_TOKEN = re.compile(r'^[A-Za-z0-9_@%+=:,./-]+$')
 
 # Regex for stripping inline comments
 # We scan for Quotes and Hashes. Everything else is ignored.
@@ -342,9 +344,39 @@ def emit(line: str) -> None:
     sys.stdout.write(f"{line}\n")
 
 def shell_quote(value: str) -> str:
-    return shlex.quote(value)
+    """Return exactly one Bash-safe word without physical newlines.
+
+    Simple tokens remain unquoted. Every other value uses one ANSI-C quoted
+    word whose escape grammar is mirrored by ``profile::_ansi_c_word_is_safe``.
+    This avoids the multi-word quote concatenation produced by ``shlex.quote``
+    and keeps the line-wise loader contract auditable.
+    """
+    if "\x00" in value:
+        raise ValueError("profile values cannot contain NUL bytes")
+    if RE_SIMPLE_SHELL_TOKEN.fullmatch(value):
+        return value
+
+    escaped = []
+    for ch in value:
+        if ch == "\\":
+            escaped.append("\\\\")
+        elif ch == "'":
+            escaped.append("\\'")
+        elif ch == "\n":
+            escaped.append("\\n")
+        elif ch == "\r":
+            escaped.append("\\r")
+        elif ch == "\t":
+            escaped.append("\\t")
+        elif ord(ch) < 32 or ord(ch) == 127:
+            escaped.append(f"\\x{ord(ch):02x}")
+        else:
+            escaped.append(ch)
+    return "$'" + "".join(escaped) + "'"
 
 def emit_var(name: str, value: Any) -> None:
+    if not RE_SHELL_NAME.fullmatch(name):
+        raise ValueError(f"invalid shell variable name: {name!r}")
     sval = '' if value is None else str(value)
     emit(f"{name}={shell_quote(sval)}")
 
@@ -355,6 +387,8 @@ def emit_env(prefix: str, mapping: Any) -> None:
         if key is None:
             continue
         skey = str(key)
+        if not RE_SHELL_NAME.fullmatch(skey):
+            raise ValueError(f"invalid environment key: {skey!r}")
         emit_var(f"{prefix}_{skey}", val)
 
 def emit_caps(caps: Any) -> None:
