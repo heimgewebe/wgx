@@ -65,6 +65,6 @@ jobs:
           fi
 
   validate-observatory:
-    uses: heimgewebe/metarepo/.github/workflows/reusable-validate-observatory.yml@8a509b1da5e3b13b2f0d444227d0c5e3b6805a0a
+    uses: heimgewebe/metarepo/.github/workflows/reusable-validate-observatory.yml@dda0d036b3b4db935d3acbaa4c1b0fc76637cea9  # metarepo PR #647 merge 2026-07-12
     permissions:
       contents: read
