@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 
 DEFAULT_WORKFLOW = Path(".github/workflows/wgx-smoke.yml")
-PINNED_CLI_COMMIT = "0c19e27f8135e0121045c24466848e312c996a85"
+PINNED_CLI_COMMIT = "4b688c8c06dcb895312fa222f4bf047ccfb6da0c"
 PY_YAML_WHEEL_SHA256 = "ba1cc08a7ccde2d2ec775841541641e4548226580ab850948cbfda66a1befcdc"
 
 
