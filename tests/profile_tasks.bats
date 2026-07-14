@@ -185,3 +185,37 @@ SH
   assert_success
   [[ ! -e "$marker" ]]
 }
+
+@test "parser assignment safety rejects executable and malformed lines before eval" {
+  marker="$BATS_TEST_TMPDIR/parser-eval-multi-pwned"
+  helper_script="$BATS_TEST_TMPDIR/check_parser_assignment_matrix.sh"
+  cat >"$helper_script" <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+REPO_ROOT="$1"
+MARKER="$2"
+LINE="$3"
+source "$REPO_ROOT/lib/core.bash"
+source "$REPO_ROOT/modules/profile.bash"
+if profile::_apply_parser_line "$LINE"; then
+  echo "unsafe line was accepted: $LINE" >&2
+  exit 10
+fi
+[[ ! -e "$MARKER" ]]
+SH
+  chmod +x "$helper_script"
+
+  quoted_marker="$(printf '%q' "$marker")"
+  unsafe_lines=(
+    "WGX_VALUE=\$(touch ${quoted_marker})"
+    'WGX_VALUE=${HOME}'
+    "WGX_VALUE=ok;touch ${quoted_marker}"
+    "print('x')"
+    "WGX_VALUE=\$'unterminated"
+  )
+  for line in "${unsafe_lines[@]}"; do
+    run "$helper_script" "$REPO_ROOT" "$marker" "$line"
+    assert_success
+    [[ ! -e "$marker" ]]
+  done
+}
