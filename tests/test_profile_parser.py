@@ -176,6 +176,51 @@ class TestProfileParser(unittest.TestCase):
             )
         self.assertEqual(completed.stdout, "one\ntwo words\n")
 
+    def test_profile_loader_accepts_python_tokens_inside_quoted_task_value(self):
+        root = Path(__file__).resolve().parents[1]
+        content = (
+            "wgx:\n"
+            "  tasks:\n"
+            "    smoke: |\n"
+            "      python3 - <<'PY'\n"
+            "      import os\n"
+            "      try:\n"
+            "          print(os.environ.get('HOME'))\n"
+            "      except Exception:\n"
+            "          raise\n"
+            "      PY\n"
+        )
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            profile_dir = Path(tmp_dir) / ".wgx"
+            profile_dir.mkdir()
+            (profile_dir / "profile.yml").write_text(content, encoding="utf-8")
+            script = (
+                "set -euo pipefail; "
+                f"source {profile_parser.shell_quote(str(root / 'lib' / 'core.bash'))}; "
+                f"source {profile_parser.shell_quote(str(root / 'modules' / 'profile.bash'))}; "
+                f"cd {profile_parser.shell_quote(tmp_dir)}; "
+                "WGX_PROFILE_DEPRECATION=quiet; export WGX_PROFILE_DEPRECATION; "
+                "profile::load .wgx/profile.yml; printf %s \"${WGX_TASK_CMDS[smoke]}\""
+            )
+            completed = subprocess.run(
+                ["bash", "-c", script],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+        expected = (
+            "STR:python3 - <<'PY'\n"
+            "import os\n"
+            "try:\n"
+            "    print(os.environ.get('HOME'))\n"
+            "except Exception:\n"
+            "    raise\n"
+            "PY\n"
+        )
+        self.assertEqual(completed.stdout, expected)
+        self.assertIn("print(", completed.stdout)
+        self.assertIn("import os", completed.stdout)
+
     def test_main_missing_args(self):
         """Test that main() exits with status 1 if arguments are missing."""
         with patch.object(sys, 'argv', ['profile_parser.py']):

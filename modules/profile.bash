@@ -195,10 +195,10 @@ profile::_parser_line_is_safe() {
   [[ -n $line ]] || return 0
   [[ ${line:0:1} == "#" ]] && return 0
 
-  # hard reject obvious non-bash / python-ish tokens (fast fail, better error)
-  if [[ $line == *"try:"* || $line == *"except"* || $line == import\ * || $line == *"sys.exit"* || $line == *"print("* ]]; then
-    return 1
-  fi
+  # Parse the assignment shape before inspecting its value. Parser-emitted
+  # values are data: a complete ANSI-C-quoted word may legitimately contain
+  # tokens such as ``print(`` or ``import`` without making them executable.
+  # Raw commands and concatenated shell words are still rejected below.
 
   # Accept only the two assignment forms emitted by profile_parser.py.
   # Capturing the operator next to the variable name avoids mistaking a value
