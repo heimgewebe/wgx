@@ -445,12 +445,14 @@ jobs:
             exit 1
           fi
 
-          tar -xzf vale.tar.gz
-          test -f vale && echo "vale binary extracted" || (echo "vale missing" && exit 1)
-          sudo install -m 0755 vale /usr/local/bin/vale
+          extract_dir=$(mktemp -d)
+          tar -xzf vale.tar.gz -C "$extract_dir"
+          test -f "$extract_dir/vale" && echo "vale binary extracted" || (echo "vale missing" && exit 1)
+          sudo install -m 0755 "$extract_dir/vale" /usr/local/bin/vale
           echo "Installed Vale ${version} (${asset_name})"
           vale --version
-          rm -f vale vale.tar.gz checksums.txt
+          rm -rf "$extract_dir"
+          rm -f vale.tar.gz checksums.txt
       - name: Markdownlint (changed only)
         run: |
           set -euo pipefail
