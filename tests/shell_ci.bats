@@ -68,6 +68,9 @@ SCRIPT
     assert_success
   done
 
+  run grep -F 'shfmt -d "$file"' "$REPO_ROOT/.github/workflows/shell-docs.yml"
+  assert_success
+
   run grep -F 'shfmt -d -- "${files[@]}"' "$REPO_ROOT/Justfile"
   assert_success
 
