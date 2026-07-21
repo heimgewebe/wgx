@@ -1,0 +1,51 @@
+name: Justfile integrity
+
+on:
+  workflow_dispatch: {}
+  pull_request:
+    paths:
+      - "Justfile"
+      - "scripts/check-justfile.sh"
+      - "scripts/just-dispatch.sh"
+      - "tests/justfile_integrity.bats"
+      - ".github/workflows/justfile-integrity.yml"
+  push:
+    branches: [main]
+    paths:
+      - "Justfile"
+      - "scripts/check-justfile.sh"
+      - "scripts/just-dispatch.sh"
+      - "tests/justfile_integrity.bats"
+      - ".github/workflows/justfile-integrity.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  parse:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Install hash-bound just
+        env:
+          JUST_VERSION: "1.42.4"
+          JUST_ARCHIVE_SHA256: "678efc1cfbd5fa5a88375daa7e2f3864a049d6d63a0296df925a2ae5f516cb56"
+        run: |
+          set -euo pipefail
+          archive="just-${JUST_VERSION}-x86_64-unknown-linux-musl.tar.gz"
+          url="https://github.com/casey/just/releases/download/${JUST_VERSION}/${archive}"
+          curl --fail --location --silent --show-error --output "$RUNNER_TEMP/$archive" "$url"
+          echo "${JUST_ARCHIVE_SHA256}  $RUNNER_TEMP/$archive" | sha256sum --check --strict
+          mkdir -p "$RUNNER_TEMP/just-bin"
+          tar -xzf "$RUNNER_TEMP/$archive" -C "$RUNNER_TEMP/just-bin" just
+          echo "$RUNNER_TEMP/just-bin" >> "$GITHUB_PATH"
+
+      - name: Verify parser contract
+        run: scripts/check-justfile.sh
