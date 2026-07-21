@@ -7,7 +7,6 @@ on:
       - "Justfile"
       - "scripts/check-justfile.sh"
       - "scripts/just-dispatch.sh"
-      - "tests/justfile_integrity.bats"
       - ".github/workflows/justfile-integrity.yml"
   push:
     branches: [main]
@@ -15,7 +14,6 @@ on:
       - "Justfile"
       - "scripts/check-justfile.sh"
       - "scripts/just-dispatch.sh"
-      - "tests/justfile_integrity.bats"
       - ".github/workflows/justfile-integrity.yml"
 
 permissions:
