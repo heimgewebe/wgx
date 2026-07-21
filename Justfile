@@ -9,7 +9,7 @@ devcontainer-check:
 devcontainer-install:
     .devcontainer/setup.sh install all
 
-export METRICS_SCHEMA_URL := "https://raw.githubusercontent.com/heimgewebe/metarepo/contracts-v1/contracts/wgx/metrics.json"
+export METRICS_SCHEMA_URL := "https://raw.githubusercontent.com/heimgewebe/metarepo/b215b418a038ff535f07b7888fd6adeb3f4de51c/contracts/metrics.snapshot.schema.json"
 
 wgx command *args:
     @scripts/just-dispatch.sh wgx "$@"

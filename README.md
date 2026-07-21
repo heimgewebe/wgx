@@ -130,9 +130,8 @@ stehen in [docs/readiness.md](docs/readiness.md). Ergänzend erklärt
 
   ```bash
   scripts/wgx-metrics-snapshot.sh --json --output metrics.json
-  SCHEMA="https://raw.githubusercontent.com/heimgewebe/metarepo"
-  SCHEMA="$SCHEMA/contracts-v1/contracts/wgx/metrics.json"
-  npx --yes ajv-cli@5 validate -s "$SCHEMA" -d metrics.json
+  SCHEMA="https://raw.githubusercontent.com/heimgewebe/metarepo/b215b418a038ff535f07b7888fd6adeb3f4de51c/contracts/metrics.snapshot.schema.json"
+  npx --yes ajv-cli@5 validate --spec=draft2020 --strict=log -s "$SCHEMA" -d metrics.json
   ```
 
 - Node.js tooling ist nicht erforderlich; npm-/pnpm-Workflows sind
