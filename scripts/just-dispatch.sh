@@ -41,7 +41,23 @@ contracts)
   case "$action" in
   validate)
     : "${METRICS_SCHEMA_URL:?METRICS_SCHEMA_URL fehlt}"
-    exec npx --yes ajv-cli@5 validate -s "$METRICS_SCHEMA_URL" -d metrics.json "$@"
+    schema_path="$METRICS_SCHEMA_URL"
+    case "$METRICS_SCHEMA_URL" in
+    http://* | https://*)
+      schema_tmp_dir="$(mktemp -d)"
+      trap 'rm -rf "$schema_tmp_dir"' EXIT
+      schema_path="$schema_tmp_dir/metrics.schema.json"
+      if ! curl -fsSL "$METRICS_SCHEMA_URL" -o "$schema_path"; then
+        echo "contracts validate: Schema konnte nicht geladen werden: $METRICS_SCHEMA_URL" >&2
+        exit 1
+      fi
+      ;;
+    *://*)
+      echo "contracts validate: Nicht unterstützte Schema-URL: $METRICS_SCHEMA_URL" >&2
+      exit 2
+      ;;
+    esac
+    npx --yes ajv-cli@5 validate --spec=draft2020 --strict=log -s "$schema_path" -d metrics.json "$@"
     ;;
   *)
     echo "Unbekannter contracts-Befehl: $action" >&2
