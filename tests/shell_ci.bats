@@ -67,6 +67,12 @@ SCRIPT
     run grep -F "$pattern" "$REPO_ROOT/.github/workflows/ci.yml"
     assert_success
   done
+
+  run grep -F 'shfmt -d -- "${files[@]}"' "$REPO_ROOT/Justfile"
+  assert_success
+
+  run grep -F 'shfmt -d -i 2 -ci -sr' "$REPO_ROOT/Justfile"
+  assert_failure
 }
 
 @test "assertion helper self-tests pass" {

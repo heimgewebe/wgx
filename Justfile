@@ -27,5 +27,5 @@ lint:
     mapfile -d '' files < <(git ls-files -z -- '*.sh' '*.bash' || true); \
     if [ "${#files[@]}" -eq 0 ]; then echo "keine Shell-Dateien"; exit 0; fi; \
     printf '%s\0' "${files[@]}" | xargs -0 bash -n; \
-    shfmt -d -i 2 -ci -sr -- "${files[@]}"; \
+    shfmt -d -- "${files[@]}"; \
     shellcheck -S style -- "${files[@]}"
