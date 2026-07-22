@@ -23,7 +23,7 @@ setup() {
   git tag baseline >/dev/null
   mkdir -p ../remote && (cd ../remote && git init --bare --initial-branch=main >/dev/null 2>&1)
   git remote add origin ../remote
-  git push -u origin main >/dev/null
+  git -c core.hooksPath=/dev/null push -u origin main >/dev/null
   export WGX_DIR="$project_root"
   export PATH="$WGX_DIR/cli:$PATH"
 }

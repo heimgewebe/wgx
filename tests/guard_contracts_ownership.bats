@@ -6,6 +6,11 @@ setup() {
     # Create a temporary directory for the repository
     TEST_DIR="$(mktemp -d)"
     cd "$TEST_DIR"
+
+    # Test identity and diff mode must not depend on the caller environment.
+    unset HG_REPO_NAME GITHUB_REPOSITORY CI GITHUB_BASE_REF GITHUB_EVENT_BEFORE
+    unset GIT_DIR GIT_WORK_TREE
+
     git init
     git config user.email "test@example.com"
     git config user.name "Test User"
@@ -41,7 +46,6 @@ teardown() {
     mkdir contracts
     touch contracts/foo.schema.json
     git add contracts/foo.schema.json
-    git commit -m "Add contract"
 
     run "$GUARD_SCRIPT"
     assert_failure
@@ -59,7 +63,6 @@ teardown() {
     mkdir contracts
     touch contracts/internal.schema.json
     git add fleet/repos.yml contracts/internal.schema.json
-    git commit -m "Add contract"
 
     run "$GUARD_SCRIPT"
     assert_success
@@ -75,7 +78,6 @@ teardown() {
     mkdir contracts
     touch contracts/internal.schema.json
     git add contracts/internal.schema.json
-    git commit -m "Add contract"
 
     run "$GUARD_SCRIPT"
     assert_failure
@@ -91,7 +93,6 @@ teardown() {
     mkdir contracts
     touch contracts/some.schema.json
     git add contracts/some.schema.json
-    git commit -m "Add contract"
 
     run "$GUARD_SCRIPT"
     assert_failure
@@ -107,7 +108,6 @@ teardown() {
     mkdir json
     touch json/external.schema.json
     git add json/external.schema.json
-    git commit -m "Add json file"
 
     run "$GUARD_SCRIPT"
     assert_success
@@ -127,7 +127,6 @@ teardown() {
     mkdir contracts
     touch contracts/internal.schema.json
     git add fleet/repos.yml contracts/internal.schema.json
-    git commit -m "Add contract"
 
     run "$GUARD_SCRIPT"
     assert_success
