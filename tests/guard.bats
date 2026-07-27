@@ -15,16 +15,14 @@ setup() {
     # das Profil korrekt finden kann.
     export WGX_DIR="$WORKDIR"
 
-    # Kanonisches Profil-Template ins Test-Repo spiegeln (driftfest: Tests hängen am Standard).
-    # BATS_TEST_DIRNAME zeigt auf tests/, wir wollen ../templates/.wgx/profile.yml aus dem Repo.
-    mkdir -p "$WORKDIR/templates/.wgx"
-    cp "$BATS_TEST_DIRNAME/../templates/.wgx/profile.yml" "$WORKDIR/templates/.wgx/profile.yml"
+    # Lokale Test-Fixture spiegeln. Fleet-Templates gehören dem Metarepo.
+    mkdir -p "$WORKDIR/fixtures"
+    cp "$BATS_TEST_DIRNAME/../fixtures/profile.valid.yml" "$WORKDIR/fixtures/profile.valid.yml"
 }
 
 write_valid_profile() {
     local target="${1:-.wgx/profile.yml}"
-    # Wir nutzen das im Setup bereitgestellte Template, um valide Profile zu erzeugen
-    cp "templates/.wgx/profile.yml" "$target"
+    cp "fixtures/profile.valid.yml" "$target"
 }
 
 teardown() {

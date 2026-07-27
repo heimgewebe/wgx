@@ -26,7 +26,7 @@ setup() {
 write_valid_profile() {
     local target="${1:-.wgx/profile.yml}"
     mkdir -p "$(dirname "$target")"
-    cp "$WGX_DIR/templates/.wgx/profile.yml" "$target"
+    cp "$WGX_DIR/fixtures/profile.valid.yml" "$target"
 }
 
 teardown() {

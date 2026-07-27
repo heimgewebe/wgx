@@ -1,5 +1,9 @@
 # WGX — Mycelium **v Ω**
 
+> Historisches Visionsdokument. Es erteilt keine Task-, Deploy- oder
+> Host-Mutationsautorität. Die aktuelle, validierte Systemgrenze steht in
+> [operator-ecosystem-capabilities.md](operator-ecosystem-capabilities.md).
+
 Version: vΩ (2025-10-05) · Status-Legende: 🟢 Core · 🟡 Next · 🔬 Experimental
 
 ## Inhalt

@@ -4,7 +4,8 @@
 
 ## wgx
 
-Internal toolchain and umbrella repository that delivers build scripts, templates and documentation for the connected projects.
+Repository verification adapter that provides shared checks and reusable CI
+routers. Fleet template ownership remains in Metarepo.
 
 ## `profile.yml`
 
@@ -18,8 +19,8 @@ must remain stable so that downstream projects continue to operate consistently.
 
 ## Guard checklist
 
-Set of minimal repository requirements (e.g. committed `uv.lock`, presence of `templates/profile.template.yml`, CI
-workflows) that `wgx guard` verifies before automation tasks are allowed to proceed.
+Set of repository-shape and contract requirements that `wgx guard` verifies.
+Passing a guard does not grant task, deployment or host-mutation authority.
 
 ## `wgx send`
 

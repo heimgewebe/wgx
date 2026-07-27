@@ -1,0 +1,408 @@
+{
+  "schema_version": 1,
+  "task": "OPERATOR-ECOSYSTEM-REDUNDANCY-V1-T009",
+  "evidence_scope": {
+    "observed_at": "2026-07-27",
+    "repositories": [
+      "heimgewebe/aussensensor",
+      "heimgewebe/chronik",
+      "heimgewebe/hausKI",
+      "heimgewebe/heimlern",
+      "heimgewebe/lenskit",
+      "heimgewebe/metarepo",
+      "heimgewebe/mitschreiber",
+      "heimgewebe/plexer",
+      "heimgewebe/semantAH",
+      "heimgewebe/sichter",
+      "heimgewebe/weltgewebe"
+    ],
+    "limitations": [
+      "Consumer evidence is limited to primary local checkouts and source-linked repository paths; duplicate worktrees were excluded.",
+      "A checked-in copy of a WGX-origin script is not counted as a live consumer unless it invokes a WGX-owned surface."
+    ]
+  },
+  "authority_boundary": {
+    "wgx_role": "Repository verification adapter and fleet-invariant check implementation.",
+    "does_not_own": [
+      "task_coordination",
+      "deploy_authority",
+      "generic_host_mutation"
+    ],
+    "owners": {
+      "task_coordination": "Bureau Core",
+      "host_process_and_git_effects": "Grabowski",
+      "deploy_and_runtime_effects": "Grabowski",
+      "ci_conclusions": "GitHub and each repository's native CI"
+    },
+    "sources": [
+      "https://github.com/heimgewebe/bureau/blob/b70bd7a4bdbc1a113bab1e7fce2ddcf2645ebf43/docs/ownership.md",
+      "https://github.com/heimgewebe/grabowski/blob/afc0a6f67ac553aaaa140ca2785aee3d47843636/README.md"
+    ]
+  },
+  "capabilities": [
+    {
+      "id": "repository-guard-router",
+      "category": "guard",
+      "disposition": "retained_multi_consumer",
+      "summary": "Runs the guard or smoke front door declared by the target repository; it does not select, order, claim, or complete Bureau tasks.",
+      "surfaces": [
+        ".github/workflows/wgx-guard.yml"
+      ],
+      "consumers": [
+        {
+          "repository": "heimgewebe/aussensensor",
+          "evidence_path": ".github/workflows/wgx-guard.yml",
+          "source_url": "https://github.com/heimgewebe/aussensensor/blob/main/.github/workflows/wgx-guard.yml",
+          "repository_native_alternative": {
+            "path": ".github/workflows/tests.yml",
+            "source_url": "https://github.com/heimgewebe/aussensensor/blob/main/.github/workflows/tests.yml"
+          }
+        },
+        {
+          "repository": "heimgewebe/chronik",
+          "evidence_path": ".github/workflows/wgx-guard.yml",
+          "source_url": "https://github.com/heimgewebe/chronik/blob/main/.github/workflows/wgx-guard.yml",
+          "repository_native_alternative": {
+            "path": "Makefile",
+            "source_url": "https://github.com/heimgewebe/chronik/blob/main/Makefile"
+          }
+        },
+        {
+          "repository": "heimgewebe/hausKI",
+          "evidence_path": ".github/workflows/wgx-guard.yml",
+          "source_url": "https://github.com/heimgewebe/hausKI/blob/main/.github/workflows/wgx-guard.yml",
+          "repository_native_alternative": {
+            "path": ".github/workflows/ci.yml",
+            "source_url": "https://github.com/heimgewebe/hausKI/blob/main/.github/workflows/ci.yml"
+          }
+        },
+        {
+          "repository": "heimgewebe/heimlern",
+          "evidence_path": ".github/workflows/wgx-guard.yml",
+          "source_url": "https://github.com/heimgewebe/heimlern/blob/main/.github/workflows/wgx-guard.yml",
+          "repository_native_alternative": {
+            "path": ".github/workflows/rust.yml",
+            "source_url": "https://github.com/heimgewebe/heimlern/blob/main/.github/workflows/rust.yml"
+          }
+        },
+        {
+          "repository": "heimgewebe/lenskit",
+          "evidence_path": ".github/workflows/wgx-guard.yml",
+          "source_url": "https://github.com/heimgewebe/lenskit/blob/main/.github/workflows/wgx-guard.yml",
+          "repository_native_alternative": {
+            "path": ".github/workflows/test-suite.yml",
+            "source_url": "https://github.com/heimgewebe/lenskit/blob/main/.github/workflows/test-suite.yml"
+          }
+        },
+        {
+          "repository": "heimgewebe/metarepo",
+          "evidence_path": ".github/workflows/wgx-guard.yml",
+          "source_url": "https://github.com/heimgewebe/metarepo/blob/main/.github/workflows/wgx-guard.yml",
+          "repository_native_alternative": {
+            "path": ".github/workflows/ci.yml",
+            "source_url": "https://github.com/heimgewebe/metarepo/blob/main/.github/workflows/ci.yml"
+          }
+        },
+        {
+          "repository": "heimgewebe/mitschreiber",
+          "evidence_path": ".github/workflows/wgx-guard.yml",
+          "source_url": "https://github.com/heimgewebe/mitschreiber/blob/main/.github/workflows/wgx-guard.yml",
+          "repository_native_alternative": {
+            "path": ".github/workflows/ci.yml",
+            "source_url": "https://github.com/heimgewebe/mitschreiber/blob/main/.github/workflows/ci.yml"
+          }
+        },
+        {
+          "repository": "heimgewebe/plexer",
+          "evidence_path": ".github/workflows/wgx-guard.yml",
+          "source_url": "https://github.com/heimgewebe/plexer/blob/main/.github/workflows/wgx-guard.yml",
+          "repository_native_alternative": {
+            "path": ".github/workflows/ci.yml",
+            "source_url": "https://github.com/heimgewebe/plexer/blob/main/.github/workflows/ci.yml"
+          }
+        },
+        {
+          "repository": "heimgewebe/sichter",
+          "evidence_path": ".github/workflows/wgx-guard.yml",
+          "source_url": "https://github.com/heimgewebe/sichter/blob/main/.github/workflows/wgx-guard.yml",
+          "repository_native_alternative": {
+            "path": ".github/workflows/ci.yml",
+            "source_url": "https://github.com/heimgewebe/sichter/blob/main/.github/workflows/ci.yml"
+          }
+        },
+        {
+          "repository": "heimgewebe/weltgewebe",
+          "evidence_path": ".github/workflows/wgx-guard.yml",
+          "source_url": "https://github.com/heimgewebe/weltgewebe/blob/main/.github/workflows/wgx-guard.yml",
+          "repository_native_alternative": {
+            "path": ".github/workflows/ci.yml",
+            "source_url": "https://github.com/heimgewebe/weltgewebe/blob/main/.github/workflows/ci.yml"
+          }
+        }
+      ],
+      "invariance_benefit": null,
+      "replacement": null
+    },
+    {
+      "id": "repository-smoke-router",
+      "category": "smoke",
+      "disposition": "retained_multi_consumer",
+      "summary": "Checks that a repository declares a smoke front door and invokes that repository-owned command through the profile adapter.",
+      "surfaces": [
+        ".github/workflows/wgx-smoke.yml",
+        "scripts/check_wgx_smoke_contract.py",
+        "scripts/check_wgx_guard_action_pins.py"
+      ],
+      "consumers": [
+        {
+          "repository": "heimgewebe/chronik",
+          "evidence_path": ".github/workflows/wgx-smoke.yml",
+          "source_url": "https://github.com/heimgewebe/chronik/blob/main/.github/workflows/wgx-smoke.yml",
+          "repository_native_alternative": {
+            "path": ".github/workflows/validate-chronik-fixtures.yml",
+            "source_url": "https://github.com/heimgewebe/chronik/blob/main/.github/workflows/validate-chronik-fixtures.yml"
+          }
+        },
+        {
+          "repository": "heimgewebe/hausKI",
+          "evidence_path": ".github/workflows/wgx-smoke.yml",
+          "source_url": "https://github.com/heimgewebe/hausKI/blob/main/.github/workflows/wgx-smoke.yml",
+          "repository_native_alternative": {
+            "path": ".github/workflows/ci.yml",
+            "source_url": "https://github.com/heimgewebe/hausKI/blob/main/.github/workflows/ci.yml"
+          }
+        },
+        {
+          "repository": "heimgewebe/heimlern",
+          "evidence_path": ".github/workflows/wgx-smoke.yml",
+          "source_url": "https://github.com/heimgewebe/heimlern/blob/main/.github/workflows/wgx-smoke.yml",
+          "repository_native_alternative": {
+            "path": ".github/workflows/rust.yml",
+            "source_url": "https://github.com/heimgewebe/heimlern/blob/main/.github/workflows/rust.yml"
+          }
+        },
+        {
+          "repository": "heimgewebe/metarepo",
+          "evidence_path": ".github/workflows/wgx-smoke.yml",
+          "source_url": "https://github.com/heimgewebe/metarepo/blob/main/.github/workflows/wgx-smoke.yml",
+          "repository_native_alternative": {
+            "path": ".github/workflows/ci.yml",
+            "source_url": "https://github.com/heimgewebe/metarepo/blob/main/.github/workflows/ci.yml"
+          }
+        },
+        {
+          "repository": "heimgewebe/mitschreiber",
+          "evidence_path": ".github/workflows/wgx-smoke.yml",
+          "source_url": "https://github.com/heimgewebe/mitschreiber/blob/main/.github/workflows/wgx-smoke.yml",
+          "repository_native_alternative": {
+            "path": ".github/workflows/ci.yml",
+            "source_url": "https://github.com/heimgewebe/mitschreiber/blob/main/.github/workflows/ci.yml"
+          }
+        },
+        {
+          "repository": "heimgewebe/sichter",
+          "evidence_path": ".github/workflows/wgx-smoke.yml",
+          "source_url": "https://github.com/heimgewebe/sichter/blob/main/.github/workflows/wgx-smoke.yml",
+          "repository_native_alternative": {
+            "path": ".github/workflows/ci.yml",
+            "source_url": "https://github.com/heimgewebe/sichter/blob/main/.github/workflows/ci.yml"
+          }
+        },
+        {
+          "repository": "heimgewebe/weltgewebe",
+          "evidence_path": ".github/workflows/wgx-smoke.yml",
+          "source_url": "https://github.com/heimgewebe/weltgewebe/blob/main/.github/workflows/wgx-smoke.yml",
+          "repository_native_alternative": {
+            "path": ".github/workflows/compose-smoke.yml",
+            "source_url": "https://github.com/heimgewebe/weltgewebe/blob/main/.github/workflows/compose-smoke.yml"
+          }
+        }
+      ],
+      "invariance_benefit": null,
+      "replacement": null
+    },
+    {
+      "id": "fleet-static-guard-invariants",
+      "category": "guard",
+      "disposition": "retained_multi_consumer",
+      "summary": "Provides repository-shape, conflict, size, contract ownership, data-flow, insight, CI-dependency, and integrity checks without changing host or deployment state.",
+      "surfaces": [
+        "modules/guard.bash",
+        "guards/ci-deps.guard.sh",
+        "guards/contracts_meta_guard.py",
+        "guards/contracts_ownership.guard.sh",
+        "guards/data_flow_guard.py",
+        "guards/insights_guard.py",
+        "guards/integrity.guard.sh"
+      ],
+      "consumers": [
+        {
+          "repository": "heimgewebe/semantAH",
+          "evidence_path": ".github/workflows/wgx-reusable.yml",
+          "source_url": "https://github.com/heimgewebe/semantAH/blob/main/.github/workflows/wgx-reusable.yml",
+          "repository_native_alternative": {
+            "path": ".github/workflows/ci.yml",
+            "source_url": "https://github.com/heimgewebe/semantAH/blob/main/.github/workflows/ci.yml"
+          }
+        },
+        {
+          "repository": "heimgewebe/sichter",
+          "evidence_path": "scripts/wgx-selftest-sichter.sh",
+          "source_url": "https://github.com/heimgewebe/sichter/blob/main/scripts/wgx-selftest-sichter.sh",
+          "repository_native_alternative": {
+            "path": ".github/workflows/contracts-validate.yml",
+            "source_url": "https://github.com/heimgewebe/sichter/blob/main/.github/workflows/contracts-validate.yml"
+          }
+        }
+      ],
+      "invariance_benefit": {
+        "claim": "The same fail-closed contract ownership and artifact/schema checks can run in heterogeneous repositories without granting WGX coordination or mutation authority.",
+        "evidence_sources": [
+          "https://github.com/heimgewebe/wgx/blob/5c14e53674193446b8832eca6e312bcf58190248/tests/guard_contracts_ownership.bats",
+          "https://github.com/heimgewebe/wgx/blob/5c14e53674193446b8832eca6e312bcf58190248/tests/test_data_flow_guard.py"
+        ]
+      },
+      "replacement": null
+    },
+    {
+      "id": "metrics-contract-compatibility",
+      "category": "metrics",
+      "disposition": "retained_fleet_invariance",
+      "summary": "Produces and validates a contract fixture for metrics.snapshot compatibility. It is not live host truth, fleet observation, or deploy evidence.",
+      "surfaces": [
+        ".github/workflows/metrics.yml",
+        "scripts/wgx-metrics-snapshot.sh",
+        "scripts/just-dispatch.sh",
+        "tests/contracts_validate.bats",
+        "tests/metrics_snapshot.bats"
+      ],
+      "consumers": [],
+      "invariance_benefit": {
+        "claim": "Ten observed repositories produce repository-native metrics snapshots against the Metarepo-owned schema; WGX retains a compatibility producer and remote-schema regression path so the common payload shape remains executable.",
+        "evidence_sources": [
+          "https://github.com/heimgewebe/metarepo/blob/1be27a95e8ade74670150315243afd34c32e277e/contracts/metrics.snapshot.schema.json",
+          "https://github.com/heimgewebe/metarepo/blob/1be27a95e8ade74670150315243afd34c32e277e/.github/workflows/wgx-metrics.yml",
+          "https://github.com/heimgewebe/weltgewebe/blob/d68ebc52d89419177474b88befa2b7f2cd6d69c1/.github/workflows/metrics.yml"
+        ]
+      },
+      "repository_native_alternatives": [
+        {
+          "repository": "heimgewebe/aussensensor",
+          "path": ".github/workflows/metrics.yml",
+          "source_url": "https://github.com/heimgewebe/aussensensor/blob/main/.github/workflows/metrics.yml"
+        },
+        {
+          "repository": "heimgewebe/chronik",
+          "path": ".github/workflows/metrics.yml",
+          "source_url": "https://github.com/heimgewebe/chronik/blob/main/.github/workflows/metrics.yml"
+        },
+        {
+          "repository": "heimgewebe/hausKI",
+          "path": ".github/workflows/metrics.yml",
+          "source_url": "https://github.com/heimgewebe/hausKI/blob/main/.github/workflows/metrics.yml"
+        },
+        {
+          "repository": "heimgewebe/heimlern",
+          "path": ".github/workflows/metrics.yml",
+          "source_url": "https://github.com/heimgewebe/heimlern/blob/main/.github/workflows/metrics.yml"
+        },
+        {
+          "repository": "heimgewebe/lenskit",
+          "path": ".github/workflows/metrics.yml",
+          "source_url": "https://github.com/heimgewebe/lenskit/blob/main/.github/workflows/metrics.yml"
+        },
+        {
+          "repository": "heimgewebe/metarepo",
+          "path": ".github/workflows/metrics.yml",
+          "source_url": "https://github.com/heimgewebe/metarepo/blob/main/.github/workflows/metrics.yml"
+        },
+        {
+          "repository": "heimgewebe/mitschreiber",
+          "path": ".github/workflows/metrics.yml",
+          "source_url": "https://github.com/heimgewebe/mitschreiber/blob/main/.github/workflows/metrics.yml"
+        },
+        {
+          "repository": "heimgewebe/semantAH",
+          "path": ".github/workflows/metrics.yml",
+          "source_url": "https://github.com/heimgewebe/semantAH/blob/main/.github/workflows/metrics.yml"
+        },
+        {
+          "repository": "heimgewebe/sichter",
+          "path": ".github/workflows/metrics.yml",
+          "source_url": "https://github.com/heimgewebe/sichter/blob/main/.github/workflows/metrics.yml"
+        },
+        {
+          "repository": "heimgewebe/weltgewebe",
+          "path": ".github/workflows/metrics.yml",
+          "source_url": "https://github.com/heimgewebe/weltgewebe/blob/main/.github/workflows/metrics.yml"
+        }
+      ],
+      "replacement": null
+    },
+    {
+      "id": "cross-repository-compatibility-matrix",
+      "category": "smoke",
+      "disposition": "retained_multi_consumer",
+      "summary": "Runs WGX profile compatibility against explicitly named target repositories on demand or when WGX core changes.",
+      "surfaces": [
+        ".github/workflows/compat-on-demand.yml",
+        ".github/actions/wgx-check/action.yml"
+      ],
+      "consumers": [
+        {
+          "repository": "heimgewebe/hausKI",
+          "evidence_path": ".github/workflows/compat-on-demand.yml",
+          "source_url": "https://github.com/heimgewebe/wgx/blob/5c14e53674193446b8832eca6e312bcf58190248/.github/workflows/compat-on-demand.yml",
+          "repository_native_alternative": {
+            "path": ".github/workflows/ci.yml",
+            "source_url": "https://github.com/heimgewebe/hausKI/blob/main/.github/workflows/ci.yml"
+          }
+        },
+        {
+          "repository": "heimgewebe/weltgewebe",
+          "evidence_path": ".github/workflows/compat-on-demand.yml",
+          "source_url": "https://github.com/heimgewebe/wgx/blob/5c14e53674193446b8832eca6e312bcf58190248/.github/workflows/compat-on-demand.yml",
+          "repository_native_alternative": {
+            "path": ".github/workflows/ci.yml",
+            "source_url": "https://github.com/heimgewebe/weltgewebe/blob/main/.github/workflows/ci.yml"
+          }
+        }
+      ],
+      "invariance_benefit": null,
+      "replacement": null
+    },
+    {
+      "id": "wgx-profile-starter-templates",
+      "category": "template",
+      "disposition": "retired_replaced",
+      "summary": "Unconsumed WGX-owned starter copies were retired; fleet template ownership and distribution already live in Metarepo.",
+      "surfaces": [
+        "templates/profiles/docs-only.yml",
+        "templates/profiles/meta.yml",
+        "templates/profiles/python-service.yml",
+        "templates/profiles/rust-service.yml",
+        "templates/profile.template.yml",
+        "templates/.wgx/profile.yml",
+        "templates/.wgx/profile.local.example.yml",
+        "templates/.gitkeep",
+        "templates/docs/README.additions.md"
+      ],
+      "consumers": [],
+      "invariance_benefit": null,
+      "replacement": {
+        "owner": "heimgewebe/metarepo",
+        "path": "templates/.wgx/profile.yml",
+        "source_url": "https://github.com/heimgewebe/metarepo/blob/1be27a95e8ade74670150315243afd34c32e277e/templates/.wgx/profile.yml",
+        "distribution_url": "https://github.com/heimgewebe/metarepo/blob/1be27a95e8ade74670150315243afd34c32e277e/scripts/sync-templates.sh",
+        "ci_coverage_url": "https://github.com/heimgewebe/metarepo/blob/1be27a95e8ade74670150315243afd34c32e277e/.github/workflows/validate-templates.yml",
+        "local_coverage_paths": [
+          "fixtures/profile.valid.yml",
+          "tests/guard.bats",
+          "tests/guard_integrity.bats",
+          "scripts/validate_operator_capabilities.py",
+          "tests/test_operator_capabilities.py"
+        ]
+      }
+    }
+  ]
+}

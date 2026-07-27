@@ -16,7 +16,12 @@ usage() {
   cat <<'EOF'
 wgx-metrics-snapshot.sh [--json] [--output PATH]
 
-Erzeugt eine metrics.json gemäß contracts-v1 (ts, host, updates, backup, drift).
+Erzeugt eine lokale Kompatibilitäts-Fixture gemäß contracts-v1
+(ts, host, updates, backup, drift).
+
+Die Ausgabe ist kein Beleg für Live-Hostzustand, Deployment oder Fleet-Health.
+Werte außer Zeit und Hostname stammen ausschließlich aus expliziten
+Umgebungsvariablen beziehungsweise dokumentierten Test-Defaults.
 
   --json           JSON zusätzlich zur Datei auf STDOUT ausgeben
   --output PATH    Ziel-Datei (Standard: metrics.json oder WGX_METRICS_OUTPUT)
