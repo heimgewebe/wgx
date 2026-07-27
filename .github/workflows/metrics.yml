@@ -3,6 +3,18 @@ permissions:
   contents: read
 on:
   workflow_dispatch:
+  schedule:
+    - cron: "0 * * * *"
+  push:
+    paths:
+      - ".github/workflows/metrics.yml"
+      - "scripts/wgx-metrics-snapshot.sh"
+      - "scripts/just-dispatch.sh"
+      - "tests/contracts_validate.bats"
+      - "tests/metrics_snapshot.bats"
+      - "docs/operator-ecosystem-capabilities.v1.json"
+      - "scripts/validate_operator_capabilities.py"
+      - "tests/test_operator_capabilities.py"
   pull_request:
     paths:
       - ".github/workflows/metrics.yml"
@@ -16,6 +28,7 @@ on:
 
 env:
   METRICS_SCHEMA_URL: https://raw.githubusercontent.com/heimgewebe/metarepo/b215b418a038ff535f07b7888fd6adeb3f4de51c/contracts/metrics.snapshot.schema.json
+  HAUSKI_POST_URL: ${{ secrets.HAUSKI_METRICS_URL }}
 
 jobs:
   contract-fixture:
@@ -46,3 +59,19 @@ jobs:
 
       - name: Validate metrics contract
         run: npx --yes ajv-cli@5 validate --spec=draft2020 --strict=log -s .ci/metrics.schema.json -d metrics.json
+
+      - name: Optional POST to hausKI
+        if: ${{ env.HAUSKI_POST_URL && env.HAUSKI_POST_URL != '' }}
+        run: |
+          curl --fail --silent --show-error --retry 3 --retry-delay 2 \
+            -H 'Content-Type: application/json' \
+            --data @metrics.json \
+            "$HAUSKI_POST_URL"
+        continue-on-error: true
+
+      - name: Upload metrics.json artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: metrics-snapshot
+          path: metrics.json
+          retention-days: 7

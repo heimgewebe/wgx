@@ -8,7 +8,6 @@
       "heimgewebe/chronik",
       "heimgewebe/hausKI",
       "heimgewebe/heimlern",
-      "heimgewebe/lenskit",
       "heimgewebe/metarepo",
       "heimgewebe/mitschreiber",
       "heimgewebe/plexer",
@@ -22,6 +21,18 @@
       "Primary local checkouts were inspected at the exact commits linked below; duplicate worktrees were excluded."
     ]
   },
+  "authority_claim_paths": [
+    ".ai-context.yml",
+    "README.md",
+    "docs/Glossary.en.md",
+    "docs/Module-Uebersicht.de.md",
+    "docs/Runbook.md",
+    "docs/cli.md",
+    "docs/operator-ecosystem-capabilities.md",
+    "docs/uv-integration-audit.de.md",
+    "docs/wgx-konzept.md",
+    "docs/wgx-mycelium-v-omega.de.md"
+  ],
   "authority_boundary": {
     "wgx_role": "Repository-scoped developer tool, verification adapter, and compatibility-check implementation.",
     "does_not_own": [
@@ -44,7 +55,7 @@
       },
       "repository_changes": {
         "owner": "invoking repository and operator",
-        "source_url": "https://github.com/heimgewebe/wgx/blob/c4b41809664353a3cff310dd4d6ef4d75be2ff60/docs/Command-Reference.de.md"
+        "source_url": "https://github.com/heimgewebe/wgx/blob/c4b41809664353a3cff310dd4d6ef4d75be2ff60/cmd/reload.bash"
       },
       "ci_conclusions": {
         "owner": "target repository native CI and GitHub",
@@ -79,6 +90,7 @@
           "source_url": "https://github.com/heimgewebe/aussensensor/blob/f9c75995b61ee841321420789e8e6b6374384a2a/.github/workflows/wgx-guard.yml",
           "canonical_invocation": "uses: heimgewebe/wgx/.github/workflows/wgx-guard.yml@main",
           "repository_native_alternative": {
+            "owner": "heimgewebe/aussensensor",
             "path": ".github/workflows/tests.yml",
             "source_url": "https://github.com/heimgewebe/aussensensor/blob/f9c75995b61ee841321420789e8e6b6374384a2a/.github/workflows/tests.yml"
           }
@@ -89,6 +101,7 @@
           "source_url": "https://github.com/heimgewebe/chronik/blob/0596f6624e2bab3de81f8b0a32a1dbf45a0e1482/.github/workflows/wgx-guard.yml",
           "canonical_invocation": "uses: heimgewebe/wgx/.github/workflows/wgx-guard.yml@main",
           "repository_native_alternative": {
+            "owner": "heimgewebe/chronik",
             "path": "Makefile",
             "source_url": "https://github.com/heimgewebe/chronik/blob/0596f6624e2bab3de81f8b0a32a1dbf45a0e1482/Makefile"
           }
@@ -99,6 +112,7 @@
           "source_url": "https://github.com/heimgewebe/hausKI/blob/377c3a3229abed80713789979e268c57cc3f6999/.github/workflows/wgx-guard.yml",
           "canonical_invocation": "uses: heimgewebe/wgx/.github/workflows/wgx-guard.yml@main",
           "repository_native_alternative": {
+            "owner": "heimgewebe/hausKI",
             "path": ".github/workflows/ci.yml",
             "source_url": "https://github.com/heimgewebe/hausKI/blob/377c3a3229abed80713789979e268c57cc3f6999/.github/workflows/ci.yml"
           }
@@ -109,18 +123,9 @@
           "source_url": "https://github.com/heimgewebe/heimlern/blob/f74579cbe46d5f5f7b95c4c3431da03efb67cc85/.github/workflows/wgx-guard.yml",
           "canonical_invocation": "uses: heimgewebe/wgx/.github/workflows/wgx-guard.yml@6bff05c51aeed8cf8fc7a7ba2181bfae58397c8f",
           "repository_native_alternative": {
+            "owner": "heimgewebe/heimlern",
             "path": ".github/workflows/rust.yml",
             "source_url": "https://github.com/heimgewebe/heimlern/blob/f74579cbe46d5f5f7b95c4c3431da03efb67cc85/.github/workflows/rust.yml"
-          }
-        },
-        {
-          "repository": "heimgewebe/lenskit",
-          "evidence_path": ".github/workflows/wgx-guard.yml",
-          "source_url": "https://github.com/heimgewebe/lenskit/blob/03ad9ba3653ecf2058b77059765a23418fb21d12/.github/workflows/wgx-guard.yml",
-          "canonical_invocation": "uses: heimgewebe/wgx/.github/workflows/wgx-guard.yml@a7466bf2c3cb7fa3b261bfb2d008612abc0f85b1",
-          "repository_native_alternative": {
-            "path": ".github/workflows/test-suite.yml",
-            "source_url": "https://github.com/heimgewebe/lenskit/blob/03ad9ba3653ecf2058b77059765a23418fb21d12/.github/workflows/test-suite.yml"
           }
         },
         {
@@ -129,6 +134,7 @@
           "source_url": "https://github.com/heimgewebe/metarepo/blob/1be27a95e8ade74670150315243afd34c32e277e/.github/workflows/wgx-guard.yml",
           "canonical_invocation": "uses: heimgewebe/wgx/.github/workflows/wgx-guard.yml@3d823f9d26be276eef97742335dee857a64e1715",
           "repository_native_alternative": {
+            "owner": "heimgewebe/metarepo",
             "path": ".github/workflows/ci.yml",
             "source_url": "https://github.com/heimgewebe/metarepo/blob/1be27a95e8ade74670150315243afd34c32e277e/.github/workflows/ci.yml"
           }
@@ -139,6 +145,7 @@
           "source_url": "https://github.com/heimgewebe/mitschreiber/blob/3c0a6311c7a29f03fcab89010be25f594c4c5300/.github/workflows/wgx-guard.yml",
           "canonical_invocation": "uses: heimgewebe/wgx/.github/workflows/wgx-guard.yml@main",
           "repository_native_alternative": {
+            "owner": "heimgewebe/mitschreiber",
             "path": ".github/workflows/ci.yml",
             "source_url": "https://github.com/heimgewebe/mitschreiber/blob/3c0a6311c7a29f03fcab89010be25f594c4c5300/.github/workflows/ci.yml"
           }
@@ -149,6 +156,7 @@
           "source_url": "https://github.com/heimgewebe/plexer/blob/93fb9aa2451d44eb6b8cff7c7fd054086804049e/.github/workflows/wgx-guard.yml",
           "canonical_invocation": "uses: heimgewebe/wgx/.github/workflows/wgx-guard.yml@main",
           "repository_native_alternative": {
+            "owner": "heimgewebe/plexer",
             "path": ".github/workflows/ci.yml",
             "source_url": "https://github.com/heimgewebe/plexer/blob/93fb9aa2451d44eb6b8cff7c7fd054086804049e/.github/workflows/ci.yml"
           }
@@ -159,8 +167,8 @@
           "source_url": "https://github.com/heimgewebe/sichter/blob/f4359f0817d7db6b3f821bcdce7be12c18e561cc/.github/workflows/wgx-guard.yml",
           "canonical_invocation": "uses: heimgewebe/wgx/.github/workflows/wgx-guard.yml@main",
           "repository_native_alternative": {
-            "path": ".github/workflows/ci.yml",
-            "source_url": "https://github.com/heimgewebe/sichter/blob/f4359f0817d7db6b3f821bcdce7be12c18e561cc/.github/workflows/ci.yml"
+            "availability": "none_identified",
+            "rationale": "The pinned Sichter ci.yml only calls its local WGX guard and smoke forwarders; no independent repository-native guard alternative was identified."
           }
         },
         {
@@ -169,6 +177,7 @@
           "source_url": "https://github.com/heimgewebe/weltgewebe/blob/0e03824d47e6ef59cf50ed1d9c27f5050b6bede3/.github/workflows/wgx-guard.yml",
           "canonical_invocation": "uses: heimgewebe/wgx/.github/workflows/wgx-guard.yml@17e349d872e16f927bdd8e0d770d2295f8b6e663",
           "repository_native_alternative": {
+            "owner": "heimgewebe/weltgewebe",
             "path": ".github/workflows/ci.yml",
             "source_url": "https://github.com/heimgewebe/weltgewebe/blob/0e03824d47e6ef59cf50ed1d9c27f5050b6bede3/.github/workflows/ci.yml"
           }
@@ -176,9 +185,8 @@
       ],
       "invariance_benefit": null,
       "ecosystem_alternative": {
-        "owner": "each consuming repository",
-        "path": "repository-native CI workflow named per consumer",
-        "source_url": "https://github.com/heimgewebe/wgx/blob/c4b41809664353a3cff310dd4d6ef4d75be2ff60/docs/operator-ecosystem-capabilities.md"
+        "availability": "none_identified",
+        "rationale": "There is no single ecosystem replacement for the reusable router; consumer-specific alternatives are recorded per repository."
       },
       "replacement": null
     },
@@ -203,6 +211,7 @@
           "source_url": "https://github.com/heimgewebe/chronik/blob/0596f6624e2bab3de81f8b0a32a1dbf45a0e1482/.github/workflows/wgx-smoke.yml",
           "canonical_invocation": "uses: heimgewebe/wgx/.github/workflows/wgx-smoke.yml@main",
           "repository_native_alternative": {
+            "owner": "heimgewebe/chronik",
             "path": ".github/workflows/validate-chronik-fixtures.yml",
             "source_url": "https://github.com/heimgewebe/chronik/blob/0596f6624e2bab3de81f8b0a32a1dbf45a0e1482/.github/workflows/validate-chronik-fixtures.yml"
           }
@@ -213,6 +222,7 @@
           "source_url": "https://github.com/heimgewebe/hausKI/blob/377c3a3229abed80713789979e268c57cc3f6999/.github/workflows/wgx-smoke.yml",
           "canonical_invocation": "uses: heimgewebe/wgx/.github/workflows/wgx-smoke.yml@main",
           "repository_native_alternative": {
+            "owner": "heimgewebe/hausKI",
             "path": ".github/workflows/ci.yml",
             "source_url": "https://github.com/heimgewebe/hausKI/blob/377c3a3229abed80713789979e268c57cc3f6999/.github/workflows/ci.yml"
           }
@@ -223,6 +233,7 @@
           "source_url": "https://github.com/heimgewebe/heimlern/blob/f74579cbe46d5f5f7b95c4c3431da03efb67cc85/.github/workflows/wgx-smoke.yml",
           "canonical_invocation": "uses: heimgewebe/wgx/.github/workflows/wgx-smoke.yml@6bff05c51aeed8cf8fc7a7ba2181bfae58397c8f",
           "repository_native_alternative": {
+            "owner": "heimgewebe/heimlern",
             "path": ".github/workflows/rust.yml",
             "source_url": "https://github.com/heimgewebe/heimlern/blob/f74579cbe46d5f5f7b95c4c3431da03efb67cc85/.github/workflows/rust.yml"
           }
@@ -233,6 +244,7 @@
           "source_url": "https://github.com/heimgewebe/metarepo/blob/1be27a95e8ade74670150315243afd34c32e277e/.github/workflows/wgx-smoke.yml",
           "canonical_invocation": "uses: heimgewebe/wgx/.github/workflows/wgx-smoke.yml@b3b358f5bb8d26f087fcdaf25d308d439b22f583",
           "repository_native_alternative": {
+            "owner": "heimgewebe/metarepo",
             "path": ".github/workflows/ci.yml",
             "source_url": "https://github.com/heimgewebe/metarepo/blob/1be27a95e8ade74670150315243afd34c32e277e/.github/workflows/ci.yml"
           }
@@ -243,6 +255,7 @@
           "source_url": "https://github.com/heimgewebe/mitschreiber/blob/3c0a6311c7a29f03fcab89010be25f594c4c5300/.github/workflows/wgx-smoke.yml",
           "canonical_invocation": "uses: heimgewebe/wgx/.github/workflows/wgx-smoke.yml@main",
           "repository_native_alternative": {
+            "owner": "heimgewebe/mitschreiber",
             "path": ".github/workflows/ci.yml",
             "source_url": "https://github.com/heimgewebe/mitschreiber/blob/3c0a6311c7a29f03fcab89010be25f594c4c5300/.github/workflows/ci.yml"
           }
@@ -253,8 +266,8 @@
           "source_url": "https://github.com/heimgewebe/sichter/blob/f4359f0817d7db6b3f821bcdce7be12c18e561cc/.github/workflows/wgx-smoke.yml",
           "canonical_invocation": "uses: heimgewebe/wgx/.github/workflows/wgx-smoke.yml@main",
           "repository_native_alternative": {
-            "path": ".github/workflows/ci.yml",
-            "source_url": "https://github.com/heimgewebe/sichter/blob/f4359f0817d7db6b3f821bcdce7be12c18e561cc/.github/workflows/ci.yml"
+            "availability": "none_identified",
+            "rationale": "The pinned Sichter ci.yml only calls its local WGX guard and smoke forwarders; no independent repository-native smoke alternative was identified."
           }
         },
         {
@@ -263,6 +276,7 @@
           "source_url": "https://github.com/heimgewebe/weltgewebe/blob/0e03824d47e6ef59cf50ed1d9c27f5050b6bede3/.github/workflows/wgx-smoke.yml",
           "canonical_invocation": "uses: heimgewebe/wgx/.github/workflows/wgx-smoke.yml@814d5e9102e4020c786d6bb7e1c377004cf2bbea",
           "repository_native_alternative": {
+            "owner": "heimgewebe/weltgewebe",
             "path": ".github/workflows/compose-smoke.yml",
             "source_url": "https://github.com/heimgewebe/weltgewebe/blob/0e03824d47e6ef59cf50ed1d9c27f5050b6bede3/.github/workflows/compose-smoke.yml"
           }
@@ -270,9 +284,8 @@
       ],
       "invariance_benefit": null,
       "ecosystem_alternative": {
-        "owner": "each consuming repository",
-        "path": "repository-native smoke or CI workflow named per consumer",
-        "source_url": "https://github.com/heimgewebe/wgx/blob/c4b41809664353a3cff310dd4d6ef4d75be2ff60/docs/operator-ecosystem-capabilities.md"
+        "availability": "none_identified",
+        "rationale": "There is no single ecosystem replacement for the reusable smoke router; consumer-specific alternatives are recorded per repository."
       },
       "replacement": null
     },
@@ -300,11 +313,11 @@
         {
           "repository": "heimgewebe/wgx",
           "evidence_path": "tests/guard.bats",
-          "source_url": "https://github.com/heimgewebe/wgx/blob/c4b41809664353a3cff310dd4d6ef4d75be2ff60/tests/guard.bats",
-          "canonical_invocation": "run guard_run",
+          "evidence_kind": "local_worktree",
+          "canonical_invocation": "run wgx guard",
           "repository_native_alternative": {
-            "path": ".github/workflows/ci.yml",
-            "source_url": "https://github.com/heimgewebe/wgx/blob/c4b41809664353a3cff310dd4d6ef4d75be2ff60/.github/workflows/ci.yml"
+            "availability": "none_identified",
+            "rationale": "WGX CI ultimately runs these WGX guards; it is coverage, not an independent implementation."
           }
         }
       ],
@@ -316,9 +329,8 @@
         ]
       },
       "ecosystem_alternative": {
-        "owner": "each target repository",
-        "path": "repository-native validation scripts and CI",
-        "source_url": "https://github.com/heimgewebe/wgx/blob/c4b41809664353a3cff310dd4d6ef4d75be2ff60/.github/workflows/ci.yml"
+        "availability": "none_identified",
+        "rationale": "No fleet-wide replacement is evidenced; repository-native validation remains a per-repository option."
       },
       "replacement": null
     },
@@ -343,11 +355,11 @@
         {
           "repository": "heimgewebe/wgx",
           "evidence_path": ".github/workflows/metrics.yml",
-          "source_url": "https://github.com/heimgewebe/wgx/blob/c4b41809664353a3cff310dd4d6ef4d75be2ff60/.github/workflows/metrics.yml",
+          "evidence_kind": "local_worktree",
           "canonical_invocation": "run: bash scripts/wgx-metrics-snapshot.sh --json",
           "repository_native_alternative": {
-            "path": ".github/workflows/ci.yml",
-            "source_url": "https://github.com/heimgewebe/wgx/blob/c4b41809664353a3cff310dd4d6ef4d75be2ff60/.github/workflows/ci.yml"
+            "availability": "none_identified",
+            "rationale": "No independent WGX-local metrics producer is evidenced; direct script execution is the same retained implementation."
           }
         }
       ],
@@ -359,7 +371,7 @@
         ]
       },
       "ecosystem_alternative": {
-        "owner": "heimgewebe/metarepo and each producing repository",
+        "owner": "heimgewebe/metarepo",
         "path": ".github/workflows/wgx-metrics.yml",
         "source_url": "https://github.com/heimgewebe/metarepo/blob/1be27a95e8ade74670150315243afd34c32e277e/.github/workflows/wgx-metrics.yml"
       },
@@ -382,11 +394,11 @@
         {
           "repository": "heimgewebe/wgx",
           "evidence_path": ".github/workflows/compat-on-demand.yml",
-          "source_url": "https://github.com/heimgewebe/wgx/blob/c4b41809664353a3cff310dd4d6ef4d75be2ff60/.github/workflows/compat-on-demand.yml",
+          "evidence_kind": "local_worktree",
           "canonical_invocation": "uses: ./.github/actions/wgx-check",
           "repository_native_alternative": {
-            "path": ".github/workflows/ci.yml",
-            "source_url": "https://github.com/heimgewebe/wgx/blob/c4b41809664353a3cff310dd4d6ef4d75be2ff60/.github/workflows/ci.yml"
+            "availability": "none_identified",
+            "rationale": "WGX smart CI does not independently perform the cross-repository matrix."
           }
         }
       ],
@@ -397,9 +409,126 @@
         ]
       },
       "ecosystem_alternative": {
-        "owner": "each target repository",
-        "path": "repository-native CI workflow",
-        "source_url": "https://github.com/heimgewebe/hausKI/blob/377c3a3229abed80713789979e268c57cc3f6999/.github/workflows/ci.yml"
+        "availability": "none_identified",
+        "rationale": "Target repositories have native CI, but no single ecosystem workflow replaces WGX's cross-repository matrix."
+      },
+      "replacement": null
+    },
+    {
+      "id": "wgx-tools-module-guard",
+      "category": "tool",
+      "disposition": "retained_fleet_invariance",
+      "authority": "repository_scoped_developer_tool",
+      "summary": "The repository-local tools-module surface is guarded with ShellCheck whenever module files exist; an empty module directory is explicitly accepted.",
+      "surfaces": [
+        ".github/workflows/wgx-tools-guard.yml",
+        ".wgx-tools/modules/.gitkeep"
+      ],
+      "local_evidence_paths": [
+        ".github/workflows/wgx-tools-guard.yml"
+      ],
+      "consumers": [
+        {
+          "repository": "heimgewebe/wgx",
+          "evidence_path": ".github/workflows/wgx-tools-guard.yml",
+          "evidence_kind": "local_worktree",
+          "canonical_invocation": "shellcheck -x \"${files[@]}\"",
+          "repository_native_alternative": {
+            "availability": "none_identified",
+            "rationale": "No independent implementation is evidenced; direct ShellCheck is the retained workflow's implementation."
+          }
+        }
+      ],
+      "invariance_benefit": {
+        "claim": "The guard keeps every checked-in .wgx-tools module subject to one repository-local shell-analysis rule without claiming deployment or fleet execution.",
+        "evidence_sources": [
+          "https://github.com/heimgewebe/wgx/blob/c4b41809664353a3cff310dd4d6ef4d75be2ff60/.github/workflows/wgx-tools-guard.yml"
+        ]
+      },
+      "ecosystem_alternative": {
+        "availability": "none_identified",
+        "rationale": "No ecosystem-wide tools-module guard replacement is evidenced."
+      },
+      "replacement": null
+    },
+    {
+      "id": "scheduled-integrity-publication",
+      "category": "integrity",
+      "disposition": "retained_fleet_invariance",
+      "authority": "repository_scoped_developer_tool",
+      "summary": "The daily and manual integrity workflow generates and validates summary.json, publishes it to the integrity release, verifies the asset, and emits only a best-effort event.",
+      "surfaces": [
+        ".github/workflows/wgx-integrity.yml",
+        "cmd/integrity.bash",
+        "modules/integrity.bash",
+        "guards/integrity.guard.sh",
+        "docs/integrity-architecture.md",
+        "tests/integrity.bats",
+        "tests/guard_integrity.bats"
+      ],
+      "local_evidence_paths": [
+        ".github/workflows/wgx-integrity.yml",
+        "tests/integrity.bats",
+        "tests/guard_integrity.bats"
+      ],
+      "consumers": [
+        {
+          "repository": "heimgewebe/wgx",
+          "evidence_path": ".github/workflows/wgx-integrity.yml",
+          "evidence_kind": "local_worktree",
+          "canonical_invocation": "./wgx integrity --update",
+          "repository_native_alternative": {
+            "availability": "none_identified",
+            "rationale": "No independent WGX-local scheduled generator and release publisher is evidenced."
+          }
+        }
+      ],
+      "invariance_benefit": {
+        "claim": "A scheduled report, validated release asset, and pull-based consumer contract preserve repository integrity observability without turning the best-effort event into authority.",
+        "evidence_sources": [
+          "https://github.com/heimgewebe/wgx/blob/c4b41809664353a3cff310dd4d6ef4d75be2ff60/.github/workflows/wgx-integrity.yml",
+          "https://github.com/heimgewebe/wgx/blob/c4b41809664353a3cff310dd4d6ef4d75be2ff60/docs/integrity-architecture.md"
+        ]
+      },
+      "ecosystem_alternative": {
+        "availability": "none_identified",
+        "rationale": "No source-linked ecosystem replacement preserves generation, validation, release publication, verification, and the pull contract together."
+      },
+      "replacement": null
+    },
+    {
+      "id": "versioned-release-publication",
+      "category": "publication",
+      "disposition": "retained_fleet_invariance",
+      "authority": "repository_scoped_developer_tool",
+      "summary": "Tag pushes and explicit dispatch publish a GitHub Release from the selected tag; this workflow is distinct from the placeholder wgx release CLI command.",
+      "surfaces": [
+        ".github/workflows/release.yml"
+      ],
+      "local_evidence_paths": [
+        ".github/workflows/release.yml"
+      ],
+      "consumers": [
+        {
+          "repository": "heimgewebe/wgx",
+          "evidence_path": ".github/workflows/release.yml",
+          "evidence_kind": "local_worktree",
+          "canonical_invocation": "uses: softprops/action-gh-release@5be0e66d93ac7ed76da52eca8bb058f665c3a5fe",
+          "repository_native_alternative": {
+            "availability": "none_identified",
+            "rationale": "No independent checked-in WGX publication workflow is evidenced."
+          }
+        }
+      ],
+      "invariance_benefit": {
+        "claim": "One tag/manual publication path keeps WGX release behavior explicit and reviewable without claiming deployment authority.",
+        "evidence_sources": [
+          "https://github.com/heimgewebe/wgx/blob/c4b41809664353a3cff310dd4d6ef4d75be2ff60/.github/workflows/release.yml"
+        ]
+      },
+      "ecosystem_alternative": {
+        "availability": "none_identified",
+        "rationale": "No source-linked ecosystem publication replacement is evidenced for this repository."
       },
       "replacement": null
     },
@@ -540,6 +669,7 @@
       "status": "active",
       "classification": "external_repository_service_mutation",
       "effects": "Runs guard then delegates to send, which may create and open a PR/MR.",
+      "delegates_to": ["guard", "send"],
       "consumer_evidence_paths": ["tests/quick.bats"],
       "alternative": {"owner": "invoking repository and forge", "path": "repository CI plus gh/glab PR creation"}
     },
@@ -627,10 +757,11 @@
     {
       "id": "sync-remote",
       "surface": "cmd/sync-remote.bash",
-      "status": "unavailable",
-      "classification": "unavailable",
-      "effects": "Empty command file has no dispatcher entry point and returns 127 if invoked.",
-      "consumer_evidence_paths": ["cmd/sync-remote.bash"],
+      "status": "active",
+      "classification": "repository_scoped_destructive_mutation",
+      "effects": "Active alias for reload: fetches all remotes, hard-resets the current repository, and removes untracked/ignored files; reload dry-run, snapshot, dirty-tree refusal, and force semantics apply.",
+      "delegates_to": ["reload"],
+      "consumer_evidence_paths": ["cmd/sync-remote.bash", "tests/reload.bats"],
       "alternative": {"owner": "Git and invoking operator", "path": "explicit git fetch/pull under repository policy"}
     },
     {
@@ -694,6 +825,7 @@
       ".github/workflows/operator-capabilities.yml",
       "docs/operator-ecosystem-capabilities.md",
       "docs/operator-ecosystem-capabilities.v1.json",
+      "docs/operator-ecosystem-source-evidence.v1.json",
       "scripts/validate_operator_capabilities.py",
       "tests/test_operator_capabilities.py"
     ]

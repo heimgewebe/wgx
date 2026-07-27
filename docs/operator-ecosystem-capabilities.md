@@ -11,8 +11,13 @@ aufruft. Ein Ziel einer WGX-Matrix und eine eingecheckte Kopie zählen nicht.
 
 - eindeutige Fähigkeiten und alle einzeln erforderlichen Capability-IDs,
 - exakte Zuordnung von Consumer-Repository, `evidence_path` und Quell-URL,
+- kanonische Aufrufe gegen eingecheckte, hashgebundene Quell-Snapshots
+  beziehungsweise gegen aktuelle lokale WGX-Quellen,
+- repository-relative Pfade ohne Absolut-, Parent- oder Symlink-Escape,
 - nichtleere Authority- und Alternative-Owner sowie lokale Evidenzpfade,
 - alle `cmd/*.bash`-Flächen und die Klassifikation mutierender Befehle,
+- feste Capability-ID/Kategorie-Bindungen und Pflichtflächen für Tools,
+  Integrity und Release-Publikation,
 - widerspruchsfreie Autoritätsaussagen und gültige Ersatzevidenz,
 - Trigger-Abdeckung aller Flächen und Validatorverträge für Push und PR.
 
@@ -20,17 +25,22 @@ aufruft. Ein Ziel einer WGX-Matrix und eine eingecheckte Kopie zählen nicht.
 
 | Fähigkeit | Status | Reale Nutzung | Alternative |
 | --- | --- | --- | --- |
-| Guard-Router | behalten | zehn direkte Caller des WGX-Reusable-Workflows | CI/Build-Frontdoor des jeweiligen Repositories |
+| Guard-Router | behalten | neun direkte Caller des WGX-Reusable-Workflows | CI/Build-Frontdoor des jeweiligen Repositories |
 | Smoke-Router | behalten | sieben direkte Caller des WGX-Reusable-Workflows | Smoke-/CI-Frontdoor des jeweiligen Repositories |
 | Statische Guard-Invarianten | behalten, lokal belegt | WGX-Tests; fremde Kopien werden nicht gezählt | repository-native Validatoren und CI |
 | Metrics-Contract-Kompatibilität | behalten, lokal belegt | WGX-Workflow ruft den WGX-Producer auf | Metarepo-Schema und repository-native Producer |
 | Kompatibilitätsmatrix | behalten, lokal belegt | WGX-Workflow ruft die WGX-Action auf | CI des jeweiligen Ziel-Repositories |
+| WGX-Tools-Guard | behalten, lokal belegt | Workflow prüft vorhandene `.wgx-tools/modules` | kein unabhängiger Ersatz belegt |
+| Integrity-Publikation | behalten, lokal belegt | tägliche/manuelle Erzeugung, Release-Asset und Verifikation | kein gleichwertiger Ersatz belegt |
+| Versions-Release | behalten, lokal belegt | Tag-/manuell ausgelöste GitHub-Release-Publikation | kein unabhängiger Ersatz belegt |
 | WGX-Profil-Starter | erhalten, Consumer ungeprüft | keine externe Nutzung behauptet | kein kompatibler Ersatz nachgewiesen |
 
 `hausKI` und `weltgewebe` sind in der Kompatibilitätsmatrix Ziele, nicht deren
-Consumer. `semantAH` und `sichter` enthalten lokale WGX-ähnliche Runner oder
-Kopien; diese belegen keine Nutzung der kanonischen statischen WGX-Guards.
-Die exakten Commit- und Pfadbelege stehen im JSON.
+Consumer. `semantAH` enthält lokale WGX-ähnliche Runner oder Kopien; diese
+belegen keine Nutzung der kanonischen statischen WGX-Guards. Sichters `ci.yml`
+ruft nur seine WGX-Forwarder auf und ist deshalb ausdrücklich **keine**
+unabhängige Alternative. Die exakten Commit-, Blob-, Pfad- und Aufrufbelege
+stehen im JSON und in `operator-ecosystem-source-evidence.v1.json`.
 
 ## Operative CLI-Flächen
 
@@ -42,13 +52,26 @@ Die Inventur deckt jede Datei unter `cmd/*.bash` ab. Sie unterscheidet:
 - Repository-bezogene Mutation: `clean`, `heal`, `init`, `reload` sowie die
   mutierenden Modi von `audit`, `integrity`, `routine` und `version`.
 - Forge-/Remote-Effekte: `send` und das darauf aufbauende `quick`.
+- Destruktiver Alias: `sync-remote` wird vom Dispatcher geladen, sourct
+  `reload.bash` und delegiert vollständig an `reload`; damit gelten dieselbe
+  destruktive Klassifikation und dieselben Dry-run-/Force-Semantiken.
 - Delegierte Ausführung: `run` und `task` führen beliebige, vom Repository
   deklarierte Shell-Kommandos aus; `test` startet repository-eigene Bats-Tests.
   WGX erzwingt für deklarierte Tasks keine technische Host-Sandbox.
 - Operator-State: `vibe adopt` schreibt einen Receipt in einen
   operatorgewählten WGX-State-Pfad; Plan, Status und Doctor lesen nur.
-- Nicht implementiert: `config`, `hooks`, `release`, `setup`, `start`;
-  `sync-remote` besitzt keinen ausführbaren Entrypoint.
+- Nicht implementiert: `config`, `hooks`, `release`, `setup`, `start`.
+
+Die Dispatcher-Nachprüfung fand daneben `quick` als zusammengesetzten
+Delegator zu `guard` und `send`. `status` delegiert lediglich an seine interne
+Implementierungsfunktion und ist kein Alias auf einen anderen operativen
+Befehl.
+
+Der stündliche Metrics-Workflow bleibt funktional erhalten: Er erzeugt und
+validiert die eng als Contract-Fixture beschriebene Datei, führt bei
+konfiguriertem Secret den optionalen best-effort POST aus und lädt
+`metrics.json` sieben Tage als Artifact hoch. Die engeren Autoritätsclaims
+ändern diese drei Basisverhalten nicht.
 
 Damit behauptet WGX nicht, frei von Host-Mutation zu sein. Die engere Grenze
 lautet: WGX besitzt keine generische, repository-übergreifende Host-Autorität.

@@ -1,0 +1,206 @@
+{
+  "schema_version": 1,
+  "description": "Network-free exact-line snapshots captured from immutable GitHub blob URLs. blob_sha binds each excerpt to the fetched Git blob.",
+  "sources": [
+    {
+      "repository": "heimgewebe/aussensensor",
+      "path": ".github/workflows/wgx-guard.yml",
+      "source_url": "https://github.com/heimgewebe/aussensensor/blob/f9c75995b61ee841321420789e8e6b6374384a2a/.github/workflows/wgx-guard.yml",
+      "blob_sha": "4a2a379494696e1e039e991dff324eb82d53298c",
+      "content": "    uses: heimgewebe/wgx/.github/workflows/wgx-guard.yml@main\n",
+      "content_sha256": "d62dc24102f4ac1fc9d19b9c8e46b3f01f30b4fee1dc7fbfb4ce4ad2ef357ea3"
+    },
+    {
+      "repository": "heimgewebe/chronik",
+      "path": ".github/workflows/wgx-guard.yml",
+      "source_url": "https://github.com/heimgewebe/chronik/blob/0596f6624e2bab3de81f8b0a32a1dbf45a0e1482/.github/workflows/wgx-guard.yml",
+      "blob_sha": "93c69bf329bdb6120c7d4e14f22907d6bcae14d3",
+      "content": "    uses: heimgewebe/wgx/.github/workflows/wgx-guard.yml@main\n",
+      "content_sha256": "d62dc24102f4ac1fc9d19b9c8e46b3f01f30b4fee1dc7fbfb4ce4ad2ef357ea3"
+    },
+    {
+      "repository": "heimgewebe/hausKI",
+      "path": ".github/workflows/wgx-guard.yml",
+      "source_url": "https://github.com/heimgewebe/hausKI/blob/377c3a3229abed80713789979e268c57cc3f6999/.github/workflows/wgx-guard.yml",
+      "blob_sha": "a7db00bf19a5f757e7dc99d90c3a591fb5cdf56c",
+      "content": "    uses: heimgewebe/wgx/.github/workflows/wgx-guard.yml@main\n",
+      "content_sha256": "d62dc24102f4ac1fc9d19b9c8e46b3f01f30b4fee1dc7fbfb4ce4ad2ef357ea3"
+    },
+    {
+      "repository": "heimgewebe/heimlern",
+      "path": ".github/workflows/wgx-guard.yml",
+      "source_url": "https://github.com/heimgewebe/heimlern/blob/f74579cbe46d5f5f7b95c4c3431da03efb67cc85/.github/workflows/wgx-guard.yml",
+      "blob_sha": "727808c8e135a9d49b5843ba396bbba6d2d01a00",
+      "content": "    uses: heimgewebe/wgx/.github/workflows/wgx-guard.yml@6bff05c51aeed8cf8fc7a7ba2181bfae58397c8f\n",
+      "content_sha256": "d600294259371df7fe182c2e1d840adba5087d0145f941a041a27ac00e7442a1"
+    },
+    {
+      "repository": "heimgewebe/metarepo",
+      "path": ".github/workflows/wgx-guard.yml",
+      "source_url": "https://github.com/heimgewebe/metarepo/blob/1be27a95e8ade74670150315243afd34c32e277e/.github/workflows/wgx-guard.yml",
+      "blob_sha": "eca7cefc6f41b8369d137ce2efe82373ce188f99",
+      "content": "    uses: heimgewebe/wgx/.github/workflows/wgx-guard.yml@3d823f9d26be276eef97742335dee857a64e1715\n",
+      "content_sha256": "086121e8fb3f2d8970090c305377d178b18bfb9c0c9bda8e3dfefa79e71f3372"
+    },
+    {
+      "repository": "heimgewebe/mitschreiber",
+      "path": ".github/workflows/wgx-guard.yml",
+      "source_url": "https://github.com/heimgewebe/mitschreiber/blob/3c0a6311c7a29f03fcab89010be25f594c4c5300/.github/workflows/wgx-guard.yml",
+      "blob_sha": "4a2a379494696e1e039e991dff324eb82d53298c",
+      "content": "    uses: heimgewebe/wgx/.github/workflows/wgx-guard.yml@main\n",
+      "content_sha256": "d62dc24102f4ac1fc9d19b9c8e46b3f01f30b4fee1dc7fbfb4ce4ad2ef357ea3"
+    },
+    {
+      "repository": "heimgewebe/plexer",
+      "path": ".github/workflows/wgx-guard.yml",
+      "source_url": "https://github.com/heimgewebe/plexer/blob/93fb9aa2451d44eb6b8cff7c7fd054086804049e/.github/workflows/wgx-guard.yml",
+      "blob_sha": "4a2a379494696e1e039e991dff324eb82d53298c",
+      "content": "    uses: heimgewebe/wgx/.github/workflows/wgx-guard.yml@main\n",
+      "content_sha256": "d62dc24102f4ac1fc9d19b9c8e46b3f01f30b4fee1dc7fbfb4ce4ad2ef357ea3"
+    },
+    {
+      "repository": "heimgewebe/sichter",
+      "path": ".github/workflows/wgx-guard.yml",
+      "source_url": "https://github.com/heimgewebe/sichter/blob/f4359f0817d7db6b3f821bcdce7be12c18e561cc/.github/workflows/wgx-guard.yml",
+      "blob_sha": "4a2a379494696e1e039e991dff324eb82d53298c",
+      "content": "    uses: heimgewebe/wgx/.github/workflows/wgx-guard.yml@main\n",
+      "content_sha256": "d62dc24102f4ac1fc9d19b9c8e46b3f01f30b4fee1dc7fbfb4ce4ad2ef357ea3"
+    },
+    {
+      "repository": "heimgewebe/weltgewebe",
+      "path": ".github/workflows/wgx-guard.yml",
+      "source_url": "https://github.com/heimgewebe/weltgewebe/blob/0e03824d47e6ef59cf50ed1d9c27f5050b6bede3/.github/workflows/wgx-guard.yml",
+      "blob_sha": "d178555fddc1169ee74a587d7ef54061654c3a82",
+      "content": "    uses: heimgewebe/wgx/.github/workflows/wgx-guard.yml@17e349d872e16f927bdd8e0d770d2295f8b6e663\n",
+      "content_sha256": "4bc41549283857d119379afa253f7041e2c6e3a3389527c5262d1a14b5342917"
+    },
+    {
+      "repository": "heimgewebe/chronik",
+      "path": ".github/workflows/wgx-smoke.yml",
+      "source_url": "https://github.com/heimgewebe/chronik/blob/0596f6624e2bab3de81f8b0a32a1dbf45a0e1482/.github/workflows/wgx-smoke.yml",
+      "blob_sha": "782e4fa4168476a1f90648621fa972415aed9c64",
+      "content": "    uses: heimgewebe/wgx/.github/workflows/wgx-smoke.yml@main\n",
+      "content_sha256": "0a73a2a698a939dd2b49c00831ee9ae6fcb20a4f2ce48b9c5daa9ffd16918d8f"
+    },
+    {
+      "repository": "heimgewebe/hausKI",
+      "path": ".github/workflows/wgx-smoke.yml",
+      "source_url": "https://github.com/heimgewebe/hausKI/blob/377c3a3229abed80713789979e268c57cc3f6999/.github/workflows/wgx-smoke.yml",
+      "blob_sha": "1f6d54ed6a3db19a1caa5ebd9973d4733d86e479",
+      "content": "    uses: heimgewebe/wgx/.github/workflows/wgx-smoke.yml@main\n",
+      "content_sha256": "0a73a2a698a939dd2b49c00831ee9ae6fcb20a4f2ce48b9c5daa9ffd16918d8f"
+    },
+    {
+      "repository": "heimgewebe/heimlern",
+      "path": ".github/workflows/wgx-smoke.yml",
+      "source_url": "https://github.com/heimgewebe/heimlern/blob/f74579cbe46d5f5f7b95c4c3431da03efb67cc85/.github/workflows/wgx-smoke.yml",
+      "blob_sha": "4b2707e6a163d9deb44ca7fab5730b97ec06124b",
+      "content": "    uses: heimgewebe/wgx/.github/workflows/wgx-smoke.yml@6bff05c51aeed8cf8fc7a7ba2181bfae58397c8f\n",
+      "content_sha256": "591e65f775f418f49418ad9a5abd33122feae64bf33a29110f9f2648898048bc"
+    },
+    {
+      "repository": "heimgewebe/metarepo",
+      "path": ".github/workflows/wgx-smoke.yml",
+      "source_url": "https://github.com/heimgewebe/metarepo/blob/1be27a95e8ade74670150315243afd34c32e277e/.github/workflows/wgx-smoke.yml",
+      "blob_sha": "880b18acb61a081bdc831a847b9b513eda7b1724",
+      "content": "    uses: heimgewebe/wgx/.github/workflows/wgx-smoke.yml@b3b358f5bb8d26f087fcdaf25d308d439b22f583\n",
+      "content_sha256": "88b45c3af98fa88a3c0968a3291889a3ebff93d9d04c59ea2a0f7376476b0091"
+    },
+    {
+      "repository": "heimgewebe/mitschreiber",
+      "path": ".github/workflows/wgx-smoke.yml",
+      "source_url": "https://github.com/heimgewebe/mitschreiber/blob/3c0a6311c7a29f03fcab89010be25f594c4c5300/.github/workflows/wgx-smoke.yml",
+      "blob_sha": "b231a72958a894f240945fd967ffe7f31b4a6742",
+      "content": "    uses: heimgewebe/wgx/.github/workflows/wgx-smoke.yml@main\n",
+      "content_sha256": "0a73a2a698a939dd2b49c00831ee9ae6fcb20a4f2ce48b9c5daa9ffd16918d8f"
+    },
+    {
+      "repository": "heimgewebe/sichter",
+      "path": ".github/workflows/wgx-smoke.yml",
+      "source_url": "https://github.com/heimgewebe/sichter/blob/f4359f0817d7db6b3f821bcdce7be12c18e561cc/.github/workflows/wgx-smoke.yml",
+      "blob_sha": "83ece906cb3410541bae496ec371f0461b096241",
+      "content": "    uses: heimgewebe/wgx/.github/workflows/wgx-smoke.yml@main\n",
+      "content_sha256": "0a73a2a698a939dd2b49c00831ee9ae6fcb20a4f2ce48b9c5daa9ffd16918d8f"
+    },
+    {
+      "repository": "heimgewebe/weltgewebe",
+      "path": ".github/workflows/wgx-smoke.yml",
+      "source_url": "https://github.com/heimgewebe/weltgewebe/blob/0e03824d47e6ef59cf50ed1d9c27f5050b6bede3/.github/workflows/wgx-smoke.yml",
+      "blob_sha": "ef5a01bf80327b4bd044d893856d0aa8b687458b",
+      "content": "    uses: heimgewebe/wgx/.github/workflows/wgx-smoke.yml@814d5e9102e4020c786d6bb7e1c377004cf2bbea\n",
+      "content_sha256": "aac94888396e054f91bf4b5d5762483614f1749bfd7585a2276c56488fdf50bc"
+    },
+    {
+      "repository": "heimgewebe/wgx",
+      "path": "cmd/reload.bash",
+      "source_url": "https://github.com/heimgewebe/wgx/blob/c4b41809664353a3cff310dd4d6ef4d75be2ff60/cmd/reload.bash",
+      "blob_sha": "c7cda0c4ff2353bce773ecf878a4cf5f9aa88056",
+      "content": "  git_hard_reload\n",
+      "content_sha256": "9087d68b69c85f0455b11fb68d59353ad746722ff8174fd0de9cf81802405b9e"
+    },
+    {
+      "repository": "heimgewebe/wgx",
+      "path": "docs/integrity-architecture.md",
+      "source_url": "https://github.com/heimgewebe/wgx/blob/c4b41809664353a3cff310dd4d6ef4d75be2ff60/docs/integrity-architecture.md",
+      "blob_sha": "a911fa205bf91fc433e1d18f29f8f90b3c6d8f7a",
+      "content": "The Release Asset named `summary.json` (attached to the `integrity` tag) is the **canonical source of truth**.\n",
+      "content_sha256": "afd775f6f1f74ad31836f199020db2e5c7ca49d39d66bc3ac65c6a13f284942a"
+    },
+    {
+      "repository": "heimgewebe/wgx",
+      "path": ".github/workflows/compat-on-demand.yml",
+      "source_url": "https://github.com/heimgewebe/wgx/blob/c4b41809664353a3cff310dd4d6ef4d75be2ff60/.github/workflows/compat-on-demand.yml",
+      "blob_sha": "a0d3f65c00e3535234683db2f211093954d76b39",
+      "content": "        uses: ./.github/actions/wgx-check\n",
+      "content_sha256": "c5a662cf4ed390119f94b894a061c8b498d6cc56084aad8a1d9123615958d747"
+    },
+    {
+      "repository": "heimgewebe/wgx",
+      "path": ".github/workflows/release.yml",
+      "source_url": "https://github.com/heimgewebe/wgx/blob/c4b41809664353a3cff310dd4d6ef4d75be2ff60/.github/workflows/release.yml",
+      "blob_sha": "4ffeb1b8733a1fb0f04e7f0b567d20a309f4a426",
+      "content": "        uses: softprops/action-gh-release@5be0e66d93ac7ed76da52eca8bb058f665c3a5fe\n",
+      "content_sha256": "37928025cc9b47e1dd955b5784d7496b4301234a5125cff11018b7e0b58bf74f"
+    },
+    {
+      "repository": "heimgewebe/wgx",
+      "path": ".github/workflows/wgx-guard.yml",
+      "source_url": "https://github.com/heimgewebe/wgx/blob/c4b41809664353a3cff310dd4d6ef4d75be2ff60/.github/workflows/wgx-guard.yml",
+      "blob_sha": "3510c20abcdc3e52c5d9d075a813fc8ee6065a20",
+      "content": "            wgx task guard\n",
+      "content_sha256": "e85fabc61a3abda54d07e9dd73df167ce87fef72e7e3b0fb206c3cf0c24546ad"
+    },
+    {
+      "repository": "heimgewebe/wgx",
+      "path": ".github/workflows/wgx-integrity.yml",
+      "source_url": "https://github.com/heimgewebe/wgx/blob/c4b41809664353a3cff310dd4d6ef4d75be2ff60/.github/workflows/wgx-integrity.yml",
+      "blob_sha": "103dc4abd9496bd1c0ef9c16f097c5d6ac207651",
+      "content": "          ./wgx integrity --update\n",
+      "content_sha256": "3bccb194f67b7d7896fe457802ffbce439270157cca492e85a2922d025885fac"
+    },
+    {
+      "repository": "heimgewebe/wgx",
+      "path": ".github/workflows/wgx-tools-guard.yml",
+      "source_url": "https://github.com/heimgewebe/wgx/blob/c4b41809664353a3cff310dd4d6ef4d75be2ff60/.github/workflows/wgx-tools-guard.yml",
+      "blob_sha": "304a176ed31b82b4d24845eef165acfe4f018554",
+      "content": "          shellcheck -x \"${files[@]}\"\n",
+      "content_sha256": "e06ea8f65625b20b7a6f75b282ed270243159a9faa620ec99c162f498512388b"
+    },
+    {
+      "repository": "heimgewebe/wgx",
+      "path": "tests/guard_contracts_ownership.bats",
+      "source_url": "https://github.com/heimgewebe/wgx/blob/c4b41809664353a3cff310dd4d6ef4d75be2ff60/tests/guard_contracts_ownership.bats",
+      "blob_sha": "9b86657dfc2d233baa3f7d7c6db11e51809d72ca",
+      "content": "@test \"contracts_ownership: PASSES for random repo with no contract changes\" {\n",
+      "content_sha256": "f185f2c675a77ef4c7f5fba76d0f63114116249a4d9e42cb1bb4dadc309258ce"
+    },
+    {
+      "repository": "heimgewebe/wgx",
+      "path": "tests/test_data_flow_guard.py",
+      "source_url": "https://github.com/heimgewebe/wgx/blob/c4b41809664353a3cff310dd4d6ef4d75be2ff60/tests/test_data_flow_guard.py",
+      "blob_sha": "78e6008732a5b846c64a7d0bc0d14349eefb37ec",
+      "content": "    def test_main_skip_no_jsonschema(self):\n",
+      "content_sha256": "7c6f2adb838135d0a75ccb0d4fe6a8563a5d2d63613381c96851fbcc325e02f2"
+    }
+  ]
+}

@@ -6,7 +6,7 @@ checks = {
     'chronik': ('.ai-context.yml', ['append_only_event_ledger', 'role_contract:', 'historical_evidence']),
     'plexer': ('.ai-context.yml', ['event_gateway_delivery_relay', 'role_contract:', 'delivery_routing']),
     'heimlern': ('.ai-context.yml', ['learning_proposal_engine', 'role_contract:', 'retrospective_analysis_only']),
-    'wgx': ('.ai-context.yml', ['fleet_motorics_and_guard_engine', 'role_contract:', 'local_tooling_and_metrics']),
+    'wgx': ('.ai-context.yml', ['repository_verification_adapter', 'role_contract:', 'repository_local_verification']),
 }
 failed = False
 for repo, spec in checks.items():
