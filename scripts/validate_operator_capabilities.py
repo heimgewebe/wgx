@@ -397,20 +397,40 @@ def _verify_github_repository_commit(
     if not re.fullmatch(r"[0-9a-f]{40}", root_tree_sha):
         return "root tree must be a full Git object ID"
     owner, name = repository.split("/", 1)
-    url = (
+    repository_url = (
         f"https://api.github.com/repos/{quote(owner, safe='')}/"
-        f"{quote(name, safe='')}/git/commits/{commit_sha}"
+        f"{quote(name, safe='')}"
     )
-    payload, error = _read_github_json(url)
+    repository_payload, error = _read_github_json(repository_url)
     if error is not None:
         return error
-    if not isinstance(payload, dict):
-        return "GitHub commit response must be an object"
-    if payload.get("sha") != commit_sha:
-        return "GitHub commit response does not match the declared commit"
-    tree = payload.get("tree")
+    if not isinstance(repository_payload, dict):
+        return "GitHub repository response must be an object"
+    default_branch = repository_payload.get("default_branch")
+    if not isinstance(default_branch, str) or not default_branch:
+        return "GitHub repository response has no default branch"
+
+    compare_url = (
+        f"{repository_url}/compare/{commit_sha}..."
+        f"{quote(default_branch, safe='')}?per_page=1"
+    )
+    compare_payload, error = _read_github_json(compare_url)
+    if error is not None:
+        return error
+    if not isinstance(compare_payload, dict):
+        return "GitHub compare response must be an object"
+    base_commit = compare_payload.get("base_commit")
+    if not isinstance(base_commit, dict) or base_commit.get("sha") != commit_sha:
+        return "GitHub compare response does not match the declared commit"
+    commit = base_commit.get("commit")
+    tree = commit.get("tree") if isinstance(commit, dict) else None
     if not isinstance(tree, dict) or tree.get("sha") != root_tree_sha:
-        return "GitHub commit response does not match the proven root tree"
+        return "GitHub compare response does not match the proven root tree"
+    merge_base = compare_payload.get("merge_base_commit")
+    if not isinstance(merge_base, dict) or merge_base.get("sha") != commit_sha:
+        return "declared commit is not reachable from the repository default branch"
+    if compare_payload.get("status") not in {"ahead", "identical"}:
+        return "repository default branch does not descend from the declared commit"
     return None
 
 
@@ -881,18 +901,6 @@ def validate(
     pinned_evidence = _load_pinned_evidence(
         root, findings, repository_commit_verifier
     )
-    historical_wgx_prefix = (
-        "https://github.com/heimgewebe/wgx/blob/"
-        "c4b41809664353a3cff310dd4d6ef4d75be2ff60/"
-    )
-    for source_url in sorted(
-        {item for item in _all_strings(payload) if item.startswith(historical_wgx_prefix)}
-    ):
-        if source_url not in pinned_evidence:
-            findings.append(
-                "historical c4b4180 WGX source URL lacks checked-in source content: "
-                f"{source_url}"
-            )
     if payload.get("schema_version") != 1:
         findings.append("schema_version must equal 1")
     if payload.get("task") != "OPERATOR-ECOSYSTEM-REDUNDANCY-V1-T009":

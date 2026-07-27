@@ -514,35 +514,96 @@ class OperatorCapabilitiesTest(unittest.TestCase):
         self.assertEqual(set(calls), expected)
         self.assertEqual(len(calls), len(expected))
 
-    def test_github_commit_verifier_binds_repository_commit_and_tree(self) -> None:
+    def test_github_commit_verifier_binds_reachable_default_branch_commit(self) -> None:
         commit_sha = "a" * 40
         root_tree_sha = "b" * 40
-        payload = {"sha": commit_sha, "tree": {"sha": root_tree_sha}}
+        repository_payload = {"default_branch": "main"}
+        compare_payload = {
+            "status": "ahead",
+            "base_commit": {
+                "sha": commit_sha,
+                "commit": {"tree": {"sha": root_tree_sha}},
+            },
+            "merge_base_commit": {"sha": commit_sha},
+        }
         with patch.object(
-            validator, "_read_github_json", return_value=(payload, None)
+            validator,
+            "_read_github_json",
+            side_effect=[
+                (repository_payload, None),
+                (compare_payload, None),
+            ],
         ) as read:
             error = validator._verify_github_repository_commit(
                 "heimgewebe/wgx", commit_sha, root_tree_sha
             )
 
         self.assertIsNone(error)
-        read.assert_called_once_with(
-            "https://api.github.com/repos/heimgewebe/wgx/git/commits/" + commit_sha
+        self.assertEqual(
+            [call.args[0] for call in read.call_args_list],
+            [
+                "https://api.github.com/repos/heimgewebe/wgx",
+                "https://api.github.com/repos/heimgewebe/wgx/compare/"
+                + commit_sha
+                + "...main?per_page=1",
+            ],
         )
 
     def test_github_commit_verifier_rejects_wrong_remote_tree(self) -> None:
         commit_sha = "a" * 40
         root_tree_sha = "b" * 40
-        payload = {"sha": commit_sha, "tree": {"sha": "c" * 40}}
+        repository_payload = {"default_branch": "main"}
+        compare_payload = {
+            "status": "ahead",
+            "base_commit": {
+                "sha": commit_sha,
+                "commit": {"tree": {"sha": "c" * 40}},
+            },
+            "merge_base_commit": {"sha": commit_sha},
+        }
         with patch.object(
-            validator, "_read_github_json", return_value=(payload, None)
+            validator,
+            "_read_github_json",
+            side_effect=[
+                (repository_payload, None),
+                (compare_payload, None),
+            ],
         ):
             error = validator._verify_github_repository_commit(
                 "heimgewebe/wgx", commit_sha, root_tree_sha
             )
 
         self.assertEqual(
-            error, "GitHub commit response does not match the proven root tree"
+            error, "GitHub compare response does not match the proven root tree"
+        )
+
+    def test_github_commit_verifier_rejects_fork_only_commit(self) -> None:
+        commit_sha = "a" * 40
+        root_tree_sha = "b" * 40
+        repository_payload = {"default_branch": "main"}
+        compare_payload = {
+            "status": "diverged",
+            "base_commit": {
+                "sha": commit_sha,
+                "commit": {"tree": {"sha": root_tree_sha}},
+            },
+            "merge_base_commit": {"sha": "c" * 40},
+        }
+        with patch.object(
+            validator,
+            "_read_github_json",
+            side_effect=[
+                (repository_payload, None),
+                (compare_payload, None),
+            ],
+        ):
+            error = validator._verify_github_repository_commit(
+                "heimgewebe/wgx", commit_sha, root_tree_sha
+            )
+
+        self.assertEqual(
+            error,
+            "declared commit is not reachable from the repository default branch",
         )
 
     def test_duplicate_source_evidence_record_is_rejected(self) -> None:
@@ -561,13 +622,6 @@ class OperatorCapabilitiesTest(unittest.TestCase):
         findings = self.validate(payload)
         self.assertTrue(
             any("canonical_invocation is not evidenced" in item for item in findings)
-        )
-
-    def test_historical_wgx_url_requires_checked_in_source_content(self) -> None:
-        with patch.object(validator, "_load_pinned_evidence", return_value={}):
-            findings = self.validate(self.payload)
-        self.assertTrue(
-            any("historical c4b4180 WGX source URL lacks" in item for item in findings)
         )
 
     def test_swapped_category_is_rejected(self) -> None:

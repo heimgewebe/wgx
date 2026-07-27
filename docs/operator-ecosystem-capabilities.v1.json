@@ -55,11 +55,11 @@
       },
       "repository_changes": {
         "owner": "invoking repository and operator",
-        "source_url": "https://github.com/heimgewebe/wgx/blob/c4b41809664353a3cff310dd4d6ef4d75be2ff60/cmd/reload.bash"
+        "source_url": "https://github.com/heimgewebe/wgx/blob/c1b336ee0a82a3b1fd0c5f09158dcdb5f3c1d9ef/cmd/reload.bash"
       },
       "ci_conclusions": {
         "owner": "target repository native CI and GitHub",
-        "source_url": "https://github.com/heimgewebe/wgx/blob/c4b41809664353a3cff310dd4d6ef4d75be2ff60/.github/workflows/wgx-guard.yml"
+        "source_url": "https://github.com/heimgewebe/wgx/blob/c1b336ee0a82a3b1fd0c5f09158dcdb5f3c1d9ef/.github/workflows/wgx-guard.yml"
       }
     },
     "repository_scoped_mutation": "WGX does expose repository-scoped developer mutations such as clean, reload, heal, send, version changes, integrity output, and Vibe receipts.",
@@ -98,12 +98,12 @@
         {
           "repository": "heimgewebe/chronik",
           "evidence_path": ".github/workflows/wgx-guard.yml",
-          "source_url": "https://github.com/heimgewebe/chronik/blob/0596f6624e2bab3de81f8b0a32a1dbf45a0e1482/.github/workflows/wgx-guard.yml",
+          "source_url": "https://github.com/heimgewebe/chronik/blob/24d158b8f66ca947ff1bf41997fb2ed3d3b5ce7f/.github/workflows/wgx-guard.yml",
           "canonical_invocation": "uses: heimgewebe/wgx/.github/workflows/wgx-guard.yml@main",
           "repository_native_alternative": {
             "owner": "heimgewebe/chronik",
             "path": "Makefile",
-            "source_url": "https://github.com/heimgewebe/chronik/blob/0596f6624e2bab3de81f8b0a32a1dbf45a0e1482/Makefile"
+            "source_url": "https://github.com/heimgewebe/chronik/blob/24d158b8f66ca947ff1bf41997fb2ed3d3b5ce7f/Makefile"
           }
         },
         {
@@ -208,12 +208,12 @@
         {
           "repository": "heimgewebe/chronik",
           "evidence_path": ".github/workflows/wgx-smoke.yml",
-          "source_url": "https://github.com/heimgewebe/chronik/blob/0596f6624e2bab3de81f8b0a32a1dbf45a0e1482/.github/workflows/wgx-smoke.yml",
+          "source_url": "https://github.com/heimgewebe/chronik/blob/24d158b8f66ca947ff1bf41997fb2ed3d3b5ce7f/.github/workflows/wgx-smoke.yml",
           "canonical_invocation": "uses: heimgewebe/wgx/.github/workflows/wgx-smoke.yml@main",
           "repository_native_alternative": {
             "owner": "heimgewebe/chronik",
             "path": ".github/workflows/validate-chronik-fixtures.yml",
-            "source_url": "https://github.com/heimgewebe/chronik/blob/0596f6624e2bab3de81f8b0a32a1dbf45a0e1482/.github/workflows/validate-chronik-fixtures.yml"
+            "source_url": "https://github.com/heimgewebe/chronik/blob/24d158b8f66ca947ff1bf41997fb2ed3d3b5ce7f/.github/workflows/validate-chronik-fixtures.yml"
           }
         },
         {
@@ -324,8 +324,8 @@
       "invariance_benefit": {
         "claim": "The same fail-closed contract and data-flow rules are regression-tested locally without claiming external adoption.",
         "evidence_sources": [
-          "https://github.com/heimgewebe/wgx/blob/c4b41809664353a3cff310dd4d6ef4d75be2ff60/tests/guard_contracts_ownership.bats",
-          "https://github.com/heimgewebe/wgx/blob/c4b41809664353a3cff310dd4d6ef4d75be2ff60/tests/test_data_flow_guard.py"
+          "https://github.com/heimgewebe/wgx/blob/c1b336ee0a82a3b1fd0c5f09158dcdb5f3c1d9ef/tests/guard_contracts_ownership.bats",
+          "https://github.com/heimgewebe/wgx/blob/c1b336ee0a82a3b1fd0c5f09158dcdb5f3c1d9ef/tests/test_data_flow_guard.py"
         ]
       },
       "ecosystem_alternative": {
@@ -405,7 +405,7 @@
       "invariance_benefit": {
         "claim": "On-demand target checks detect WGX compatibility drift, but do not establish adoption by a target.",
         "evidence_sources": [
-          "https://github.com/heimgewebe/wgx/blob/c4b41809664353a3cff310dd4d6ef4d75be2ff60/.github/workflows/compat-on-demand.yml"
+          "https://github.com/heimgewebe/wgx/blob/c1b336ee0a82a3b1fd0c5f09158dcdb5f3c1d9ef/.github/workflows/compat-on-demand.yml"
         ]
       },
       "ecosystem_alternative": {
@@ -442,7 +442,7 @@
       "invariance_benefit": {
         "claim": "The guard keeps every checked-in .wgx-tools module subject to one repository-local shell-analysis rule without claiming deployment or fleet execution.",
         "evidence_sources": [
-          "https://github.com/heimgewebe/wgx/blob/c4b41809664353a3cff310dd4d6ef4d75be2ff60/.github/workflows/wgx-tools-guard.yml"
+          "https://github.com/heimgewebe/wgx/blob/c1b336ee0a82a3b1fd0c5f09158dcdb5f3c1d9ef/.github/workflows/wgx-tools-guard.yml"
         ]
       },
       "ecosystem_alternative": {
@@ -486,8 +486,8 @@
       "invariance_benefit": {
         "claim": "A scheduled report, validated release asset, and pull-based consumer contract preserve repository integrity observability without turning the best-effort event into authority.",
         "evidence_sources": [
-          "https://github.com/heimgewebe/wgx/blob/c4b41809664353a3cff310dd4d6ef4d75be2ff60/.github/workflows/wgx-integrity.yml",
-          "https://github.com/heimgewebe/wgx/blob/c4b41809664353a3cff310dd4d6ef4d75be2ff60/docs/integrity-architecture.md"
+          "https://github.com/heimgewebe/wgx/blob/c1b336ee0a82a3b1fd0c5f09158dcdb5f3c1d9ef/.github/workflows/wgx-integrity.yml",
+          "https://github.com/heimgewebe/wgx/blob/c1b336ee0a82a3b1fd0c5f09158dcdb5f3c1d9ef/docs/integrity-architecture.md"
         ]
       },
       "ecosystem_alternative": {
@@ -523,7 +523,7 @@
       "invariance_benefit": {
         "claim": "One tag/manual publication path keeps WGX release behavior explicit and reviewable without claiming deployment authority.",
         "evidence_sources": [
-          "https://github.com/heimgewebe/wgx/blob/c4b41809664353a3cff310dd4d6ef4d75be2ff60/.github/workflows/release.yml"
+          "https://github.com/heimgewebe/wgx/blob/c1b336ee0a82a3b1fd0c5f09158dcdb5f3c1d9ef/.github/workflows/release.yml"
         ]
       },
       "ecosystem_alternative": {
