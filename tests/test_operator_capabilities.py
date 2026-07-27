@@ -643,6 +643,24 @@ class OperatorCapabilitiesTest(unittest.TestCase):
             )
         )
 
+    def test_wgx_source_identity_is_case_insensitive_for_proof_requirement(self) -> None:
+        payload = copy.deepcopy(self.payload)
+        owner = payload["authority_boundary"]["owners"]["repository_changes"]
+        owner["source_url"] = owner["source_url"].replace(
+            "heimgewebe/wgx", "Heimgewebe/WGX", 1
+        )
+
+        findings = self.validate(payload)
+
+        self.assertTrue(
+            any(
+                item
+                == "WGX source URL lacks checked-in pinned source evidence: "
+                + owner["source_url"]
+                for item in findings
+            )
+        )
+
     def test_swapped_category_is_rejected(self) -> None:
         payload = copy.deepcopy(self.payload)
         payload["capabilities"][0]["category"] = "metrics"

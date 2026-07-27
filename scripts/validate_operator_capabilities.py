@@ -210,6 +210,15 @@ def _source_url(value: Any) -> bool:
     return bool(separator) and bool(re.fullmatch(r"[0-9a-f]{40}", ref))
 
 
+def _source_repository_identity(value: Any) -> str | None:
+    if not _source_url(value):
+        return None
+    parts = urlparse(value).path.split("/")
+    if len(parts) < 6 or parts[0] or parts[3] != "blob":
+        return None
+    return f"{parts[1].casefold()}/{parts[2].casefold()}"
+
+
 def _source_url_matches(
     value: Any,
     repository: Any,
@@ -901,12 +910,11 @@ def validate(
     pinned_evidence = _load_pinned_evidence(
         root, findings, repository_commit_verifier
     )
-    wgx_source_prefix = "https://github.com/heimgewebe/wgx/blob/"
     required_wgx_source_urls = sorted(
         {
             item
             for item in _all_strings(payload)
-            if item.startswith(wgx_source_prefix) and _source_url(item)
+            if _source_repository_identity(item) == "heimgewebe/wgx"
         }
     )
     for source_url in required_wgx_source_urls:
