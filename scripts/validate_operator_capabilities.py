@@ -190,14 +190,24 @@ def _source_url(value: Any) -> bool:
     if not _https_url(value):
         return False
     parsed = urlparse(value)
-    if parsed.netloc != "github.com" or "/blob/" not in parsed.path:
+    if (
+        parsed.netloc != "github.com"
+        or parsed.query
+        or parsed.fragment
+        or "/blob/" not in parsed.path
+    ):
         return False
     _, _, remainder = parsed.path.partition("/blob/")
     ref, separator, _ = remainder.partition("/")
     return bool(separator) and bool(re.fullmatch(r"[0-9a-f]{40}", ref))
 
 
-def _source_url_matches(value: Any, repository: Any, evidence_path: Any) -> bool:
+def _source_url_matches(
+    value: Any,
+    repository: Any,
+    evidence_path: Any,
+    commit_sha: Any | None = None,
+) -> bool:
     if not (
         _source_url(value)
         and _nonempty_string(repository)
@@ -212,8 +222,10 @@ def _source_url_matches(value: Any, repository: Any, evidence_path: Any) -> bool
     if not parsed.path.startswith(prefix):
         return False
     remainder = parsed.path[len(prefix) :]
-    _, separator, linked_path = remainder.partition("/")
-    return bool(separator) and linked_path == evidence_path.lstrip("/")
+    linked_commit, separator, linked_path = remainder.partition("/")
+    if not separator or linked_path != evidence_path.lstrip("/"):
+        return False
+    return commit_sha is None or linked_commit == commit_sha
 
 
 def _safe_local_path(
@@ -233,7 +245,13 @@ def _safe_local_path(
         return None
     try:
         resolved_root = root.resolve(strict=True)
-        resolved = (root / candidate).resolve(strict=False)
+        current = root
+        for component in candidate.parts:
+            current /= component
+            if current.is_symlink():
+                findings.append(f"{prefix} must not contain symlinks: {value}")
+                return None
+        resolved = current.resolve(strict=False)
         resolved.relative_to(resolved_root)
     except (OSError, RuntimeError, ValueError):
         findings.append(f"{prefix} escapes the repository root")
@@ -315,6 +333,11 @@ def _validate_alternative(
                 findings.append(f"{prefix}.source_url must be source-linked")
 
 
+def _git_blob_sha(content: bytes) -> str:
+    header = f"blob {len(content)}\0".encode()
+    return hashlib.sha1(header + content, usedforsecurity=False).hexdigest()
+
+
 def _load_pinned_evidence(root: Path, findings: list[str]) -> dict[str, dict[str, Any]]:
     evidence_path = _safe_local_path(
         str(PINNED_EVIDENCE_PATH),
@@ -329,37 +352,60 @@ def _load_pinned_evidence(root: Path, findings: list[str]) -> dict[str, dict[str
     except (OSError, json.JSONDecodeError) as exc:
         findings.append(f"cannot load pinned source evidence: {exc}")
         return {}
-    if not isinstance(payload, dict) or payload.get("schema_version") != 1:
-        findings.append("pinned source evidence schema_version must equal 1")
+    if not isinstance(payload, dict) or payload.get("schema_version") != 2:
+        findings.append("pinned source evidence schema_version must equal 2")
         return {}
     records = payload.get("sources")
     if not isinstance(records, list):
         findings.append("pinned source evidence sources must be an array")
         return {}
     result: dict[str, dict[str, Any]] = {}
+    seen_source_urls: set[str] = set()
     for index, record in enumerate(records):
         prefix = f"pinned source evidence[{index}]"
         if not isinstance(record, dict):
             findings.append(f"{prefix} must be an object")
             continue
+        record_valid = True
+        repository = record.get("repository")
+        evidence_path = record.get("path")
+        commit_sha = record.get("commit_sha")
         source_url = record.get("source_url")
         if not _source_url_matches(
-            source_url, record.get("repository"), record.get("path")
+            source_url, repository, evidence_path, commit_sha
         ):
-            findings.append(f"{prefix} URL/repository/path binding is invalid")
-            continue
-        if not re.fullmatch(r"[0-9a-f]{40}", str(record.get("blob_sha", ""))):
+            findings.append(
+                f"{prefix} URL/repository/path/commit binding is invalid"
+            )
+            record_valid = False
+        if isinstance(source_url, str):
+            if source_url in seen_source_urls:
+                findings.append(f"duplicate pinned source evidence URL: {source_url}")
+                record_valid = False
+            seen_source_urls.add(source_url)
+        blob_sha = record.get("blob_sha")
+        if not re.fullmatch(r"[0-9a-f]{40}", str(blob_sha or "")):
             findings.append(f"{prefix}.blob_sha must be a full Git object ID")
-        content = record.get("content")
-        if not _nonempty_string(content):
-            findings.append(f"{prefix}.content is required")
-            continue
-        digest = hashlib.sha256(content.encode("utf-8")).hexdigest()
+            record_valid = False
+        content = record.get("blob_content")
+        if not isinstance(content, str):
+            findings.append(f"{prefix}.blob_content must contain the complete Git blob")
+            record_valid = False
+            content = ""
+        content_bytes = content.encode("utf-8")
+        digest = hashlib.sha256(content_bytes).hexdigest()
         if record.get("content_sha256") != digest:
-            findings.append(f"{prefix}.content_sha256 does not match content")
-        if source_url in result:
-            findings.append(f"duplicate pinned source evidence URL: {source_url}")
-        result[source_url] = record
+            findings.append(f"{prefix}.content_sha256 does not match blob_content")
+            record_valid = False
+        if re.fullmatch(r"[0-9a-f]{40}", str(blob_sha or "")):
+            computed_blob_sha = _git_blob_sha(content_bytes)
+            if blob_sha != computed_blob_sha:
+                findings.append(
+                    f"{prefix}.blob_sha does not match the complete Git blob content"
+                )
+                record_valid = False
+        if record_valid:
+            result[source_url] = {**record, "blob_content": content}
     return result
 
 
@@ -720,7 +766,7 @@ def validate(payload: Any, root: Path) -> list[str]:
                 elif (
                     _nonempty_string(invocation)
                     and not _content_has_invocation(
-                        str(snapshot.get("content", "")), invocation
+                        str(snapshot.get("blob_content", "")), invocation
                     )
                 ):
                     findings.append(

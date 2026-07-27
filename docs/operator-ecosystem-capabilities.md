@@ -11,9 +11,10 @@ aufruft. Ein Ziel einer WGX-Matrix und eine eingecheckte Kopie zählen nicht.
 
 - eindeutige Fähigkeiten und alle einzeln erforderlichen Capability-IDs,
 - exakte Zuordnung von Consumer-Repository, `evidence_path` und Quell-URL,
-- kanonische Aufrufe gegen eingecheckte, hashgebundene Quell-Snapshots
+- kanonische Aufrufe gegen vollständige eingecheckte Git-Blobs, deren native
+  Objekt-ID aus Header, Länge und exakten Bytes neu berechnet wird,
   beziehungsweise gegen aktuelle lokale WGX-Quellen,
-- repository-relative Pfade ohne Absolut-, Parent- oder Symlink-Escape,
+- repository-relative Pfade ohne Absolut-, Parent- oder Symlink-Komponenten,
 - nichtleere Authority- und Alternative-Owner sowie lokale Evidenzpfade,
 - alle `cmd/*.bash`-Flächen und die Klassifikation mutierender Befehle,
 - feste Capability-ID/Kategorie-Bindungen und Pflichtflächen für Tools,

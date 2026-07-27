@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import copy
+import hashlib
 import json
 import os
 import tempfile
@@ -19,9 +20,24 @@ class OperatorCapabilitiesTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.payload = json.loads((ROOT / validator.DEFAULT_MAP).read_text(encoding="utf-8"))
+        cls.evidence = json.loads(
+            (ROOT / validator.PINNED_EVIDENCE_PATH).read_text(encoding="utf-8")
+        )
 
     def validate(self, payload: object) -> list[str]:
         return validator.validate(payload, ROOT)
+
+    def load_evidence(
+        self, evidence: object
+    ) -> tuple[dict[str, dict[str, object]], list[str]]:
+        findings: list[str] = []
+        with tempfile.TemporaryDirectory() as temporary_root:
+            root = Path(temporary_root)
+            evidence_path = root / validator.PINNED_EVIDENCE_PATH
+            evidence_path.parent.mkdir(parents=True)
+            evidence_path.write_text(json.dumps(evidence), encoding="utf-8")
+            records = validator._load_pinned_evidence(root, findings)
+        return records, findings
 
     def test_repository_inventory_is_valid(self) -> None:
         self.assertEqual(self.validate(self.payload), [])
@@ -121,7 +137,40 @@ class OperatorCapabilitiesTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary_root:
             os.symlink("/etc", Path(temporary_root) / "escape")
             findings = validator.validate(payload, Path(temporary_root))
-        self.assertTrue(any("escapes the repository root" in item for item in findings))
+        self.assertTrue(any("must not contain symlinks" in item for item in findings))
+
+    def test_internal_symlink_is_rejected(self) -> None:
+        findings: list[str] = []
+        with tempfile.TemporaryDirectory() as temporary_root:
+            root = Path(temporary_root)
+            target = root / "target"
+            target.mkdir()
+            (target / "evidence.txt").write_text("evidence\n", encoding="utf-8")
+            os.symlink("target", root / "internal-link")
+            resolved = validator._safe_local_path(
+                "internal-link/evidence.txt",
+                root,
+                "internal evidence",
+                findings,
+            )
+        self.assertIsNone(resolved)
+        self.assertTrue(any("must not contain symlinks" in item for item in findings))
+
+    def test_ordinary_repository_relative_path_is_preserved(self) -> None:
+        findings: list[str] = []
+        with tempfile.TemporaryDirectory() as temporary_root:
+            root = Path(temporary_root)
+            expected = root / "docs" / "evidence.txt"
+            expected.parent.mkdir()
+            expected.write_text("evidence\n", encoding="utf-8")
+            resolved = validator._safe_local_path(
+                "docs/evidence.txt",
+                root,
+                "ordinary evidence",
+                findings,
+            )
+            self.assertEqual(resolved, expected)
+        self.assertEqual(findings, [])
 
     def test_unrelated_alternative_owner_url_is_rejected(self) -> None:
         payload = copy.deepcopy(self.payload)
@@ -150,6 +199,100 @@ class OperatorCapabilitiesTest(unittest.TestCase):
         findings = self.validate(payload)
         self.assertTrue(
             any("canonical_invocation is not evidenced" in item for item in findings)
+        )
+
+    def test_invocation_and_excerpt_hash_cannot_forge_blob_evidence(self) -> None:
+        payload = copy.deepcopy(self.payload)
+        evidence = copy.deepcopy(self.evidence)
+        consumer = payload["capabilities"][0]["consumers"][0]
+        original = consumer["canonical_invocation"]
+        forged = (
+            "uses: heimgewebe/wgx/.github/workflows/forged-guard.yml@main"
+        )
+        consumer["canonical_invocation"] = forged
+        record = next(
+            item
+            for item in evidence["sources"]
+            if item["source_url"] == consumer["source_url"]
+        )
+        record["blob_content"] = record["blob_content"].replace(original, forged)
+        record["content_sha256"] = hashlib.sha256(
+            record["blob_content"].encode("utf-8")
+        ).hexdigest()
+
+        records, findings = self.load_evidence(evidence)
+        with patch.object(validator, "_load_pinned_evidence", return_value=records):
+            validation_findings = self.validate(payload)
+
+        self.assertNotIn(consumer["source_url"], records)
+        self.assertTrue(
+            any("blob_sha does not match the complete Git blob content" in item for item in findings)
+        )
+        self.assertTrue(
+            any(
+                "source_url has no checked-in pinned source evidence" in item
+                for item in validation_findings
+            )
+        )
+
+    def test_altered_blob_content_is_rejected(self) -> None:
+        evidence = copy.deepcopy(self.evidence)
+        evidence["sources"][0]["blob_content"] += "# forged\n"
+
+        _, findings = self.load_evidence(evidence)
+
+        self.assertTrue(any("content_sha256 does not match" in item for item in findings))
+        self.assertTrue(
+            any("blob_sha does not match the complete Git blob content" in item for item in findings)
+        )
+
+    def test_altered_blob_id_is_rejected(self) -> None:
+        evidence = copy.deepcopy(self.evidence)
+        evidence["sources"][0]["blob_sha"] = "0" * 40
+
+        _, findings = self.load_evidence(evidence)
+
+        self.assertTrue(
+            any("blob_sha does not match the complete Git blob content" in item for item in findings)
+        )
+
+    def test_source_evidence_url_path_and_commit_must_match_record(self) -> None:
+        for component, replacement in (
+            ("repository", "heimgewebe/forged"),
+            ("path", ".github/workflows/forged.yml"),
+            ("commit", "0" * 40),
+        ):
+            with self.subTest(component=component):
+                evidence = copy.deepcopy(self.evidence)
+                record = evidence["sources"][0]
+                if component == "repository":
+                    record["repository"] = replacement
+                elif component == "path":
+                    record["source_url"] = record["source_url"].replace(
+                        record["path"], replacement
+                    )
+                else:
+                    record["source_url"] = record["source_url"].replace(
+                        record["commit_sha"], replacement
+                    )
+
+                _, findings = self.load_evidence(evidence)
+
+                self.assertTrue(
+                    any(
+                        "URL/repository/path/commit binding is invalid" in item
+                        for item in findings
+                    )
+                )
+
+    def test_duplicate_source_evidence_record_is_rejected(self) -> None:
+        evidence = copy.deepcopy(self.evidence)
+        evidence["sources"].append(copy.deepcopy(evidence["sources"][0]))
+
+        _, findings = self.load_evidence(evidence)
+
+        self.assertTrue(
+            any("duplicate pinned source evidence URL" in item for item in findings)
         )
 
     def test_partial_invocation_prose_is_not_accepted_as_evidence(self) -> None:
