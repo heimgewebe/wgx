@@ -16,7 +16,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 from urllib.error import HTTPError, URLError
-from urllib.parse import quote, urlparse
+from urllib.parse import urlparse
 from urllib.request import Request, urlopen
 
 DEFAULT_MAP = Path("docs/operator-ecosystem-capabilities.v1.json")
@@ -368,16 +368,7 @@ def _reject_duplicate_json_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     return result
 
 
-def _read_github_json(url: str) -> tuple[Any | None, str | None]:
-    headers = {
-        "Accept": "application/vnd.github+json",
-        "User-Agent": "heimgewebe-wgx-capability-validator",
-        "X-GitHub-Api-Version": "2022-11-28",
-    }
-    token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
-    if token:
-        headers["Authorization"] = f"Bearer {token}"
-    request = Request(url, headers=headers)
+def _read_github_response(request: Request) -> tuple[Any | None, str | None]:
     try:
         with urlopen(request, timeout=10) as response:
             raw = response.read(MAX_GITHUB_API_RESPONSE_BYTES + 1)
@@ -396,6 +387,45 @@ def _read_github_json(url: str) -> tuple[Any | None, str | None]:
     return payload, None
 
 
+def _github_headers() -> dict[str, str]:
+    headers = {
+        "Accept": "application/vnd.github+json",
+        "User-Agent": "heimgewebe-wgx-capability-validator",
+        "X-GitHub-Api-Version": "2022-11-28",
+    }
+    token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+    return headers
+
+
+def _read_github_graphql(
+    query: str, variables: dict[str, str]
+) -> tuple[Any | None, str | None]:
+    headers = _github_headers()
+    headers["Content-Type"] = "application/json"
+    body = json.dumps(
+        {"query": query, "variables": variables},
+        separators=(",", ":"),
+        sort_keys=True,
+    ).encode("utf-8")
+    request = Request(
+        "https://api.github.com/graphql",
+        data=body,
+        headers=headers,
+        method="POST",
+    )
+    payload, error = _read_github_response(request)
+    if error is not None:
+        return None, error
+    if not isinstance(payload, dict):
+        return None, "GitHub GraphQL response must be an object"
+    errors = payload.get("errors")
+    if errors:
+        return None, "GitHub GraphQL returned errors"
+    return payload.get("data"), None
+
+
 def _verify_github_repository_commit(
     repository: str, commit_sha: str, root_tree_sha: str
 ) -> str | None:
@@ -406,40 +436,88 @@ def _verify_github_repository_commit(
     if not re.fullmatch(r"[0-9a-f]{40}", root_tree_sha):
         return "root tree must be a full Git object ID"
     owner, name = repository.split("/", 1)
-    repository_url = (
-        f"https://api.github.com/repos/{quote(owner, safe='')}/"
-        f"{quote(name, safe='')}"
+    object_query = """
+query($owner:String!,$name:String!,$oid:GitObjectID!){
+  repository(owner:$owner,name:$name){
+    object(oid:$oid){... on Commit{oid committedDate tree{oid}}}
+    defaultBranchRef{name}
+  }
+}
+""".strip()
+    object_data, error = _read_github_graphql(
+        object_query,
+        {"owner": owner, "name": name, "oid": commit_sha},
     )
-    repository_payload, error = _read_github_json(repository_url)
     if error is not None:
         return error
+    repository_payload = (
+        object_data.get("repository") if isinstance(object_data, dict) else None
+    )
     if not isinstance(repository_payload, dict):
         return "GitHub repository response must be an object"
-    default_branch = repository_payload.get("default_branch")
-    if not isinstance(default_branch, str) or not default_branch:
+    default_branch = repository_payload.get("defaultBranchRef")
+    if not isinstance(default_branch, dict) or not default_branch.get("name"):
         return "GitHub repository response has no default branch"
+    commit = repository_payload.get("object")
+    if not isinstance(commit, dict) or commit.get("oid") != commit_sha:
+        return "GitHub commit response does not match the declared commit"
+    tree = commit.get("tree")
+    if not isinstance(tree, dict) or tree.get("oid") != root_tree_sha:
+        return "GitHub commit response does not match the proven root tree"
+    committed_date = commit.get("committedDate")
+    if not isinstance(committed_date, str) or not committed_date:
+        return "GitHub commit response has no committed date"
 
-    compare_url = (
-        f"{repository_url}/compare/{commit_sha}..."
-        f"{quote(default_branch, safe='')}?per_page=1"
+    history_query = """
+query($owner:String!,$name:String!,$since:GitTimestamp!,$until:GitTimestamp!){
+  repository(owner:$owner,name:$name){
+    defaultBranchRef{
+      target{
+        ... on Commit{
+          history(first:100,since:$since,until:$until){
+            nodes{oid}
+            pageInfo{hasNextPage}
+          }
+        }
+      }
+    }
+  }
+}
+""".strip()
+    history_data, error = _read_github_graphql(
+        history_query,
+        {
+            "owner": owner,
+            "name": name,
+            "since": committed_date,
+            "until": committed_date,
+        },
     )
-    compare_payload, error = _read_github_json(compare_url)
     if error is not None:
         return error
-    if not isinstance(compare_payload, dict):
-        return "GitHub compare response must be an object"
-    base_commit = compare_payload.get("base_commit")
-    if not isinstance(base_commit, dict) or base_commit.get("sha") != commit_sha:
-        return "GitHub compare response does not match the declared commit"
-    commit = base_commit.get("commit")
-    tree = commit.get("tree") if isinstance(commit, dict) else None
-    if not isinstance(tree, dict) or tree.get("sha") != root_tree_sha:
-        return "GitHub compare response does not match the proven root tree"
-    merge_base = compare_payload.get("merge_base_commit")
-    if not isinstance(merge_base, dict) or merge_base.get("sha") != commit_sha:
+    history_repository = (
+        history_data.get("repository") if isinstance(history_data, dict) else None
+    )
+    default_ref = (
+        history_repository.get("defaultBranchRef")
+        if isinstance(history_repository, dict)
+        else None
+    )
+    target = default_ref.get("target") if isinstance(default_ref, dict) else None
+    history = target.get("history") if isinstance(target, dict) else None
+    if not isinstance(history, dict):
+        return "GitHub default-branch history response is missing"
+    page_info = history.get("pageInfo")
+    if not isinstance(page_info, dict) or page_info.get("hasNextPage") is not False:
+        return "GitHub default-branch history timestamp is not uniquely bounded"
+    nodes = history.get("nodes")
+    if not isinstance(nodes, list):
+        return "GitHub default-branch history nodes are missing"
+    reachable_oids = {
+        node.get("oid") for node in nodes if isinstance(node, dict)
+    }
+    if commit_sha not in reachable_oids:
         return "declared commit is not reachable from the repository default branch"
-    if compare_payload.get("status") not in {"ahead", "identical"}:
-        return "repository default branch does not descend from the declared commit"
     return None
 
 

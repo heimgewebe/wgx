@@ -517,85 +517,108 @@ class OperatorCapabilitiesTest(unittest.TestCase):
     def test_github_commit_verifier_binds_reachable_default_branch_commit(self) -> None:
         commit_sha = "a" * 40
         root_tree_sha = "b" * 40
-        repository_payload = {"default_branch": "main"}
-        compare_payload = {
-            "status": "ahead",
-            "base_commit": {
-                "sha": commit_sha,
-                "commit": {"tree": {"sha": root_tree_sha}},
-            },
-            "merge_base_commit": {"sha": commit_sha},
+        object_data = {
+            "repository": {
+                "object": {
+                    "oid": commit_sha,
+                    "committedDate": "2026-07-27T20:57:31Z",
+                    "tree": {"oid": root_tree_sha},
+                },
+                "defaultBranchRef": {"name": "main"},
+            }
+        }
+        history_data = {
+            "repository": {
+                "defaultBranchRef": {
+                    "target": {
+                        "history": {
+                            "nodes": [{"oid": commit_sha}],
+                            "pageInfo": {"hasNextPage": False},
+                        }
+                    }
+                }
+            }
         }
         with patch.object(
             validator,
-            "_read_github_json",
-            side_effect=[
-                (repository_payload, None),
-                (compare_payload, None),
-            ],
+            "_read_github_graphql",
+            side_effect=[(object_data, None), (history_data, None)],
         ) as read:
             error = validator._verify_github_repository_commit(
                 "heimgewebe/wgx", commit_sha, root_tree_sha
             )
 
         self.assertIsNone(error)
+        self.assertEqual(read.call_count, 2)
         self.assertEqual(
-            [call.args[0] for call in read.call_args_list],
-            [
-                "https://api.github.com/repos/heimgewebe/wgx",
-                "https://api.github.com/repos/heimgewebe/wgx/compare/"
-                + commit_sha
-                + "...main?per_page=1",
-            ],
+            read.call_args_list[0].args[1],
+            {"owner": "heimgewebe", "name": "wgx", "oid": commit_sha},
+        )
+        self.assertEqual(
+            read.call_args_list[1].args[1],
+            {
+                "owner": "heimgewebe",
+                "name": "wgx",
+                "since": "2026-07-27T20:57:31Z",
+                "until": "2026-07-27T20:57:31Z",
+            },
         )
 
     def test_github_commit_verifier_rejects_wrong_remote_tree(self) -> None:
         commit_sha = "a" * 40
         root_tree_sha = "b" * 40
-        repository_payload = {"default_branch": "main"}
-        compare_payload = {
-            "status": "ahead",
-            "base_commit": {
-                "sha": commit_sha,
-                "commit": {"tree": {"sha": "c" * 40}},
-            },
-            "merge_base_commit": {"sha": commit_sha},
+        object_data = {
+            "repository": {
+                "object": {
+                    "oid": commit_sha,
+                    "committedDate": "2026-07-27T20:57:31Z",
+                    "tree": {"oid": "c" * 40},
+                },
+                "defaultBranchRef": {"name": "main"},
+            }
         }
         with patch.object(
             validator,
-            "_read_github_json",
-            side_effect=[
-                (repository_payload, None),
-                (compare_payload, None),
-            ],
+            "_read_github_graphql",
+            return_value=(object_data, None),
         ):
             error = validator._verify_github_repository_commit(
                 "heimgewebe/wgx", commit_sha, root_tree_sha
             )
 
         self.assertEqual(
-            error, "GitHub compare response does not match the proven root tree"
+            error, "GitHub commit response does not match the proven root tree"
         )
 
     def test_github_commit_verifier_rejects_fork_only_commit(self) -> None:
         commit_sha = "a" * 40
         root_tree_sha = "b" * 40
-        repository_payload = {"default_branch": "main"}
-        compare_payload = {
-            "status": "diverged",
-            "base_commit": {
-                "sha": commit_sha,
-                "commit": {"tree": {"sha": root_tree_sha}},
-            },
-            "merge_base_commit": {"sha": "c" * 40},
+        object_data = {
+            "repository": {
+                "object": {
+                    "oid": commit_sha,
+                    "committedDate": "2026-07-27T20:57:31Z",
+                    "tree": {"oid": root_tree_sha},
+                },
+                "defaultBranchRef": {"name": "main"},
+            }
+        }
+        history_data = {
+            "repository": {
+                "defaultBranchRef": {
+                    "target": {
+                        "history": {
+                            "nodes": [],
+                            "pageInfo": {"hasNextPage": False},
+                        }
+                    }
+                }
+            }
         }
         with patch.object(
             validator,
-            "_read_github_json",
-            side_effect=[
-                (repository_payload, None),
-                (compare_payload, None),
-            ],
+            "_read_github_graphql",
+            side_effect=[(object_data, None), (history_data, None)],
         ):
             error = validator._verify_github_repository_commit(
                 "heimgewebe/wgx", commit_sha, root_tree_sha
@@ -604,6 +627,45 @@ class OperatorCapabilitiesTest(unittest.TestCase):
         self.assertEqual(
             error,
             "declared commit is not reachable from the repository default branch",
+        )
+
+    def test_github_commit_verifier_fails_closed_on_unbounded_timestamp(self) -> None:
+        commit_sha = "a" * 40
+        root_tree_sha = "b" * 40
+        object_data = {
+            "repository": {
+                "object": {
+                    "oid": commit_sha,
+                    "committedDate": "2026-07-27T20:57:31Z",
+                    "tree": {"oid": root_tree_sha},
+                },
+                "defaultBranchRef": {"name": "main"},
+            }
+        }
+        history_data = {
+            "repository": {
+                "defaultBranchRef": {
+                    "target": {
+                        "history": {
+                            "nodes": [{"oid": commit_sha}],
+                            "pageInfo": {"hasNextPage": True},
+                        }
+                    }
+                }
+            }
+        }
+        with patch.object(
+            validator,
+            "_read_github_graphql",
+            side_effect=[(object_data, None), (history_data, None)],
+        ):
+            error = validator._verify_github_repository_commit(
+                "heimgewebe/wgx", commit_sha, root_tree_sha
+            )
+
+        self.assertEqual(
+            error,
+            "GitHub default-branch history timestamp is not uniquely bounded",
         )
 
     def test_duplicate_source_evidence_record_is_rejected(self) -> None:
