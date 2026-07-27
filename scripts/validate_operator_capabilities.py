@@ -901,6 +901,20 @@ def validate(
     pinned_evidence = _load_pinned_evidence(
         root, findings, repository_commit_verifier
     )
+    wgx_source_prefix = "https://github.com/heimgewebe/wgx/blob/"
+    required_wgx_source_urls = sorted(
+        {
+            item
+            for item in _all_strings(payload)
+            if item.startswith(wgx_source_prefix) and _source_url(item)
+        }
+    )
+    for source_url in required_wgx_source_urls:
+        if source_url not in pinned_evidence:
+            findings.append(
+                "WGX source URL lacks checked-in pinned source evidence: "
+                + source_url
+            )
     if payload.get("schema_version") != 1:
         findings.append("schema_version must equal 1")
     if payload.get("task") != "OPERATOR-ECOSYSTEM-REDUNDANCY-V1-T009":

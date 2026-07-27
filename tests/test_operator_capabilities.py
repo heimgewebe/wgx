@@ -624,6 +624,25 @@ class OperatorCapabilitiesTest(unittest.TestCase):
             any("canonical_invocation is not evidenced" in item for item in findings)
         )
 
+    def test_non_consumer_wgx_source_url_requires_pinned_evidence(self) -> None:
+        target = self.payload["authority_boundary"]["owners"]["repository_changes"][
+            "source_url"
+        ]
+        records, findings = self.load_evidence(self.evidence)
+        self.assertEqual(findings, [])
+        records.pop(target)
+
+        with patch.object(validator, "_load_pinned_evidence", return_value=records):
+            validation_findings = self.validate(self.payload)
+
+        self.assertTrue(
+            any(
+                item
+                == "WGX source URL lacks checked-in pinned source evidence: " + target
+                for item in validation_findings
+            )
+        )
+
     def test_swapped_category_is_rejected(self) -> None:
         payload = copy.deepcopy(self.payload)
         payload["capabilities"][0]["category"] = "metrics"
