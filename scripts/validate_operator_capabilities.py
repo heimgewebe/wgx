@@ -9,11 +9,15 @@ import binascii
 import fnmatch
 import hashlib
 import json
+import os
 import re
 import sys
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlparse
+from urllib.error import HTTPError, URLError
+from urllib.parse import quote, urlparse
+from urllib.request import Request, urlopen
 
 DEFAULT_MAP = Path("docs/operator-ecosystem-capabilities.v1.json")
 RETAINED = {"retained_multi_consumer", "retained_fleet_invariance"}
@@ -174,6 +178,8 @@ AUTHORITY_SOURCE_BINDINGS = {
     ),
 }
 PINNED_EVIDENCE_PATH = Path("docs/operator-ecosystem-source-evidence.v1.json")
+MAX_GITHUB_API_RESPONSE_BYTES = 1024 * 1024
+RepositoryCommitVerifier = Callable[[str, str, str], str | None]
 _EVENT_RE = re.compile(r"^  (pull_request|push):(?:\s.*)?$")
 
 
@@ -351,6 +357,61 @@ def _reject_duplicate_json_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
             raise ValueError(f"duplicate JSON key: {key}")
         result[key] = value
     return result
+
+
+def _read_github_json(url: str) -> tuple[Any | None, str | None]:
+    headers = {
+        "Accept": "application/vnd.github+json",
+        "User-Agent": "heimgewebe-wgx-capability-validator",
+        "X-GitHub-Api-Version": "2022-11-28",
+    }
+    token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+    request = Request(url, headers=headers)
+    try:
+        with urlopen(request, timeout=10) as response:
+            raw = response.read(MAX_GITHUB_API_RESPONSE_BYTES + 1)
+    except HTTPError as exc:
+        return None, f"GitHub returned HTTP {exc.code}"
+    except (TimeoutError, URLError, OSError) as exc:
+        return None, f"GitHub lookup failed: {exc}"
+    if len(raw) > MAX_GITHUB_API_RESPONSE_BYTES:
+        return None, "GitHub response exceeds the bounded size limit"
+    try:
+        payload = json.loads(
+            raw.decode("utf-8"), object_pairs_hook=_reject_duplicate_json_keys
+        )
+    except (UnicodeDecodeError, ValueError) as exc:
+        return None, f"GitHub returned invalid JSON: {exc}"
+    return payload, None
+
+
+def _verify_github_repository_commit(
+    repository: str, commit_sha: str, root_tree_sha: str
+) -> str | None:
+    if not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", repository):
+        return "repository must be an owner/name GitHub slug"
+    if not re.fullmatch(r"[0-9a-f]{40}", commit_sha):
+        return "commit must be a full Git object ID"
+    if not re.fullmatch(r"[0-9a-f]{40}", root_tree_sha):
+        return "root tree must be a full Git object ID"
+    owner, name = repository.split("/", 1)
+    url = (
+        f"https://api.github.com/repos/{quote(owner, safe='')}/"
+        f"{quote(name, safe='')}/git/commits/{commit_sha}"
+    )
+    payload, error = _read_github_json(url)
+    if error is not None:
+        return error
+    if not isinstance(payload, dict):
+        return "GitHub commit response must be an object"
+    if payload.get("sha") != commit_sha:
+        return "GitHub commit response does not match the declared commit"
+    tree = payload.get("tree")
+    if not isinstance(tree, dict) or tree.get("sha") != root_tree_sha:
+        return "GitHub commit response does not match the proven root tree"
+    return None
 
 
 def _parse_git_commit(content: bytes) -> str:
@@ -590,7 +651,11 @@ def _validate_git_path_proof(
     return valid, used_object_ids
 
 
-def _load_pinned_evidence(root: Path, findings: list[str]) -> dict[str, dict[str, Any]]:
+def _load_pinned_evidence(
+    root: Path,
+    findings: list[str],
+    repository_commit_verifier: RepositoryCommitVerifier = _verify_github_repository_commit,
+) -> dict[str, dict[str, Any]]:
     evidence_path = _safe_local_path(
         str(PINNED_EVIDENCE_PATH),
         root,
@@ -620,6 +685,7 @@ def _load_pinned_evidence(root: Path, findings: list[str]) -> dict[str, dict[str
     result: dict[str, dict[str, Any]] = {}
     seen_source_urls: set[str] = set()
     used_object_ids: set[str] = set()
+    repository_commit_results: dict[tuple[str, str, str], str | None] = {}
     for index, record in enumerate(records):
         prefix = f"pinned source evidence[{index}]"
         if not isinstance(record, dict):
@@ -673,6 +739,30 @@ def _load_pinned_evidence(root: Path, findings: list[str]) -> dict[str, dict[str
         )
         used_object_ids.update(path_object_ids)
         if not path_valid:
+            record_valid = False
+        repository_commit_key = (repository, commit_sha, record.get("root_tree_sha"))
+        if all(isinstance(value, str) for value in repository_commit_key):
+            typed_key = (
+                repository_commit_key[0],
+                repository_commit_key[1],
+                repository_commit_key[2],
+            )
+            if typed_key not in repository_commit_results:
+                repository_commit_results[typed_key] = repository_commit_verifier(
+                    *typed_key
+                )
+            repository_commit_error = repository_commit_results[typed_key]
+            if repository_commit_error is not None:
+                findings.append(
+                    f"{prefix}.commit_sha is not authenticated against "
+                    f"{repository}: {repository_commit_error}"
+                )
+                record_valid = False
+        else:
+            findings.append(
+                f"{prefix} repository, commit_sha, and root_tree_sha are required "
+                "for remote repository authentication"
+            )
             record_valid = False
         if record_valid:
             result[source_url] = {**record, "blob_content": content}
@@ -777,13 +867,20 @@ def _content_has_invocation(content: str, invocation: str) -> bool:
     )
 
 
-def validate(payload: Any, root: Path) -> list[str]:
+def validate(
+    payload: Any,
+    root: Path,
+    *,
+    repository_commit_verifier: RepositoryCommitVerifier = _verify_github_repository_commit,
+) -> list[str]:
     findings: list[str] = []
 
     if not isinstance(payload, dict):
         return ["document root must be an object"]
     findings.extend(_authority_prose_findings(payload))
-    pinned_evidence = _load_pinned_evidence(root, findings)
+    pinned_evidence = _load_pinned_evidence(
+        root, findings, repository_commit_verifier
+    )
     historical_wgx_prefix = (
         "https://github.com/heimgewebe/wgx/blob/"
         "c4b41809664353a3cff310dd4d6ef4d75be2ff60/"

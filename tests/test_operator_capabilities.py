@@ -25,11 +25,23 @@ class OperatorCapabilitiesTest(unittest.TestCase):
             (ROOT / validator.PINNED_EVIDENCE_PATH).read_text(encoding="utf-8")
         )
 
+    @staticmethod
+    def trust_repository_commit(
+        _repository: str, _commit_sha: str, _root_tree_sha: str
+    ) -> str | None:
+        return None
+
     def validate(self, payload: object) -> list[str]:
-        return validator.validate(payload, ROOT)
+        return validator.validate(
+            payload,
+            ROOT,
+            repository_commit_verifier=self.trust_repository_commit,
+        )
 
     def load_evidence(
-        self, evidence: object
+        self,
+        evidence: object,
+        repository_commit_verifier=None,
     ) -> tuple[dict[str, dict[str, object]], list[str]]:
         findings: list[str] = []
         with tempfile.TemporaryDirectory() as temporary_root:
@@ -37,7 +49,11 @@ class OperatorCapabilitiesTest(unittest.TestCase):
             evidence_path = root / validator.PINNED_EVIDENCE_PATH
             evidence_path.parent.mkdir(parents=True)
             evidence_path.write_text(json.dumps(evidence), encoding="utf-8")
-            records = validator._load_pinned_evidence(root, findings)
+            records = validator._load_pinned_evidence(
+                root,
+                findings,
+                repository_commit_verifier or self.trust_repository_commit,
+            )
         return records, findings
 
     def proof(self, evidence: dict[str, object], object_id: str) -> dict[str, str]:
@@ -154,7 +170,11 @@ class OperatorCapabilitiesTest(unittest.TestCase):
         payload["capabilities"][0]["local_evidence_paths"] = ["escape/hosts"]
         with tempfile.TemporaryDirectory() as temporary_root:
             os.symlink("/etc", Path(temporary_root) / "escape")
-            findings = validator.validate(payload, Path(temporary_root))
+            findings = validator.validate(
+                payload,
+                Path(temporary_root),
+                repository_commit_verifier=self.trust_repository_commit,
+            )
         self.assertTrue(any("must not contain symlinks" in item for item in findings))
 
     def test_internal_symlink_is_rejected(self) -> None:
@@ -449,6 +469,81 @@ class OperatorCapabilitiesTest(unittest.TestCase):
                         for item in findings
                     )
                 )
+
+    def test_repository_commit_must_be_authenticated_against_declared_repo(self) -> None:
+        evidence = copy.deepcopy(self.evidence)
+        record = evidence["sources"][0]
+        original_repository = record["repository"]
+        record["repository"] = "heimgewebe/forged"
+        record["source_url"] = record["source_url"].replace(
+            original_repository, record["repository"], 1
+        )
+
+        def reject_forged_repository(
+            repository: str, _commit_sha: str, _root_tree_sha: str
+        ) -> str | None:
+            if repository == "heimgewebe/forged":
+                return "GitHub returned HTTP 404"
+            return None
+
+        records, findings = self.load_evidence(
+            evidence, reject_forged_repository
+        )
+
+        self.assertNotIn(record["source_url"], records)
+        self.assertTrue(
+            any("is not authenticated against heimgewebe/forged" in item for item in findings)
+        )
+
+    def test_repository_commit_authentication_is_cached_per_commit(self) -> None:
+        calls: list[tuple[str, str, str]] = []
+
+        def record_call(
+            repository: str, commit_sha: str, root_tree_sha: str
+        ) -> str | None:
+            calls.append((repository, commit_sha, root_tree_sha))
+            return None
+
+        _records, findings = self.load_evidence(self.evidence, record_call)
+
+        expected = {
+            (item["repository"], item["commit_sha"], item["root_tree_sha"])
+            for item in self.evidence["sources"]
+        }
+        self.assertEqual(findings, [])
+        self.assertEqual(set(calls), expected)
+        self.assertEqual(len(calls), len(expected))
+
+    def test_github_commit_verifier_binds_repository_commit_and_tree(self) -> None:
+        commit_sha = "a" * 40
+        root_tree_sha = "b" * 40
+        payload = {"sha": commit_sha, "tree": {"sha": root_tree_sha}}
+        with patch.object(
+            validator, "_read_github_json", return_value=(payload, None)
+        ) as read:
+            error = validator._verify_github_repository_commit(
+                "heimgewebe/wgx", commit_sha, root_tree_sha
+            )
+
+        self.assertIsNone(error)
+        read.assert_called_once_with(
+            "https://api.github.com/repos/heimgewebe/wgx/git/commits/" + commit_sha
+        )
+
+    def test_github_commit_verifier_rejects_wrong_remote_tree(self) -> None:
+        commit_sha = "a" * 40
+        root_tree_sha = "b" * 40
+        payload = {"sha": commit_sha, "tree": {"sha": "c" * 40}}
+        with patch.object(
+            validator, "_read_github_json", return_value=(payload, None)
+        ):
+            error = validator._verify_github_repository_commit(
+                "heimgewebe/wgx", commit_sha, root_tree_sha
+            )
+
+        self.assertEqual(
+            error, "GitHub commit response does not match the proven root tree"
+        )
 
     def test_duplicate_source_evidence_record_is_rejected(self) -> None:
         evidence = copy.deepcopy(self.evidence)
