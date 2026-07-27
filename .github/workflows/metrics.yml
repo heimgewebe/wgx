@@ -1,19 +1,37 @@
-name: "📊 Metrics Snapshot & Validation"
+name: "Metrics contract compatibility"
 permissions:
-  contents: read          # Repo lesen, um Skripte auszuführen
-  actions: write          # notwendig für actions/upload-artifact (sonst 403)
-  checks: write           # erlaubt optionale Check-Annotations/Status
+  contents: read
 on:
   workflow_dispatch:
   schedule:
     - cron: "0 * * * *"
+  push:
+    paths:
+      - ".github/workflows/metrics.yml"
+      - "scripts/wgx-metrics-snapshot.sh"
+      - "scripts/just-dispatch.sh"
+      - "tests/contracts_validate.bats"
+      - "tests/metrics_snapshot.bats"
+      - "docs/operator-ecosystem-capabilities.v1.json"
+      - "scripts/validate_operator_capabilities.py"
+      - "tests/test_operator_capabilities.py"
+  pull_request:
+    paths:
+      - ".github/workflows/metrics.yml"
+      - "scripts/wgx-metrics-snapshot.sh"
+      - "scripts/just-dispatch.sh"
+      - "tests/contracts_validate.bats"
+      - "tests/metrics_snapshot.bats"
+      - "docs/operator-ecosystem-capabilities.v1.json"
+      - "scripts/validate_operator_capabilities.py"
+      - "tests/test_operator_capabilities.py"
 
 env:
   METRICS_SCHEMA_URL: https://raw.githubusercontent.com/heimgewebe/metarepo/b215b418a038ff535f07b7888fd6adeb3f4de51c/contracts/metrics.snapshot.schema.json
   HAUSKI_POST_URL: ${{ secrets.HAUSKI_METRICS_URL }}
 
 jobs:
-  snapshot:
+  contract-fixture:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -32,7 +50,7 @@ jobs:
           # Kein npm-Cache am Repo-Root, da es hier keine package-lock.json gibt.
           # Der Cache würde ohne Lockfile fehlschlagen. Daher bewusst deaktiviert.
 
-      - name: Snapshot metrics
+      - name: Produce compatibility fixture
         run: bash scripts/wgx-metrics-snapshot.sh --json
       - name: Fetch AJV schema (local file)
         run: |
@@ -50,9 +68,10 @@ jobs:
             --data @metrics.json \
             "$HAUSKI_POST_URL"
         continue-on-error: true
+
       - name: Upload metrics.json artifact
         uses: actions/upload-artifact@v4
         with:
           name: metrics-snapshot
           path: metrics.json
-          retention-days: 7       # Bewusste Aufbewahrung für eine Woche, um Debugging zu erleichtern.
+          retention-days: 7

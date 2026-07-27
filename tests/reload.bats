@@ -57,3 +57,9 @@ teardown() {
   [[ "$output" =~ "[DRY-RUN]" ]]
   [ -z "$(git status --porcelain)" ]
 }
+
+@test "sync-remote is an active alias for reload dry-run" {
+  run wgx sync-remote --dry-run
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"reload"* || "$output" == *"fetch"* || "$output" == *"reset"* ]]
+}

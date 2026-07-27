@@ -144,15 +144,19 @@ teardown() {
 }
 
 
-@test "canonical metrics schema pin stays aligned across Justfile workflow and README" {
+@test "canonical metrics schema pin and README use the robust contract validation path" {
   expected="https://raw.githubusercontent.com/heimgewebe/metarepo/b215b418a038ff535f07b7888fd6adeb3f4de51c/contracts/metrics.snapshot.schema.json"
 
   run grep -F "export METRICS_SCHEMA_URL := \"$expected\"" "$REPO_ROOT/Justfile"
   assert_success
   run grep -F "METRICS_SCHEMA_URL: $expected" "$REPO_ROOT/.github/workflows/metrics.yml"
   assert_success
-  run grep -F "SCHEMA=\"$expected\"" "$REPO_ROOT/README.md"
+  run grep -F 'just wgx-metrics snapshot --json --output metrics.json' "$REPO_ROOT/README.md"
   assert_success
+  run grep -F 'just contracts validate' "$REPO_ROOT/README.md"
+  assert_success
+  run grep -F 'npx --yes ajv-cli@5 validate --spec=draft2020 --strict=log -s "$SCHEMA"' "$REPO_ROOT/README.md"
+  assert_failure
   run grep -F 'validate --spec=draft2020 --strict=log -s .ci/metrics.schema.json -d metrics.json' "$REPO_ROOT/.github/workflows/metrics.yml"
   assert_success
 }

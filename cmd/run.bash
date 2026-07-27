@@ -33,7 +33,7 @@ Note:
 Examples:
   wgx run test
   wgx run lint -- --fix
-  wgx run --dry-run deploy
+  wgx run --dry-run build
 USAGE
     return 0
   fi

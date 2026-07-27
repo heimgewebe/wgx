@@ -1,6 +1,6 @@
 # Module & Hilfsbibliotheken
 
-Kurze Übersicht über die wichtigsten Dateien in `modules/`, `lib/`, `etc/` und `templates/`, damit Beitragende
+Kurze Übersicht über die wichtigsten Dateien in `modules/`, `lib/`, `etc/` und `fixtures/`, damit Beitragende
 schneller die richtigen Einstiegspunkte finden.
 
 ## `modules/`
@@ -29,12 +29,14 @@ schneller die richtigen Einstiegspunkte finden.
 | `etc/config.example` | Default-Konfiguration, die `wgx init` nach `~/.config/wgx/config` kopiert. Dient als Vorlage für neue Installationen. |
 | `etc/profile.example.yml` | Referenz-Profil für Projekte; dokumentiert unterstützte Sektionen (`python`, `contracts`, `tasks`). |
 
-## `templates/`
+## `fixtures/`
 
 | Datei | Zweck |
 | --- | --- |
-| `templates/profile.template.yml` | Minimal-Template, das Projekte in ihre Repositories kopieren sollen. Wird vom Guard als Muss-Kriterium geprüft. |
-| `templates/docs/` | Ergänzende Dokumentations-Vorlagen (z. B. für ADRs). |
+| `fixtures/profile.valid.yml` | Minimales gültiges Profil ausschließlich für lokale Regressionstests. Keine Fleet-Distributionsquelle. |
+
+Fleet-Vorlagen, Distribution und deren CI-Validierung gehören dem
+[`heimgewebe/metarepo`](https://github.com/heimgewebe/metarepo/tree/main/templates).
 
 ## Verwandte Artefakte
 

@@ -4,7 +4,7 @@
 
 - Die README bewirbt uv als Standard für Python-Laufzeiten, Lockfiles und Tooling und verweist auf
   Wrapper-Kommandos wie `wgx py up`, `wgx py sync` sowie `wgx tool add`. Damit werden klare Erwartungen an das CLI
-  kommuniziert.[README.md (L50–L110)](./README.md#L50-L110)
+  kommuniziert.[README.md](../README.md)
 - Das Devcontainer-Skript `.devcontainer/setup.sh` bringt einen automatisierten Installer (`setup.sh ensure-uv`)
   mit, der uv bei Bedarf nachzieht und `$HOME/.local/bin` dauerhaft in die Shell-Profile schreibt. So steht das
   Binary in Container-Umgebungen zuverlässig zur Verfügung.【F:.devcontainer/setup.sh†L1-L120】
@@ -24,9 +24,10 @@
 
 - Im `cmd/`-Verzeichnis existiert bislang kein `py.bash` oder `tool.bash`. Die in der README beworbenen Wrapper
   sind daher noch nicht implementiert und Nutzer:innen müssen uv manuell bedienen.【F:cmd/py.bash†L1-L4】
-- Das Template `.wgx/profile.yml` enthält keinen `python`-Block. Neue Repos erhalten somit keine Startkonfiguration
-  für uv-Version, Lockfile-Pflicht oder Tool-Liste, obwohl die Dokumentation dies erwartet.
-  【F:templates/.wgx/profile.yml†L1-L7】
+- Metarepo besitzt die Fleet-Distribution. Die WGX-eigenen Starterprofile
+  bleiben als ausführbare Beispiele erhalten, weil der aktuell geprüfte
+  Metarepo-Profilkandidat keine WGX-Tasks enthält und damit kein kompatibler
+  Ersatz ist; repository-eigene Profile bleiben die Laufzeitquelle.
 
 ## Potenziale zur Verbesserung
 
@@ -35,10 +36,12 @@
    README-Versprechen.
 2. **Contracts implementieren**: `wgx guard` sollte Regeln kennen, die `uv.lock` im Repository erzwingen und
    CI-Skripte auf `uv sync --frozen` prüfen. So wird die dokumentierte Governance technisch abgesichert.
-3. **Profile-Template erweitern**: Das Standard-Profil kann einen kommentierten `python`-Block mit uv als Manager,
-   gewünschter Version und Tool-Liste enthalten. Neue Projekte starten dadurch mit konsistenter Basiskonfiguration.
-4. **Optionale Ergänzungen**: Beispiele für `pyproject.toml` + `uv.lock` oder ein `uv pip compile`-Howto könnten
-   im Templates-Ordner landen. Das erleichtert Teams den Einstieg in uv-gesteuerte Repos.
+3. **Metarepo-Profil erweitern**: Das kanonische Fleet-Profil kann einen
+   kommentierten `python`-Block mit uv als Manager, gewünschter Version und
+   Tool-Liste enthalten.
+4. **Optionale Ergänzungen**: Beispiele für `pyproject.toml` + `uv.lock` oder
+   ein `uv pip compile`-Howto gehören in das kanonische Metarepo-Template.
+   Das erleichtert Teams den Einstieg in uv-gesteuerte Repos.
 
 Mit diesen Ergänzungen wird die uv-Integration nicht nur dokumentiert, sondern auch durch das CLI und
 Standardprofile erlebbar. Die vorhandenen Installations- und Diagnose-Hilfen bilden dafür bereits eine solide

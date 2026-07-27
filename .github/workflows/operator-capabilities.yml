@@ -1,0 +1,56 @@
+name: Operator capability boundaries
+
+"on":
+  pull_request:
+    paths:
+      - ".ai-context.yml"
+      - ".github/actions/wgx-check/**"
+      - ".github/workflows/**"
+      - ".wgx-tools/**"
+      - "README.md"
+      - "cmd/**"
+      - "docs/**"
+      - "fixtures/profile.valid.yml"
+      - "guards/**"
+      - "lib/**"
+      - "modules/**"
+      - "scripts/**"
+      - "tests/**"
+      - "templates/**"
+  push:
+    branches: [main]
+    paths:
+      - ".ai-context.yml"
+      - ".github/actions/wgx-check/**"
+      - ".github/workflows/**"
+      - ".wgx-tools/**"
+      - "README.md"
+      - "cmd/**"
+      - "docs/**"
+      - "fixtures/profile.valid.yml"
+      - "guards/**"
+      - "lib/**"
+      - "modules/**"
+      - "scripts/**"
+      - "tests/**"
+      - "templates/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        with:
+          persist-credentials: false
+
+      - name: Validate capability map
+        run: python3 scripts/validate_operator_capabilities.py
+
+      - name: Run focused regression tests
+        run: python3 -m unittest tests.test_operator_capabilities -v

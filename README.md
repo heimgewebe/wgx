@@ -96,21 +96,30 @@ Beispiele:
 # Array-CMD + zusätzliche Argumente
 wgx run lint -- --fix
 
-# Inline-Task aus dem Profil mit Dry-Run-Vorschau
-wgx run --dry-run deploy
+# Repository-eigenen Build-Task mit Dry-Run-Vorschau prüfen
+wgx run --dry-run build
 
 # Plattform-Variante, die auf Linux ein anderes Kommando nutzt
 wgx run build
 ```
 
+## WGX-Systemgrenze
+
+WGX ist ein Repository-Verifikationsadapter: Es parst `.wgx/profile.yml`,
+stellt gemeinsame statische Checks bereit und routet CI zu den vom Ziel-Repo
+deklarierten Frontdoors. Bureau besitzt Task-Koordination; Grabowski besitzt
+Host-/Prozess-, Git- und Deploy-Effekte. WGX beansprucht keine dieser
+Autoritäten. Die belegten Consumer, repository-nativen Alternativen und
+Migrationen stehen in der
+[Capability-/Consumer-Map](docs/operator-ecosystem-capabilities.md).
+
 ## WGX Readiness
 
-Der Workflow [`wgx-guard`](.github/workflows/wgx-guard.yml) generiert pro Lauf
-eine Readiness-Matrix und veröffentlicht sie als Artefakte (`readiness.json`,
-`readiness-table.md`, `readiness-badge.svg`). Die Dateien werden nicht
-versioniert, um Git-Lärm zu vermeiden. Du findest sie im neuesten
-erfolgreichen CI-Lauf oder lokal nach `./scripts/gen-readiness.sh`; Details
-stehen in [docs/readiness.md](docs/readiness.md). Ergänzend erklärt
+`./scripts/gen-readiness.sh` erzeugt lokal eine WGX-interne Readiness-Matrix
+(`readiness.json`, `readiness-table.md`, `readiness-badge.svg`). Diese
+Ableitung bewertet nur den WGX-Quellbaum; sie ist weder Fleet-Health noch
+Deployment- oder Task-Evidenz. Details stehen in
+[docs/readiness.md](docs/readiness.md). Ergänzend erklärt
 [docs/audit-ledger.md](docs/audit-ledger.md) die Audit-Logs und Beispiele.
 
 ## Entwicklungs-Schnellstart
@@ -126,13 +135,15 @@ stehen in [docs/readiness.md](docs/readiness.md). Ergänzend erklärt
   bats -r tests
   ```
 
-- Metriken-Flow lokal prüfen:
+- Metrics-Contract-Kompatibilität lokal prüfen:
 
   ```bash
-  scripts/wgx-metrics-snapshot.sh --json --output metrics.json
-  SCHEMA="https://raw.githubusercontent.com/heimgewebe/metarepo/b215b418a038ff535f07b7888fd6adeb3f4de51c/contracts/metrics.snapshot.schema.json"
-  npx --yes ajv-cli@5 validate --spec=draft2020 --strict=log -s "$SCHEMA" -d metrics.json
+  just wgx-metrics snapshot --json --output metrics.json
+  just contracts validate
   ```
+
+  Dieser Pfad erzeugt eine Contract-Fixture. Er ist keine Live-Hostmessung,
+  keine Deployment-Evidenz und kein Fleet-Health-Observer.
 
 - Node.js tooling ist nicht erforderlich; npm-/pnpm-Workflows sind
   deaktiviert, und es existiert kein `package.json` mehr.
@@ -240,7 +251,7 @@ Destruktiv: setzt den Workspace hart auf `origin/$WGX_BASE` zurück
 ├─ lib/                 # Wiederverwendbare Bash-Bibliotheken
 ├─ modules/             # Optionale Erweiterungen
 ├─ etc/                 # Default-Konfigurationen
-├─ templates/           # Vorlagen (PR-Text, Hooks, ...)
+├─ fixtures/            # Ausschließlich lokale Test-Fixtures
 ├─ tests/               # Automatisierte Shell-Tests
 ├─ installers/          # Installations-Skripte
 └─ docs/                # Handbücher, ADRs
@@ -300,27 +311,27 @@ vollständigste YAML-Unterstützung. Typische Varianten:
 - Arch Linux: `pacman -S python` (optional: `python-yaml`)
 - macOS mit Homebrew: `brew install python` (optional: `pip3 install pyyaml`)
 
-Ohne funktionsfähiges Python-Setup können `wgx run` und Profil-basierte
-Fleet-Tasks nicht ausgeführt werden. Fehlt PyYAML, meldet WGX im Debug-Modus
-den Rückfall auf den eingebauten Parser, der einfache YAML-Strukturen abdeckt.
+Ohne funktionsfähiges Python-Setup können `wgx run` und profilbasierte
+Repository-Frontdoors nicht ausgeführt werden. Fehlt PyYAML, meldet WGX im
+Debug-Modus den Rückfall auf den eingebauten Parser, der einfache
+YAML-Strukturen abdeckt.
 
 ## Reusable-Workflows für andere Repos
 
-Dieses Repository stellt kanonische, wiederverwendbare Workflows bereit, die
-in anderen Repositories der Heimgewebe-Fleet genutzt werden können, um
-CI-Prozesse zu standardisieren.
+Dieses Repository stellt wiederverwendbare Verifikationsadapter bereit. Die
+fachlichen Befehle und CI-Wahrheit bleiben im jeweiligen Ziel-Repository.
 
-- **`wgx-guard.yml`**: Führt Linting, Contract-Prüfungen und andere statische
-  Analysen aus.
-- **`wgx-smoke.yml`**: Führt einen einfachen Smoke-Test aus, der im
-  `tasks.smoke`-Feld des `.wgx/profile.yml` des Ziel-Repos definiert ist.
+- **`wgx-guard.yml`**: Routet zum deklarierten `guard`- oder `smoke`-Frontdoor
+  des Ziel-Repositories.
+- **`wgx-smoke.yml`**: Verlangt und startet den im Ziel-Repository
+  deklarierten `tasks.smoke`-Frontdoor.
 
 Diese Workflows nutzen die "Fleet-Konvention" in der `.wgx/profile.yml`:
 
 - **`class`**: Definiert die Klasse des Repositories (z.B. `rust-service`,
   `python-service`).
-- **`tasks`**: Eine einfache Map von Task-Namen zu Shell-Befehlen, die von
-  externen Tools (wie diesen Workflows) ausgeführt werden können.
+- **`tasks`**: Eine Map repository-eigener Verifikations-Frontdoors. Sie ist
+  keine Bureau-Queue und erteilt keine Deploy- oder Host-Mutationsfreigabe.
 
 ### Beispiel-Verwendung
 
@@ -351,16 +362,15 @@ jobs:
   [docs/Glossary.en.md](docs/Glossary.en.md) erklären Schlüsselbegriffe.
 - **Befehlsreferenz:** [docs/Command-Reference.de.md](docs/Command-Reference.de.md)
   listet alle `wgx`-Subcommands samt Optionen.
-- **Module & Vorlagen:** [docs/Module-Uebersicht.de.md](docs/Module-Uebersicht.de.md)
-  beschreibt Aufbau und Zweck von `modules/`, `lib/`, `etc/` und `templates/`.
+- **Module & Fixtures:** [docs/Module-Uebersicht.de.md](docs/Module-Uebersicht.de.md)
+  beschreibt Aufbau und Zweck von `modules/`, `lib/`, `etc/` und `fixtures/`.
 
 ## Vision & Manifest
 
-Für die vollständige, integrierte Produktvision („Repo-Betriebssystem“) lies
-**[docs/wgx-mycelium-v-omega.de.md](docs/wgx-mycelium-v-omega.de.md)**.
-Sie bündelt Bedienkanon, Fleet, Memory, Policies, Offline, Registry und Roadmap.
-WGX macht Abläufe reproduzierbar, erklärt Policies und liefert
-Evidence-Packs für PRs – im Einzelrepo und in der Fleet.
+Das historische Visionsdokument
+[docs/wgx-mycelium-v-omega.de.md](docs/wgx-mycelium-v-omega.de.md) ist keine
+Autoritäts- oder Roadmapquelle. Die aktuelle Rolle ist durch die
+[Capability-/Consumer-Map](docs/operator-ecosystem-capabilities.md) begrenzt.
 
 ## Konfiguration
 

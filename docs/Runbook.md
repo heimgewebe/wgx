@@ -31,7 +31,7 @@ Examples:
 - `uv.lock` committed
 - CI mit shellcheck/shfmt/bats
 - Markdownlint + Vale
-- templates/profile.template.yml vorhanden
+- repository-eigenes `.wgx/profile.yml` oder `.wgx/profile.example.yml`
 - Guard-Env: `WGX_GUARD_MAX_BYTES` (Bigfile-Schwelle), `WGX_GUARD_CHECKLIST_STRICT` (Warnmodus)
 
 ### Guard-Konfiguration
