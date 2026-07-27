@@ -19,15 +19,17 @@ WGX besitzt:
 WGX besitzt nicht:
 
 - Task-Auswahl, Reihenfolge, Claims oder Abschlusswahrheit – das gehört Bureau;
-- Deploy-, Service-, Prozess-, Git- oder generische Host-Mutation – das gehört
-  Grabowski beziehungsweise einer explizit autorisierten Repository-Pipeline;
+- Grabowski-Autorität für Deployments, Services oder Prozesse;
+- generische repository-übergreifende Host-Autorität;
 - CI-Ergebnisse anderer Repositories – deren native CI und GitHub bleiben die
   Quelle;
-- Fleet-Templates oder deren Distribution – das gehört Metarepo.
+- Fleet-Distribution – das gehört Metarepo.
 
-`wgx task` und `wgx run` sind deshalb Repository-Adapter. Sie führen nur einen
-vom aktuellen Repository deklarierten Befehl aus. Sie sind keine Task-Queue und
-keine Deploy-Freigabe.
+WGX enthält ausdrücklich repository-bezogene Entwickler-Mutationen wie
+`clean`, `reload`, `heal` und `send`. `wgx task` und `wgx run` führen einen vom
+aktuellen Repository deklarierten Shell-Befehl aus; WGX begrenzt dessen
+mögliche Host-Effekte nicht technisch. Diese Flächen sind weder Task-Queue noch
+Deploy-Freigabe und übertragen WGX keine Bureau- oder Grabowski-Autorität.
 
 ## Beibehaltene gemeinsame Flächen
 
@@ -50,6 +52,7 @@ WGX ersetzt keine fachliche CI. Ein Python-Repository kann beispielsweise
 seinen eigenen Linter deklarieren. Der WGX-Adapter vereinheitlicht lediglich
 den Aufruf und die Profilkompatibilität.
 
-Fleet-Templates werden aus
-[`heimgewebe/metarepo/templates`](https://github.com/heimgewebe/metarepo/tree/main/templates)
-verteilt und dort validiert. WGX hält keine zweite Starterkopie.
+Metarepo besitzt die Fleet-Distribution. Die WGX-eigenen Starterprofile
+bleiben jedoch erhalten, bis Metarepo einen nachweislich ausführbaren,
+task-kompatiblen Ersatz samt CI-Abdeckung bietet. Der aktuell geprüfte
+Metarepo-Profilkandidat enthält keine WGX-Tasks und ist deshalb kein Ersatz.

@@ -4,23 +4,33 @@ name: Operator capability boundaries
   pull_request:
     paths:
       - ".ai-context.yml"
-      - ".github/workflows/operator-capabilities.yml"
-      - "docs/operator-ecosystem-capabilities.md"
-      - "docs/operator-ecosystem-capabilities.v1.json"
+      - ".github/actions/wgx-check/**"
+      - ".github/workflows/**"
+      - "README.md"
+      - "cmd/**"
+      - "docs/**"
       - "fixtures/profile.valid.yml"
-      - "scripts/validate_operator_capabilities.py"
-      - "tests/test_operator_capabilities.py"
+      - "guards/**"
+      - "lib/**"
+      - "modules/**"
+      - "scripts/**"
+      - "tests/**"
       - "templates/**"
   push:
     branches: [main]
     paths:
       - ".ai-context.yml"
-      - ".github/workflows/operator-capabilities.yml"
-      - "docs/operator-ecosystem-capabilities.md"
-      - "docs/operator-ecosystem-capabilities.v1.json"
+      - ".github/actions/wgx-check/**"
+      - ".github/workflows/**"
+      - "README.md"
+      - "cmd/**"
+      - "docs/**"
       - "fixtures/profile.valid.yml"
-      - "scripts/validate_operator_capabilities.py"
-      - "tests/test_operator_capabilities.py"
+      - "guards/**"
+      - "lib/**"
+      - "modules/**"
+      - "scripts/**"
+      - "tests/**"
       - "templates/**"
   workflow_dispatch:
 

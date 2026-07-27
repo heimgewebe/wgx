@@ -1,53 +1,78 @@
 # WGX-Fähigkeiten und Systemgrenzen
 
-Die maschinenlesbare Inventur liegt in
+Die fail-closed Inventur liegt in
 [`operator-ecosystem-capabilities.v1.json`](operator-ecosystem-capabilities.v1.json).
-`scripts/validate_operator_capabilities.py` erzwingt folgende Regeln:
+Sie trennt direkte Consumer, Fleet-Invarianz, WGX-lokale Nutzung,
+Kompatibilitätsziele und ungeprüfte Kopien. Ein Repository ist nur dann
+Consumer, wenn ein belegter Pfad die kanonische WGX-Fläche tatsächlich
+aufruft. Ein Ziel einer WGX-Matrix und eine eingecheckte Kopie zählen nicht.
 
-- Jede beibehaltene Fähigkeit hat mindestens zwei belegte Repository-Consumer
-  oder einen quellengebundenen Fleet-Invarianzvorteil.
-- Jeder direkte Consumer nennt seinen repository-nativen CI-Einstieg.
-- Eine ausgemusterte Fähigkeit nennt Eigentümer, Distribution und CI-Abdeckung
-  des Ersatzes; ausgemusterte WGX-Flächen dürfen nicht wieder auftauchen.
-- WGX beansprucht weder Task-Koordination noch Deploy-Autorität oder generische
-  Host-Mutation.
+`scripts/validate_operator_capabilities.py` prüft unter anderem:
 
-## Ergebnis der Inventur
+- eindeutige Fähigkeiten und alle einzeln erforderlichen Capability-IDs,
+- exakte Zuordnung von Consumer-Repository, `evidence_path` und Quell-URL,
+- nichtleere Authority- und Alternative-Owner sowie lokale Evidenzpfade,
+- alle `cmd/*.bash`-Flächen und die Klassifikation mutierender Befehle,
+- widerspruchsfreie Autoritätsaussagen und gültige Ersatzevidenz,
+- Trigger-Abdeckung aller Flächen und Validatorverträge für Push und PR.
 
-| Fähigkeit | Entscheidung | Belegte Consumer oder Invarianz | Repository-nativer Weg |
+## Belegte Fähigkeiten
+
+| Fähigkeit | Status | Reale Nutzung | Alternative |
 | --- | --- | --- | --- |
-| Guard-Router | behalten | 10 direkte Reusable-Workflow-Caller | CI-Workflow oder Build-Frontdoor jedes Repositories |
-| Smoke-Router | behalten | 7 direkte Reusable-Workflow-Caller | Smoke-/CI-Workflow jedes Repositories |
-| Statische Guard-Invarianten | behalten | `semantAH`, `sichter`; gemeinsame Contract- und Datenflussregeln | repository-eigene CI- und Contract-Workflows |
-| Metrics-Contract-Kompatibilität | behalten, eingegrenzt | gemeinsames Metarepo-Schema und 10 repository-native Producer | Metarepo-Reusable-Workflow beziehungsweise lokaler `metrics.yml` |
-| Kompatibilitätsmatrix | behalten | `hausKI`, `weltgewebe` | jeweiliger `ci.yml` |
-| WGX-Profil-Startertemplates | ausgemustert | keine direkten oder byte-identischen Consumer im geprüften Primärbestand | Metarepo `templates/.wgx/profile.yml`, `sync-templates.sh`, `validate-templates.yml` |
+| Guard-Router | behalten | zehn direkte Caller des WGX-Reusable-Workflows | CI/Build-Frontdoor des jeweiligen Repositories |
+| Smoke-Router | behalten | sieben direkte Caller des WGX-Reusable-Workflows | Smoke-/CI-Frontdoor des jeweiligen Repositories |
+| Statische Guard-Invarianten | behalten, lokal belegt | WGX-Tests; fremde Kopien werden nicht gezählt | repository-native Validatoren und CI |
+| Metrics-Contract-Kompatibilität | behalten, lokal belegt | WGX-Workflow ruft den WGX-Producer auf | Metarepo-Schema und repository-native Producer |
+| Kompatibilitätsmatrix | behalten, lokal belegt | WGX-Workflow ruft die WGX-Action auf | CI des jeweiligen Ziel-Repositories |
+| WGX-Profil-Starter | erhalten, Consumer ungeprüft | keine externe Nutzung behauptet | kein kompatibler Ersatz nachgewiesen |
 
-Die vollständigen Repository- und Quellpfade stehen im JSON-Dokument. Lokale
-Duplikat-Worktrees wurden nicht als zusätzliche Consumer gezählt.
+`hausKI` und `weltgewebe` sind in der Kompatibilitätsmatrix Ziele, nicht deren
+Consumer. `semantAH` und `sichter` enthalten lokale WGX-ähnliche Runner oder
+Kopien; diese belegen keine Nutzung der kanonischen statischen WGX-Guards.
+Die exakten Commit- und Pfadbelege stehen im JSON.
+
+## Operative CLI-Flächen
+
+Die Inventur deckt jede Datei unter `cmd/*.bash` ab. Sie unterscheidet:
+
+- Beobachtung/Verifikation: `doctor`, `env`, `guard`, `lint`, `selftest`,
+  `status`, `tasks`, `validate` sowie die lesenden Modi von `audit`,
+  `integrity`, `routine` und `version`.
+- Repository-bezogene Mutation: `clean`, `heal`, `init`, `reload` sowie die
+  mutierenden Modi von `audit`, `integrity`, `routine` und `version`.
+- Forge-/Remote-Effekte: `send` und das darauf aufbauende `quick`.
+- Delegierte Ausführung: `run` und `task` führen beliebige, vom Repository
+  deklarierte Shell-Kommandos aus; `test` startet repository-eigene Bats-Tests.
+  WGX erzwingt für deklarierte Tasks keine technische Host-Sandbox.
+- Operator-State: `vibe adopt` schreibt einen Receipt in einen
+  operatorgewählten WGX-State-Pfad; Plan, Status und Doctor lesen nur.
+- Nicht implementiert: `config`, `hooks`, `release`, `setup`, `start`;
+  `sync-remote` besitzt keinen ausführbaren Entrypoint.
+
+Damit behauptet WGX nicht, frei von Host-Mutation zu sein. Die engere Grenze
+lautet: WGX besitzt keine generische, repository-übergreifende Host-Autorität.
+Die vorhandenen Mutationen sind Entwicklerbefehle für das aktuelle oder
+explizit ausgewählte Repository beziehungsweise den Operator-State.
 
 ## Autoritätsgrenze
 
-WGX parst Repository-Profile und routet Verifikation zu einem vom Ziel-Repo
-deklarierten Einstieg. Das ist keine Task-Queue und keine Ausführungsfreigabe.
-[Bureau besitzt Koordination, Reihenfolge und Claims](https://github.com/heimgewebe/bureau/blob/b70bd7a4bdbc1a113bab1e7fce2ddcf2645ebf43/docs/ownership.md).
-[Grabowski besitzt Host-/Prozessausführung und typisierte Git-, Service- und
-Deploy-Effekte](https://github.com/heimgewebe/grabowski/blob/afc0a6f67ac553aaaa140ca2785aee3d47843636/README.md).
-GitHub und die repository-native CI bleiben Quelle für Check-Ergebnisse.
+WGX beansprucht, ordnet, weist zu oder beendet keine Bureau-Tasks.
+[Bureau besitzt die Task-Koordination](https://github.com/heimgewebe/bureau/blob/b70bd7a4bdbc1a113bab1e7fce2ddcf2645ebf43/docs/ownership.md).
+WGX beansprucht außerdem keine Grabowski-Autorität für Deployments, Services
+oder Prozesse.
+[Grabowski besitzt diese typisierten Effekte](https://github.com/heimgewebe/grabowski/blob/afc0a6f67ac553aaaa140ca2785aee3d47843636/README.md).
+Repository-Änderungen bleiben unter der Autorität des aufrufenden Operators
+und des jeweiligen Repositories; GitHub und repository-native CI entscheiden
+über Checks und Merges.
 
-Das Metrics-Workflow läuft deshalb nur noch als Contract-Kompatibilitätscheck.
-Er plant keine stündliche Hostbeobachtung, sendet keine Daten an einen
-Ingest-Endpunkt und behauptet keine Live- oder Deployment-Wahrheit.
+## Rücknahme der Template-Ausmusterung
 
-## Ersetzter Template-Pfad
-
-Die WGX-eigenen Starterkopien hatten im geprüften Primärbestand keinen
-nachweisbaren Consumer und drifteten neben dem vorhandenen Fleet-Eigentümer.
-Der Ersatz ist direkt belegt:
-
-- [kanonisches Profil im Metarepo](https://github.com/heimgewebe/metarepo/blob/1be27a95e8ade74670150315243afd34c32e277e/templates/.wgx/profile.yml)
-- [Distribution durch `sync-templates.sh`](https://github.com/heimgewebe/metarepo/blob/1be27a95e8ade74670150315243afd34c32e277e/scripts/sync-templates.sh)
-- [CI-Abdeckung durch `validate-templates.yml`](https://github.com/heimgewebe/metarepo/blob/1be27a95e8ade74670150315243afd34c32e277e/.github/workflows/validate-templates.yml)
-
-WGX-Tests verwenden nun `fixtures/profile.valid.yml`; diese Datei ist
-ausdrücklich nur eine Test-Fixture und keine Fleet-Distributionsquelle.
+Die zuvor entfernten WGX-Profile und Dokumentvorlagen sind wiederhergestellt.
+Der vorher angeführte
+[Metarepo-Kandidat](https://github.com/heimgewebe/metarepo/blob/1be27a95e8ade74670150315243afd34c32e277e/templates/.wgx/profile.yml)
+definiert keine WGX-Tasks. Er bewahrt daher weder die ausführbare Semantik der
+WGX-Templates noch eine dazu passende CI-Abdeckung. Die Migration ist als
+`retirement_reversed` vermerkt; bis echte Consumer oder ein kompatibler Ersatz
+belegt sind, lautet der ehrliche Status `preserved_unproven`. Ein fokussierter
+Regressionstest lädt alle ausführbaren Profile und prüft ihre Task-Mengen.

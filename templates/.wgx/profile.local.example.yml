@@ -1,0 +1,6 @@
+# Copy to .wgx/profile.local.yml and tweak for your machine
+wgx:
+  envOverrides:
+    RUST_LOG: "info,wgx=debug"
+  dirs:
+    data: "~/.local/state/wgx"

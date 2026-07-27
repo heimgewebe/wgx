@@ -24,9 +24,10 @@
 
 - Im `cmd/`-Verzeichnis existiert bislang kein `py.bash` oder `tool.bash`. Die in der README beworbenen Wrapper
   sind daher noch nicht implementiert und Nutzer:innen müssen uv manuell bedienen.【F:cmd/py.bash†L1-L4】
-- Fleet-Profiltemplates gehören inzwischen dem Metarepo. WGX enthält bewusst
-  keine zweite Distributionskopie; repository-eigene Profile bleiben die
-  ausführbare Quelle.
+- Metarepo besitzt die Fleet-Distribution. Die WGX-eigenen Starterprofile
+  bleiben als ausführbare Beispiele erhalten, weil der aktuell geprüfte
+  Metarepo-Profilkandidat keine WGX-Tasks enthält und damit kein kompatibler
+  Ersatz ist; repository-eigene Profile bleiben die Laufzeitquelle.
 
 ## Potenziale zur Verbesserung
 

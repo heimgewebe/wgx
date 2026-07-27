@@ -33,7 +33,7 @@ role_contract:
     - no_ledger_ownership
     - no_policy_application
     - no_deploy_authority
-    - no_generic_host_mutation
+    - no_generic_cross_repository_host_authority
   unavailable_effect: guard_and_metrics_degrade_without_changing_task_truth
 
 dependencies:

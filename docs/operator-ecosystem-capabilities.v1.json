@@ -17,26 +17,46 @@
       "heimgewebe/weltgewebe"
     ],
     "limitations": [
-      "Consumer evidence is limited to primary local checkouts and source-linked repository paths; duplicate worktrees were excluded.",
-      "A checked-in copy of a WGX-origin script is not counted as a live consumer unless it invokes a WGX-owned surface."
+      "Consumer means a repository that invokes the canonical heimgewebe/wgx surface. A target named by a WGX workflow is not a consumer.",
+      "Checked-in forks and copied scripts are not consumers unless they invoke the canonical WGX-owned surface.",
+      "Primary local checkouts were inspected at the exact commits linked below; duplicate worktrees were excluded."
     ]
   },
   "authority_boundary": {
-    "wgx_role": "Repository verification adapter and fleet-invariant check implementation.",
+    "wgx_role": "Repository-scoped developer tool, verification adapter, and compatibility-check implementation.",
     "does_not_own": [
-      "task_coordination",
-      "deploy_authority",
-      "generic_host_mutation"
+      "bureau_task_coordination",
+      "grabowski_deployment_or_process_authority",
+      "generic_cross_repository_host_authority"
     ],
     "owners": {
-      "task_coordination": "Bureau Core",
-      "host_process_and_git_effects": "Grabowski",
-      "deploy_and_runtime_effects": "Grabowski",
-      "ci_conclusions": "GitHub and each repository's native CI"
+      "bureau_task_coordination": {
+        "owner": "heimgewebe/bureau",
+        "source_url": "https://github.com/heimgewebe/bureau/blob/b70bd7a4bdbc1a113bab1e7fce2ddcf2645ebf43/docs/ownership.md"
+      },
+      "grabowski_deployment_or_process_authority": {
+        "owner": "heimgewebe/grabowski",
+        "source_url": "https://github.com/heimgewebe/grabowski/blob/afc0a6f67ac553aaaa140ca2785aee3d47843636/README.md"
+      },
+      "generic_cross_repository_host_authority": {
+        "owner": "explicitly authorized operator or ecosystem owner",
+        "source_url": "https://github.com/heimgewebe/grabowski/blob/afc0a6f67ac553aaaa140ca2785aee3d47843636/README.md"
+      },
+      "repository_changes": {
+        "owner": "invoking repository and operator",
+        "source_url": "https://github.com/heimgewebe/wgx/blob/c4b41809664353a3cff310dd4d6ef4d75be2ff60/docs/Command-Reference.de.md"
+      },
+      "ci_conclusions": {
+        "owner": "target repository native CI and GitHub",
+        "source_url": "https://github.com/heimgewebe/wgx/blob/c4b41809664353a3cff310dd4d6ef4d75be2ff60/.github/workflows/wgx-guard.yml"
+      }
     },
-    "sources": [
-      "https://github.com/heimgewebe/bureau/blob/b70bd7a4bdbc1a113bab1e7fce2ddcf2645ebf43/docs/ownership.md",
-      "https://github.com/heimgewebe/grabowski/blob/afc0a6f67ac553aaaa140ca2785aee3d47843636/README.md"
+    "repository_scoped_mutation": "WGX does expose repository-scoped developer mutations such as clean, reload, heal, send, version changes, integrity output, and Vibe receipts.",
+    "delegated_execution": "run and task execute repository-declared shell commands. WGX does not technically confine those commands to the repository, so host effects are possible under the invoking operator and profile owner's authority.",
+    "explicit_non_claims": [
+      "WGX does not claim, order, assign, or complete Bureau tasks.",
+      "WGX does not claim Grabowski deployment, service, or process authority.",
+      "A WGX check result is not deployment truth or generic cross-repository execution authority."
     ]
   },
   "capabilities": [
@@ -44,188 +64,224 @@
       "id": "repository-guard-router",
       "category": "guard",
       "disposition": "retained_multi_consumer",
-      "summary": "Runs the guard or smoke front door declared by the target repository; it does not select, order, claim, or complete Bureau tasks.",
+      "authority": "repository_verification_adapter",
+      "summary": "Reusable workflow loads pinned WGX and invokes the target repository's declared guard or smoke task.",
       "surfaces": [
         ".github/workflows/wgx-guard.yml"
+      ],
+      "local_evidence_paths": [
+        "tests/wgx_guard_action_pins.bats"
       ],
       "consumers": [
         {
           "repository": "heimgewebe/aussensensor",
           "evidence_path": ".github/workflows/wgx-guard.yml",
-          "source_url": "https://github.com/heimgewebe/aussensensor/blob/main/.github/workflows/wgx-guard.yml",
+          "source_url": "https://github.com/heimgewebe/aussensensor/blob/f9c75995b61ee841321420789e8e6b6374384a2a/.github/workflows/wgx-guard.yml",
+          "canonical_invocation": "uses: heimgewebe/wgx/.github/workflows/wgx-guard.yml@main",
           "repository_native_alternative": {
             "path": ".github/workflows/tests.yml",
-            "source_url": "https://github.com/heimgewebe/aussensensor/blob/main/.github/workflows/tests.yml"
+            "source_url": "https://github.com/heimgewebe/aussensensor/blob/f9c75995b61ee841321420789e8e6b6374384a2a/.github/workflows/tests.yml"
           }
         },
         {
           "repository": "heimgewebe/chronik",
           "evidence_path": ".github/workflows/wgx-guard.yml",
-          "source_url": "https://github.com/heimgewebe/chronik/blob/main/.github/workflows/wgx-guard.yml",
+          "source_url": "https://github.com/heimgewebe/chronik/blob/0596f6624e2bab3de81f8b0a32a1dbf45a0e1482/.github/workflows/wgx-guard.yml",
+          "canonical_invocation": "uses: heimgewebe/wgx/.github/workflows/wgx-guard.yml@main",
           "repository_native_alternative": {
             "path": "Makefile",
-            "source_url": "https://github.com/heimgewebe/chronik/blob/main/Makefile"
+            "source_url": "https://github.com/heimgewebe/chronik/blob/0596f6624e2bab3de81f8b0a32a1dbf45a0e1482/Makefile"
           }
         },
         {
           "repository": "heimgewebe/hausKI",
           "evidence_path": ".github/workflows/wgx-guard.yml",
-          "source_url": "https://github.com/heimgewebe/hausKI/blob/main/.github/workflows/wgx-guard.yml",
+          "source_url": "https://github.com/heimgewebe/hausKI/blob/377c3a3229abed80713789979e268c57cc3f6999/.github/workflows/wgx-guard.yml",
+          "canonical_invocation": "uses: heimgewebe/wgx/.github/workflows/wgx-guard.yml@main",
           "repository_native_alternative": {
             "path": ".github/workflows/ci.yml",
-            "source_url": "https://github.com/heimgewebe/hausKI/blob/main/.github/workflows/ci.yml"
+            "source_url": "https://github.com/heimgewebe/hausKI/blob/377c3a3229abed80713789979e268c57cc3f6999/.github/workflows/ci.yml"
           }
         },
         {
           "repository": "heimgewebe/heimlern",
           "evidence_path": ".github/workflows/wgx-guard.yml",
-          "source_url": "https://github.com/heimgewebe/heimlern/blob/main/.github/workflows/wgx-guard.yml",
+          "source_url": "https://github.com/heimgewebe/heimlern/blob/f74579cbe46d5f5f7b95c4c3431da03efb67cc85/.github/workflows/wgx-guard.yml",
+          "canonical_invocation": "uses: heimgewebe/wgx/.github/workflows/wgx-guard.yml@6bff05c51aeed8cf8fc7a7ba2181bfae58397c8f",
           "repository_native_alternative": {
             "path": ".github/workflows/rust.yml",
-            "source_url": "https://github.com/heimgewebe/heimlern/blob/main/.github/workflows/rust.yml"
+            "source_url": "https://github.com/heimgewebe/heimlern/blob/f74579cbe46d5f5f7b95c4c3431da03efb67cc85/.github/workflows/rust.yml"
           }
         },
         {
           "repository": "heimgewebe/lenskit",
           "evidence_path": ".github/workflows/wgx-guard.yml",
-          "source_url": "https://github.com/heimgewebe/lenskit/blob/main/.github/workflows/wgx-guard.yml",
+          "source_url": "https://github.com/heimgewebe/lenskit/blob/03ad9ba3653ecf2058b77059765a23418fb21d12/.github/workflows/wgx-guard.yml",
+          "canonical_invocation": "uses: heimgewebe/wgx/.github/workflows/wgx-guard.yml@a7466bf2c3cb7fa3b261bfb2d008612abc0f85b1",
           "repository_native_alternative": {
             "path": ".github/workflows/test-suite.yml",
-            "source_url": "https://github.com/heimgewebe/lenskit/blob/main/.github/workflows/test-suite.yml"
+            "source_url": "https://github.com/heimgewebe/lenskit/blob/03ad9ba3653ecf2058b77059765a23418fb21d12/.github/workflows/test-suite.yml"
           }
         },
         {
           "repository": "heimgewebe/metarepo",
           "evidence_path": ".github/workflows/wgx-guard.yml",
-          "source_url": "https://github.com/heimgewebe/metarepo/blob/main/.github/workflows/wgx-guard.yml",
+          "source_url": "https://github.com/heimgewebe/metarepo/blob/1be27a95e8ade74670150315243afd34c32e277e/.github/workflows/wgx-guard.yml",
+          "canonical_invocation": "uses: heimgewebe/wgx/.github/workflows/wgx-guard.yml@3d823f9d26be276eef97742335dee857a64e1715",
           "repository_native_alternative": {
             "path": ".github/workflows/ci.yml",
-            "source_url": "https://github.com/heimgewebe/metarepo/blob/main/.github/workflows/ci.yml"
+            "source_url": "https://github.com/heimgewebe/metarepo/blob/1be27a95e8ade74670150315243afd34c32e277e/.github/workflows/ci.yml"
           }
         },
         {
           "repository": "heimgewebe/mitschreiber",
           "evidence_path": ".github/workflows/wgx-guard.yml",
-          "source_url": "https://github.com/heimgewebe/mitschreiber/blob/main/.github/workflows/wgx-guard.yml",
+          "source_url": "https://github.com/heimgewebe/mitschreiber/blob/3c0a6311c7a29f03fcab89010be25f594c4c5300/.github/workflows/wgx-guard.yml",
+          "canonical_invocation": "uses: heimgewebe/wgx/.github/workflows/wgx-guard.yml@main",
           "repository_native_alternative": {
             "path": ".github/workflows/ci.yml",
-            "source_url": "https://github.com/heimgewebe/mitschreiber/blob/main/.github/workflows/ci.yml"
+            "source_url": "https://github.com/heimgewebe/mitschreiber/blob/3c0a6311c7a29f03fcab89010be25f594c4c5300/.github/workflows/ci.yml"
           }
         },
         {
           "repository": "heimgewebe/plexer",
           "evidence_path": ".github/workflows/wgx-guard.yml",
-          "source_url": "https://github.com/heimgewebe/plexer/blob/main/.github/workflows/wgx-guard.yml",
+          "source_url": "https://github.com/heimgewebe/plexer/blob/93fb9aa2451d44eb6b8cff7c7fd054086804049e/.github/workflows/wgx-guard.yml",
+          "canonical_invocation": "uses: heimgewebe/wgx/.github/workflows/wgx-guard.yml@main",
           "repository_native_alternative": {
             "path": ".github/workflows/ci.yml",
-            "source_url": "https://github.com/heimgewebe/plexer/blob/main/.github/workflows/ci.yml"
+            "source_url": "https://github.com/heimgewebe/plexer/blob/93fb9aa2451d44eb6b8cff7c7fd054086804049e/.github/workflows/ci.yml"
           }
         },
         {
           "repository": "heimgewebe/sichter",
           "evidence_path": ".github/workflows/wgx-guard.yml",
-          "source_url": "https://github.com/heimgewebe/sichter/blob/main/.github/workflows/wgx-guard.yml",
+          "source_url": "https://github.com/heimgewebe/sichter/blob/f4359f0817d7db6b3f821bcdce7be12c18e561cc/.github/workflows/wgx-guard.yml",
+          "canonical_invocation": "uses: heimgewebe/wgx/.github/workflows/wgx-guard.yml@main",
           "repository_native_alternative": {
             "path": ".github/workflows/ci.yml",
-            "source_url": "https://github.com/heimgewebe/sichter/blob/main/.github/workflows/ci.yml"
+            "source_url": "https://github.com/heimgewebe/sichter/blob/f4359f0817d7db6b3f821bcdce7be12c18e561cc/.github/workflows/ci.yml"
           }
         },
         {
           "repository": "heimgewebe/weltgewebe",
           "evidence_path": ".github/workflows/wgx-guard.yml",
-          "source_url": "https://github.com/heimgewebe/weltgewebe/blob/main/.github/workflows/wgx-guard.yml",
+          "source_url": "https://github.com/heimgewebe/weltgewebe/blob/0e03824d47e6ef59cf50ed1d9c27f5050b6bede3/.github/workflows/wgx-guard.yml",
+          "canonical_invocation": "uses: heimgewebe/wgx/.github/workflows/wgx-guard.yml@17e349d872e16f927bdd8e0d770d2295f8b6e663",
           "repository_native_alternative": {
             "path": ".github/workflows/ci.yml",
-            "source_url": "https://github.com/heimgewebe/weltgewebe/blob/main/.github/workflows/ci.yml"
+            "source_url": "https://github.com/heimgewebe/weltgewebe/blob/0e03824d47e6ef59cf50ed1d9c27f5050b6bede3/.github/workflows/ci.yml"
           }
         }
       ],
       "invariance_benefit": null,
+      "ecosystem_alternative": {
+        "owner": "each consuming repository",
+        "path": "repository-native CI workflow named per consumer",
+        "source_url": "https://github.com/heimgewebe/wgx/blob/c4b41809664353a3cff310dd4d6ef4d75be2ff60/docs/operator-ecosystem-capabilities.md"
+      },
       "replacement": null
     },
     {
       "id": "repository-smoke-router",
       "category": "smoke",
       "disposition": "retained_multi_consumer",
-      "summary": "Checks that a repository declares a smoke front door and invokes that repository-owned command through the profile adapter.",
+      "authority": "repository_verification_adapter",
+      "summary": "Reusable workflow requires and invokes the target repository's declared smoke task.",
       "surfaces": [
         ".github/workflows/wgx-smoke.yml",
         "scripts/check_wgx_smoke_contract.py",
         "scripts/check_wgx_guard_action_pins.py"
       ],
+      "local_evidence_paths": [
+        "tests/wgx_guard_action_pins.bats"
+      ],
       "consumers": [
         {
           "repository": "heimgewebe/chronik",
           "evidence_path": ".github/workflows/wgx-smoke.yml",
-          "source_url": "https://github.com/heimgewebe/chronik/blob/main/.github/workflows/wgx-smoke.yml",
+          "source_url": "https://github.com/heimgewebe/chronik/blob/0596f6624e2bab3de81f8b0a32a1dbf45a0e1482/.github/workflows/wgx-smoke.yml",
+          "canonical_invocation": "uses: heimgewebe/wgx/.github/workflows/wgx-smoke.yml@main",
           "repository_native_alternative": {
             "path": ".github/workflows/validate-chronik-fixtures.yml",
-            "source_url": "https://github.com/heimgewebe/chronik/blob/main/.github/workflows/validate-chronik-fixtures.yml"
+            "source_url": "https://github.com/heimgewebe/chronik/blob/0596f6624e2bab3de81f8b0a32a1dbf45a0e1482/.github/workflows/validate-chronik-fixtures.yml"
           }
         },
         {
           "repository": "heimgewebe/hausKI",
           "evidence_path": ".github/workflows/wgx-smoke.yml",
-          "source_url": "https://github.com/heimgewebe/hausKI/blob/main/.github/workflows/wgx-smoke.yml",
+          "source_url": "https://github.com/heimgewebe/hausKI/blob/377c3a3229abed80713789979e268c57cc3f6999/.github/workflows/wgx-smoke.yml",
+          "canonical_invocation": "uses: heimgewebe/wgx/.github/workflows/wgx-smoke.yml@main",
           "repository_native_alternative": {
             "path": ".github/workflows/ci.yml",
-            "source_url": "https://github.com/heimgewebe/hausKI/blob/main/.github/workflows/ci.yml"
+            "source_url": "https://github.com/heimgewebe/hausKI/blob/377c3a3229abed80713789979e268c57cc3f6999/.github/workflows/ci.yml"
           }
         },
         {
           "repository": "heimgewebe/heimlern",
           "evidence_path": ".github/workflows/wgx-smoke.yml",
-          "source_url": "https://github.com/heimgewebe/heimlern/blob/main/.github/workflows/wgx-smoke.yml",
+          "source_url": "https://github.com/heimgewebe/heimlern/blob/f74579cbe46d5f5f7b95c4c3431da03efb67cc85/.github/workflows/wgx-smoke.yml",
+          "canonical_invocation": "uses: heimgewebe/wgx/.github/workflows/wgx-smoke.yml@6bff05c51aeed8cf8fc7a7ba2181bfae58397c8f",
           "repository_native_alternative": {
             "path": ".github/workflows/rust.yml",
-            "source_url": "https://github.com/heimgewebe/heimlern/blob/main/.github/workflows/rust.yml"
+            "source_url": "https://github.com/heimgewebe/heimlern/blob/f74579cbe46d5f5f7b95c4c3431da03efb67cc85/.github/workflows/rust.yml"
           }
         },
         {
           "repository": "heimgewebe/metarepo",
           "evidence_path": ".github/workflows/wgx-smoke.yml",
-          "source_url": "https://github.com/heimgewebe/metarepo/blob/main/.github/workflows/wgx-smoke.yml",
+          "source_url": "https://github.com/heimgewebe/metarepo/blob/1be27a95e8ade74670150315243afd34c32e277e/.github/workflows/wgx-smoke.yml",
+          "canonical_invocation": "uses: heimgewebe/wgx/.github/workflows/wgx-smoke.yml@b3b358f5bb8d26f087fcdaf25d308d439b22f583",
           "repository_native_alternative": {
             "path": ".github/workflows/ci.yml",
-            "source_url": "https://github.com/heimgewebe/metarepo/blob/main/.github/workflows/ci.yml"
+            "source_url": "https://github.com/heimgewebe/metarepo/blob/1be27a95e8ade74670150315243afd34c32e277e/.github/workflows/ci.yml"
           }
         },
         {
           "repository": "heimgewebe/mitschreiber",
           "evidence_path": ".github/workflows/wgx-smoke.yml",
-          "source_url": "https://github.com/heimgewebe/mitschreiber/blob/main/.github/workflows/wgx-smoke.yml",
+          "source_url": "https://github.com/heimgewebe/mitschreiber/blob/3c0a6311c7a29f03fcab89010be25f594c4c5300/.github/workflows/wgx-smoke.yml",
+          "canonical_invocation": "uses: heimgewebe/wgx/.github/workflows/wgx-smoke.yml@main",
           "repository_native_alternative": {
             "path": ".github/workflows/ci.yml",
-            "source_url": "https://github.com/heimgewebe/mitschreiber/blob/main/.github/workflows/ci.yml"
+            "source_url": "https://github.com/heimgewebe/mitschreiber/blob/3c0a6311c7a29f03fcab89010be25f594c4c5300/.github/workflows/ci.yml"
           }
         },
         {
           "repository": "heimgewebe/sichter",
           "evidence_path": ".github/workflows/wgx-smoke.yml",
-          "source_url": "https://github.com/heimgewebe/sichter/blob/main/.github/workflows/wgx-smoke.yml",
+          "source_url": "https://github.com/heimgewebe/sichter/blob/f4359f0817d7db6b3f821bcdce7be12c18e561cc/.github/workflows/wgx-smoke.yml",
+          "canonical_invocation": "uses: heimgewebe/wgx/.github/workflows/wgx-smoke.yml@main",
           "repository_native_alternative": {
             "path": ".github/workflows/ci.yml",
-            "source_url": "https://github.com/heimgewebe/sichter/blob/main/.github/workflows/ci.yml"
+            "source_url": "https://github.com/heimgewebe/sichter/blob/f4359f0817d7db6b3f821bcdce7be12c18e561cc/.github/workflows/ci.yml"
           }
         },
         {
           "repository": "heimgewebe/weltgewebe",
           "evidence_path": ".github/workflows/wgx-smoke.yml",
-          "source_url": "https://github.com/heimgewebe/weltgewebe/blob/main/.github/workflows/wgx-smoke.yml",
+          "source_url": "https://github.com/heimgewebe/weltgewebe/blob/0e03824d47e6ef59cf50ed1d9c27f5050b6bede3/.github/workflows/wgx-smoke.yml",
+          "canonical_invocation": "uses: heimgewebe/wgx/.github/workflows/wgx-smoke.yml@814d5e9102e4020c786d6bb7e1c377004cf2bbea",
           "repository_native_alternative": {
             "path": ".github/workflows/compose-smoke.yml",
-            "source_url": "https://github.com/heimgewebe/weltgewebe/blob/main/.github/workflows/compose-smoke.yml"
+            "source_url": "https://github.com/heimgewebe/weltgewebe/blob/0e03824d47e6ef59cf50ed1d9c27f5050b6bede3/.github/workflows/compose-smoke.yml"
           }
         }
       ],
       "invariance_benefit": null,
+      "ecosystem_alternative": {
+        "owner": "each consuming repository",
+        "path": "repository-native smoke or CI workflow named per consumer",
+        "source_url": "https://github.com/heimgewebe/wgx/blob/c4b41809664353a3cff310dd4d6ef4d75be2ff60/docs/operator-ecosystem-capabilities.md"
+      },
       "replacement": null
     },
     {
       "id": "fleet-static-guard-invariants",
       "category": "guard",
-      "disposition": "retained_multi_consumer",
-      "summary": "Provides repository-shape, conflict, size, contract ownership, data-flow, insight, CI-dependency, and integrity checks without changing host or deployment state.",
+      "disposition": "retained_fleet_invariance",
+      "authority": "repository_scoped_developer_tool",
+      "summary": "WGX-local static checks remain executable, but copied sibling scripts are not counted as consumers.",
       "surfaces": [
         "modules/guard.bash",
         "guards/ci-deps.guard.sh",
@@ -235,32 +291,34 @@
         "guards/insights_guard.py",
         "guards/integrity.guard.sh"
       ],
+      "local_evidence_paths": [
+        "tests/guard.bats",
+        "tests/guard_contracts_ownership.bats",
+        "tests/test_data_flow_guard.py"
+      ],
       "consumers": [
         {
-          "repository": "heimgewebe/semantAH",
-          "evidence_path": ".github/workflows/wgx-reusable.yml",
-          "source_url": "https://github.com/heimgewebe/semantAH/blob/main/.github/workflows/wgx-reusable.yml",
+          "repository": "heimgewebe/wgx",
+          "evidence_path": "tests/guard.bats",
+          "source_url": "https://github.com/heimgewebe/wgx/blob/c4b41809664353a3cff310dd4d6ef4d75be2ff60/tests/guard.bats",
+          "canonical_invocation": "run guard_run",
           "repository_native_alternative": {
             "path": ".github/workflows/ci.yml",
-            "source_url": "https://github.com/heimgewebe/semantAH/blob/main/.github/workflows/ci.yml"
-          }
-        },
-        {
-          "repository": "heimgewebe/sichter",
-          "evidence_path": "scripts/wgx-selftest-sichter.sh",
-          "source_url": "https://github.com/heimgewebe/sichter/blob/main/scripts/wgx-selftest-sichter.sh",
-          "repository_native_alternative": {
-            "path": ".github/workflows/contracts-validate.yml",
-            "source_url": "https://github.com/heimgewebe/sichter/blob/main/.github/workflows/contracts-validate.yml"
+            "source_url": "https://github.com/heimgewebe/wgx/blob/c4b41809664353a3cff310dd4d6ef4d75be2ff60/.github/workflows/ci.yml"
           }
         }
       ],
       "invariance_benefit": {
-        "claim": "The same fail-closed contract ownership and artifact/schema checks can run in heterogeneous repositories without granting WGX coordination or mutation authority.",
+        "claim": "The same fail-closed contract and data-flow rules are regression-tested locally without claiming external adoption.",
         "evidence_sources": [
-          "https://github.com/heimgewebe/wgx/blob/5c14e53674193446b8832eca6e312bcf58190248/tests/guard_contracts_ownership.bats",
-          "https://github.com/heimgewebe/wgx/blob/5c14e53674193446b8832eca6e312bcf58190248/tests/test_data_flow_guard.py"
+          "https://github.com/heimgewebe/wgx/blob/c4b41809664353a3cff310dd4d6ef4d75be2ff60/tests/guard_contracts_ownership.bats",
+          "https://github.com/heimgewebe/wgx/blob/c4b41809664353a3cff310dd4d6ef4d75be2ff60/tests/test_data_flow_guard.py"
         ]
+      },
+      "ecosystem_alternative": {
+        "owner": "each target repository",
+        "path": "repository-native validation scripts and CI",
+        "source_url": "https://github.com/heimgewebe/wgx/blob/c4b41809664353a3cff310dd4d6ef4d75be2ff60/.github/workflows/ci.yml"
       },
       "replacement": null
     },
@@ -268,7 +326,8 @@
       "id": "metrics-contract-compatibility",
       "category": "metrics",
       "disposition": "retained_fleet_invariance",
-      "summary": "Produces and validates a contract fixture for metrics.snapshot compatibility. It is not live host truth, fleet observation, or deploy evidence.",
+      "authority": "compatibility_check",
+      "summary": "WGX produces only a local contract fixture; repository-native metrics producers are alternatives, not WGX consumers.",
       "surfaces": [
         ".github/workflows/metrics.yml",
         "scripts/wgx-metrics-snapshot.sh",
@@ -276,106 +335,80 @@
         "tests/contracts_validate.bats",
         "tests/metrics_snapshot.bats"
       ],
-      "consumers": [],
-      "invariance_benefit": {
-        "claim": "Ten observed repositories produce repository-native metrics snapshots against the Metarepo-owned schema; WGX retains a compatibility producer and remote-schema regression path so the common payload shape remains executable.",
-        "evidence_sources": [
-          "https://github.com/heimgewebe/metarepo/blob/1be27a95e8ade74670150315243afd34c32e277e/contracts/metrics.snapshot.schema.json",
-          "https://github.com/heimgewebe/metarepo/blob/1be27a95e8ade74670150315243afd34c32e277e/.github/workflows/wgx-metrics.yml",
-          "https://github.com/heimgewebe/weltgewebe/blob/d68ebc52d89419177474b88befa2b7f2cd6d69c1/.github/workflows/metrics.yml"
-        ]
-      },
-      "repository_native_alternatives": [
+      "local_evidence_paths": [
+        ".github/workflows/metrics.yml",
+        "tests/metrics_snapshot.bats"
+      ],
+      "consumers": [
         {
-          "repository": "heimgewebe/aussensensor",
-          "path": ".github/workflows/metrics.yml",
-          "source_url": "https://github.com/heimgewebe/aussensensor/blob/main/.github/workflows/metrics.yml"
-        },
-        {
-          "repository": "heimgewebe/chronik",
-          "path": ".github/workflows/metrics.yml",
-          "source_url": "https://github.com/heimgewebe/chronik/blob/main/.github/workflows/metrics.yml"
-        },
-        {
-          "repository": "heimgewebe/hausKI",
-          "path": ".github/workflows/metrics.yml",
-          "source_url": "https://github.com/heimgewebe/hausKI/blob/main/.github/workflows/metrics.yml"
-        },
-        {
-          "repository": "heimgewebe/heimlern",
-          "path": ".github/workflows/metrics.yml",
-          "source_url": "https://github.com/heimgewebe/heimlern/blob/main/.github/workflows/metrics.yml"
-        },
-        {
-          "repository": "heimgewebe/lenskit",
-          "path": ".github/workflows/metrics.yml",
-          "source_url": "https://github.com/heimgewebe/lenskit/blob/main/.github/workflows/metrics.yml"
-        },
-        {
-          "repository": "heimgewebe/metarepo",
-          "path": ".github/workflows/metrics.yml",
-          "source_url": "https://github.com/heimgewebe/metarepo/blob/main/.github/workflows/metrics.yml"
-        },
-        {
-          "repository": "heimgewebe/mitschreiber",
-          "path": ".github/workflows/metrics.yml",
-          "source_url": "https://github.com/heimgewebe/mitschreiber/blob/main/.github/workflows/metrics.yml"
-        },
-        {
-          "repository": "heimgewebe/semantAH",
-          "path": ".github/workflows/metrics.yml",
-          "source_url": "https://github.com/heimgewebe/semantAH/blob/main/.github/workflows/metrics.yml"
-        },
-        {
-          "repository": "heimgewebe/sichter",
-          "path": ".github/workflows/metrics.yml",
-          "source_url": "https://github.com/heimgewebe/sichter/blob/main/.github/workflows/metrics.yml"
-        },
-        {
-          "repository": "heimgewebe/weltgewebe",
-          "path": ".github/workflows/metrics.yml",
-          "source_url": "https://github.com/heimgewebe/weltgewebe/blob/main/.github/workflows/metrics.yml"
+          "repository": "heimgewebe/wgx",
+          "evidence_path": ".github/workflows/metrics.yml",
+          "source_url": "https://github.com/heimgewebe/wgx/blob/c4b41809664353a3cff310dd4d6ef4d75be2ff60/.github/workflows/metrics.yml",
+          "canonical_invocation": "run: bash scripts/wgx-metrics-snapshot.sh --json",
+          "repository_native_alternative": {
+            "path": ".github/workflows/ci.yml",
+            "source_url": "https://github.com/heimgewebe/wgx/blob/c4b41809664353a3cff310dd4d6ef4d75be2ff60/.github/workflows/ci.yml"
+          }
         }
       ],
+      "invariance_benefit": {
+        "claim": "The local producer stays executable against the Metarepo-owned metrics schema; this is compatibility evidence, not fleet observation.",
+        "evidence_sources": [
+          "https://github.com/heimgewebe/metarepo/blob/1be27a95e8ade74670150315243afd34c32e277e/contracts/metrics.snapshot.schema.json",
+          "https://github.com/heimgewebe/metarepo/blob/1be27a95e8ade74670150315243afd34c32e277e/.github/workflows/wgx-metrics.yml"
+        ]
+      },
+      "ecosystem_alternative": {
+        "owner": "heimgewebe/metarepo and each producing repository",
+        "path": ".github/workflows/wgx-metrics.yml",
+        "source_url": "https://github.com/heimgewebe/metarepo/blob/1be27a95e8ade74670150315243afd34c32e277e/.github/workflows/wgx-metrics.yml"
+      },
       "replacement": null
     },
     {
       "id": "cross-repository-compatibility-matrix",
-      "category": "smoke",
-      "disposition": "retained_multi_consumer",
-      "summary": "Runs WGX profile compatibility against explicitly named target repositories on demand or when WGX core changes.",
+      "category": "compatibility",
+      "disposition": "retained_fleet_invariance",
+      "authority": "compatibility_check",
+      "summary": "WGX invokes its own compatibility action against named targets; hausKI and weltgewebe are targets, not consumers.",
       "surfaces": [
         ".github/workflows/compat-on-demand.yml",
         ".github/actions/wgx-check/action.yml"
       ],
+      "local_evidence_paths": [
+        ".github/workflows/compat-on-demand.yml"
+      ],
       "consumers": [
         {
-          "repository": "heimgewebe/hausKI",
+          "repository": "heimgewebe/wgx",
           "evidence_path": ".github/workflows/compat-on-demand.yml",
-          "source_url": "https://github.com/heimgewebe/wgx/blob/5c14e53674193446b8832eca6e312bcf58190248/.github/workflows/compat-on-demand.yml",
+          "source_url": "https://github.com/heimgewebe/wgx/blob/c4b41809664353a3cff310dd4d6ef4d75be2ff60/.github/workflows/compat-on-demand.yml",
+          "canonical_invocation": "uses: ./.github/actions/wgx-check",
           "repository_native_alternative": {
             "path": ".github/workflows/ci.yml",
-            "source_url": "https://github.com/heimgewebe/hausKI/blob/main/.github/workflows/ci.yml"
-          }
-        },
-        {
-          "repository": "heimgewebe/weltgewebe",
-          "evidence_path": ".github/workflows/compat-on-demand.yml",
-          "source_url": "https://github.com/heimgewebe/wgx/blob/5c14e53674193446b8832eca6e312bcf58190248/.github/workflows/compat-on-demand.yml",
-          "repository_native_alternative": {
-            "path": ".github/workflows/ci.yml",
-            "source_url": "https://github.com/heimgewebe/weltgewebe/blob/main/.github/workflows/ci.yml"
+            "source_url": "https://github.com/heimgewebe/wgx/blob/c4b41809664353a3cff310dd4d6ef4d75be2ff60/.github/workflows/ci.yml"
           }
         }
       ],
-      "invariance_benefit": null,
+      "invariance_benefit": {
+        "claim": "On-demand target checks detect WGX compatibility drift, but do not establish adoption by a target.",
+        "evidence_sources": [
+          "https://github.com/heimgewebe/wgx/blob/c4b41809664353a3cff310dd4d6ef4d75be2ff60/.github/workflows/compat-on-demand.yml"
+        ]
+      },
+      "ecosystem_alternative": {
+        "owner": "each target repository",
+        "path": "repository-native CI workflow",
+        "source_url": "https://github.com/heimgewebe/hausKI/blob/377c3a3229abed80713789979e268c57cc3f6999/.github/workflows/ci.yml"
+      },
       "replacement": null
     },
     {
       "id": "wgx-profile-starter-templates",
       "category": "template",
-      "disposition": "retired_replaced",
-      "summary": "Unconsumed WGX-owned starter copies were retired; fleet template ownership and distribution already live in Metarepo.",
+      "disposition": "preserved_unproven",
+      "authority": "none_unproven",
+      "summary": "WGX starter profiles are restored because the cited Metarepo profile has no WGX tasks and is not an executable replacement. External consumers remain unproven.",
       "surfaces": [
         "templates/profiles/docs-only.yml",
         "templates/profiles/meta.yml",
@@ -387,22 +420,282 @@
         "templates/.gitkeep",
         "templates/docs/README.additions.md"
       ],
+      "local_evidence_paths": [
+        "tests/test_operator_capabilities.py"
+      ],
       "consumers": [],
       "invariance_benefit": null,
-      "replacement": {
-        "owner": "heimgewebe/metarepo",
-        "path": "templates/.wgx/profile.yml",
-        "source_url": "https://github.com/heimgewebe/metarepo/blob/1be27a95e8ade74670150315243afd34c32e277e/templates/.wgx/profile.yml",
-        "distribution_url": "https://github.com/heimgewebe/metarepo/blob/1be27a95e8ade74670150315243afd34c32e277e/scripts/sync-templates.sh",
-        "ci_coverage_url": "https://github.com/heimgewebe/metarepo/blob/1be27a95e8ade74670150315243afd34c32e277e/.github/workflows/validate-templates.yml",
-        "local_coverage_paths": [
-          "fixtures/profile.valid.yml",
-          "tests/guard.bats",
-          "tests/guard_integrity.bats",
-          "scripts/validate_operator_capabilities.py",
-          "tests/test_operator_capabilities.py"
-        ]
+      "ecosystem_alternative": null,
+      "replacement": null,
+      "migration_record": {
+        "decision": "retirement_reversed",
+        "reason": "Metarepo templates/.wgx/profile.yml declares zero WGX tasks and does not preserve WGX executable semantics.",
+        "incompatible_candidate_url": "https://github.com/heimgewebe/metarepo/blob/1be27a95e8ade74670150315243afd34c32e277e/templates/.wgx/profile.yml"
       }
     }
-  ]
+  ],
+  "operational_commands": [
+    {
+      "id": "audit",
+      "surface": "cmd/audit.bash",
+      "status": "active",
+      "classification": "repository_scoped_observation_optional_mutation",
+      "effects": "Read-only by default; --fetch mutates current-repository remote refs and audit output may be written locally.",
+      "consumer_evidence_paths": ["tests/audit_git.bats"],
+      "alternative": {"owner": "Git and the invoking repository", "path": "git status / git fetch / repository audit CI"}
+    },
+    {
+      "id": "clean",
+      "surface": "cmd/clean.bash",
+      "status": "active",
+      "classification": "repository_scoped_developer_mutation",
+      "effects": "Deletes WGX-repository caches/build output; --git prunes refs/branches and --deep runs destructive git clean after explicit force.",
+      "consumer_evidence_paths": ["tests/clean.bats"],
+      "alternative": {"owner": "invoking repository", "path": "repository-native clean target and git clean"}
+    },
+    {
+      "id": "config",
+      "surface": "cmd/config.bash",
+      "status": "placeholder",
+      "classification": "unavailable",
+      "effects": "Returns failure; no configuration mutation is implemented.",
+      "consumer_evidence_paths": ["docs/cli.md"],
+      "alternative": {"owner": "invoking repository", "path": "edit .wgx.conf with repository review"}
+    },
+    {
+      "id": "doctor",
+      "surface": "cmd/doctor.bash",
+      "status": "active",
+      "classification": "repository_scoped_observation",
+      "effects": "Inspects tool and repository state.",
+      "consumer_evidence_paths": ["docs/cli.md"],
+      "alternative": {"owner": "invoking repository", "path": "repository-native environment diagnostics"}
+    },
+    {
+      "id": "env",
+      "surface": "cmd/env.bash",
+      "status": "active",
+      "classification": "host_observation",
+      "effects": "Reports environment/tool availability without installing or deploying.",
+      "consumer_evidence_paths": ["tests/env.bats"],
+      "alternative": {"owner": "invoking operator", "path": "direct tool --version checks"}
+    },
+    {
+      "id": "guard",
+      "surface": "cmd/guard.bash",
+      "status": "active",
+      "classification": "repository_scoped_verification",
+      "effects": "Runs WGX static checks against the selected repository.",
+      "consumer_evidence_paths": ["tests/guard.bats"],
+      "alternative": {"owner": "invoking repository", "path": "repository-native CI and validation scripts"}
+    },
+    {
+      "id": "heal",
+      "surface": "cmd/heal.bash",
+      "status": "active",
+      "classification": "repository_scoped_developer_mutation",
+      "effects": "Fetches, stashes, rebases, merges, stages, continues, or aborts Git operations in the current repository.",
+      "consumer_evidence_paths": ["docs/cli.md"],
+      "alternative": {"owner": "Git and invoking operator", "path": "git fetch/rebase/merge/stash"}
+    },
+    {
+      "id": "hooks",
+      "surface": "cmd/hooks.bash",
+      "status": "placeholder",
+      "classification": "unavailable",
+      "effects": "Returns failure; hook installation is not implemented.",
+      "consumer_evidence_paths": ["docs/cli.md"],
+      "alternative": {"owner": "invoking repository", "path": "repository-native hook installer"}
+    },
+    {
+      "id": "init",
+      "surface": "cmd/init.bash",
+      "status": "active",
+      "classification": "repository_scoped_developer_mutation",
+      "effects": "Creates or updates a WGX profile in the selected repository.",
+      "consumer_evidence_paths": ["docs/quickstart.md"],
+      "alternative": {"owner": "invoking repository", "path": "manually maintained .wgx/profile.yml"}
+    },
+    {
+      "id": "integrity",
+      "surface": "cmd/integrity.bash",
+      "status": "active",
+      "classification": "repository_scoped_observation_optional_mutation",
+      "effects": "Reads integrity state; --update and --publish write repository reports and may emit to a configured endpoint.",
+      "consumer_evidence_paths": ["tests/integrity.bats"],
+      "alternative": {"owner": "invoking repository", "path": "repository-native integrity generator and CI"}
+    },
+    {
+      "id": "lint",
+      "surface": "cmd/lint.bash",
+      "status": "active",
+      "classification": "repository_scoped_verification",
+      "effects": "Runs syntax, formatting, and static-analysis checks.",
+      "consumer_evidence_paths": ["docs/cli.md"],
+      "alternative": {"owner": "invoking repository", "path": "repository-native lint target"}
+    },
+    {
+      "id": "quick",
+      "surface": "cmd/quick.bash",
+      "status": "active",
+      "classification": "external_repository_service_mutation",
+      "effects": "Runs guard then delegates to send, which may create and open a PR/MR.",
+      "consumer_evidence_paths": ["tests/quick.bats"],
+      "alternative": {"owner": "invoking repository and forge", "path": "repository CI plus gh/glab PR creation"}
+    },
+    {
+      "id": "release",
+      "surface": "cmd/release.bash",
+      "status": "placeholder",
+      "classification": "unavailable",
+      "effects": "Returns failure; release creation is not implemented, though local audit/event logging can occur.",
+      "consumer_evidence_paths": ["docs/cli.md"],
+      "alternative": {"owner": "invoking repository and forge", "path": "repository-native release workflow"}
+    },
+    {
+      "id": "reload",
+      "surface": "cmd/reload.bash",
+      "status": "active",
+      "classification": "repository_scoped_destructive_mutation",
+      "effects": "Fetches all remotes, hard-resets the current repository, and removes untracked/ignored files; optional stash and dry-run exist.",
+      "consumer_evidence_paths": ["tests/reload.bats"],
+      "alternative": {"owner": "Git and invoking operator", "path": "git fetch/reset/clean with repository-specific recovery policy"}
+    },
+    {
+      "id": "routine",
+      "surface": "cmd/routine.bash",
+      "status": "active",
+      "classification": "repository_scoped_observation_optional_mutation",
+      "effects": "Previews Git remote-head repair; apply mutates current-repository remote refs and writes local result artifacts.",
+      "consumer_evidence_paths": ["tests/routine_cmd.bats"],
+      "alternative": {"owner": "Git and invoking repository", "path": "git remote set-head and repository runbook"}
+    },
+    {
+      "id": "run",
+      "surface": "cmd/run.bash",
+      "status": "active",
+      "classification": "delegated_profile_execution",
+      "effects": "Executes an arbitrary repository-declared shell task; WGX does not confine possible host effects.",
+      "consumer_evidence_paths": ["tests/run.bats"],
+      "alternative": {"owner": "invoking repository", "path": "direct command, Justfile, Makefile, or repository-native task runner"}
+    },
+    {
+      "id": "selftest",
+      "surface": "cmd/selftest.bash",
+      "status": "active",
+      "classification": "host_observation",
+      "effects": "Checks WGX and dependency availability.",
+      "consumer_evidence_paths": ["README.md"],
+      "alternative": {"owner": "invoking operator", "path": "direct executable and dependency checks"}
+    },
+    {
+      "id": "send",
+      "surface": "cmd/send.bash",
+      "status": "active",
+      "classification": "external_repository_service_mutation",
+      "effects": "Runs guards, fetches the current repository, can create a branch, and creates a PR/MR through gh or glab.",
+      "consumer_evidence_paths": ["tests/send.bats"],
+      "alternative": {"owner": "invoking repository and forge", "path": "git plus gh/glab or repository-native contribution workflow"}
+    },
+    {
+      "id": "setup",
+      "surface": "cmd/setup.bash",
+      "status": "placeholder",
+      "classification": "unavailable",
+      "effects": "Returns failure; dependency installation is not implemented.",
+      "consumer_evidence_paths": ["tests/help.bats"],
+      "alternative": {"owner": "invoking operator", "path": "platform-native package management"}
+    },
+    {
+      "id": "start",
+      "surface": "cmd/start.bash",
+      "status": "placeholder",
+      "classification": "unavailable",
+      "effects": "Returns failure; branch creation is not implemented.",
+      "consumer_evidence_paths": ["docs/cli.md"],
+      "alternative": {"owner": "Git and invoking repository", "path": "git switch -c under repository branch policy"}
+    },
+    {
+      "id": "status",
+      "surface": "cmd/status.bash",
+      "status": "active",
+      "classification": "repository_scoped_observation",
+      "effects": "Reads repository and WGX status.",
+      "consumer_evidence_paths": ["tests/status.bats"],
+      "alternative": {"owner": "invoking repository", "path": "git status and repository-native diagnostics"}
+    },
+    {
+      "id": "sync-remote",
+      "surface": "cmd/sync-remote.bash",
+      "status": "unavailable",
+      "classification": "unavailable",
+      "effects": "Empty command file has no dispatcher entry point and returns 127 if invoked.",
+      "consumer_evidence_paths": ["cmd/sync-remote.bash"],
+      "alternative": {"owner": "Git and invoking operator", "path": "explicit git fetch/pull under repository policy"}
+    },
+    {
+      "id": "task",
+      "surface": "cmd/task.bash",
+      "status": "active",
+      "classification": "delegated_profile_execution",
+      "effects": "Executes an arbitrary repository-declared task; WGX does not confine possible host effects.",
+      "consumer_evidence_paths": [".github/workflows/wgx-smoke.yml"],
+      "alternative": {"owner": "invoking repository", "path": "direct command, Justfile, Makefile, or repository-native task runner"}
+    },
+    {
+      "id": "tasks",
+      "surface": "cmd/tasks.bash",
+      "status": "active",
+      "classification": "repository_scoped_observation",
+      "effects": "Lists declared repository tasks and metadata.",
+      "consumer_evidence_paths": ["tests/tasks.bats"],
+      "alternative": {"owner": "invoking repository", "path": "Justfile/Makefile/task-runner listing"}
+    },
+    {
+      "id": "test",
+      "surface": "cmd/test.bash",
+      "status": "active",
+      "classification": "delegated_repository_test_execution",
+      "effects": "Executes repository Bats tests and forwards arbitrary Bats arguments.",
+      "consumer_evidence_paths": ["tests/help.bats"],
+      "alternative": {"owner": "invoking repository", "path": "bats tests or repository-native test target"}
+    },
+    {
+      "id": "validate",
+      "surface": "cmd/validate.bash",
+      "status": "active",
+      "classification": "repository_scoped_verification",
+      "effects": "Parses and validates the selected repository profile.",
+      "consumer_evidence_paths": ["tests/validate.bats"],
+      "alternative": {"owner": "invoking repository", "path": "repository-native schema validation"}
+    },
+    {
+      "id": "version",
+      "surface": "cmd/version.bash",
+      "status": "active",
+      "classification": "repository_scoped_observation_optional_mutation",
+      "effects": "Reads a version by default; bump/set writes supported version files in the current repository.",
+      "consumer_evidence_paths": ["tests/version.bats"],
+      "alternative": {"owner": "invoking repository", "path": "language-native version tooling or reviewed file edit"}
+    },
+    {
+      "id": "vibe",
+      "surface": "cmd/vibe.bash",
+      "status": "active",
+      "classification": "operator_selected_host_state_mutation",
+      "effects": "Plan/status/doctor are read-only; adopt writes a receipt under operator-selected WGX state and refers to an explicit repository/worktree.",
+      "consumer_evidence_paths": ["tests/vibe.bats"],
+      "alternative": {"owner": "invoking operator and repository", "path": "repository-native worktree/run receipt workflow"}
+    }
+  ],
+  "workflow_contract": {
+    "path": ".github/workflows/operator-capabilities.yml",
+    "validator_contract_paths": [
+      ".github/workflows/operator-capabilities.yml",
+      "docs/operator-ecosystem-capabilities.md",
+      "docs/operator-ecosystem-capabilities.v1.json",
+      "scripts/validate_operator_capabilities.py",
+      "tests/test_operator_capabilities.py"
+    ]
+  }
 }
