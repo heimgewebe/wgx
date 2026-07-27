@@ -11,9 +11,12 @@ aufruft. Ein Ziel einer WGX-Matrix und eine eingecheckte Kopie zählen nicht.
 
 - eindeutige Fähigkeiten und alle einzeln erforderlichen Capability-IDs,
 - exakte Zuordnung von Consumer-Repository, `evidence_path` und Quell-URL,
-- kanonische Aufrufe gegen eingecheckte, hashgebundene Quell-Snapshots
+- kanonische Aufrufe gegen vollständige eingecheckte Git-Blobs sowie eine
+  netzwerkfreie Objektkette vom exakten Commit über binär belegte Trees und
+  jede Pfadkomponente bis zum Blob; Commit-, Tree- und Blob-IDs werden aus
+  Typ, Länge und exakten Bytes nativ neu berechnet,
   beziehungsweise gegen aktuelle lokale WGX-Quellen,
-- repository-relative Pfade ohne Absolut-, Parent- oder Symlink-Escape,
+- repository-relative Pfade ohne Absolut-, Parent- oder Symlink-Komponenten,
 - nichtleere Authority- und Alternative-Owner sowie lokale Evidenzpfade,
 - alle `cmd/*.bash`-Flächen und die Klassifikation mutierender Befehle,
 - feste Capability-ID/Kategorie-Bindungen und Pflichtflächen für Tools,
@@ -39,8 +42,9 @@ aufruft. Ein Ziel einer WGX-Matrix und eine eingecheckte Kopie zählen nicht.
 Consumer. `semantAH` enthält lokale WGX-ähnliche Runner oder Kopien; diese
 belegen keine Nutzung der kanonischen statischen WGX-Guards. Sichters `ci.yml`
 ruft nur seine WGX-Forwarder auf und ist deshalb ausdrücklich **keine**
-unabhängige Alternative. Die exakten Commit-, Blob-, Pfad- und Aufrufbelege
-stehen im JSON und in `operator-ecosystem-source-evidence.v1.json`.
+unabhängige Alternative. Die exakten Commit-, Tree-, Blob-, Pfad- und
+Aufrufbelege stehen im JSON und in
+`operator-ecosystem-source-evidence.v1.json`.
 
 ## Operative CLI-Flächen
 

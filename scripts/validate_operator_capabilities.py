@@ -4,6 +4,8 @@
 from __future__ import annotations
 
 import argparse
+import base64
+import binascii
 import fnmatch
 import hashlib
 import json
@@ -190,14 +192,24 @@ def _source_url(value: Any) -> bool:
     if not _https_url(value):
         return False
     parsed = urlparse(value)
-    if parsed.netloc != "github.com" or "/blob/" not in parsed.path:
+    if (
+        parsed.netloc != "github.com"
+        or parsed.query
+        or parsed.fragment
+        or "/blob/" not in parsed.path
+    ):
         return False
     _, _, remainder = parsed.path.partition("/blob/")
     ref, separator, _ = remainder.partition("/")
     return bool(separator) and bool(re.fullmatch(r"[0-9a-f]{40}", ref))
 
 
-def _source_url_matches(value: Any, repository: Any, evidence_path: Any) -> bool:
+def _source_url_matches(
+    value: Any,
+    repository: Any,
+    evidence_path: Any,
+    commit_sha: Any | None = None,
+) -> bool:
     if not (
         _source_url(value)
         and _nonempty_string(repository)
@@ -212,8 +224,10 @@ def _source_url_matches(value: Any, repository: Any, evidence_path: Any) -> bool
     if not parsed.path.startswith(prefix):
         return False
     remainder = parsed.path[len(prefix) :]
-    _, separator, linked_path = remainder.partition("/")
-    return bool(separator) and linked_path == evidence_path.lstrip("/")
+    linked_commit, separator, linked_path = remainder.partition("/")
+    if not separator or linked_path != evidence_path.lstrip("/"):
+        return False
+    return commit_sha is None or linked_commit == commit_sha
 
 
 def _safe_local_path(
@@ -233,7 +247,13 @@ def _safe_local_path(
         return None
     try:
         resolved_root = root.resolve(strict=True)
-        resolved = (root / candidate).resolve(strict=False)
+        current = root
+        for component in candidate.parts:
+            current /= component
+            if current.is_symlink():
+                findings.append(f"{prefix} must not contain symlinks: {value}")
+                return None
+        resolved = current.resolve(strict=False)
         resolved.relative_to(resolved_root)
     except (OSError, RuntimeError, ValueError):
         findings.append(f"{prefix} escapes the repository root")
@@ -315,6 +335,261 @@ def _validate_alternative(
                 findings.append(f"{prefix}.source_url must be source-linked")
 
 
+def _git_object_sha(object_type: str, content: bytes) -> str:
+    header = f"{object_type} {len(content)}\0".encode()
+    return hashlib.sha1(header + content, usedforsecurity=False).hexdigest()
+
+
+def _git_blob_sha(content: bytes) -> str:
+    return _git_object_sha("blob", content)
+
+
+def _reject_duplicate_json_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    result: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError(f"duplicate JSON key: {key}")
+        result[key] = value
+    return result
+
+
+def _parse_git_commit(content: bytes) -> str:
+    if b"\0" in content:
+        raise ValueError("contains NUL bytes")
+    header_block, separator, _message = content.partition(b"\n\n")
+    if not separator or not header_block:
+        raise ValueError("has no complete header block")
+    raw_headers = header_block.split(b"\n")
+    headers: list[tuple[bytes, bytes]] = []
+    for raw_header in raw_headers:
+        if not raw_header:
+            raise ValueError("contains an empty header")
+        if raw_header.startswith(b" "):
+            if not headers:
+                raise ValueError("starts with a continuation header")
+            continue
+        name, space, value = raw_header.partition(b" ")
+        if (
+            not space
+            or not name
+            or not value
+            or any(byte <= 32 or byte >= 127 for byte in name)
+        ):
+            raise ValueError("contains a malformed header")
+        headers.append((name, value))
+    tree_headers = [value for name, value in headers if name == b"tree"]
+    if (
+        headers[0][0] != b"tree"
+        or len(tree_headers) != 1
+        or not re.fullmatch(rb"[0-9a-f]{40}", tree_headers[0])
+    ):
+        raise ValueError("must start with exactly one full tree object ID")
+    for name, value in headers:
+        if name == b"parent" and not re.fullmatch(rb"[0-9a-f]{40}", value):
+            raise ValueError("contains a malformed parent object ID")
+    if sum(name == b"author" for name, _value in headers) != 1:
+        raise ValueError("must contain exactly one author header")
+    if sum(name == b"committer" for name, _value in headers) != 1:
+        raise ValueError("must contain exactly one committer header")
+    return tree_headers[0].decode("ascii")
+
+
+def _parse_git_tree(content: bytes) -> dict[bytes, tuple[str, str]]:
+    entries: dict[bytes, tuple[str, str]] = {}
+    previous_sort_key: bytes | None = None
+    cursor = 0
+    allowed_modes = {b"40000", b"100644", b"100755", b"120000", b"160000"}
+    while cursor < len(content):
+        space = content.find(b" ", cursor)
+        if space <= cursor:
+            raise ValueError("contains a truncated mode")
+        mode = content[cursor:space]
+        if mode not in allowed_modes:
+            raise ValueError(f"contains non-canonical mode {mode!r}")
+        nul = content.find(b"\0", space + 1)
+        if nul < 0:
+            raise ValueError("contains a truncated name")
+        name = content[space + 1 : nul]
+        if not name or name in {b".", b".."} or b"/" in name:
+            raise ValueError("contains an invalid path component")
+        object_start = nul + 1
+        object_end = object_start + 20
+        if object_end > len(content):
+            raise ValueError("contains a truncated object ID")
+        object_id = content[object_start:object_end].hex()
+        if name in entries:
+            raise ValueError("contains a duplicate path component")
+        sort_key = name + (b"/" if mode == b"40000" else b"")
+        if previous_sort_key is not None and sort_key <= previous_sort_key:
+            raise ValueError("entries are not in canonical Git tree order")
+        previous_sort_key = sort_key
+        entries[name] = (mode.decode("ascii"), object_id)
+        cursor = object_end
+    return entries
+
+
+def _load_git_object_proofs(
+    value: Any, findings: list[str]
+) -> tuple[dict[str, tuple[str, Any]], set[str]]:
+    if not isinstance(value, list) or not value:
+        findings.append("pinned source evidence git_objects must be a non-empty array")
+        return {}, set()
+    objects: dict[str, tuple[str, Any]] = {}
+    seen_object_ids: set[str] = set()
+    for index, proof in enumerate(value):
+        prefix = f"pinned source evidence git_objects[{index}]"
+        if not isinstance(proof, dict):
+            findings.append(f"{prefix} must be an object")
+            continue
+        proof_valid = True
+        if set(proof) != {"oid", "type", "content_base64"}:
+            findings.append(
+                f"{prefix} must contain exactly oid, type, and content_base64"
+            )
+            proof_valid = False
+        object_id = proof.get("oid")
+        object_type = proof.get("type")
+        encoded = proof.get("content_base64")
+        if not re.fullmatch(r"[0-9a-f]{40}", str(object_id or "")):
+            findings.append(f"{prefix}.oid must be a full Git object ID")
+            proof_valid = False
+        elif object_id in seen_object_ids:
+            findings.append(f"duplicate pinned Git object proof: {object_id}")
+            proof_valid = False
+        else:
+            seen_object_ids.add(object_id)
+        if object_type not in {"commit", "tree"}:
+            findings.append(f"{prefix}.type must be commit or tree")
+            proof_valid = False
+        if not isinstance(encoded, str):
+            findings.append(f"{prefix}.content_base64 must be canonical base64")
+            proof_valid = False
+            content = b""
+        else:
+            try:
+                content = base64.b64decode(encoded, validate=True)
+            except (binascii.Error, ValueError):
+                findings.append(f"{prefix}.content_base64 must be canonical base64")
+                proof_valid = False
+                content = b""
+            else:
+                if base64.b64encode(content).decode("ascii") != encoded:
+                    findings.append(f"{prefix}.content_base64 must be canonical base64")
+                    proof_valid = False
+        if (
+            re.fullmatch(r"[0-9a-f]{40}", str(object_id or ""))
+            and object_type in {"commit", "tree"}
+            and _git_object_sha(object_type, content) != object_id
+        ):
+            findings.append(
+                f"{prefix}.oid does not match the exact {object_type} object bytes"
+            )
+            proof_valid = False
+        parsed: Any = None
+        if proof_valid:
+            try:
+                parsed = (
+                    _parse_git_commit(content)
+                    if object_type == "commit"
+                    else _parse_git_tree(content)
+                )
+            except ValueError as exc:
+                findings.append(
+                    f"{prefix} is not a canonical Git {object_type} object: {exc}"
+                )
+                proof_valid = False
+        if proof_valid:
+            objects[object_id] = (object_type, parsed)
+    return objects, seen_object_ids
+
+
+def _validate_git_path_proof(
+    record: dict[str, Any],
+    objects: dict[str, tuple[str, Any]],
+    prefix: str,
+    findings: list[str],
+) -> tuple[bool, set[str]]:
+    valid = True
+    used_object_ids: set[str] = set()
+    commit_sha = record.get("commit_sha")
+    if not re.fullmatch(r"[0-9a-f]{40}", str(commit_sha or "")):
+        findings.append(f"{prefix}.commit_sha must be a full Git object ID")
+        return False, used_object_ids
+    commit_proof = objects.get(commit_sha)
+    if commit_proof is None:
+        findings.append(f"{prefix}.commit_sha has no valid exact commit object proof")
+        return False, used_object_ids
+    used_object_ids.add(commit_sha)
+    if commit_proof[0] != "commit":
+        findings.append(f"{prefix}.commit_sha proof has the wrong Git object type")
+        return False, used_object_ids
+    proven_root_tree = commit_proof[1]
+    root_tree_sha = record.get("root_tree_sha")
+    if not re.fullmatch(r"[0-9a-f]{40}", str(root_tree_sha or "")):
+        findings.append(f"{prefix}.root_tree_sha must be a full Git object ID")
+        valid = False
+    elif root_tree_sha != proven_root_tree:
+        findings.append(
+            f"{prefix}.root_tree_sha does not match the exact commit object"
+        )
+        valid = False
+
+    path = record.get("path")
+    if not isinstance(path, str):
+        findings.append(f"{prefix}.path cannot be traversed as a Git path")
+        return False, used_object_ids
+    components = path.split("/")
+    if not components or any(
+        not component or component in {".", ".."} for component in components
+    ):
+        findings.append(f"{prefix}.path has an invalid Git path component")
+        return False, used_object_ids
+
+    current_tree = proven_root_tree
+    for component_index, component in enumerate(components):
+        used_object_ids.add(current_tree)
+        tree_proof = objects.get(current_tree)
+        component_prefix = f"{prefix}.path component {component!r}"
+        if tree_proof is None:
+            findings.append(
+                f"{component_prefix} has no valid exact tree object proof"
+            )
+            return False, used_object_ids
+        if tree_proof[0] != "tree":
+            findings.append(f"{component_prefix} proof has the wrong Git object type")
+            return False, used_object_ids
+        try:
+            component_bytes = component.encode("utf-8")
+        except UnicodeEncodeError:
+            findings.append(f"{component_prefix} is not UTF-8 encodable")
+            return False, used_object_ids
+        entry = tree_proof[1].get(component_bytes)
+        if entry is None:
+            findings.append(f"{component_prefix} is missing from the proven tree")
+            return False, used_object_ids
+        mode, object_id = entry
+        final_component = component_index == len(components) - 1
+        if not final_component:
+            if mode != "40000":
+                findings.append(
+                    f"{component_prefix} must be a canonical tree entry, found mode {mode}"
+                )
+                return False, used_object_ids
+            current_tree = object_id
+            continue
+        if mode not in {"100644", "100755"}:
+            findings.append(
+                f"{component_prefix} must be an ordinary blob entry, found mode {mode}"
+            )
+            valid = False
+        if object_id != record.get("blob_sha"):
+            findings.append(
+                f"{prefix}.blob_sha does not match the blob mapped by commit and path"
+            )
+            valid = False
+    return valid, used_object_ids
+
+
 def _load_pinned_evidence(root: Path, findings: list[str]) -> dict[str, dict[str, Any]]:
     evidence_path = _safe_local_path(
         str(PINNED_EVIDENCE_PATH),
@@ -325,41 +600,88 @@ def _load_pinned_evidence(root: Path, findings: list[str]) -> dict[str, dict[str
     if evidence_path is None or not evidence_path.is_file():
         return {}
     try:
-        payload = json.loads(evidence_path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
+        payload = json.loads(
+            evidence_path.read_text(encoding="utf-8"),
+            object_pairs_hook=_reject_duplicate_json_keys,
+        )
+    except (OSError, ValueError) as exc:
         findings.append(f"cannot load pinned source evidence: {exc}")
         return {}
-    if not isinstance(payload, dict) or payload.get("schema_version") != 1:
-        findings.append("pinned source evidence schema_version must equal 1")
+    if not isinstance(payload, dict) or payload.get("schema_version") != 3:
+        findings.append("pinned source evidence schema_version must equal 3")
         return {}
+    git_objects, provided_object_ids = _load_git_object_proofs(
+        payload.get("git_objects"), findings
+    )
     records = payload.get("sources")
     if not isinstance(records, list):
         findings.append("pinned source evidence sources must be an array")
         return {}
     result: dict[str, dict[str, Any]] = {}
+    seen_source_urls: set[str] = set()
+    used_object_ids: set[str] = set()
     for index, record in enumerate(records):
         prefix = f"pinned source evidence[{index}]"
         if not isinstance(record, dict):
             findings.append(f"{prefix} must be an object")
             continue
+        record_valid = True
+        repository = record.get("repository")
+        evidence_path = record.get("path")
+        commit_sha = record.get("commit_sha")
         source_url = record.get("source_url")
         if not _source_url_matches(
-            source_url, record.get("repository"), record.get("path")
+            source_url, repository, evidence_path, commit_sha
         ):
-            findings.append(f"{prefix} URL/repository/path binding is invalid")
-            continue
-        if not re.fullmatch(r"[0-9a-f]{40}", str(record.get("blob_sha", ""))):
+            findings.append(
+                f"{prefix} URL/repository/path/commit binding is invalid"
+            )
+            record_valid = False
+        if isinstance(source_url, str):
+            if source_url in seen_source_urls:
+                findings.append(f"duplicate pinned source evidence URL: {source_url}")
+                record_valid = False
+            seen_source_urls.add(source_url)
+        blob_sha = record.get("blob_sha")
+        if not re.fullmatch(r"[0-9a-f]{40}", str(blob_sha or "")):
             findings.append(f"{prefix}.blob_sha must be a full Git object ID")
-        content = record.get("content")
-        if not _nonempty_string(content):
-            findings.append(f"{prefix}.content is required")
-            continue
-        digest = hashlib.sha256(content.encode("utf-8")).hexdigest()
+            record_valid = False
+        content = record.get("blob_content")
+        if not isinstance(content, str):
+            findings.append(f"{prefix}.blob_content must contain the complete Git blob")
+            record_valid = False
+            content = ""
+        try:
+            content_bytes = content.encode("utf-8")
+        except UnicodeEncodeError:
+            findings.append(f"{prefix}.blob_content must be valid UTF-8")
+            record_valid = False
+            content_bytes = b""
+        digest = hashlib.sha256(content_bytes).hexdigest()
         if record.get("content_sha256") != digest:
-            findings.append(f"{prefix}.content_sha256 does not match content")
-        if source_url in result:
-            findings.append(f"duplicate pinned source evidence URL: {source_url}")
-        result[source_url] = record
+            findings.append(f"{prefix}.content_sha256 does not match blob_content")
+            record_valid = False
+        if re.fullmatch(r"[0-9a-f]{40}", str(blob_sha or "")):
+            computed_blob_sha = _git_blob_sha(content_bytes)
+            if blob_sha != computed_blob_sha:
+                findings.append(
+                    f"{prefix}.blob_sha does not match the complete Git blob content"
+                )
+                record_valid = False
+        path_valid, path_object_ids = _validate_git_path_proof(
+            record, git_objects, prefix, findings
+        )
+        used_object_ids.update(path_object_ids)
+        if not path_valid:
+            record_valid = False
+        if record_valid:
+            result[source_url] = {**record, "blob_content": content}
+    unreferenced_object_ids = provided_object_ids - used_object_ids
+    if unreferenced_object_ids:
+        findings.append(
+            "pinned source evidence contains unreferenced Git object proofs: "
+            + ", ".join(sorted(unreferenced_object_ids))
+        )
     return result
 
 
@@ -720,7 +1042,7 @@ def validate(payload: Any, root: Path) -> list[str]:
                 elif (
                     _nonempty_string(invocation)
                     and not _content_has_invocation(
-                        str(snapshot.get("content", "")), invocation
+                        str(snapshot.get("blob_content", "")), invocation
                     )
                 ):
                     findings.append(
