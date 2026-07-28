@@ -237,6 +237,8 @@ jobs:
             }
           done
       - name: Test (bats)
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           if [ -d tests ]; then
             bats -r tests
