@@ -20,8 +20,13 @@ standard_profile() {
 wgx:
   apiVersion: v1
   validate:
-    quick: [lint]
-    full: [lint, test, integration, bench]
+    quick:
+      - lint
+    full:
+      - lint
+      - test
+      - integration
+      - bench
     unsupported:
       bench: "no benchmark harness"
     ciOnly:
@@ -96,7 +101,8 @@ receipt_field() {
 wgx:
   apiVersion: v1
   validate:
-    quick: [lint]
+    quick:
+      - lint
   tasks:
     lint: "exit 3"
 YAML
@@ -113,7 +119,8 @@ YAML
 wgx:
   apiVersion: v1
   validate:
-    quick: [slow]
+    quick:
+      - slow
   tasks:
     slow: "sleep 30"
 YAML
@@ -129,7 +136,8 @@ YAML
 wgx:
   apiVersion: v1
   validate:
-    quick: [ghost]
+    quick:
+      - ghost
   tasks:
     lint: "echo linting"
 YAML
@@ -218,7 +226,8 @@ PY
 wgx:
   apiVersion: v1
   validate:
-    quick: [publish]
+    quick:
+      - publish
   tasks:
     publish: "echo deploying API_TOKEN=hunter2 --password swordfish"
 YAML
@@ -240,4 +249,51 @@ YAML
   [ -f "$BATS_TEST_TMPDIR/receipt.json" ]
   run python3 -c 'import json,sys;print(json.load(open(sys.argv[1]))["result"])' "$BATS_TEST_TMPDIR/receipt.json"
   assert_output "passed"
+}
+
+@test "standalone skip declarations are appended deterministically" {
+  write_profile <<'YAML'
+wgx:
+  apiVersion: v1
+  validate:
+    quick:
+      - lint
+    unsupported:
+      bench: "no benchmark harness"
+    ciOnly:
+      release: "release workflow only"
+  tasks:
+    lint: "echo linting"
+YAML
+  cd "$WORKDIR"
+  run wgx validate --profile quick --dry-run
+  assert_success
+  [ "${lines[0]}" = "run	lint" ]
+  [ "${lines[1]}" = "skip	bench" ]
+  [ "${lines[2]}" = "skip	release" ]
+
+  run wgx validate --profile quick --json
+  assert_success
+  assert_output --partial '"name": "bench"'
+  assert_output --partial '"kind": "unsupported"'
+  assert_output --partial '"name": "release"'
+  assert_output --partial '"kind": "ci-only"'
+}
+
+@test "timeout terminates background descendants before they can mutate" {
+  write_profile <<'YAML'
+wgx:
+  apiVersion: v1
+  validate:
+    quick:
+      - slow
+  tasks:
+    slow: "bash -c 'sleep 2; touch escaped-marker' & sleep 30"
+YAML
+  cd "$WORKDIR"
+  run wgx validate --profile quick --timeout 1 --json
+  [ "$status" -ne 0 ]
+  assert_output --partial '"status": "timeout"'
+  sleep 2
+  [ ! -e "$WORKDIR/escaped-marker" ]
 }
