@@ -532,13 +532,49 @@ Examples:
 ```text
 Usage:
   wgx validate [--json]
+  wgx validate --profile quick|full [--json] [--timeout SECONDS] [--dry-run] [--output PATH]
 
-Validiert das Manifest (.wgx/profile.*) im aktuellen Repository.
-Exit-Status: 0 bei gültigem Manifest, sonst >0.
+Validiert das Manifest (.wgx/profile.*) im aktuellen Repository. Mit --profile
+werden zusätzlich die im Manifest deklarierten repository-eigenen Checks des
+Profils ausgeführt und ein stabiles JSON-Receipt erzeugt.
+
+Profile werden im Manifest deklariert; wgx erfindet keine Checks. Blocklisten
+funktionieren auch ohne optionale YAML-Abhängigkeit:
+
+  wgx:
+    validate:
+      quick:
+        - lint
+        - guard
+      full:
+        - lint
+        - guard
+        - test
+      unsupported:
+        bench: "kein Benchmark-Harness"
+      ciOnly:
+        integration: "braucht Cloud-Credentials"
+
+unsupported und ciOnly gelten repositoryweit. Sie erscheinen nach den
+profilgebundenen Checks deterministisch als skipped, sofern das Profil sie nicht
+bereits an ihrer eigenen Position nennt.
+
+Das Receipt enthält Repository-, Manifest-, Check- und Umgebungsidentität samt
+Digest. Es belegt weder Repository-Korrektheit noch CI-Ersatz oder Merge-Readiness
+aus dem quick-Profil.
 
 Optionen:
-  --json   Kompakte maschinenlesbare Ausgabe:
-           {"ok":bool,"errors":[...],"missingCapabilities":[...]}
+  --profile NAME   quick (begrenztes Agenten-Feedback) oder full (merge-taugliche
+                   lokale Validierung)
+  --json           Maschinenlesbare Ausgabe. Ohne --profile:
+                   {"ok":bool,"errors":[...],"missingCapabilities":[...]}
+                   Mit --profile: das vollständige Receipt.
+  --timeout SEC    Zeitlimit je Check (Standard: quick 120, full 900)
+  --dry-run        Nur die aufgelöste Check-Reihenfolge zeigen, nichts ausführen
+  --output PATH    Receipt zusätzlich in eine Datei schreiben
+  -h, --help       Diese Hilfe
+
+Exit-Status: 0 wenn Manifest gültig ist und alle Checks bestehen, sonst >0.
 ```
 
 ### version

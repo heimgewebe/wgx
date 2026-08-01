@@ -401,6 +401,59 @@ def emit_caps(caps: Any) -> None:
 
 # --- Configuration Logic ---
 
+VALIDATE_PROFILES = ('quick', 'full')
+VALIDATE_SKIP_KINDS = {'unsupported': 'unsupported', 'cionly': 'ci-only', 'ci-only': 'ci-only', 'ci_only': 'ci-only'}
+
+
+def _validate_check_list(value: Any) -> List[str]:
+    """Normalize a declared profile check list to ordered, de-duplicated task names."""
+    if value is None:
+        return []
+    if isinstance(value, str):
+        items: List[Any] = value.split()
+    elif isinstance(value, list):
+        items = value
+    else:
+        sys.stderr.write(
+            f"wgx: warning: validate profile has invalid type {type(value).__name__}, expected list. Ignoring.\n"
+        )
+        return []
+    names: List[str] = []
+    for item in items:
+        if not isinstance(item, (str, int, float)):
+            continue
+        norm = RE_DASH_SEQ.sub('-', str(item).replace(' ', '').replace('_', '-').lower())
+        if norm and norm not in names:
+            names.append(norm)
+    return names
+
+
+def emit_validate(cfg: Any) -> None:
+    """Emit the declared validate profiles and the explicit skip declarations.
+
+    Repositories declare which native tasks each profile invokes, plus checks that
+    are explicitly unsupported or CI-only. An undeclared profile emits an empty
+    list; wgx then reports it as undeclared rather than inventing checks.
+    """
+    if not isinstance(cfg, dict):
+        cfg = {}
+    lowered = {str(key).lower(): value for key, value in cfg.items()}
+    for profile in VALIDATE_PROFILES:
+        checks = _validate_check_list(lowered.get(profile))
+        emit_var(f"WGX_VALIDATE_PROFILE_{profile}", ' '.join(checks))
+    for raw_kind, kind in VALIDATE_SKIP_KINDS.items():
+        entries = lowered.get(raw_kind)
+        if not isinstance(entries, dict):
+            continue
+        for raw_name, reason in entries.items():
+            norm = RE_DASH_SEQ.sub('-', str(raw_name).replace(' ', '').replace('_', '-').lower())
+            if not norm:
+                continue
+            safe_name = RE_NON_ALPHANUM_UNDERSCORE.sub('_', norm)
+            text = '' if reason is None else str(reason)
+            emit_var(f"WGX_VALIDATE_SKIP_{safe_name}", f"{kind}:{text}")
+
+
 def get_config(data: Dict, wgx: Dict, key: str, default: Any = None, aliases: Optional[List[str]] = None, check_type: Any = None) -> Tuple[Any, bool]:
     """
     Retrieves a configuration value with priority:
@@ -522,6 +575,12 @@ def main():
         # Sanitize workflow name to create a valid variable suffix
         safe_name = RE_NON_ALPHANUM_UNDERSCORE.sub('_', str(wf_name))
         emit_var(f"WGX_WORKFLOW_TASKS_{safe_name}", ' '.join(steps))
+
+    # validate profiles
+    validate_cfg, fb = get_config(data, wgx, 'validate', default={}, check_type=dict)
+    if fb:
+        used_root_fallback = True
+    emit_validate(validate_cfg)
 
     # tasks
     tasks, fb = get_config(data, wgx, 'tasks', default={}, check_type=dict)

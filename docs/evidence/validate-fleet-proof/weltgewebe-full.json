@@ -1,0 +1,81 @@
+{
+  "checks": [
+    {
+      "command": "STR:",
+      "command_sha256": "b945cfa2c46bbbe41e6d4ae3310ee59cad8a6b2a4842c0bb130f031017c839b5",
+      "duration_ms": 32,
+      "exit_code": 0,
+      "name": "lint",
+      "status": "passed"
+    },
+    {
+      "command": "STR:",
+      "command_sha256": "b945cfa2c46bbbe41e6d4ae3310ee59cad8a6b2a4842c0bb130f031017c839b5",
+      "duration_ms": 30,
+      "exit_code": 0,
+      "name": "test",
+      "status": "passed"
+    },
+    {
+      "command": "STR:exit 7",
+      "command_sha256": "ab4603029678708d0e3251f713c1bbbf77283b96b78000286df075aeb230c0b1",
+      "duration_ms": 32,
+      "exit_code": 7,
+      "name": "redprobe",
+      "status": "failed"
+    },
+    {
+      "command": "STR:sleep 60",
+      "command_sha256": "c88960bb3f0f69a29f81ac91078fd2bf90bcd9b55702b18cc40435489ad09816",
+      "duration_ms": 3037,
+      "exit_code": 143,
+      "name": "slowprobe",
+      "status": "timeout"
+    }
+  ],
+  "does_not_establish": [
+    "repository_correctness",
+    "ci_replacement",
+    "merge_readiness_from_quick_profile",
+    "test_sufficiency",
+    "runtime_correctness"
+  ],
+  "environment": {
+    "bash": "5.1.16(1)-release",
+    "identity_sha256": "f88ca119d6cb1354daffc08730c067488ab93a73d22c56d99634a231de40a51c",
+    "machine": "x86_64",
+    "os": "linux",
+    "os_release": "7.0.11-76070011-generic",
+    "python": "3.10.12",
+    "redacted_env_names": [
+      "FLEET_PROOF_API_TOKEN"
+    ],
+    "wgx_version": "2.0.3"
+  },
+  "finished_at": "2026-08-01T11:45:51Z",
+  "kind": "wgx.validate.receipt",
+  "manifest": {
+    "errors": [],
+    "missing_capabilities": [],
+    "ok": true
+  },
+  "profile": "full",
+  "receipt_sha256": "f167dbc0ec720ad93e955f65db5c79f05d6550034409348a8b2a775d27f09b90",
+  "repository": {
+    "commit": "eb3d9046b9534631fce282c83a95f668dd5e0c78",
+    "dirty": true,
+    "name": "weltgewebe",
+    "root": "/tmp/wgx-fleet-proof.dOuute/weltgewebe"
+  },
+  "result": "failed",
+  "schema_version": 1,
+  "skipped": [
+    {
+      "kind": "ci-only",
+      "name": "ciprobe",
+      "reason": "fleet proof: CI-only declaration"
+    }
+  ],
+  "started_at": "2026-08-01T11:45:47Z",
+  "timeout_seconds": 3
+}

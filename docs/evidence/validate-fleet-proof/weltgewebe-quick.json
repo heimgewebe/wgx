@@ -1,0 +1,49 @@
+{
+  "checks": [
+    {
+      "command": "STR:",
+      "command_sha256": "b945cfa2c46bbbe41e6d4ae3310ee59cad8a6b2a4842c0bb130f031017c839b5",
+      "duration_ms": 30,
+      "exit_code": 0,
+      "name": "lint",
+      "status": "passed"
+    }
+  ],
+  "does_not_establish": [
+    "repository_correctness",
+    "ci_replacement",
+    "merge_readiness_from_quick_profile",
+    "test_sufficiency",
+    "runtime_correctness"
+  ],
+  "environment": {
+    "bash": "5.1.16(1)-release",
+    "identity_sha256": "f88ca119d6cb1354daffc08730c067488ab93a73d22c56d99634a231de40a51c",
+    "machine": "x86_64",
+    "os": "linux",
+    "os_release": "7.0.11-76070011-generic",
+    "python": "3.10.12",
+    "redacted_env_names": [],
+    "wgx_version": "2.0.3"
+  },
+  "finished_at": "2026-08-01T11:45:47Z",
+  "kind": "wgx.validate.receipt",
+  "manifest": {
+    "errors": [],
+    "missing_capabilities": [],
+    "ok": true
+  },
+  "profile": "quick",
+  "receipt_sha256": "57c5b9d4c53b8c325d38a9a33cee82146e0346c2b8cfa756906678b93000e2ba",
+  "repository": {
+    "commit": "eb3d9046b9534631fce282c83a95f668dd5e0c78",
+    "dirty": true,
+    "name": "weltgewebe",
+    "root": "/tmp/wgx-fleet-proof.dOuute/weltgewebe"
+  },
+  "result": "passed",
+  "schema_version": 1,
+  "skipped": [],
+  "started_at": "2026-08-01T11:45:47Z",
+  "timeout_seconds": 300
+}
