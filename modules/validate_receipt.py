@@ -28,14 +28,39 @@ RE_SECRET_NAME = re.compile(
     r'(SECRET|TOKEN|PASSWORD|PASSWD|CREDENTIAL|PRIVATE_KEY|APIKEY|API_KEY|ACCESS_KEY)',
     re.IGNORECASE,
 )
-# Inline assignments and bearer-style literals inside a recorded command.
+
+_SECRET_IDENTIFIER = (
+    r'(?:[A-Za-z_][A-Za-z0-9_]*)?'
+    r'(?:SECRET|TOKEN|PASSWORD|PASSWD|CREDENTIAL|PRIVATE_KEY|APIKEY|API_KEY|ACCESS_KEY)'
+    r'[A-Za-z0-9_]*'
+)
+_SECRET_VALUE = (
+    r'(?:(?:"(?:\\.|[^"\\])*")'
+    r"|(?:'(?:\\.|[^'\\])*')"
+    r'|[^\s;&|"\'<>]+)'
+)
+
+# Inline assignments and secret-bearing command flags.
 RE_SECRET_INLINE = re.compile(
-    r'((?:[A-Za-z_][A-Za-z0-9_]*)?(?:SECRET|TOKEN|PASSWORD|PASSWD|CREDENTIAL|APIKEY|API_KEY|ACCESS_KEY)[A-Za-z0-9_]*)'
-    r'(\s*[=:]\s*)(\S+)',
+    rf'({_SECRET_IDENTIFIER})(\s*[=:]\s*){_SECRET_VALUE}',
     re.IGNORECASE,
 )
 RE_SECRET_FLAG = re.compile(
-    r'(--(?:token|password|secret|api-key|access-key)(?:=|\s+))(\S+)',
+    rf'(--[A-Za-z0-9-]*(?:token|password|secret|api-key|access-key|private-key)'
+    rf'[A-Za-z0-9-]*)(=|\s+){_SECRET_VALUE}',
+    re.IGNORECASE,
+)
+
+# Header values often live inside one quoted shell argument, so redact the
+# complete remainder of that argument before applying the generic token form.
+RE_SECRET_HEADER_QUOTED = re.compile(
+    r'((?P<quote>["\'])(?:Authorization\s*:\s*(?:Bearer|Basic)\s+|'
+    r'(?:X-)?API-Key\s*:\s*))(?P<value>.*?)(?P=quote)',
+    re.IGNORECASE,
+)
+RE_SECRET_HEADER_VALUE = re.compile(
+    rf'(\b(?:Authorization\s*:\s*(?:Bearer|Basic)\s+|'
+    rf'(?:X-)?API-Key\s*:\s*)){_SECRET_VALUE}',
     re.IGNORECASE,
 )
 REDACTED = '[REDACTED]'
@@ -45,8 +70,22 @@ def redact(text: str) -> str:
     """Remove secret-looking values from a string that enters the receipt."""
     if not text:
         return text
-    text = RE_SECRET_INLINE.sub(lambda m: f'{m.group(1)}{m.group(2)}{REDACTED}', text)
-    text = RE_SECRET_FLAG.sub(lambda m: f'{m.group(1)}{REDACTED}', text)
+    text = RE_SECRET_HEADER_QUOTED.sub(
+        lambda match: f'{match.group(1)}{REDACTED}{match.group("quote")}',
+        text,
+    )
+    text = RE_SECRET_HEADER_VALUE.sub(
+        lambda match: f'{match.group(1)}{REDACTED}',
+        text,
+    )
+    text = RE_SECRET_INLINE.sub(
+        lambda match: f'{match.group(1)}{match.group(2)}{REDACTED}',
+        text,
+    )
+    text = RE_SECRET_FLAG.sub(
+        lambda match: f'{match.group(1)}{match.group(2)}{REDACTED}',
+        text,
+    )
     return text
 
 
