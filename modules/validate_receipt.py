@@ -161,7 +161,7 @@ def build(argv: List[str]) -> Dict[str, Any]:
                 'exit_code': _int(b),
                 'duration_ms': _int(c),
                 'command': command_text,
-                'command_sha256': hashlib.sha256(command.encode('utf-8')).hexdigest(),
+                'command_sha256': hashlib.sha256(command_text.encode('utf-8')).hexdigest(),
             })
         elif kind == 'skip':
             skipped.append({'name': name, 'kind': a, 'reason': redact(b)})
