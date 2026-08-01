@@ -57,9 +57,11 @@ jobs:
               raise SystemExit('unexpected bats job shape')
           if text.count(old_step) != 1:
               raise SystemExit('unexpected bats step shape')
-          path.write_text(text.replace(old_job, new_job, 1).replace(old_step, new_step, 1))
+          patched = text.replace(old_job, new_job, 1).replace(old_step, new_step, 1)
+          if f'GITHUB_TOKEN: {token_expression}' not in patched:
+              raise SystemExit('literal token expression was not preserved')
+          path.write_text(patched)
           PY
-          grep -F 'GITHUB_TOKEN: ${{ github.token }}' .github/workflows/ci.yml
           git diff --check
 
       - name: Commit workflow correction and remove temporary workflow
