@@ -38,11 +38,16 @@ teardown() {
   assert_output --partial '"name":"guard"'
   assert_output --partial '"name":"smoke"'
 
-  run env WGX_TARGET_ROOT="$WGX_PROJECT_ROOT" \
+  # This test verifies profile wiring only. Live capability-source validation is
+  # covered by the dedicated operator-capability workflow and must not make the
+  # generic Bats suite depend on GitHub API credentials or network availability.
+  run env WGX_TARGET_ROOT="$WGX_PROJECT_ROOT" DRYRUN=1 \
     "$WGX_PROJECT_ROOT/wgx" task guard
   assert_success
-  assert_output --partial "all external uses references"
-  assert_output --partial "is reusable and bound"
+  assert_output --partial "[DRY-RUN]"
+  assert_output --partial "scripts/validate_operator_capabilities.py"
+  assert_output --partial "scripts/check_wgx_guard_action_pins.py"
+  assert_output --partial "scripts/check_wgx_smoke_contract.py"
 
   run env WGX_TARGET_ROOT="$WGX_PROJECT_ROOT" DRYRUN=1 \
     "$WGX_PROJECT_ROOT/wgx" task smoke
