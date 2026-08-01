@@ -4,11 +4,18 @@ wgx:
   repoKind: "generic"
   # Which repository-native tasks each validation profile invokes.
   # quick = bounded agent feedback, full = merge-grade local validation.
+  # Block-style lists also work in dependency-free WGX installations.
   validate:
-    quick: [lint, guard]
-    full: [lint, guard, smoke, test]
+    quick:
+      - lint
+      - guard
+    full:
+      - lint
+      - guard
+      - smoke
+      - test
     ciOnly:
-      # Declared explicitly so the receipt reports them as skipped, not missing.
+      # Skip declarations are repository-wide and appear in every profile receipt.
       release: "runs only in the release workflow"
   tasks:
     guard: "python3 scripts/validate_operator_capabilities.py && python3 scripts/check_wgx_guard_action_pins.py && python3 scripts/check_wgx_smoke_contract.py"
