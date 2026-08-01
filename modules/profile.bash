@@ -15,7 +15,7 @@ export WGX_DIR_API=""
 export WGX_DIR_DATA=""
 
 # shellcheck disable=SC2034
-WGX_AVAILABLE_CAPS=(task-array status-dirs tasks-json validate env-defaults env-overrides workflows)
+WGX_AVAILABLE_CAPS=(task-array status-dirs tasks-json validate validate-profiles env-defaults env-overrides workflows)
 
 declare -ga WGX_REQUIRED_CAPS=()
 declare -ga WGX_ENV_KEYS=()
@@ -32,6 +32,11 @@ declare -gA WGX_TASK_GROUP=()
 declare -gA WGX_TASK_SAFE=()
 
 declare -gA WGX_WORKFLOW_TASKS=()
+
+# Declared validation profiles: profile name -> space separated task names.
+declare -gA WGX_VALIDATE_PROFILES=()
+# Explicit skip declarations: task name -> "unsupported:reason" | "ci-only:reason".
+declare -gA WGX_VALIDATE_SKIP=()
 
 profile::_reset() {
   PROFILE_VERSION=""
@@ -53,6 +58,8 @@ profile::_reset() {
   WGX_TASK_GROUP=()
   WGX_TASK_SAFE=()
   WGX_WORKFLOW_TASKS=()
+  WGX_VALIDATE_PROFILES=()
+  WGX_VALIDATE_SKIP=()
   WGX_PROFILE_LOADED=""
 }
 
@@ -317,6 +324,23 @@ profile::_convert_flat_to_arrays() {
     WGX_WORKFLOW_TASKS["$key"]="$value"
   done < <(compgen -v WGX_WORKFLOW_TASKS_)
 
+  # Convert WGX_VALIDATE_PROFILE_* to array
+  while IFS= read -r var; do
+    [[ -n $var ]] || continue
+    key="${var#WGX_VALIDATE_PROFILE_}"
+    value="${!var}"
+    WGX_VALIDATE_PROFILES["$key"]="$value"
+  done < <(compgen -v WGX_VALIDATE_PROFILE_)
+
+  # Convert WGX_VALIDATE_SKIP_* to array
+  while IFS= read -r var; do
+    [[ -n $var ]] || continue
+    key="${var#WGX_VALIDATE_SKIP_}"
+    key="$(profile::_task_key_from_var "$key")"
+    value="${!var}"
+    WGX_VALIDATE_SKIP["$key"]="$value"
+  done < <(compgen -v WGX_VALIDATE_SKIP_)
+
   # Convert WGX_TASK_CMDS_* to array
   while IFS= read -r var; do
     [[ -n $var ]] || continue
@@ -575,6 +599,34 @@ profile::tasks_json() {
   fi
   printf '}'
   printf '\n'
+}
+
+profile::validate_profile_checks() {
+  # Print the task names a validation profile declares, one per line.
+  profile::ensure_loaded || return 1
+  local profile="${1:-}"
+  [[ -n $profile ]] || return 1
+  local declared="${WGX_VALIDATE_PROFILES[$profile]:-}"
+  [[ -n $declared ]] || return 0
+  local name
+  for name in $declared; do
+    printf '%s\n' "$(profile::_normalize_task_name "$name")"
+  done
+}
+
+profile::validate_profile_declared() {
+  # Succeed when the repository declares this validation profile at all.
+  profile::ensure_loaded || return 1
+  local profile="${1:-}"
+  [[ -n ${WGX_VALIDATE_PROFILES[$profile]:-} ]]
+}
+
+profile::validate_skip_reason() {
+  # Print "kind:reason" when a check is explicitly unsupported or CI-only.
+  profile::ensure_loaded || return 1
+  local key
+  key="$(profile::_normalize_task_name "${1:-}")"
+  printf '%s' "${WGX_VALIDATE_SKIP[$key]:-}"
 }
 
 profile::env_apply() {

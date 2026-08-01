@@ -532,14 +532,64 @@ Examples:
 ```text
 Usage:
   wgx validate [--json]
+  wgx validate --profile quick|full [--json] [--timeout SECONDS] [--dry-run] [--output PATH]
 
-Validiert das Manifest (.wgx/profile.*) im aktuellen Repository.
-Exit-Status: 0 bei gültigem Manifest, sonst >0.
+Validiert das Manifest (.wgx/profile.*) im aktuellen Repository. Mit --profile
+werden zusätzlich die im Manifest deklarierten repository-eigenen Checks des
+Profils ausgeführt und ein stabiles JSON-Receipt erzeugt.
+
+Exit-Status: 0 wenn Manifest gültig ist und alle Checks bestehen, sonst >0.
 
 Optionen:
-  --json   Kompakte maschinenlesbare Ausgabe:
-           {"ok":bool,"errors":[...],"missingCapabilities":[...]}
+  --profile NAME   quick (begrenztes Agenten-Feedback) oder full (merge-taugliche
+                   lokale Validierung)
+  --json           Ohne --profile: {"ok":bool,"errors":[...],"missingCapabilities":[...]}
+                   Mit --profile: das vollständige Receipt
+  --timeout SEC    Zeitlimit je Check (Standard: quick 120, full 900)
+  --dry-run        Nur die aufgelöste Check-Reihenfolge zeigen, nichts ausführen
+  --output PATH    Receipt zusätzlich in eine Datei schreiben
 ```
+
+#### Validierungsprofile deklarieren
+
+WGX erfindet keine Checks. Jedes Repository deklariert im Manifest, welche
+eigenen Tasks ein Profil aufruft — WGX ist die Vordertür, nicht die
+Test-Implementierung:
+
+```yaml
+wgx:
+  validate:
+    quick: [lint, guard]        # begrenztes Agenten-Feedback
+    full:  [lint, guard, test]  # merge-taugliche lokale Validierung
+    unsupported:
+      bench: "kein Benchmark-Harness in diesem Repo"
+    ciOnly:
+      integration: "braucht Cloud-Credentials"
+```
+
+Ein nicht deklariertes Profil meldet `validate_profile_not_declared:<name>` und
+Exit-Status 2. Nennt ein Profil einen Task, den das Manifest nicht definiert,
+scheitert der Lauf mit `"kind": "undeclared"` — still übersprungen wird er nie.
+
+Als `unsupported` oder `ciOnly` deklarierte Checks erscheinen im Receipt
+explizit unter `skipped` und gelten nicht als Fehler.
+
+#### Receipt-Vertrag
+
+`--profile` erzeugt ein `wgx.validate.receipt` (schema_version 1) mit
+Repository (Root, Name, Commit, Dirty-State), Profil, Manifest-Status, den
+aufgerufenen Checks mit Status, Exit-Code, Dauer und Kommando-Digest, den
+übersprungenen Checks mit Grund, Umgebungsidentität, Ergebnis und
+`receipt_sha256` über den gesamten Receipt-Körper.
+
+Check-Status ist `passed`, `failed` oder `timeout`; ein Timeout zählt nie als
+Erfolg. Secret-artige Werte werden aus Kommandos und Umgebung redigiert — das
+Receipt führt nur die Namen der zurückgehaltenen Variablen.
+
+Das Receipt belegt ausdrücklich keine Repository-Korrektheit, keinen
+CI-Ersatz, keine Merge-Readiness aus dem quick-Profil, keine
+Test-Hinlänglichkeit und keine Laufzeit-Korrektheit; diese Grenze steht als
+`does_not_establish` im Receipt selbst.
 
 ### version
 

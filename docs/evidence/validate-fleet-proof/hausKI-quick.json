@@ -1,0 +1,49 @@
+{
+  "checks": [
+    {
+      "command": "STR:",
+      "command_sha256": "b945cfa2c46bbbe41e6d4ae3310ee59cad8a6b2a4842c0bb130f031017c839b5",
+      "duration_ms": 30,
+      "exit_code": 0,
+      "name": "lint",
+      "status": "passed"
+    }
+  ],
+  "does_not_establish": [
+    "repository_correctness",
+    "ci_replacement",
+    "merge_readiness_from_quick_profile",
+    "test_sufficiency",
+    "runtime_correctness"
+  ],
+  "environment": {
+    "bash": "5.1.16(1)-release",
+    "identity_sha256": "f88ca119d6cb1354daffc08730c067488ab93a73d22c56d99634a231de40a51c",
+    "machine": "x86_64",
+    "os": "linux",
+    "os_release": "7.0.11-76070011-generic",
+    "python": "3.10.12",
+    "redacted_env_names": [],
+    "wgx_version": "2.0.3"
+  },
+  "finished_at": "2026-08-01T11:45:09Z",
+  "kind": "wgx.validate.receipt",
+  "manifest": {
+    "errors": [],
+    "missing_capabilities": [],
+    "ok": true
+  },
+  "profile": "quick",
+  "receipt_sha256": "844c5e2fd4c296fbb637501200eaf1af341d1c7ee795cb80215ff420294449ec",
+  "repository": {
+    "commit": "7c863d7742888a9cca34916b522c5bd0d7d33e1f",
+    "dirty": true,
+    "name": "hausKI",
+    "root": "/tmp/wgx-fleet-proof.dOuute/hausKI"
+  },
+  "result": "passed",
+  "schema_version": 1,
+  "skipped": [],
+  "started_at": "2026-08-01T11:45:08Z",
+  "timeout_seconds": 300
+}

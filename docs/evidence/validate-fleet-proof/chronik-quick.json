@@ -1,0 +1,49 @@
+{
+  "checks": [
+    {
+      "command": "STR:set -euxo pipefail\nbash scripts/setup-venv.sh\n. .venv/bin/activate\nexport PYTHONPATH=\"${PYTHONPATH:-.}:.\"\npython3 -m pytest",
+      "command_sha256": "9ca966f3d2296fbcdf10afdc3e501a95355f02167478c59e530f740c5b3829b4",
+      "duration_ms": 21928,
+      "exit_code": 0,
+      "name": "guard",
+      "status": "passed"
+    }
+  ],
+  "does_not_establish": [
+    "repository_correctness",
+    "ci_replacement",
+    "merge_readiness_from_quick_profile",
+    "test_sufficiency",
+    "runtime_correctness"
+  ],
+  "environment": {
+    "bash": "5.1.16(1)-release",
+    "identity_sha256": "f88ca119d6cb1354daffc08730c067488ab93a73d22c56d99634a231de40a51c",
+    "machine": "x86_64",
+    "os": "linux",
+    "os_release": "7.0.11-76070011-generic",
+    "python": "3.10.12",
+    "redacted_env_names": [],
+    "wgx_version": "2.0.3"
+  },
+  "finished_at": "2026-08-01T11:45:36Z",
+  "kind": "wgx.validate.receipt",
+  "manifest": {
+    "errors": [],
+    "missing_capabilities": [],
+    "ok": true
+  },
+  "profile": "quick",
+  "receipt_sha256": "7d122c4f785c372f46241466538c3c3babb54488431f3576e6c755ac1aba018a",
+  "repository": {
+    "commit": "c8d9e12502b52a8e4b35cc9276da8a1b23ea71b4",
+    "dirty": true,
+    "name": "chronik",
+    "root": "/tmp/wgx-fleet-proof.dOuute/chronik"
+  },
+  "result": "passed",
+  "schema_version": 1,
+  "skipped": [],
+  "started_at": "2026-08-01T11:45:14Z",
+  "timeout_seconds": 300
+}

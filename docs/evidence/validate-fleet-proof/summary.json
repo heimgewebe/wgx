@@ -1,0 +1,128 @@
+[
+{
+  "discovery": "deterministic",
+  "discovery_plan": [
+    "run\tlint",
+    "run\ttest",
+    "run\tredprobe",
+    "run\tslowprobe",
+    "skip\tciprobe"
+  ],
+  "full": {
+    "checks": {
+      "lint": "passed",
+      "redprobe": "failed",
+      "slowprobe": "timeout",
+      "test": "passed"
+    },
+    "exit_status": 1,
+    "receipt_sha256": "c39ce78123aa5fda952271930504d43b97f2114ae0c48bba3a81778eab5baa16",
+    "result": "failed",
+    "skipped": {
+      "ciprobe": "ci-only"
+    }
+  },
+  "proves": {
+    "ci_only_skipped": true,
+    "deterministic_discovery": true,
+    "failing_check_reported": true,
+    "green_receipt": true,
+    "red_receipt": true,
+    "secret_absent_from_receipt": true,
+    "timeout_reported": true
+  },
+  "quick": {
+    "checks": {
+      "lint": "passed"
+    },
+    "exit_status": 0,
+    "receipt_sha256": "844c5e2fd4c296fbb637501200eaf1af341d1c7ee795cb80215ff420294449ec",
+    "result": "passed"
+  },
+  "repository": "hausKI"
+},
+{
+  "discovery": "deterministic",
+  "discovery_plan": [
+    "run\tguard",
+    "run\tsmoke",
+    "run\tredprobe",
+    "run\tslowprobe",
+    "skip\tciprobe"
+  ],
+  "full": {
+    "checks": {
+      "guard": "timeout",
+      "redprobe": "failed",
+      "slowprobe": "timeout",
+      "smoke": "passed"
+    },
+    "exit_status": 1,
+    "receipt_sha256": "65c5a6cf3e6f2c3a6355862c2bda0f96a9881462764c041bba398d71dae7d02c",
+    "result": "failed",
+    "skipped": {
+      "ciprobe": "ci-only"
+    }
+  },
+  "proves": {
+    "ci_only_skipped": true,
+    "deterministic_discovery": true,
+    "failing_check_reported": true,
+    "green_receipt": true,
+    "red_receipt": true,
+    "secret_absent_from_receipt": true,
+    "timeout_reported": true
+  },
+  "quick": {
+    "checks": {
+      "guard": "passed"
+    },
+    "exit_status": 0,
+    "receipt_sha256": "7d122c4f785c372f46241466538c3c3babb54488431f3576e6c755ac1aba018a",
+    "result": "passed"
+  },
+  "repository": "chronik"
+},
+{
+  "discovery": "deterministic",
+  "discovery_plan": [
+    "run\tlint",
+    "run\ttest",
+    "run\tredprobe",
+    "run\tslowprobe",
+    "skip\tciprobe"
+  ],
+  "full": {
+    "checks": {
+      "lint": "passed",
+      "redprobe": "failed",
+      "slowprobe": "timeout",
+      "test": "passed"
+    },
+    "exit_status": 1,
+    "receipt_sha256": "f167dbc0ec720ad93e955f65db5c79f05d6550034409348a8b2a775d27f09b90",
+    "result": "failed",
+    "skipped": {
+      "ciprobe": "ci-only"
+    }
+  },
+  "proves": {
+    "ci_only_skipped": true,
+    "deterministic_discovery": true,
+    "failing_check_reported": true,
+    "green_receipt": true,
+    "red_receipt": true,
+    "secret_absent_from_receipt": true,
+    "timeout_reported": true
+  },
+  "quick": {
+    "checks": {
+      "lint": "passed"
+    },
+    "exit_status": 0,
+    "receipt_sha256": "57c5b9d4c53b8c325d38a9a33cee82146e0346c2b8cfa756906678b93000e2ba",
+    "result": "passed"
+  },
+  "repository": "weltgewebe"
+}
+]
