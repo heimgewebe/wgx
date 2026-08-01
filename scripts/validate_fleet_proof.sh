@@ -55,14 +55,17 @@ path, quick, full = sys.argv[1], sys.argv[2], sys.argv[3]
 text = open(path).read()
 root_level = not text.lstrip().startswith('wgx:')
 indent = '' if root_level else '  '
+quick_checks = quick.split()
+full_checks = full.split() + ['redprobe', 'slowprobe', 'ciprobe']
 
-block = [
-    f'{indent}validate:',
-    f'{indent}  quick: [{", ".join(quick.split())}]',
-    f'{indent}  full: [{", ".join(full.split())}, redprobe, slowprobe, ciprobe]',
+block = [f'{indent}validate:', f'{indent}  quick:']
+block.extend(f'{indent}    - {check}' for check in quick_checks)
+block.append(f'{indent}  full:')
+block.extend(f'{indent}    - {check}' for check in full_checks)
+block.extend([
     f'{indent}  ciOnly:',
     f'{indent}    ciprobe: "fleet proof: CI-only declaration"',
-]
+])
 task_block = [
     f'{indent}  redprobe: "exit 7"',
     f'{indent}  slowprobe: "sleep 60"',
@@ -70,13 +73,12 @@ task_block = [
 
 lines = text.splitlines()
 # Insert the validate block before the tasks mapping and extend tasks with probes.
-out, injected, in_tasks = [], False, False
+out, injected = [], False
 for line in lines:
     stripped = line.strip()
     if not injected and stripped.startswith('tasks:'):
         out.extend(block)
         injected = True
-        in_tasks = True
         out.append(line)
         out.extend(task_block)
         continue
