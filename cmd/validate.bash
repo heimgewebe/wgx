@@ -17,16 +17,30 @@ Validiert das Manifest (.wgx/profile.*) im aktuellen Repository. Mit --profile
 werden zusätzlich die im Manifest deklarierten repository-eigenen Checks des
 Profils ausgeführt und ein stabiles JSON-Receipt erzeugt.
 
-Profile werden im Manifest deklariert; wgx erfindet keine Checks:
+Profile werden im Manifest deklariert; wgx erfindet keine Checks. Blocklisten
+funktionieren auch ohne optionale YAML-Abhängigkeit:
 
   wgx:
     validate:
-      quick: [lint, guard]
-      full:  [lint, guard, test]
+      quick:
+        - lint
+        - guard
+      full:
+        - lint
+        - guard
+        - test
       unsupported:
         bench: "kein Benchmark-Harness"
       ciOnly:
         integration: "braucht Cloud-Credentials"
+
+unsupported und ciOnly gelten repositoryweit. Sie erscheinen nach den
+profilgebundenen Checks deterministisch als skipped, sofern das Profil sie nicht
+bereits an ihrer eigenen Position nennt.
+
+Das Receipt enthält Repository-, Manifest-, Check- und Umgebungsidentität samt
+Digest. Es belegt weder Repository-Korrektheit noch CI-Ersatz oder Merge-Readiness
+aus dem quick-Profil.
 
 Optionen:
   --profile NAME   quick (begrenztes Agenten-Feedback) oder full (merge-taugliche
@@ -81,16 +95,6 @@ validate::_now() {
   date -u +%Y-%m-%dT%H:%M:%SZ
 }
 
-validate::_epoch_ms() {
-  local raw
-  raw="$(date +%s%N 2>/dev/null || printf '')"
-  if [[ $raw =~ ^[0-9]+$ ]] && ((${#raw} > 10)); then
-    printf '%s' $((raw / 1000000))
-  else
-    printf '%s' $(($(date +%s) * 1000))
-  fi
-}
-
 # Append one NUL-separated 6-field record for the receipt builder.
 validate::_record() {
   local file="$1"
@@ -107,8 +111,11 @@ validate::_record() {
 validate::_resolve() {
   local profile="$1"
   local name skip kind reason spec
+  local -A seen=()
+
   while IFS= read -r name; do
     [[ -n $name ]] || continue
+    seen["$name"]=1
     skip="$(profile::validate_skip_reason "$name")"
     if [[ -n $skip ]]; then
       kind="${skip%%:*}"
@@ -123,60 +130,59 @@ validate::_resolve() {
     fi
     printf 'run\t%s\n' "$name"
   done < <(profile::validate_profile_checks "$profile")
+
+  # Skip declarations are repository-wide. Append declarations that the
+  # selected profile did not already place, sorted by normalized task name.
+  while IFS= read -r name; do
+    [[ -n $name ]] || continue
+    [[ -n ${seen[$name]+x} ]] && continue
+    skip="$(profile::validate_skip_reason "$name")"
+    [[ -n $skip ]] || continue
+    kind="${skip%%:*}"
+    reason="${skip#*:}"
+    printf 'skip\t%s\t%s\t%s\n' "$name" "$kind" "$reason"
+  done < <(
+    if ((${#WGX_VALIDATE_SKIP[@]})); then
+      printf '%s\n' "${!WGX_VALIDATE_SKIP[@]}" | LC_ALL=C sort
+    fi
+  )
+}
+
+validate::_executable() {
+  local candidate
+  if [[ -n ${WGX_DIR:-} ]]; then
+    candidate="${WGX_DIR%/}/wgx"
+    if [[ -x $candidate ]]; then
+      printf '%s' "$candidate"
+      return 0
+    fi
+  fi
+  command -v wgx 2>/dev/null
 }
 
 validate::_run_check() {
-  # Run one declared task under a wall-clock timeout, in this shell so the
-  # profile API stays available. Echoes "<status> <exit> <duration_ms>".
+  # Run the existing `wgx run` front door in a fresh process group. The Python
+  # helper uses a monotonic timeout and terminates ordinary descendants,
+  # including pipelines and background jobs.
   local name="$1" timeout_seconds="$2"
-  local started ended status exit_code=0 pid watchdog flag
+  local executable module_dir repo_root result
+  module_dir="$(validate::_module_dir)"
+  repo_root="$(validate::_repo_root)"
 
-  # A watchdog rather than a poll loop, so a fast check reports its real
-  # duration instead of the polling interval. The flag file distinguishes a
-  # timeout kill from a task that legitimately exits with a signal status.
-  flag="$(mktemp "${TMPDIR:-/tmp}/wgx-validate-timeout.XXXXXX")"
-  rm -f "$flag"
-
-  # Both background jobs must release the caller's stdio and fd 3: this runs
-  # inside a command substitution (and under bats), which blocks until every
-  # process holding those descriptors exits.
-  #
-  # The watchdog polls so it terminates as soon as the task does, leaving no
-  # lingering sleep behind. The measured duration stays exact because the main
-  # shell waits on the task itself rather than on the poll interval.
-  started="$(validate::_epoch_ms)"
-  (profile::run_task "$name") >/dev/null 2>&1 3>&- &
-  pid=$!
-  (
-    local elapsed=0
-    local limit=$((timeout_seconds * 10))
-    while kill -0 "$pid" 2>/dev/null; do
-      if ((elapsed >= limit)); then
-        : >"$flag"
-        kill -TERM "$pid" 2>/dev/null || true
-        sleep 1
-        kill -KILL "$pid" 2>/dev/null || true
-        break
-      fi
-      sleep 0.1
-      elapsed=$((elapsed + 1))
-    done
-  ) >/dev/null 2>&1 3>&- &
-  watchdog=$!
-  wait "$pid" 2>/dev/null || exit_code=$?
-  ended="$(validate::_epoch_ms)"
-  wait "$watchdog" 2>/dev/null || true
-
-  if [[ -e $flag ]]; then
-    status="timeout"
-    ((exit_code)) || exit_code=124
-  elif ((exit_code == 0)); then
-    status="passed"
-  else
-    status="failed"
+  if ! executable="$(validate::_executable)"; then
+    printf 'failed 127 0'
+    return 0
   fi
-  rm -f "$flag"
-  printf '%s %s %s' "$status" "$exit_code" "$((ended - started))"
+  if ! result="$(python3 "${module_dir}/validate_runner.py" \
+    "$timeout_seconds" "$repo_root" "$executable" "$name")"; then
+    printf 'failed 125 0'
+    return 0
+  fi
+  if [[ $result =~ ^(passed|failed|timeout)[[:space:]]+([0-9]+)[[:space:]]+([0-9]+)$ ]]; then
+    printf '%s %s %s' "${BASH_REMATCH[1]}" "${BASH_REMATCH[2]}" "${BASH_REMATCH[3]}"
+  else
+    printf 'failed 125 0'
+  fi
 }
 
 validate::_profile_run() {
