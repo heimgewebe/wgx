@@ -25,7 +25,7 @@ jobs:
 
       - name: Run Trivy vulnerability scanner in fs mode
         # Pin to SHA for security - v0.35.0
-        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1
+        uses: aquasecurity/trivy-action@2736533278103862a861f4a35ebac3e97854d956
         with:
           scan-type: 'fs'
           scan-ref: '.'
