@@ -46,3 +46,22 @@ SH
   assert_line --index 0 -- "--json"
   assert_line --index 1 -- "--flag"
 }
+
+@test "task execution has no implicit audit or event side effects" {
+  marker="$BATS_TEST_TMPDIR/curl-called"
+  fakebin="$BATS_TEST_TMPDIR/fakebin"
+  mkdir -p "$fakebin"
+  cat >"$fakebin/curl" <<SH
+#!/usr/bin/env bash
+touch "$marker"
+exit 99
+SH
+  chmod +x "$fakebin/curl"
+
+  audit_dir="$BATS_TEST_TMPDIR/audit"
+  run env PATH="$fakebin:$PATH" HAUSKI_ENABLE=1 WGX_AUDIT_DIR="$audit_dir" wgx task echo -- harmless
+  assert_success
+  assert_output -- "harmless"
+  [ ! -e "$marker" ]
+  [ ! -e "$audit_dir" ]
+}

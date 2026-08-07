@@ -4,6 +4,7 @@ load test_helper
 
 setup() {
   WORKDIR="$(mktemp -d)"
+  METAREPO_VERIFY_COMMIT="31dbecc6c7b966faa73ad3dceb0ded7329187f36"
 }
 
 teardown() {
@@ -24,11 +25,20 @@ teardown() {
   assert_output --partial "PASS: all external uses references"
 }
 
-@test "repository WGX smoke is reusable and bound to a fixed CLI commit" {
+@test "repository WGX guard is only a pinned Metarepo compatibility shim" {
+  workflow="$(cat "$WGX_PROJECT_ROOT/.github/workflows/wgx-guard.yml")"
+  [[ "$workflow" == *"uses: heimgewebe/metarepo/.github/workflows/reusable-repo-verify.yml@$METAREPO_VERIFY_COMMIT"* ]]
+  [[ "$workflow" == *"mode: guard"* ]]
+  [[ "$workflow" != *"runs-on:"* ]]
+  [[ "$workflow" != *"actions/checkout@"* ]]
+  [[ "$workflow" != *"wgx task guard"* ]]
+}
+
+@test "repository WGX smoke is only a pinned Metarepo compatibility shim" {
   run python3 "$WGX_PROJECT_ROOT/scripts/check_wgx_smoke_contract.py" \
     "$WGX_PROJECT_ROOT/.github/workflows/wgx-smoke.yml"
   assert_success
-  assert_output --partial "is reusable and bound"
+  assert_output --partial "pinned Metarepo smoke compatibility shim"
 }
 
 @test "WGX example profile declares executable guard and smoke tasks" {
@@ -38,9 +48,6 @@ teardown() {
   assert_output --partial '"name":"guard"'
   assert_output --partial '"name":"smoke"'
 
-  # This test verifies profile wiring only. Live capability-source validation is
-  # covered by the dedicated operator-capability workflow and must not make the
-  # generic Bats suite depend on GitHub API credentials or network availability.
   run env WGX_TARGET_ROOT="$WGX_PROJECT_ROOT" DRYRUN=1 \
     "$WGX_PROJECT_ROOT/wgx" task guard
   assert_success
@@ -98,45 +105,42 @@ YAML
   assert_success
 }
 
-@test "WGX smoke contract rejects an unhashed PyYAML install" {
-  cp "$WGX_PROJECT_ROOT/.github/workflows/wgx-smoke.yml" "$WORKDIR/smoke-unhashed.yml"
-  python3 - "$WORKDIR/smoke-unhashed.yml" <<'PY'
+@test "WGX smoke contract rejects local implementation logic" {
+  cp "$WGX_PROJECT_ROOT/.github/workflows/wgx-smoke.yml" "$WORKDIR/smoke-local.yml"
+  python3 - "$WORKDIR/smoke-local.yml" <<'PY'
 from pathlib import Path
 import sys
 
 path = Path(sys.argv[1])
 text = path.read_text(encoding="utf-8")
-text = text.replace("--require-hashes", "--no-cache-dir")
-text = text.replace(
-    "--hash=sha256:ba1cc08a7ccde2d2ec775841541641e4548226580ab850948cbfda66a1befcdc",
-    "--hash=sha256:" + "0" * 64,
+text = text.replace("  smoke:\n", "  smoke:\n    runs-on: ubuntu-latest\n", 1)
+path.write_text(text, encoding="utf-8")
+PY
+
+  run python3 "$WGX_PROJECT_ROOT/scripts/check_wgx_smoke_contract.py" \
+    "$WORKDIR/smoke-local.yml"
+  assert_failure
+  assert_output --partial "contains implementation detail: runs-on:"
+}
+
+@test "WGX smoke contract rejects mutable Metarepo ref" {
+  cp "$WGX_PROJECT_ROOT/.github/workflows/wgx-smoke.yml" "$WORKDIR/smoke-main.yml"
+  python3 - "$WORKDIR/smoke-main.yml" "$METAREPO_VERIFY_COMMIT" <<'PY'
+from pathlib import Path
+import sys
+
+path = Path(sys.argv[1])
+commit = sys.argv[2]
+text = path.read_text(encoding="utf-8").replace(
+    f"reusable-repo-verify.yml@{commit}",
+    "reusable-repo-verify.yml@main",
 )
 path.write_text(text, encoding="utf-8")
 PY
 
   run python3 "$WGX_PROJECT_ROOT/scripts/check_wgx_smoke_contract.py" \
-    "$WORKDIR/smoke-unhashed.yml"
+    "$WORKDIR/smoke-main.yml"
   assert_failure
-  assert_output --partial "missing hash-only dependency install"
-  assert_output --partial "missing pinned PyYAML wheel hash"
-}
-
-@test "WGX smoke contract rejects a mutable CLI ref" {
-  cat >"$WORKDIR/smoke.yml" <<'YAML'
-"on":
-  workflow_call:
-jobs:
-  smoke:
-    steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
-        with:
-          ref: main
-      - run: echo "WGX profile does not declare a smoke task"
-      - run: wgx task smoke
-YAML
-
-  run python3 "$WGX_PROJECT_ROOT/scripts/check_wgx_smoke_contract.py" \
-    "$WORKDIR/smoke.yml"
-  assert_failure
-  assert_output --partial "must not use ref: main"
+  assert_output --partial "missing pinned Metarepo verification reusable"
+  assert_output --partial "must not use @main"
 }

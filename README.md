@@ -1,4 +1,4 @@
-# wgx – Weltgewebe CLI
+# wgx – Repository-Verifikationsrunner
 
 ![WGX Badge](https://img.shields.io/badge/wgx-enabled-blue)
 
@@ -105,13 +105,14 @@ wgx run build
 
 ## WGX-Systemgrenze
 
-WGX ist ein Repository-Verifikationsadapter: Es parst `.wgx/profile.yml`,
-stellt gemeinsame statische Checks bereit und routet CI zu den vom Ziel-Repo
-deklarierten Frontdoors. Bureau besitzt Task-Koordination; Grabowski besitzt
-Host-/Prozess-, Git- und Deploy-Effekte. WGX beansprucht keine dieser
-Autoritäten. Die belegten Consumer, repository-nativen Alternativen und
-Migrationen stehen in der
-[Capability-/Consumer-Map](docs/operator-ecosystem-capabilities.md).
+WGX ist der portable Kompatibilitätsrunner für repository-deklarierte
+Verifikations-Frontdoors. Der kanonische Fleet-Vertrag, Starterprofile und die
+reusable Guard-/Smoke-/Quick-/Full-Policy gehören seit Metarepo-Commit
+`31dbecc6c7b966faa73ad3dceb0ded7329187f36` zu Metarepo. Die historischen WGX-Workflow-URLs bleiben nur als
+revisionsgepinnte Kompatibilitätsshims erhalten. Bureau besitzt
+Task-Koordination; Grabowski besitzt Host-/Prozess-, Git- und Deploy-Effekte.
+WGX beansprucht keine dieser Autoritäten. Details stehen in
+[der aktuellen Rollenbeschreibung](docs/wgx-konzept.md).
 
 ## WGX Readiness
 

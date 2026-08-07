@@ -28,8 +28,8 @@ aufruft. Ein Ziel einer WGX-Matrix und eine eingecheckte Kopie zählen nicht.
 
 | Fähigkeit | Status | Reale Nutzung | Alternative |
 | --- | --- | --- | --- |
-| Guard-Router | behalten | neun direkte Caller des WGX-Reusable-Workflows | CI/Build-Frontdoor des jeweiligen Repositories |
-| Smoke-Router | behalten | sieben direkte Caller des WGX-Reusable-Workflows | Smoke-/CI-Frontdoor des jeweiligen Repositories |
+| Guard-Router | Kompatibilitätsshims behalten | direkte WGX-Caller bleiben während der Migration funktionsfähig; Policy liegt in Metarepo | Metarepo `reusable-repo-verify.yml` |
+| Smoke-Router | Kompatibilitätsshims behalten | direkte WGX-Caller bleiben während der Migration funktionsfähig; Policy liegt in Metarepo | Metarepo `reusable-repo-verify.yml` |
 | Statische Guard-Invarianten | behalten, lokal belegt | WGX-Tests; fremde Kopien werden nicht gezählt | repository-native Validatoren und CI |
 | Metrics-Contract-Kompatibilität | behalten, lokal belegt | WGX-Workflow ruft den WGX-Producer auf | Metarepo-Schema und repository-native Producer |
 | Kompatibilitätsmatrix | behalten, lokal belegt | WGX-Workflow ruft die WGX-Action auf | CI des jeweiligen Ziel-Repositories |
@@ -64,7 +64,7 @@ Die Inventur deckt jede Datei unter `cmd/*.bash` ab. Sie unterscheidet:
   WGX erzwingt für deklarierte Tasks keine technische Host-Sandbox.
 - Operator-State: `vibe adopt` schreibt einen Receipt in einen
   operatorgewählten WGX-State-Pfad; Plan, Status und Doctor lesen nur.
-- Nicht implementiert: `config`, `hooks`, `release`, `setup`, `start`.
+- Entfernte Placeholder: `config`, `hooks`, `release`, `setup`, `start` waren nicht implementiert und gehören nicht mehr zur CLI-Oberfläche.
 
 Die Dispatcher-Nachprüfung fand daneben `quick` als zusammengesetzten
 Delegator zu `guard` und `send`. `status` delegiert lediglich an seine interne
@@ -84,7 +84,7 @@ explizit ausgewählte Repository beziehungsweise den Operator-State.
 
 ## Autoritätsgrenze
 
-WGX beansprucht, ordnet, weist zu oder beendet keine Bureau-Tasks.
+WGX besitzt weder den Fleet-Verifikationsvertrag noch die reusable CI-Policy; beides liegt in Metarepo. WGX beansprucht, ordnet, weist zu oder beendet keine Bureau-Tasks.
 [Bureau besitzt die Task-Koordination](https://github.com/heimgewebe/bureau/blob/b70bd7a4bdbc1a113bab1e7fce2ddcf2645ebf43/docs/ownership.md).
 WGX beansprucht außerdem keine Grabowski-Autorität für Deployments, Services
 oder Prozesse.
@@ -103,3 +103,8 @@ WGX-Templates noch eine dazu passende CI-Abdeckung. Die Migration ist als
 `retirement_reversed` vermerkt; bis echte Consumer oder ein kompatibler Ersatz
 belegt sind, lautet der ehrliche Status `preserved_unproven`. Ein fokussierter
 Regressionstest lädt alle ausführbaren Profile und prüft ihre Task-Mengen.
+
+
+## Boundary-v2-Übergabe
+
+Metarepo-Commit `31dbecc6c7b966faa73ad3dceb0ded7329187f36` stellt einen ausführbaren Ersatz für Contract, Starterprofil und reusable CI bereit. Die historischen Consumerbelege in der maschinenlesbaren Inventur bleiben als Migrationsbelege erhalten; aktuelle WGX-Guard-/Smoke-Workflows sind nur noch gepinnte Weiterleitungen.

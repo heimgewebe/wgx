@@ -52,7 +52,7 @@
 ### Git hooks block commits
 
 - Run `wgx lint` manually to see the failures.
-- If a hook is outdated, update the repository and re-run `wgx setup`.
+- If a hook is outdated, update the repository and reinstall it through the repository-native setup path; WGX no longer installs Git hooks.
 
 ## Tips for Termux
 

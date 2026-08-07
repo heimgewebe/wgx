@@ -1,65 +1,65 @@
 # Dieses Repo ist Teil des Heimgewebes.
-# Systemweiter Kontext durch Heimgeist:
-#   metarepo/ai-contexts/heimgeist.ai-context.yml
 
 ai_context_version: 1.1
 
 project:
   name: wgx
-  summary: Repository verification adapter and fleet-invariant checks for Heimgewebe repositories.
-  role: repository_verification_adapter
+  summary: Portable compatibility runner for repository-declared verification front doors.
+  role: repository_verification_runner
   primary_language: bash
   visibility: internal
 
 role_contract:
-  name: repository_verification_adapter
-  authority: repository_local_verification
+  name: repository_verification_runner
+  authority: repository_local_execution_adapter
   owns:
-    - profile_contract_parsing
-    - fleet_invariant_checks
-    - reusable_ci_checks
+    - profile_parser_compatibility
+    - declared_task_dispatch
+    - validation_receipts
   consumes:
+    - metarepo_repository_verification_contract
     - repository_profiles
-    - contracts
     - local_git_state
   produces:
-    - readiness_reports
-    - metrics_contract_fixtures
-    - guard_results
+    - declared_task_inventory
+    - source_bound_validation_receipts
+    - compatibility_results
   limits:
+    - no_fleet_contract_ownership
+    - no_reusable_ci_policy_ownership
     - no_task_truth
     - no_task_coordination
     - no_worker_leases
     - no_ledger_ownership
-    - no_policy_application
     - no_deploy_authority
     - no_generic_cross_repository_host_authority
-  unavailable_effect: guard_and_metrics_degrade_without_changing_task_truth
+  unavailable_effect: repository verification adapters degrade without changing task or runtime truth
 
 dependencies:
   internal:
-    - name: contracts
-      relationship: uses
+    - name: metarepo
+      relationship: consumes
       interface:
-        - validation_hooks
-    - name: chronik
-      relationship: uses
-      interface:
-        - ci_e2e_orchestration
+        - repository-verification.v2
+        - reusable-repo-verify
   external:
-    - name: jq
-    - name: curl
+    - name: python3
 
 architecture:
   entrypoints:
-    - wgx/cmd/*
+    - wgx
+    - cli/wgx
   key_paths:
-    - path: modules/
-      purpose: subcommand implementations
+    - path: modules/profile_parser.py
+      purpose: compatibility profile parsing
+    - path: cmd/task.bash
+      purpose: explicit repository-declared task dispatch
+    - path: cmd/validate.bash
+      purpose: quick/full validation and receipts
   data_flow:
-    input: repository profile and CI invocation
-    processing: route to repository-declared verification front doors
-    output: source-bound check results
+    input: repository profile plus explicit command
+    processing: parse and route to repository-declared verification front doors
+    output: command result or deterministic validation receipt
 
 conventions:
   branching: "main, feature/*"
@@ -67,13 +67,12 @@ conventions:
   ci_platform: github_actions
 
 documentation:
-  runbook: docs/runbook.md
-
-system_context:
-  heimgeist: "../metarepo/ai-contexts/heimgeist.ai-context.yml"
+  runbook: docs/Runbook.de.md
 
 ai_guidance:
   do:
-    - compose subcommands; avoid global mutable state
+    - keep compatibility behavior small and explicit
+    - delegate shared verification policy to metarepo
   dont:
-    - hardcode repo-specific paths in core modules
+    - add fleet policy to the runner
+    - add implicit event, task, deployment, service, or Git authority

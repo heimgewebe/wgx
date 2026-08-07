@@ -13,25 +13,20 @@ Usage:
 Commands:
   audit
   clean
-  config
   doctor
   env
   guard
   heal
   help
-  hooks
   init
   integrity
   lint
   quick
-  release
   reload
   routine
   run
   selftest
   send
-  setup
-  start
   status
   sync-remote
   task
@@ -90,22 +85,6 @@ Options:
   --dry-run    Zeigt nur an, was passieren würde.
   --force      Bestätigt destruktive Operationen (für --deep).
 • Nichts zu tun.
-```
-
-### config
-
-```text
-Usage:
-  wgx config [show]
-  wgx config set <KEY>=<VALUE>
-
-Description:
-  Zeigt die aktuelle Konfiguration an oder setzt einen Wert in der
-  '.wgx.conf'-Datei.
-  Die Implementierung dieses Befehls ist noch in Arbeit.
-
-Options:
-  -h, --help    Diese Hilfe anzeigen.
 ```
 
 ### doctor
@@ -194,25 +173,20 @@ Usage:
 Commands:
   audit
   clean
-  config
   doctor
   env
   guard
   heal
   help
-  hooks
   init
   integrity
   lint
   quick
-  release
   reload
   routine
   run
   selftest
   send
-  setup
-  start
   status
   sync-remote
   task
@@ -227,22 +201,6 @@ Env:
 
 More:
   wgx --list     Nur verfügbare Befehle anzeigen
-```
-
-### hooks
-
-```text
-Usage:
-  wgx hooks [install]
-
-Description:
-  Verwaltet die Git-Hooks für das Repository.
-  Die vollständige Implementierung dieses Befehls ist noch in Arbeit.
-  Aktuell ist nur die 'install'-Aktion geplant.
-  Für Details, siehe 'docs/Command-Reference.de.md'.
-
-Options:
-  -h, --help    Diese Hilfe anzeigen.
 ```
 
 ### init
@@ -298,24 +256,6 @@ Run repository guards (lint + tests) and open the PR/MR helper.
 Options:
   -i, --interactive  Open the PR body in $EDITOR before sending
   -h, --help         Show this help message
-```
-
-### release
-
-```text
-Usage:
-  wgx release [--version <tag>] [--auto-version <bump>] [...]
-
-Description:
-  Erstellt SemVer-Tags und GitHub/GitLab-Releases.
-  Die vollständige Implementierung dieses Befehls ist noch in Arbeit.
-  Für eine detaillierte Beschreibung der geplanten Funktionalität,
-  siehe 'docs/Command-Reference.de.md'.
-
-Options:
-  --version <tag>    Die genaue Version für das Release (z.B. v1.2.3).
-  --auto-version     Erhöht die Version automatisch (patch, minor, major).
-  -h, --help         Diese Hilfe anzeigen.
 ```
 
 ### reload
@@ -414,39 +354,6 @@ Options:
   -h, --help        Diese Hilfe anzeigen
 ```
 
-### setup
-
-```text
-Usage:
-  wgx setup
-
-Description:
-  Hilft bei der Erstinstallation von 'wgx' und seinen Abhängigkeiten,
-  insbesondere in Umgebungen wie Termux.
-  Prüft auf das Vorhandensein von Kernpaketen (git, gh, glab, jq, etc.)
-  und gibt Hinweise zur Installation.
-  Die vollständige Implementierung dieses Befehls ist noch in Arbeit.
-
-Options:
-  -h, --help    Diese Hilfe anzeigen.
-```
-
-### start
-
-```text
-Usage:
-  wgx start <branch_name>
-
-Description:
-  Erstellt einen neuen Feature-Branch nach einem validierten Schema.
-  Der Name wird normalisiert (Sonderzeichen entfernt, etc.) und optional
-  mit einer Issue-Nummer versehen.
-  Die vollständige Implementierung dieses Befehls ist noch in Arbeit.
-
-Options:
-  -h, --help    Diese Hilfe anzeigen.
-```
-
 ### status
 
 ```text
@@ -487,9 +394,9 @@ Usage:
   wgx task <name> [--] [args...]
 
 Description:
-  Führt einen Task aus, der in der '.wgx/profile.yml'-Datei des Repositorys
-  definiert ist. Alle Argumente nach dem Task-Namen (und einem optionalen '--')
-  werden an den Task weitergegeben.
+  Führt genau einen Task aus, der im Profil des Ziel-Repositories deklariert
+  ist. Der Runner protokolliert oder versendet dabei keine impliziten Events;
+  beobachtbare Nebenwirkungen stammen ausschließlich aus dem deklarierten Task.
 
 Example:
   wgx task test -- --verbose

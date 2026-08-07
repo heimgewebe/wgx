@@ -75,8 +75,8 @@
       "id": "repository-guard-router",
       "category": "guard",
       "disposition": "retained_multi_consumer",
-      "authority": "repository_verification_adapter",
-      "summary": "Reusable workflow loads pinned WGX and invokes the target repository's declared guard or smoke task.",
+      "authority": "compatibility_check",
+      "summary": "Legacy WGX workflow entrypoint forwards existing consumers to Metarepo reusable repository verification pinned at 31dbecc6c7b966faa73ad3dceb0ded7329187f36; WGX no longer owns guard policy.",
       "surfaces": [
         ".github/workflows/wgx-guard.yml"
       ],
@@ -194,8 +194,8 @@
       "id": "repository-smoke-router",
       "category": "smoke",
       "disposition": "retained_multi_consumer",
-      "authority": "repository_verification_adapter",
-      "summary": "Reusable workflow requires and invokes the target repository's declared smoke task.",
+      "authority": "compatibility_check",
+      "summary": "Legacy WGX smoke entrypoint forwards existing consumers to Metarepo reusable repository verification pinned at 31dbecc6c7b966faa73ad3dceb0ded7329187f36; WGX no longer owns smoke policy.",
       "surfaces": [
         ".github/workflows/wgx-smoke.yml",
         "scripts/check_wgx_smoke_contract.py",
@@ -537,7 +537,7 @@
       "category": "template",
       "disposition": "preserved_unproven",
       "authority": "none_unproven",
-      "summary": "WGX starter profiles are restored because the cited Metarepo profile has no WGX tasks and is not an executable replacement. External consumers remain unproven.",
+      "summary": "WGX starter copies are transition-only compatibility material; Metarepo has an executable canonical starter since 31dbecc6c7b966faa73ad3dceb0ded7329187f36, so remaining copies require consumer migration before deletion.",
       "surfaces": [
         "templates/profiles/docs-only.yml",
         "templates/profiles/meta.yml",
@@ -583,15 +583,6 @@
       "alternative": {"owner": "invoking repository", "path": "repository-native clean target and git clean"}
     },
     {
-      "id": "config",
-      "surface": "cmd/config.bash",
-      "status": "placeholder",
-      "classification": "unavailable",
-      "effects": "Returns failure; no configuration mutation is implemented.",
-      "consumer_evidence_paths": ["docs/cli.md"],
-      "alternative": {"owner": "invoking repository", "path": "edit .wgx.conf with repository review"}
-    },
-    {
       "id": "doctor",
       "surface": "cmd/doctor.bash",
       "status": "active",
@@ -626,15 +617,6 @@
       "effects": "Fetches, stashes, rebases, merges, stages, continues, or aborts Git operations in the current repository.",
       "consumer_evidence_paths": ["docs/cli.md"],
       "alternative": {"owner": "Git and invoking operator", "path": "git fetch/rebase/merge/stash"}
-    },
-    {
-      "id": "hooks",
-      "surface": "cmd/hooks.bash",
-      "status": "placeholder",
-      "classification": "unavailable",
-      "effects": "Returns failure; hook installation is not implemented.",
-      "consumer_evidence_paths": ["docs/cli.md"],
-      "alternative": {"owner": "invoking repository", "path": "repository-native hook installer"}
     },
     {
       "id": "init",
@@ -672,15 +654,6 @@
       "delegates_to": ["guard", "send"],
       "consumer_evidence_paths": ["tests/quick.bats"],
       "alternative": {"owner": "invoking repository and forge", "path": "repository CI plus gh/glab PR creation"}
-    },
-    {
-      "id": "release",
-      "surface": "cmd/release.bash",
-      "status": "placeholder",
-      "classification": "unavailable",
-      "effects": "Returns failure; release creation is not implemented, though local audit/event logging can occur.",
-      "consumer_evidence_paths": ["docs/cli.md"],
-      "alternative": {"owner": "invoking repository and forge", "path": "repository-native release workflow"}
     },
     {
       "id": "reload",
@@ -726,24 +699,6 @@
       "effects": "Runs guards, fetches the current repository, can create a branch, and creates a PR/MR through gh or glab.",
       "consumer_evidence_paths": ["tests/send.bats"],
       "alternative": {"owner": "invoking repository and forge", "path": "git plus gh/glab or repository-native contribution workflow"}
-    },
-    {
-      "id": "setup",
-      "surface": "cmd/setup.bash",
-      "status": "placeholder",
-      "classification": "unavailable",
-      "effects": "Returns failure; dependency installation is not implemented.",
-      "consumer_evidence_paths": ["tests/help.bats"],
-      "alternative": {"owner": "invoking operator", "path": "platform-native package management"}
-    },
-    {
-      "id": "start",
-      "surface": "cmd/start.bash",
-      "status": "placeholder",
-      "classification": "unavailable",
-      "effects": "Returns failure; branch creation is not implemented.",
-      "consumer_evidence_paths": ["docs/cli.md"],
-      "alternative": {"owner": "Git and invoking repository", "path": "git switch -c under repository branch policy"}
     },
     {
       "id": "status",

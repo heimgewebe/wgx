@@ -12,7 +12,7 @@ schneller die richtigen Einstiegspunkte finden.
 | `modules/guard.bash` | Port der Guard-Pipeline (Secrets, Konflikte, Pflichtdateien, optional Lint/Test). Wird von `wgx guard` sowie `wgx send`/`wgx quick` verwendet. |
 | `modules/json.bash` | Hilfsfunktionen für JSON-Ausgabe (u. a. von Profil-/Task-Befehlen). |
 | `modules/profile.bash` | Lädt `.wgx/profile.yml`, normalisiert Task-Namen und führt Task-Skripte aus. Grundlage für `wgx task`/`wgx tasks`. |
-| `modules/semver.bash` | SemVer-Bump-Logik (Bump/Set, Tag-Parsing) für `wgx version` & `wgx release`. |
+| `modules/semver.bash` | SemVer-Bump-Logik (Bump/Set, Tag-Parsing) für den verbleibenden `wgx version`-Kompatibilitätspfad. |
 | `modules/status.bash` | Liefert Status-Zusammenfassungen, z. B. Ahead/Behind und Pfad-Erkennung. Wird von `wgx status` genutzt. |
 | `modules/sync.bash` | Implementiert `sync_cmd` inklusive Commit-, Rebase- und Push-Flows. |
 

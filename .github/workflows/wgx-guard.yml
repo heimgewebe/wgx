@@ -1,3 +1,4 @@
+---
 name: wgx-guard
 
 "on":
@@ -10,63 +11,9 @@ permissions:
   contents: read
 
 jobs:
-  wgx-guard:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout target repository
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
-
-      - name: Checkout pinned WGX CLI
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
-        with:
-          repository: heimgewebe/wgx
-          ref: 5a02f83378add575b6230ee3f13a1a26158d730b
-          path: .wgx-cli
-
-      - name: Setup Python
-        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5
-        with:
-          python-version: '3.x'
-
-      - name: Install dependencies
-        run: |
-          set -euo pipefail
-          if ! command -v jq >/dev/null 2>&1; then
-            sudo apt-get update -y
-            sudo apt-get install -y jq
-          fi
-          python3 -m pip install --disable-pip-version-check jsonschema
-
-      - name: Make pinned WGX available in PATH
-        run: |
-          set -euo pipefail
-          chmod +x .wgx-cli/wgx
-          echo "${PWD}/.wgx-cli" >> "$GITHUB_PATH"
-
-      - name: Verify WGX installation
-        run: |
-          set -euo pipefail
-          command -v wgx >/dev/null 2>&1
-          wgx version
-
-      - name: Run WGX guard
-        id: guard
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          tasks_json="$(wgx tasks --json 2>/dev/null || printf '%s\n' '{"tasks":[]}')"
-
-          if echo "$tasks_json" | jq -e '.tasks[] | select(.name == "guard")' >/dev/null 2>&1; then
-            wgx task guard
-          elif echo "$tasks_json" | jq -e '.tasks[] | select(.name == "smoke")' >/dev/null 2>&1; then
-            wgx task smoke
-          else
-            echo "::warning::Neither guard nor smoke task found in profile"
-          fi
-
-  validate-observatory:
-    uses: heimgewebe/metarepo/.github/workflows/reusable-validate-observatory.yml@1e1dc53db419b3223d46ec279d389962bbcdc592  # metarepo PR #647 merge 2026-07-12
+  guard:
+    uses: heimgewebe/metarepo/.github/workflows/reusable-repo-verify.yml@31dbecc6c7b966faa73ad3dceb0ded7329187f36
+    with:
+      mode: guard
     permissions:
       contents: read

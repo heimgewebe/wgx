@@ -1,65 +1,50 @@
-# WGX v1 Profile Specification
+# WGX v1 compatibility profile
 
-This document describes the stable v1 WGX profile format used by the fleet, the wgx CLI, and reusable CI workflows.
+Dieses Dokument beschreibt den **aktuellen Runner-Vertrag** von WGX. Neue
+Fleet-Policy, Templates und reusable CI werden nicht mehr in diesem Repository
+definiert; WGX bleibt während des Boundary-v2-Cutovers der kompatible Runner.
 
-## 1. Profile Structure
+## Kanonische Form
 
-The preferred structure for v1 profiles is to nest configuration under the `wgx` top-level key.
-
-### Required keys under `wgx`
-
-- `apiVersion`
-  Version of the profile schema (must be `v1`).
-- `tasks`
-  Mapping from task name → shell snippet (command string or list).
-
-### Optional keys under `wgx`
-
-- `requiredWgx` (Semver range)
-  Specifies the minimum or range of WGX versions required.
-- `repoKind`
-  Describes the repo’s overall technology pattern (e.g., `generic`, `rust-service`).
-- `dirs`
-  Mapping of directory paths (e.g., `web`, `api`, `data`).
-- `env`, `envDefaults`, `envOverrides`
-  Environment variable definitions.
-- `workflows`
-  CI workflow definitions mapping to lists of tasks.
-
-### Legacy Root-Level Keys (Deprecated)
-
-For backward compatibility, the following keys are also recognized at the root level, but `wgx.*` takes precedence:
-
-- `tasks`
-- `requiredWgx` (or `required-wgx`)
-- `repoKind`
-- `dirs`
-- `env`, `envDefaults`, `envOverrides`
-- `workflows`
-
-## 2. Example Profile
+Neue oder bereinigte Profile verwenden ausschließlich den verschachtelten
+`wgx`-Block:
 
 ```yaml
-# .wgx/profile.yml
 wgx:
   apiVersion: v1
-  requiredWgx: "^2.0.0"
-  repoKind: "generic"
-
+  requiredWgx: "^2.0"
+  repoKind: generic
+  validate:
+    quick:
+      - smoke
+    full:
+      - guard
+      - smoke
   tasks:
-    smoke: "echo 'wgx smoke: ok'"
-    lint: "echo 'wgx lint: noop'"
-    test: "echo 'wgx test: noop'"
+    guard: "git diff --check"
+    smoke: "git rev-parse --is-inside-work-tree >/dev/null"
 ```
 
-## 3. requiredWgx
+`wgx.tasks` ist die Menge repository-eigener Frontdoors. WGX besitzt deren
+fachliche Semantik nicht; `wgx task <name>` führt nur den explizit deklarierten
+Task aus.
 
-Profiles may indicate a required WGX capability level via `wgx.requiredWgx`.
-Legacy spelling `required-wgx` is also supported.
+## Validierungsprofile
 
-If omitted, the CLI assumes wide compatibility and logs only a warning.
+`wgx.validate.quick` und `wgx.validate.full` enthalten geordnete Tasknamen.
+`unsupported` und `ciOnly` ordnen Tasknamen einer nichtleeren Begründung zu.
+`wgx validate --profile quick|full --json` erzeugt daraus einen deterministischen
+Receipt.
 
-## CI Contract
+## Legacy-Kompatibilität
 
-CI workflows expect a **tracked** `.wgx/profile.yml` (or `.wgx/profile.example.yml` as fallback).
-If neither is tracked by git, `wgx` commands will fail with "No tracked wgx profile found".
+Root-Level-Schlüssel wie `tasks`, `requiredWgx`, `repoKind`, `env` oder
+`workflows` werden vom v1-Parser weiterhin als Übergang akzeptiert. Sie sind
+**keine empfohlene neue Form**. Falls sowohl `wgx.*` als auch Root-Level-Werte
+vorhanden sind, gewinnt die verschachtelte Form; bestehende Parser-Fallbacks
+bleiben bis zum Fleet-Cutover getestet.
+
+Die lokale Kompatibilitätsprojektion liegt in
+[`profile.schema.json`](profile.schema.json). Sie muss dieselben aktiven
+Beispiele akzeptieren wie der Parser und darf keinen zweiten, widersprüchlichen
+Profilvertrag definieren.
