@@ -41,7 +41,7 @@ teardown() {
   assert_output --partial "pinned Metarepo smoke compatibility shim"
 }
 
-@test "WGX example profile declares executable guard and smoke tasks" {
+@test "WGX example profile declares deterministic local guard and smoke tasks" {
   run env WGX_TARGET_ROOT="$WGX_PROJECT_ROOT" \
     "$WGX_PROJECT_ROOT/wgx" tasks --json
   assert_success
@@ -52,9 +52,11 @@ teardown() {
     "$WGX_PROJECT_ROOT/wgx" task guard
   assert_success
   assert_output --partial "[DRY-RUN]"
-  assert_output --partial "scripts/validate_operator_capabilities.py"
   assert_output --partial "scripts/check_wgx_guard_action_pins.py"
   assert_output --partial "scripts/check_wgx_smoke_contract.py"
+  assert_output --partial "scripts/validate_workflow.py .github/workflows/wgx-guard.yml"
+  assert_output --partial "scripts/validate_workflow.py .github/workflows/wgx-smoke.yml"
+  [[ "$output" != *"scripts/validate_operator_capabilities.py"* ]]
 
   run env WGX_TARGET_ROOT="$WGX_PROJECT_ROOT" DRYRUN=1 \
     "$WGX_PROJECT_ROOT/wgx" task smoke

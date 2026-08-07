@@ -8,9 +8,9 @@ ordnet die aktive Oberfläche nach ihrer Rolle ein.
 | Kommando | Zweck |
 | --- | --- |
 | `wgx tasks` | Deklarierte Repository-Tasks auflisten. |
-| `wgx task <name>` | Genau einen deklarierten Task ausführen, ohne implizite WGX-Telemetrie. |
-| `wgx run <name>` | Kompatibilitätsalias für profilbasierte Taskausführung mit Dry-Run. |
-| `wgx validate` | Profilstruktur bzw. `quick`/`full`-Validierungsprofile prüfen. |
+| `wgx task <name>` | Deklarierten Task ohne implizite WGX-Telemetrie ausführen. |
+| `wgx run <name>` | Kompatibilitätsalias für Taskausführung mit Dry-Run. |
+| `wgx validate` | Profil und `quick`/`full`-Validierungsprofile prüfen. |
 | `wgx doctor` | Runner-/Repository-Voraussetzungen diagnostizieren. |
 | `wgx env` / `wgx status` | Lokale Runner- und Repositoryinformationen lesen. |
 

@@ -70,7 +70,8 @@ Beispiele:
 ### Git-Hooks blockieren Commits
 
 - `wgx lint` manuell ausführen, um Fehler zu sehen.
-- Falls ein Hook veraltet ist, Repository aktualisieren und ihn über den repository-eigenen Setup-Pfad neu installieren; WGX installiert keine Git-Hooks mehr.
+- Falls ein Hook veraltet ist, Repository aktualisieren und ihn über den repository-eigenen Setup-Pfad neu installieren;
+  WGX installiert keine Git-Hooks mehr.
 
 ## Tipps für Termux
 

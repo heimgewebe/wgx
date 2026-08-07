@@ -64,7 +64,8 @@ Die Inventur deckt jede Datei unter `cmd/*.bash` ab. Sie unterscheidet:
   WGX erzwingt für deklarierte Tasks keine technische Host-Sandbox.
 - Operator-State: `vibe adopt` schreibt einen Receipt in einen
   operatorgewählten WGX-State-Pfad; Plan, Status und Doctor lesen nur.
-- Entfernte Placeholder: `config`, `hooks`, `release`, `setup`, `start` waren nicht implementiert und gehören nicht mehr zur CLI-Oberfläche.
+- Entfernte Placeholder: `config`, `hooks`, `release`, `setup`, `start` waren nicht implementiert und gehören
+  nicht mehr zur CLI-Oberfläche.
 
 Die Dispatcher-Nachprüfung fand daneben `quick` als zusammengesetzten
 Delegator zu `guard` und `send`. `status` delegiert lediglich an seine interne
@@ -84,7 +85,8 @@ explizit ausgewählte Repository beziehungsweise den Operator-State.
 
 ## Autoritätsgrenze
 
-WGX besitzt weder den Fleet-Verifikationsvertrag noch die reusable CI-Policy; beides liegt in Metarepo. WGX beansprucht, ordnet, weist zu oder beendet keine Bureau-Tasks.
+WGX besitzt weder den Fleet-Verifikationsvertrag noch die reusable CI-Policy; beides liegt in Metarepo.
+WGX beansprucht, ordnet, weist zu oder beendet keine Bureau-Tasks.
 [Bureau besitzt die Task-Koordination](https://github.com/heimgewebe/bureau/blob/b70bd7a4bdbc1a113bab1e7fce2ddcf2645ebf43/docs/ownership.md).
 WGX beansprucht außerdem keine Grabowski-Autorität für Deployments, Services
 oder Prozesse.
@@ -104,7 +106,8 @@ WGX-Templates noch eine dazu passende CI-Abdeckung. Die Migration ist als
 belegt sind, lautet der ehrliche Status `preserved_unproven`. Ein fokussierter
 Regressionstest lädt alle ausführbaren Profile und prüft ihre Task-Mengen.
 
-
 ## Boundary-v2-Übergabe
 
-Metarepo-Commit `31dbecc6c7b966faa73ad3dceb0ded7329187f36` stellt einen ausführbaren Ersatz für Contract, Starterprofil und reusable CI bereit. Die historischen Consumerbelege in der maschinenlesbaren Inventur bleiben als Migrationsbelege erhalten; aktuelle WGX-Guard-/Smoke-Workflows sind nur noch gepinnte Weiterleitungen.
+Metarepo-Commit `31dbecc6c7b966faa73ad3dceb0ded7329187f36` stellt einen ausführbaren Ersatz für Contract,
+Starterprofil und reusable CI bereit. Die historischen Consumerbelege in der maschinenlesbaren Inventur bleiben
+als Migrationsbelege erhalten; aktuelle WGX-Guard-/Smoke-Workflows sind nur noch gepinnte Weiterleitungen.
