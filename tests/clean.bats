@@ -101,9 +101,12 @@ init_git_repo() {
 }
 
 @test "clean --deep without --force warns" {
-  run wgx clean --deep
-  [ "$status" -ne 0 ]
+  local repo
+  repo="$(init_git_repo)"
+  run_clean_in_dir "$repo" --deep
+  assert_failure
   [[ "$output" =~ "--deep ist destruktiv" ]]
+  rm -rf "$repo"
 }
 
 @test "clean --deep --force removes untracked files in repo" {

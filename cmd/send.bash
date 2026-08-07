@@ -122,7 +122,7 @@ USAGE
       info "Base-Branch ($WGX_BASE) erkannt → auto Branch: $slug"
       git switch -c "$slug" || die "auto-branch fehlgeschlagen"
     else
-      die "send: Du stehst auf Base ($WGX_BASE). Erst 'wgx start <slug>' – oder 'wgx send --auto-branch'."
+      die "send: Du stehst auf Base ($WGX_BASE). Nutze 'git switch -c <slug>' oder 'wgx send --auto-branch'."
     fi
   fi
 

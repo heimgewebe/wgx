@@ -21,7 +21,12 @@ setup() {
   [[ "${output}" =~ "reload" ]]
 }
 
-@test "wgx setup subcommand dispatches" {
-  run wgx setup -h
-  assert_success
+@test "removed placeholder commands are not exposed" {
+  local cmd available
+  available="$(wgx --list)"
+  for cmd in config hooks release setup start; do
+    [[ "$available" != *"$cmd"* ]]
+    run wgx "$cmd" --help
+    assert_failure
+  done
 }

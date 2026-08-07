@@ -1,19 +1,5 @@
 #!/usr/bin/env bash
 
-if [ -z "${WGX_DIR:-}" ]; then
-  WGX_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-fi
-
-if ! declare -F audit::log >/dev/null 2>&1; then
-  # shellcheck disable=SC1090
-  source "$WGX_DIR/lib/audit.bash"
-fi
-
-if ! declare -F hauski::emit >/dev/null 2>&1; then
-  # shellcheck disable=SC1090
-  source "$WGX_DIR/lib/hauski.bash"
-fi
-
 task::_check_python_runtime() {
   if ! command -v python3 >/dev/null 2>&1; then
     die "Python 3 is required for parsing .wgx/profile.yml but is not installed. See README section \"Laufzeitabhängigkeiten\" / \"Runtime dependencies\"."
@@ -25,33 +11,6 @@ task::_check_python_runtime() {
   fi
 }
 
-wgx::_json_escape_fallback() {
-  local input="${1:-}" output="" ch
-  while IFS= read -r -n1 ch; do
-    case "$ch" in
-    \\)
-      output+=$'\\\\'
-      ;;
-    '"')
-      output+=$'\\"'
-      ;;
-    $'\n')
-      output+=$'\\n'
-      ;;
-    $'\r')
-      output+=$'\\r'
-      ;;
-    $'\t')
-      output+=$'\\t'
-      ;;
-    *)
-      output+="$ch"
-      ;;
-    esac
-  done <<<"$input"
-  printf '%s' "$output"
-}
-
 cmd_task() {
   if [[ "${1:-}" == "-h" || "${1:-}" == "--help" || $# -eq 0 ]]; then
     cat <<'USAGE'
@@ -59,9 +18,9 @@ Usage:
   wgx task <name> [--] [args...]
 
 Description:
-  Führt einen Task aus, der in der '.wgx/profile.yml'-Datei des Repositorys
-  definiert ist. Alle Argumente nach dem Task-Namen (und einem optionalen '--')
-  werden an den Task weitergegeben.
+  Führt genau einen Task aus, der im Profil des Ziel-Repositories deklariert
+  ist. Der Runner protokolliert oder versendet dabei keine impliziten Events;
+  beobachtbare Nebenwirkungen stammen ausschließlich aus dem deklarierten Task.
 
 Example:
   wgx task test -- --verbose
@@ -84,7 +43,6 @@ USAGE
     forwarded=("$@")
   fi
 
-  # Ensure target root is respected
   local target_root="${WGX_TARGET_ROOT:-$PWD}"
   if [[ ! -d "$target_root" ]]; then
     die "Target root not found: $target_root"
@@ -100,52 +58,18 @@ USAGE
     die "Failed to parse .wgx/profile.yml. Please check its syntax."
   fi
 
-  # Ensure required wgx version is satisfied.
-  # profile::ensure_version reads WGX_REQUIRED_RANGE / WGX_REQUIRED_MIN from
-  # the parsed profile (including requiredWgx / required-wgx) and returns
-  # non-zero on mismatch.
   if ! profile::ensure_version; then
     die "Profile requirements not met (see warnings above)."
   fi
 
-  local key
+  local key spec
   key="$(profile::_normalize_task_name "$name")"
-  local spec
   spec="$(profile::_task_spec "$key")"
   if [[ -z $spec ]]; then
     warn "Task not defined: $name"
-    exit 1
+    return 1
   fi
 
-  local payload_start payload_finish
-  if command -v python3 >/dev/null 2>&1; then
-    payload_start=$(
-      python3 - "$name" "${forwarded[@]}" <<'PY'
-import json
-import sys
-
-task = sys.argv[1]
-args = list(sys.argv[2:])
-print(json.dumps({"task": task, "args": args, "phase": "start"}))
-PY
-    )
-  else
-    local esc_name
-    if type -t json_escape >/dev/null 2>&1; then
-      esc_name=$(json_escape "$name")
-    else
-      esc_name=$(wgx::_json_escape_fallback "$name")
-    fi
-    payload_start="{\"task\":\"${esc_name}\",\"phase\":\"start\"}"
-  fi
-  audit::log "task_start" "$payload_start" || true
-  hauski::emit "task.start" "$payload_start" || true
-
-  # Run task, capture real exit code, then branch on it.
-  # Important: The CLI wrapper enables `set -e` (errexit). If the task fails,
-  # a plain invocation would abort the shell before we can capture `$?`.
-  # We therefore (temporarily) disable errexit, run the task, grab rc, and
-  # restore the original errexit state afterwards.
   local rc had_errexit=0
   if [[ $- == *e* ]]; then
     had_errexit=1
@@ -156,47 +80,9 @@ PY
   if ((had_errexit)); then
     set -o errexit
   fi
-  if ((rc != 0)); then
-    if command -v python3 >/dev/null 2>&1; then
-      payload_finish=$(
-        python3 - "$name" "$rc" <<'PY'
-import json
-import sys
-print(json.dumps({"task": sys.argv[1], "status": "error", "exit_code": int(sys.argv[2])}))
-PY
-      )
-    else
-      local esc
-      if type -t json_escape >/dev/null 2>&1; then
-        esc=$(json_escape "$name")
-      else
-        esc=$(wgx::_json_escape_fallback "$name")
-      fi
-      payload_finish="{\"task\":\"${esc}\",\"status\":\"error\",\"exit_code\":${rc}}"
-    fi
-    audit::log "task_finish" "$payload_finish" || true
-    hauski::emit "task.finish" "$payload_finish" || true
-    return $rc
-  fi
+  return "$rc"
+}
 
-  if command -v python3 >/dev/null 2>&1; then
-    payload_finish=$(
-      python3 - "$name" <<'PY'
-import json
-import sys
-print(json.dumps({"task": sys.argv[1], "status": "ok", "exit_code": 0}))
-PY
-    )
-  else
-    local esc
-    if type -t json_escape >/dev/null 2>&1; then
-      esc=$(json_escape "$name")
-    else
-      esc=$(wgx::_json_escape_fallback "$name")
-    fi
-    payload_finish="{\"task\":\"${esc}\",\"status\":\"ok\",\"exit_code\":0}"
-  fi
-  audit::log "task_finish" "$payload_finish" || true
-  hauski::emit "task.finish" "$payload_finish" || true
-  return 0
+wgx_command_main() {
+  cmd_task "$@"
 }

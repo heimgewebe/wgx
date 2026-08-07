@@ -1,58 +1,55 @@
-# WGX – Repository-Verifikationsadapter
+# WGX – portabler Repository-Verifikationsrunner
 
-Status: aktuelle Rollenbeschreibung für WGX v1.
+Status: Boundary-v2-Rollenbeschreibung nach Metarepo-PR #687.
 
-WGX stellt eine gemeinsame CLI, Profilparser, statische Guard-Invarianten und
-wiederverwendbare GitHub-Actions-Adapter bereit. Ein Ziel-Repository deklariert
-seine eigenen Frontdoors in `.wgx/profile.yml`; WGX kann diese lokal oder in CI
-aufrufen und strukturiert ausgeben.
+WGX ist nicht mehr Eigentümer des Fleet-Verifikationsvertrags. Der kanonische
+Contract, die ausführbaren Starterprofile und die reusable CI-Policy liegen in
+Metarepo, revisionsgebunden ab `31dbecc6c7b966faa73ad3dceb0ded7329187f36`. WGX bleibt während des Cutovers der
+portable Kompatibilitätsrunner für bestehende `.wgx/profile.yml`-Consumer.
 
-## Zuständigkeit
+## WGX besitzt
 
-WGX besitzt:
+- Parserkompatibilität für bestehende WGX-v1-Profile;
+- Auflistung deklarierter Repository-Tasks;
+- explizite Ausführung genau eines deklarierten Tasks;
+- `quick`/`full`-Validierung mit deterministischen, redigierten JSON-Receipts;
+- die alten `wgx-guard`/`wgx-smoke`-URLs ausschließlich als gepinnte
+  Kompatibilitätsshims.
 
-- das Profilformat und dessen Parserkompatibilität;
-- querschnittliche, statische Repository-Checks;
-- die wiederverwendbaren Guard-, Smoke- und Kompatibilitätsadapter;
-- eine Metrics-Contract-Fixture für den gemeinsamen Metarepo-Vertrag.
+## Metarepo besitzt
 
-WGX besitzt nicht:
+- `repository-verification.v2.schema.json`;
+- kanonische ausführbare Starterprofile;
+- die gemeinsame Guard-/Smoke-/Quick-/Full-Policy;
+- `reusable-repo-verify.yml` als wiederverwendbaren GitHub-Actions-Frontdoor.
 
-- Task-Auswahl, Reihenfolge, Claims oder Abschlusswahrheit – das gehört Bureau;
-- Grabowski-Autorität für Deployments, Services oder Prozesse;
-- generische repository-übergreifende Host-Autorität;
-- CI-Ergebnisse anderer Repositories – deren native CI und GitHub bleiben die
-  Quelle;
-- Fleet-Distribution – das gehört Metarepo.
+Die WGX-Shims delegieren exakt an Metarepo `31dbecc6c7b966faa73ad3dceb0ded7329187f36`. Dadurch bleiben bestehende
+Caller funktionsfähig, ohne zwei Policy-Eigentümer zu erzeugen.
 
-WGX enthält ausdrücklich repository-bezogene Entwickler-Mutationen wie
-`clean`, `reload`, `heal` und `send`. `wgx task` und `wgx run` führen einen vom
-aktuellen Repository deklarierten Shell-Befehl aus; WGX begrenzt dessen
-mögliche Host-Effekte nicht technisch. Diese Flächen sind weder Task-Queue noch
-Deploy-Freigabe und übertragen WGX keine Bureau- oder Grabowski-Autorität.
+## WGX besitzt ausdrücklich nicht
 
-## Beibehaltene gemeinsame Flächen
+- Fleet- oder Contract-Wahrheit;
+- Task-Auswahl, Reihenfolge, Claims oder Abschlusswahrheit – Bureau;
+- Deployment-, Service-, Prozess-, Worktree- oder allgemeine Git-Autorität – Grabowski/GitHub;
+- Event- oder Ledger-Wahrheit – Chronik/Plexer;
+- Systemrollen und langfristige Beziehungen – Systemkatalog;
+- repository-übergreifenden Codekontext – RepoGround.
 
-- `.github/workflows/wgx-guard.yml` routet zu repository-eigenen Guard- oder
-  Smoke-Frontdoors.
-- `.github/workflows/wgx-smoke.yml` verlangt eine deklarierte Smoke-Frontdoor.
-- `modules/guard.bash` und `guards/` liefern statische Fleet-Invarianten.
-- `.github/workflows/compat-on-demand.yml` prüft WGX gegen mehrere reale
-  Ziel-Repositories.
-- `scripts/wgx-metrics-snapshot.sh` erzeugt nur eine Contract-Fixture; die
-  Ausgabe ist keine Live-Host- oder Deployment-Evidenz.
+## Übergangsflächen
 
-Die vollständige, maschinenvalidierte Consumer- und Ersatzinventur steht in
-[`operator-ecosystem-capabilities.v1.json`](operator-ecosystem-capabilities.v1.json).
+Historische Entwicklerbefehle wie `clean`, `reload`, `heal`, `send`, `routine`,
+`version`, `integrity` und `vibe` sind noch nicht automatisch Teil des
+langfristigen Runner-Kerns. Sie bleiben nur so lange erhalten, wie Consumer oder
+Migrationsbelege ihre Entfernung noch nicht erlauben. Reine Placeholder
+`config`, `hooks`, `release`, `setup` und `start` wurden bereits entfernt.
 
-## Repository-native Frontdoors
+`wgx task` erzeugt selbst keine Audit- oder HausKI-/Plexer-Nebenwirkungen mehr;
+beobachtbare Effekte stammen ausschließlich aus dem vom Repository explizit
+deklarierten Task.
 
-WGX ersetzt keine fachliche CI. Ein Python-Repository kann beispielsweise
-`uv run pytest`, ein Rust-Repository `cargo test` und ein Dokumentations-Repo
-seinen eigenen Linter deklarieren. Der WGX-Adapter vereinheitlicht lediglich
-den Aufruf und die Profilkompatibilität.
+## Nächster Schnitt
 
-Metarepo besitzt die Fleet-Distribution. Die WGX-eigenen Starterprofile
-bleiben jedoch erhalten, bis Metarepo einen nachweislich ausführbaren,
-task-kompatiblen Ersatz samt CI-Abdeckung bietet. Der aktuell geprüfte
-Metarepo-Profilkandidat enthält keine WGX-Tasks und ist deshalb kein Ersatz.
+Nach revisionsgebundener Migration der direkten WGX-Caller kann der
+Implementierungsname unabhängig vom Contract werden. Erst dann wird über die
+Umbenennung von `wgx` zu einem beschreibenden Runnernamen wie `repoverify` und
+über einen implementationunabhängigen Profilpfad entschieden.
