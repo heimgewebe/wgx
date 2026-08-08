@@ -76,6 +76,33 @@ class OperatorCapabilitiesTest(unittest.TestCase):
     def test_repository_inventory_is_valid(self) -> None:
         self.assertEqual(self.validate(self.payload), [])
 
+    def payload_with_historical_external_consumer(self) -> dict[str, object]:
+        payload = copy.deepcopy(self.payload)
+        payload["capabilities"][0]["consumers"] = [
+            {
+                "repository": "heimgewebe/aussensensor",
+                "evidence_path": ".github/workflows/wgx-guard.yml",
+                "source_url": (
+                    "https://github.com/heimgewebe/aussensensor/blob/"
+                    "f9c75995b61ee841321420789e8e6b6374384a2a/"
+                    ".github/workflows/wgx-guard.yml"
+                ),
+                "canonical_invocation": (
+                    "uses: heimgewebe/wgx/.github/workflows/wgx-guard.yml@main"
+                ),
+                "repository_native_alternative": {
+                    "owner": "heimgewebe/aussensensor",
+                    "path": ".github/workflows/tests.yml",
+                    "source_url": (
+                        "https://github.com/heimgewebe/aussensensor/blob/"
+                        "f9c75995b61ee841321420789e8e6b6374384a2a/"
+                        ".github/workflows/tests.yml"
+                    ),
+                },
+            }
+        ]
+        return payload
+
     def test_consumer_requires_evidence_path(self) -> None:
         payload = copy.deepcopy(self.payload)
         del payload["capabilities"][0]["consumers"][0]["evidence_path"]
@@ -83,7 +110,7 @@ class OperatorCapabilitiesTest(unittest.TestCase):
         self.assertTrue(any("evidence_path is required" in item for item in findings))
 
     def test_consumer_url_must_match_repository_and_path(self) -> None:
-        payload = copy.deepcopy(self.payload)
+        payload = self.payload_with_historical_external_consumer()
         consumer = payload["capabilities"][0]["consumers"][0]
         consumer["source_url"] = (
             "https://github.com/heimgewebe/wgx/blob/"
@@ -211,7 +238,7 @@ class OperatorCapabilitiesTest(unittest.TestCase):
         self.assertEqual(findings, [])
 
     def test_unrelated_alternative_owner_url_is_rejected(self) -> None:
-        payload = copy.deepcopy(self.payload)
+        payload = self.payload_with_historical_external_consumer()
         alternative = payload["capabilities"][0]["consumers"][0][
             "repository_native_alternative"
         ]
@@ -242,7 +269,7 @@ class OperatorCapabilitiesTest(unittest.TestCase):
     def test_coordinated_invocation_and_complete_blob_forgery_is_rejected(
         self,
     ) -> None:
-        payload = copy.deepcopy(self.payload)
+        payload = self.payload_with_historical_external_consumer()
         evidence = copy.deepcopy(self.evidence)
         consumer = payload["capabilities"][0]["consumers"][0]
         original = consumer["canonical_invocation"]
@@ -718,10 +745,16 @@ class OperatorCapabilitiesTest(unittest.TestCase):
             any("canonical_invocation is not evidenced" in item for item in findings)
         )
 
+    def _first_wgx_source_url(self, payload: object | None = None) -> str:
+        source = self.payload if payload is None else payload
+        return next(
+            item
+            for item in validator._all_strings(source)
+            if validator._source_repository_identity(item) == "heimgewebe/wgx"
+        )
+
     def test_non_consumer_wgx_source_url_requires_pinned_evidence(self) -> None:
-        target = self.payload["authority_boundary"]["owners"]["ci_conclusions"][
-            "source_url"
-        ]
+        target = self._first_wgx_source_url()
         records, findings = self.load_evidence(self.evidence)
         self.assertEqual(findings, [])
         records.pop(target)
@@ -739,27 +772,52 @@ class OperatorCapabilitiesTest(unittest.TestCase):
 
     def test_wgx_source_identity_is_case_insensitive_for_proof_requirement(self) -> None:
         payload = copy.deepcopy(self.payload)
-        owner = payload["authority_boundary"]["owners"]["ci_conclusions"]
-        owner["source_url"] = owner["source_url"].replace(
-            "heimgewebe/wgx", "Heimgewebe/WGX", 1
-        )
+        target = self._first_wgx_source_url(payload)
+        replacement = target.replace("heimgewebe/wgx", "Heimgewebe/WGX", 1)
 
+        def replace(value: object) -> object:
+            if isinstance(value, dict):
+                return {key: replace(item) for key, item in value.items()}
+            if isinstance(value, list):
+                return [replace(item) for item in value]
+            return replacement if value == target else value
+
+        payload = replace(payload)
         findings = self.validate(payload)
 
         self.assertTrue(
             any(
                 item
-                == "WGX source URL lacks checked-in pinned source evidence: "
-                + owner["source_url"]
+                == "WGX source URL lacks checked-in pinned source evidence: " + replacement
                 for item in findings
             )
         )
 
     def test_swapped_category_is_rejected(self) -> None:
         payload = copy.deepcopy(self.payload)
-        payload["capabilities"][0]["category"] = "metrics"
+        capability = next(
+            item
+            for item in payload["capabilities"]
+            if item["id"] == "metrics-contract-compatibility"
+        )
+        capability["category"] = "guard"
         findings = self.validate(payload)
-        self.assertTrue(any("category must be guard" in item for item in findings))
+        self.assertTrue(any("category must be metrics" in item for item in findings))
+
+    def test_public_reusable_workflow_shims_are_retired(self) -> None:
+        self.assertFalse((ROOT / ".github/workflows/wgx-guard.yml").exists())
+        self.assertFalse((ROOT / ".github/workflows/wgx-smoke.yml").exists())
+        self.assertFalse((ROOT / "scripts/check_wgx_guard_action_pins.py").exists())
+        self.assertFalse((ROOT / "scripts/check_wgx_smoke_contract.py").exists())
+        workflow = (ROOT / ".github/workflows/repository-verification.yml").read_text(
+            encoding="utf-8"
+        )
+        self.assertNotIn("workflow_call:", workflow)
+        self.assertIn(
+            "heimgewebe/metarepo/.github/workflows/reusable-repo-verify.yml@"
+            "1533061dd1a098c627070c5afd98bb23843107a2",
+            workflow,
+        )
 
     def test_explicit_authority_contradiction_in_capability_prose_is_rejected(self) -> None:
         payload = copy.deepcopy(self.payload)

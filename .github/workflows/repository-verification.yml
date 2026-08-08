@@ -1,0 +1,26 @@
+---
+name: repository-verification
+
+"on":
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  guard:
+    uses: heimgewebe/metarepo/.github/workflows/reusable-repo-verify.yml@1533061dd1a098c627070c5afd98bb23843107a2
+    with:
+      mode: guard
+    permissions:
+      contents: read
+
+  smoke:
+    uses: heimgewebe/metarepo/.github/workflows/reusable-repo-verify.yml@1533061dd1a098c627070c5afd98bb23843107a2
+    with:
+      mode: smoke
+    permissions:
+      contents: read

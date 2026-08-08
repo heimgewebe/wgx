@@ -25,8 +25,6 @@ RETAINED = {"retained_multi_consumer", "retained_fleet_invariance"}
 PRESERVED = {"preserved_unproven"}
 RETIRED = {"retired_replaced"}
 CAPABILITY_CATEGORIES = {
-    "repository-guard-router": "guard",
-    "repository-smoke-router": "smoke",
     "metrics-contract-compatibility": "metrics",
     "cross-repository-compatibility-matrix": "compatibility",
     "wgx-tools-module-guard": "tool",
@@ -35,12 +33,6 @@ CAPABILITY_CATEGORIES = {
     "wgx-profile-starter-templates": "template",
 }
 REQUIRED_CAPABILITY_SURFACES = {
-    "repository-guard-router": {".github/workflows/wgx-guard.yml"},
-    "repository-smoke-router": {
-        ".github/workflows/wgx-smoke.yml",
-        "scripts/check_wgx_smoke_contract.py",
-        "scripts/check_wgx_guard_action_pins.py",
-    },
     "metrics-contract-compatibility": {
         ".github/workflows/metrics.yml",
         "scripts/wgx-metrics-snapshot.sh",
@@ -150,8 +142,8 @@ AUTHORITY_SOURCE_BINDINGS = {
         "README.md",
     ),
     "ci_conclusions": (
-        "heimgewebe/wgx",
-        ".github/workflows/wgx-guard.yml",
+        "heimgewebe/metarepo",
+        ".github/workflows/reusable-repo-verify.yml",
     ),
 }
 PINNED_EVIDENCE_PATH = Path("docs/operator-ecosystem-source-evidence.v1.json")

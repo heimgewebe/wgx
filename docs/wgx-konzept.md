@@ -17,8 +17,9 @@ Ausführungsfrontdoor.
 ## Zuständigkeiten
 
 Metarepo besitzt den kanonischen Fleet-Vertrag, Starterprofile und reusable
-Guard-/Smoke-/Quick-/Full-Policy. Die historischen WGX-Workflow-URLs bleiben
-nur als gepinnte Kompatibilitätsshims bestehen.
+Guard-/Smoke-/Quick-/Full-Policy. Die früheren WGX-reusable Guard-/Smoke-URLs
+sind nach abgeschlossener Caller-Migration entfernt; WGX konsumiert Metarepos
+Workflow nur noch für die eigene Repository-Verifikation.
 
 Bureau besitzt Taskkoordination. Grabowski/GitHub besitzen Git-, Worktree-,
 Prozess- und Deploy-Effekte. RepoGround besitzt repository-übergreifenden

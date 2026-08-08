@@ -47,7 +47,7 @@ WGX besitzt:
 - Parserkompatibilität für WGX-v1-Profile;
 - Taskauflistung und explizite Taskausführung;
 - `quick`/`full`-Validierung mit deterministischen, redigierten Receipts;
-- die historischen `wgx-guard.yml`/`wgx-smoke.yml`-URLs als gepinnte Kompatibilitätsshims zu Metarepo.
+- eigene Repository-Verifikation als normaler, revisionsgepinnter Consumer des Metarepo-Workflows.
 
 WGX besitzt nicht:
 

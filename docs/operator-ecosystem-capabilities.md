@@ -2,73 +2,58 @@
 
 Die fail-closed Inventur liegt in
 [`operator-ecosystem-capabilities.v1.json`](operator-ecosystem-capabilities.v1.json).
-Historische Consumerbelege vom 27. Juli 2026 bleiben darin als Migrationsbelege
-erhalten und sind ausdrücklich keine aktuelle Fleet-Caller-Liste.
+Historische Consumerbelege bleiben getrennt in
+`operator-ecosystem-source-evidence.v1.json`; sie sind kein Claim über den
+aktuellen Fleet-Zustand.
 
-## Aktuelle öffentliche CLI
+## Aktive Rolle
 
-WGX hat genau drei operative Subcommands:
+WGX ist ein minimaler Repository-Verifikationsrunner mit der operativen ABI
+`validate`, `tasks` und `task`. Der kanonische Verification-Vertrag und die
+reusable Guard-/Smoke-/Quick-/Full-Policy liegen in Metarepo. WGX konsumiert
+diese Policy für sein eigenes Repository über
+`.github/workflows/repository-verification.yml`.
 
-| Command | Rolle |
+Ein Live-Scan der heimgewebe-Default-Branches am 8. August 2026 fand keinen
+verbleibenden externen Caller der früheren WGX-reusable Guard-/Smoke-URLs. Die
+beiden WGX-Shims wurden deshalb entfernt. Die historischen 2026-07-Belege
+bleiben unverändert erhalten.
+
+## Verbleibende Repository-Fähigkeiten
+
+| Fähigkeit | Rolle |
 | --- | --- |
-| `validate` | Profil prüfen; optional `quick`/`full`-Tasks mit Timeout und Receipt ausführen |
-| `tasks` | repository-deklarierte Tasks auflisten |
-| `task` | genau einen repository-deklarierten Task ausführen |
+| Metrics-Contract-Kompatibilität | WGX-interne Contract-Fixture, keine Fleet-Messung |
+| Cross-Repository-Kompatibilitätsmatrix | WGX-eigener On-Demand-Kompatibilitätstest |
+| `.wgx-tools`-Guard | repository-lokale Wartung |
+| Integrity-Publikation | repository-lokaler Report/Release-Pfad |
+| Versions-Release | repository-lokale Veröffentlichung |
+| WGX-Profil-Starter | Übergangsmaterial ohne behauptete Consumer |
 
-`validate --profile` verwendet intern dieselbe `task`-Frontdoor. Es gibt keine
-zweite allgemeine Ausführungs-API.
-
-Aktuell belegter externer Runner-Consumer ist Metarepos
-`reusable-repo-verify.yml`: Dort werden WGX `validate`, `tasks` und `task`
-verwendet. Frühere Guard-/Smoke-Consumerbelege dokumentieren die Migration; die
-WGX-eigenen `wgx-guard.yml`/`wgx-smoke.yml` sind heute nur gepinnte
-Kompatibilitätsshims zu Metarepo.
-
-## Entfernte self-only Fähigkeiten
-
-Die frühere öffentliche `wgx guard`-Pipeline samt `modules/guard.bash`,
-`guards/*` und ausschließlich selbstreferenzierten Tests wurde entfernt. Für
-diese Schicht existierte kein aktiver Workflow-, Script- oder externer
-Consumer mehr; ihre Existenz wurde zuletzt nur durch das eigene Capability-
-Inventar und eigene Tests begründet.
-
-Dasselbe gilt für frühere Doctor-, Env-, Lint-, Run-, Selftest-, Status-, Test-,
-Version- und Audit-Frontdoors. Repository-Tasknamen wie `guard`, `lint`, `smoke`
-oder `test` bleiben weiterhin zulässig und werden über `wgx task <name>`
-ausgeführt.
-
-## Verbleibende WGX-eigene Repository-Fähigkeiten
-
-Diese Pfade warten WGX selbst und sind **keine** zusätzlichen CLI-Commands:
-
-- Metrics-Contract-Fixture und deren Workflow;
-- Kompatibilitätsmatrix;
-- `.wgx-tools`-Modulprüfung;
-- geplante Integrity-Publikation über `scripts/generate-integrity-report.sh`;
-- GitHub-Release-Publikation;
-- historische Guard-/Smoke-Workflow-URLs als Metarepo-Shims;
-- Profil-/Dokumenttemplates, solange deren Ausmusterung nicht revisionssicher
-  belegt ist.
+Diese Wartungsflächen sind keine zusätzlichen CLI-Commands und begründen keine
+Fleet-, Task-, Host- oder Deploy-Autorität.
 
 ## Autoritätsgrenze
 
-Metarepo besitzt Fleet-Vertrag, Starterdistribution und reusable
-Verifikationspolicy. Bureau besitzt Taskkoordination. Grabowski/GitHub besitzen
-Git-, Worktree-, Prozess- und Deploy-Effekte. RepoGround besitzt
-repository-übergreifenden Codekontext.
+- Metarepo besitzt Fleet-Vertrag, Templates und reusable Verification-Policy.
+- Ziel-Repository-CI und GitHub besitzen Check-/Merge-Schlussfolgerungen.
+- Bureau besitzt Taskkoordination.
+- Grabowski besitzt typisierte Git-/Worktree-/Prozess-/Deploy-Effekte.
+- RepoGround liefert repository-übergreifenden Read-only-Kontext.
 
-WGX beansprucht keine dieser Autoritäten. `wgx task` sandboxed den vom
-Repository deklarierten Befehl nicht; mögliche Hosteffekte stammen deshalb aus
-dem Ziel-Repository und der Autorität des aufrufenden Operators, nicht aus einer
-eigenständigen WGX-Policy.
+`wgx task` führt ausschließlich repository-deklarierte Befehle aus und sandboxed
+deren Hosteffekte nicht. WGX selbst erzeugt dabei keine impliziten Audit-,
+Event-, Git- oder Forge-Nebenwirkungen.
 
-## Maschinenlesbare Ratchets
+## Beweisführung
 
-`scripts/validate_operator_capabilities.py` erzwingt unter anderem:
+`scripts/validate_operator_capabilities.py` prüft unter anderem:
 
-- exakte Übereinstimmung von `cmd/*.bash` mit der Command-Inventur;
-- die Klassifikationen von `validate`, `tasks` und `task`;
-- Offenlegung der nicht sandboxed Taskausführung;
-- Pflichtflächen der verbleibenden WGX-eigenen Maintenance-Capabilities;
-- source-gepinnte historische Evidenz für externe Consumerclaims;
-- Trigger-Abdeckung der aktuellen Authority- und Validatorpfade.
+- exakte Capability-ID/Kategorie-/Surface-Bindungen;
+- die Minimal-Command-Inventur;
+- Authority-Owner und source-linked Grenzen;
+- kryptografisch eingecheckte historische WGX-Source-Evidence;
+- Push-/PR-Triggerabdeckung der aktiven Authority- und Validatorflächen.
+
+Damit kann historische Nutzung erhalten bleiben, ohne alte Interfaces künstlich
+am Leben zu halten.
