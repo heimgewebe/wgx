@@ -22,7 +22,7 @@ must remain stable so that downstream projects continue to operate consistently.
 Set of repository-shape and contract requirements that `wgx guard` verifies.
 Passing a guard does not grant task, deployment or host-mutation authority.
 
-## `wgx send`
+## `wgx version`
 
-High level command that prepares and submits pull or merge requests. It enforces guard checks, pushes the current
-branch and triggers the appropriate hosting CLI (`gh` or `glab`).
+Read-only version inspection for the current repository or WGX itself. Version changes belong to repository-native
+tooling or reviewed repository edits; WGX no longer mutates version files.

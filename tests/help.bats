@@ -7,24 +7,26 @@ setup() {
   export PATH="$WGX_DIR/cli:$PATH"
 }
 
-@test "--list shows available commands" {
+@test "--list shows retained runner commands" {
   run wgx --list
   [ "$status" -eq 0 ]
-  [[ "${lines[*]}" =~ reload ]]
   [[ "${lines[*]}" =~ doctor ]]
+  [[ "${lines[*]}" =~ tasks ]]
+  [[ "${lines[*]}" =~ validate ]]
+  [[ "${lines[*]}" =~ version ]]
 }
 
 @test "help output includes dynamic command list" {
   run wgx --help
   [ "$status" -eq 0 ]
   [[ "${output}" =~ "Commands:" ]]
-  [[ "${output}" =~ "reload" ]]
+  [[ "${output}" =~ "validate" ]]
 }
 
-@test "removed placeholder commands are not exposed" {
+@test "retired mutation and placeholder commands are not exposed" {
   local cmd available
   available="$(wgx --list)"
-  for cmd in config hooks release setup start; do
+  for cmd in clean config heal hooks init quick reload release routine send setup start sync-remote vibe; do
     [[ "$available" != *"$cmd"* ]]
     run wgx "$cmd" --help
     assert_failure

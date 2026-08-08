@@ -12,29 +12,20 @@ Usage:
 
 Commands:
   audit
-  clean
   doctor
   env
   guard
-  heal
   help
-  init
   integrity
   lint
-  quick
-  reload
-  routine
   run
   selftest
-  send
   status
-  sync-remote
   task
   tasks
   test
   validate
   version
-  vibe
 
 Env:
   WGX_BASE       Basis-Branch für reload (default: main)
@@ -69,22 +60,6 @@ Options (git):
 General:
   Exit code is 0 even if audit findings are 'error' (check JSON output).
   Non-zero exit codes indicate execution failures (e.g. missing dependencies).
-```
-
-### clean
-
-```text
-Usage:
-  wgx clean [--safe] [--build] [--git] [--deep] [--dry-run] [--force]
-
-Options:
-  --safe       Entfernt temporäre Cache-Verzeichnisse (Standard).
-  --build      Löscht Build-Artefakte (dist, build, target, ...).
-  --git        Räumt gemergte Branches und Remote-Referenzen auf (nur sauberer Git-Tree).
-  --deep       Führt ein destruktives `git clean -xfd` aus (erfordert --force, nur sauberer Git-Tree).
-  --dry-run    Zeigt nur an, was passieren würde.
-  --force      Bestätigt destruktive Operationen (für --deep).
-• Nichts zu tun.
 ```
 
 ### doctor
@@ -139,29 +114,6 @@ Options:
   -h, --help    Diese Hilfe anzeigen.
 ```
 
-### heal
-
-```text
-Usage:
-  wgx heal [rebase|ours|theirs|ff-only] [--stash] [--continue] [--abort] [--base <branch>]
-
-Description:
-  Löst Konflikte oder führt ein Rebase auf den Basis-Branch durch.
-
-Modes:
-  rebase      Rebase auf origin/$WGX_BASE (Standard)
-  ours        Merge mit --ours Strategie
-  theirs      Merge mit --theirs Strategie
-  ff-only     Fast-Forward only Merge
-
-Options:
-  --stash       Vor dem Heal einen Snapshot (Stash) erstellen
-  --continue    Laufenden Rebase fortsetzen
-  --abort       Laufenden Rebase/Merge abbrechen
-  --base <b>    Alternativen Basis-Branch verwenden
-  -h, --help    Diese Hilfe anzeigen
-```
-
 ### help
 
 ```text
@@ -172,50 +124,26 @@ Usage:
 
 Commands:
   audit
-  clean
   doctor
   env
   guard
-  heal
   help
-  init
   integrity
   lint
-  quick
-  reload
-  routine
   run
   selftest
-  send
   status
-  sync-remote
   task
   tasks
   test
   validate
   version
-  vibe
 
 Env:
   WGX_BASE       Basis-Branch für reload (default: main)
 
 More:
   wgx --list     Nur verfügbare Befehle anzeigen
-```
-
-### init
-
-```text
-Usage:
-  wgx init [--wizard]
-
-Description:
-  Initialisiert die 'wgx'-Konfiguration im Repository. Mit `--wizard` wird
-  ein interaktiver Assistent gestartet, der `.wgx/profile.yml` erstellt.
-
-Options:
-  --wizard      Interaktiven Profil-Wizard starten.
-  -h, --help    Diese Hilfe anzeigen.
 ```
 
 ### integrity
@@ -244,47 +172,6 @@ Description:
 
 Options:
   -h, --help    Diese Hilfe anzeigen.
-```
-
-### quick
-
-```text
-Usage: wgx quick [-i|--interactive] [--help]
-
-Run repository guards (lint + tests) and open the PR/MR helper.
-
-Options:
-  -i, --interactive  Open the PR body in $EDITOR before sending
-  -h, --help         Show this help message
-```
-
-### reload
-
-```text
-Usage:
-  wgx reload [--force] [--dry-run] [--snapshot]
-
-Description:
-  Setzt das Arbeitsverzeichnis hart auf den Stand des Upstream-Branches zurück.
-  WARNUNG: Alle lokalen Änderungen, auch ungetrackte Dateien, gehen verloren.
-
-Options:
-  --force       Führt den Reset auch bei ungespeicherten Änderungen aus.
-  --dry-run     Zeigt nur an, was getan würde, ohne Änderungen vorzunehmen.
-  --snapshot    Erstellt vorher einen Git-Stash als Sicherheitskopie.
-  -h, --help    Diese Hilfe anzeigen.
-```
-
-### routine
-
-```text
-Usage:
-  wgx routine <id> [preview|apply|dry-run]
-
-Available routines:
-  git.repair.remote-head
-
-Ergebnisse werden als eindeutige JSON-Artefakte in .wgx/out/ gespeichert.
 ```
 
 ### run
@@ -326,34 +213,6 @@ Options:
   -h, --help    Diese Hilfe anzeigen.
 ```
 
-### send
-
-```text
-Usage:
-  wgx send [options]
-
-Description:
-  Führt Guard-Checks aus, synchronisiert mit Remote und erstellt einen PR/MR.
-
-Options:
-  --draft           PR als Draft erstellen
-  -i, --interactive PR-Body im Editor bearbeiten
-  --title <text>    PR-Titel überschreiben
-  --why <text>      Begründung für den PR
-  --tests <text>    Beschreibung der durchgeführten Tests
-  --notes <text>    Zusätzliche Notizen
-  --label <name>    Label hinzufügen (mehrfach möglich)
-  --issue <num>     Issue-Nummer verknüpfen
-  --reviewers <u>   Reviewer zuweisen (kommasepariert oder 'auto')
-  --scope <scope>   Scope überschreiben (auto|web|api|infra|devx|docs|meta|repo)
-  --sign            Commits signieren
-  --base <branch>   Basis-Branch überschreiben
-  --ci              CI-Workflow triggern (falls WGX_CI_WORKFLOW gesetzt)
-  --open            PR nach Erstellung im Browser öffnen
-  --auto-branch     Automatisch Branch erstellen, wenn auf Base
-  -h, --help        Diese Hilfe anzeigen
-```
-
 ### status
 
 ```text
@@ -367,23 +226,6 @@ Description:
   globale Flags wie den OFFLINE-Modus.
 
 Options:
-  -h, --help    Diese Hilfe anzeigen.
-```
-
-### sync-remote
-
-```text
-Usage:
-  wgx reload [--force] [--dry-run] [--snapshot]
-
-Description:
-  Setzt das Arbeitsverzeichnis hart auf den Stand des Upstream-Branches zurück.
-  WARNUNG: Alle lokalen Änderungen, auch ungetrackte Dateien, gehen verloren.
-
-Options:
-  --force       Führt den Reset auch bei ungespeicherten Änderungen aus.
-  --dry-run     Zeigt nur an, was getan würde, ohne Änderungen vorzunehmen.
-  --snapshot    Erstellt vorher einen Git-Stash als Sicherheitskopie.
   -h, --help    Diese Hilfe anzeigen.
 ```
 
@@ -489,39 +331,11 @@ Exit-Status: 0 wenn Manifest gültig ist und alle Checks bestehen, sonst >0.
 ```text
 Usage:
   wgx version
-  wgx version bump <level>
-  wgx version set <version>
 
 Description:
-  Reads or modifies the project version.
-  Supported files: VERSION, package.json, Cargo.toml.
-
-Subcommands:
-  (none)         Show current version.
-  bump <level>   Bump version (patch, minor, major).
-  set <version>  Set exact version.
+  Reads the current project or WGX version without modifying repository state.
+  Version mutation belongs to repository-native language tooling or reviewed edits.
 
 Options:
-  -h, --help     Show this help.
-```
-
-### vibe
-
-```text
-Usage:
-  wgx vibe [options] <idea...>
-  wgx vibe status
-  wgx vibe doctor [--repo PATH]
-  wgx vibe adopt --repo PATH [--branch NAME] [--worktree PATH] [--name NAME] <idea...>
-
-Description:
-  Builds and manages non-destructive Vibe lane receipts. The first lifecycle
-  slice is intentionally conservative: plan/status/doctor are read-only, and
-  adopt writes only a local receipt.
-
-Options:
-  --repo PATH    Source repository. Default: current git repository.
-  --root PATH    Worktree root. Default: $WGX_VIBE_ROOT or ~/repos/.vibe-lab-worktrees.
-  --name NAME    Stable slug override.
   -h, --help     Show this help.
 ```

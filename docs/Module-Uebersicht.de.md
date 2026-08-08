@@ -9,12 +9,11 @@ schneller die richtigen Einstiegspunkte finden.
 | --- | --- |
 | `modules/doctor.bash` | Enthält den Minimal-Doctor (Repo-Prüfung, Remote-Checks). Wird aktuell vom Legacy-Monolithen gerufen. |
 | `modules/env.bash` | Neues Environment-Modul mit JSON/strict-Ausgaben sowie Termux-Fixups. Setzt `env_cmd` für `wgx env`. |
-| `modules/guard.bash` | Port der Guard-Pipeline (Secrets, Konflikte, Pflichtdateien, optional Lint/Test). Wird von `wgx guard` sowie `wgx send`/`wgx quick` verwendet. |
+| `modules/guard.bash` | Port der Guard-Pipeline (Secrets, Konflikte, Pflichtdateien, optional Lint/Test). Wird von `wgx guard` verwendet. |
 | `modules/json.bash` | Hilfsfunktionen für JSON-Ausgabe (u. a. von Profil-/Task-Befehlen). |
 | `modules/profile.bash` | Lädt `.wgx/profile.yml`, normalisiert Task-Namen und führt Task-Skripte aus. Grundlage für `wgx task`/`wgx tasks`. |
-| `modules/semver.bash` | SemVer-Bump-Logik (Bump/Set, Tag-Parsing) für den verbleibenden `wgx version`-Kompatibilitätspfad. |
+| `modules/semver.bash` | SemVer-Hilfen für Profil-/Versionsvertragsprüfung; `wgx version` selbst ist read-only. |
 | `modules/status.bash` | Liefert Status-Zusammenfassungen, z. B. Ahead/Behind und Pfad-Erkennung. Wird von `wgx status` genutzt. |
-| `modules/sync.bash` | Implementiert `sync_cmd` inklusive Commit-, Rebase- und Push-Flows. |
 
 ## `lib/`
 
@@ -26,7 +25,6 @@ schneller die richtigen Einstiegspunkte finden.
 
 | Datei | Zweck |
 | --- | --- |
-| `etc/config.example` | Default-Konfiguration, die `wgx init` nach `~/.config/wgx/config` kopiert. Dient als Vorlage für neue Installationen. |
 | `etc/profile.example.yml` | Referenz-Profil für Projekte; dokumentiert unterstützte Sektionen (`python`, `contracts`, `tasks`). |
 
 ## `fixtures/`

@@ -2,8 +2,8 @@
 
 ## Runtime dependencies
 
-WGX v1 uses Bash as the CLI core, but deliberately relies on Python 3 with the `pyyaml` module to parse `.wgx/profile.yml`.
-In CI and in the devcontainer these packages are installed automatically (for Debian/Ubuntu via the `python3-yaml` package).
+WGX uses Bash as the CLI core and Python 3 with `pyyaml` to parse
+`.wgx/profile.yml`. CI and the devcontainer install these dependencies.
 
 On local machines you should ensure at least:
 
@@ -18,9 +18,14 @@ Examples:
 
 ## Erstlauf
 
-1. `wgx doctor` ausführen → prüft Umgebung (bash, git, shellcheck, shfmt, bats).
-2. `wgx init` → legt `~/.config/wgx/config` an (aus `etc/config.example`).
-3. `wgx send "msg"` → Commit & Push Helper.
+1. `wgx doctor` prüft die lokale Umgebung.
+2. `wgx validate` prüft den eingecheckten Repository-Vertrag.
+3. `wgx tasks` zeigt die deklarierten Frontdoors.
+4. `wgx task smoke` führt den repository-eigenen Smoke-Task aus.
+
+WGX erstellt keine Profile, Branches, Commits oder Pull Requests mehr. Diese
+Zuständigkeiten liegen beim Repository, bei Metarepo bzw. beim autorisierten
+Operator.
 
 ## Python (uv)
 

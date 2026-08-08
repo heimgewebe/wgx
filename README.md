@@ -2,7 +2,7 @@
 
 ![WGX Badge](https://img.shields.io/badge/wgx-enabled-blue)
 
-Eigenständiges CLI für Git-/Repo-Workflows (Termux, WSL, Linux, macOS).
+Portabler Repository-Verifikationsrunner für Termux, WSL, Linux und macOS.
 License: MIT; intended for internal use but repository is publicly visible.
 
 ## Lizenz & Nutzung
@@ -45,28 +45,15 @@ export PATH="$HOME/.local/bin:$PATH"
 wgx --help
 wgx doctor
 
-# Erstlauf
-wgx init
-wgx clean
-wgx send "feat: initial test run"
+# Repository-Verifikation
+wgx validate
+wgx tasks
+wgx task smoke
+wgx version
 ```
 
-### `wgx clean`
-
-`wgx clean` räumt temporäre Dateien im Workspace auf. Standardmäßig werden
-nur sichere Caches entfernt (`--safe`). Weitere Modi lassen sich kombinieren:
-
-- `--build` löscht Build-Artefakte wie `dist/`, `build/`, `.venv/`, `.uv/` usw.
-- `--git` räumt gemergte Branches sowie Remote-Referenzen auf. Funktioniert nur
-  in einem sauberen Git-Arbeitsverzeichnis.
-- `--deep` führt ein destruktives `git clean -xfd` aus und benötigt zusätzlich
-  `--force`. Ein sauberer Git-Tree ist Pflicht.
-- `--dry-run` zeigt alle Schritte nur an – ideal, um vor destruktiven Varianten
-  zu prüfen, was passieren würde.
-
-💡 Tipp: `wgx clean --dry-run --git` hilft beim schnellen Check, welche
-Git-Aufräumarbeiten anstehen. Sobald der Tree sauber ist, kann
-`wgx clean --git` (oder `--deep --force`) sicher laufen.
+WGX führt keine generischen Git-, Cleanup-, Branch- oder PR-Mutationen mehr aus.
+Solche Effekte gehören zum Ziel-Repository bzw. zum autorisierten Operator.
 
 Falls ein Befehl unbekannt ist, kannst du die verfügbaren Subcommands auflisten:
 
@@ -230,19 +217,6 @@ Deployment- oder Task-Evidenz. Details stehen in
   und im
   [Runbook](docs/Runbook.de.md#leitfaden-von-requirementstxt-zu-uv).
 
-## Kommandos
-
-### reload
-
-Destruktiv: setzt den Workspace hart auf `origin/$WGX_BASE` zurück
-(`git reset --hard` + `git clean -fdx`).
-
-- Bricht ab, wenn das Arbeitsverzeichnis nicht sauber ist (außer mit `--force`).
-- Mit `--dry-run` werden nur die Schritte angezeigt, ohne etwas zu verändern.
-- Optional sichert `--snapshot` vorher in einen Git-Stash.
-
-**Alias**: `sync-remote`.
-
 ## Repository-Layout
 
 ```plaintext
@@ -375,9 +349,8 @@ Autoritäts- oder Roadmapquelle. Die aktuelle Rolle ist durch die
 
 ## Konfiguration
 
-Standardwerte liegen unter `etc/config.example`.
-Beim ersten Lauf von `wgx init` werden die Werte nach `~/.config/wgx/config` kopiert.
-Anschließend kannst du sie dort projektspezifisch anpassen.
+Repository-Profile werden im Ziel-Repository oder über Metarepo-Vorlagen gepflegt.
+WGX besitzt keinen separaten generischen Init-/Home-Konfigurationsvertrag mehr.
 
 ## .wgx/profile (v1 / v1.1)
 

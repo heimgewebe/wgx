@@ -1,19 +1,18 @@
 # Für Dummies – Was macht dieses Repo?
 
-Dieses Projekt nutzt **WGX** als schlanken Helfer: ein paar
-Standard-Kommandos (up | list | run | doctor | validate | smoke)
-machen Arbeiten im Terminal einfacher. Du musst nicht „programmieren"
-können – du führst nur Kommandos aus.
-
-**Wichtigste Idee:** Ein `/.wgx/profile.yml` beschreibt, welche
-Tools/Checks für dieses Repo gelten.
-WGX liest das ein und führt passende Aufgaben aus (z. B. Format, Lint, Tests).
+Dieses Projekt nutzt **WGX** als schlanken Repository-Verifikationsrunner.
+Ein `/.wgx/profile.yml` beschreibt die repository-eigenen Tasks und Checks; WGX
+liest den Vertrag, listet Frontdoors auf und führt deklarierte Aufgaben aus.
 
 ## WGX-Kurzstart
 
 ```bash
 wgx --help
-wgx doctor     # prüft Umgebung
-wgx clean      # räumt Temp-/Build-Artefakte auf
-wgx send "feat: initial test run"  # Beispiel-Commit/Push-Helfer
+wgx doctor
+wgx validate
+wgx tasks
+wgx task smoke
 ```
+
+Git-, Cleanup-, Branch- und PR-Effekte gehören nicht zur WGX-CLI. Fleet-Vorlagen
+und reusable Verifikationspolicy werden von Metarepo gepflegt.
