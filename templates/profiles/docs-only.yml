@@ -9,6 +9,6 @@ tasks:
 # Alternative (optional, falls just + gh CLI vorhanden sind):
 # tasks:
 #   smoke: "just rec-smoke"
-#   guard: "gh workflow run wgx-guard.yml"
+#   guard: "just rec-guard"
 #   metrics: "gh workflow run metrics.yml"
 #   snapshot: "./scripts/wgx-metrics-snapshot.sh --json --output metrics.json"

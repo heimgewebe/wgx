@@ -18,7 +18,7 @@ wgx:
       # Skip declarations are repository-wide and appear in every profile receipt.
       release: "runs only in the release workflow"
   tasks:
-    guard: "python3 scripts/check_wgx_guard_action_pins.py && python3 scripts/check_wgx_smoke_contract.py && python3 scripts/validate_workflow.py .github/workflows/wgx-guard.yml && python3 scripts/validate_workflow.py .github/workflows/wgx-smoke.yml"
-    smoke: "python3 scripts/validate_workflow.py .github/workflows/wgx-smoke.yml"
+    guard: "python3 scripts/validate_operator_capabilities.py && python3 scripts/validate_workflow.py .github/workflows/repository-verification.yml"
+    smoke: "./wgx --version >/dev/null && ./wgx validate --json >/dev/null && ./wgx tasks --json >/dev/null"
     test: "bats -r tests"
     lint: "FILES=$(git ls-files '*.sh' '*.bash'); shfmt -d $FILES && shellcheck -S style $FILES"
