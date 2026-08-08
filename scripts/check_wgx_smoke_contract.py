@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 
 DEFAULT_WORKFLOW = Path(".github/workflows/wgx-smoke.yml")
-METAREPO_VERIFICATION_COMMIT = "31dbecc6c7b966faa73ad3dceb0ded7329187f36"
+METAREPO_VERIFICATION_COMMIT = "fe6950616b2d06343e284a56a8944e0a36f1f972"
 METAREPO_REUSABLE = (
     "heimgewebe/metarepo/.github/workflows/reusable-repo-verify.yml@"
     + METAREPO_VERIFICATION_COMMIT

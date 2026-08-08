@@ -4,7 +4,7 @@ load test_helper
 
 setup() {
   WORKDIR="$(mktemp -d)"
-  METAREPO_VERIFY_COMMIT="31dbecc6c7b966faa73ad3dceb0ded7329187f36"
+  METAREPO_VERIFY_COMMIT="fe6950616b2d06343e284a56a8944e0a36f1f972"
 }
 
 teardown() {

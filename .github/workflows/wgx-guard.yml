@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   guard:
-    uses: heimgewebe/metarepo/.github/workflows/reusable-repo-verify.yml@31dbecc6c7b966faa73ad3dceb0ded7329187f36
+    uses: heimgewebe/metarepo/.github/workflows/reusable-repo-verify.yml@fe6950616b2d06343e284a56a8944e0a36f1f972
     with:
       mode: guard
     permissions:
