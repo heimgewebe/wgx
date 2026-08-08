@@ -513,7 +513,7 @@
           "repository": "heimgewebe/wgx",
           "evidence_path": ".github/workflows/release.yml",
           "evidence_kind": "local_worktree",
-          "canonical_invocation": "uses: softprops/action-gh-release@5be0e66d93ac7ed76da52eca8bb058f665c3a5fe",
+          "canonical_invocation": "uses: softprops/action-gh-release@77fb938f2f95e717ce6705d2909af527263360a0",
           "repository_native_alternative": {
             "availability": "none_identified",
             "rationale": "No independent checked-in WGX publication workflow is evidenced."
@@ -523,7 +523,7 @@
       "invariance_benefit": {
         "claim": "One tag/manual publication path keeps WGX release behavior explicit and reviewable without claiming deployment authority.",
         "evidence_sources": [
-          "https://github.com/heimgewebe/wgx/blob/c1b336ee0a82a3b1fd0c5f09158dcdb5f3c1d9ef/.github/workflows/release.yml"
+          "https://github.com/heimgewebe/wgx/blob/89f250ff7a557c564d57a3791371fb6bace4b319/.github/workflows/release.yml"
         ]
       },
       "ecosystem_alternative": {

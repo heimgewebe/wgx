@@ -112,7 +112,7 @@ SURFACE_CONTENT_REQUIREMENTS = {
         "push:",
         "workflow_dispatch:",
         "- 'v*.*.*'",
-        "uses: softprops/action-gh-release@5be0e66d93ac7ed76da52eca8bb058f665c3a5fe",
+        "uses: softprops/action-gh-release@77fb938f2f95e717ce6705d2909af527263360a0",
     },
 }
 REQUIRED_RETAINED_IDS = set(CAPABILITY_CATEGORIES) - {

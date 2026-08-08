@@ -62,6 +62,11 @@
       "content_base64": "NDAwMDAgYWN0aW9ucwDhMyh75tiDKg2LHQ1vHvZHGPUywjQwMDAwIHdvcmtmbG93cwCV0OynJzClCDmm30xskW2hiNSMPA=="
     },
     {
+      "oid": "34e99d2d39852b44f63728d39468727ab1f50bc2",
+      "type": "tree",
+      "content_base64": "MTAwNjQ0IC5haS1jb250ZXh0LnltbACcMiopWSiSbZLxX/CBYmOC3erPOTQwMDAwIC5kZXZjb250YWluZXIAypYk0msgse03RbQJivn/EFaEkIkxMDA2NDQgLmVkaXRvcmNvbmZpZwAQFLp4iAyJnoQrOXy4moeL5GcffTEwMDY0NCAuZ2l0YXR0cmlidXRlcwD34t72C6gcxOGhM3OI9jUInQQVXjQwMDAwIC5naXRodWIAZAURWMfzrKKjQlqhgsbWMOZjZoUxMDA2NDQgLmdpdGlnbm9yZQBZdDXI4RcV1b+eVEpf5/2S3qdcRjEwMDY0NCAubWFya2Rvd25saW50LWNsaTIuanNvbmMArNdUtONIrYFJb0onPVhd0uYrFPwxMDA2NDQgLnByZS1jb21taXQtY29uZmlnLnlhbWwAErZOQ+rEEbDnXDFLrQ4Iu0yJTmIxMDA2NDQgLnZhbGUuaW5pAKI1LSXKvBVdL0u5eZrw11mD7xacNDAwMDAgLnZhbGUAxk5lAYEUclh2DEmI/yijm/YrW880MDAwMCAudnNjb2RlAJUTw8ye7KMICNVsjbR6NE713BNyNDAwMDAgLndneC10b29scwAkogLDDswxxr0KvSJbqkuJ2XgJ1DQwMDAwIC53Z3gALS0WeciHRQ15YULRYCOxzXbTbUExMDA2NDQgQ0hBTkdFTE9HLm1kAI0ennNmR1QMBXMvLFyBfNMc0R6VMTAwNjQ0IENPTlRSSUJVVElORy5tZADPrGsoWZaUUafPBbevOgO53MgbAzEwMDY0NCBKdXN0ZmlsZQDqxkHrkSKTsuzm3MeZQda3/OtX7DEwMDY0NCBMSUNFTlNFAJcJxwhW8kX26wQaLt6HRz7Rj89sMTAwNjQ0IFJFQURNRS5tZADA81jJQUPpzVA3CUEdBkWLHEm0tDQwMDAwIGFpLWNvbnRleHRzAP1PveVHhsdxfXeUU5zFqR2FyseWNDAwMDAgY2xpABx1EwoU1VYZyd1Y/sr/JgetwANWNDAwMDAgY21kAEYrJAbHJDdEO8B/CGUSD+RqaVpfNDAwMDAgZG9jcwDPcQ7kOFd+5DGRUgCsLoxbpuaNJTQwMDAwIGV0YwCc6yu+toKH1PaYiKvkMs/28ooLYjQwMDAwIGZpeHR1cmVzAAMrGh9l+OuBnMAmk34P++o4id5eNDAwMDAgZ3VhcmRzALN66y4PqT8l6BYYE3zvrV+Pm2NsNDAwMDAgaW5zdGFsbGVycwDVZNC8PdkXkmiSxV43BswRbVsWXjQwMDAwIGxpYgBUEU9VDm8//BWPs89kbmbeQM7WyDQwMDAwIG1vZHVsZXMAd1HxJXZWHKWBbMhTn9gQbvOJtDk0MDAwMCBwb2xpY2llcwAqWsSau8gT1307C5qWEJKaLcN4qDQwMDAwIHNjcmlwdHMAvhnMueypPpVXLPphTooEJoCGIr40MDAwMCB0ZW1wbGF0ZXMAW65nCLGrZZiOeOSeTagC/RORGTc0MDAwMCB0ZXN0cwAZKT+G/Oara591K4Gf8XsZsDd4hzEwMDY0NCB1di5sb2NrAGcyUpHTc1ySIci/TXQe7KD73VTVMTAwNzU1IHdneAB9iyZ4JsANr/Nq2n9hD5boRbxrJw=="
+    },
+    {
       "oid": "377c3a3229abed80713789979e268c57cc3f6999",
       "type": "commit",
       "content_base64": "dHJlZSBlZWI5MmNmYmYzYjkyMWVkMGE1Nzc3YTY1NDdiNmEzZDhlMGZmODMxCnBhcmVudCBhMjA0ZDY4N2E2YTdjNWU5NzA5N2IxZTNiM2I3MGQyMTc0NTNlMTk3CnBhcmVudCBhYjU3OTYwMTcyMjRkZDQ0MjUwYTdhZGEzZWQyNWU1MDAwNjVmMWE3CmF1dGhvciBBbGV4YW5kZXIgTW9ociA8YWxleGRlcm1vaHJAZ21haWwuY29tPiAxNzg0ODEwNTQwICswMjAwCmNvbW1pdHRlciBHaXRIdWIgPG5vcmVwbHlAZ2l0aHViLmNvbT4gMTc4NDgxMDU0MCArMDIwMApncGdzaWcgLS0tLS1CRUdJTiBQR1AgU0lHTkFUVVJFLS0tLS0KIAogd3NGY0JBQUJDQUFRQlFKcVlnd3NDUkMxYVE3dXU1VWhsQUFBZFA0UUFGYStPZ0RuZGdxQm1mbXpXRjlFREQ0bwogTVVWYWh2MWl0N0lsNC9EbTRYeWJKQVRHRzRITkIxZmRRc1NabnBmUEVaOEwvWWNES3dINVJsd3VHZ3RBVXNoKwogd0hhSlVRQ0krcVdQYytmUHRwbUJsZ2daQkMyRG1TWkJTeUZIN3FmOC9RSytjNXZtOWk3dC95dTJ2R0lPSUJlSQogQUdjbHRxSFZNdVFocllZdE9EYmphMDhZYzN1OVBjaWIydFllQkYxY3NONDFOb1hvYU9sWnhWOGYrWElXWlJzUQogT2V2NTlXRlJ2eGhnMXNrNXdtdURaR3l6Y2FucTRNSW04ZUJ1c3lkZnRxRDcycEpTV1MwOFkxeDZleEhrRDZLUwogd3J5UEdyRThBTGJ5MFY0VUZUM2U5QXQvdVBlY3JJd1pycFlmalVVc2JWZjlraHV6c25uR3BIZUZibGt4OS9kLwoga1ROaGh6cHBsazRRekFaNlVwT1BRclJvWnF1Tlg3NTJETTNGdVIzc0sxa0VwbCtDMlhDMTlQMlJZUmg3MGV2SQogZllsbzYxTDRsQ292T09LbFN4VnVxNUsvVW1GQUtZQjZtaHNWcFhrQ0hyU2RKVDdjRE5zMjBOa1liZzYwTUtCMQogZytkN2g3SmM5ZlJFaENPYmd6SFdyWkFOMmRQWWxPbForYUlTYTFVSTZta1B2c0F6VThvY0RBNnRHVnFONFVoaQogT3ZUQ0JidEQ4U1JYV1dBOEJoeWlCenIvSE80ZFVtTzV5Vnk5czhKa3NFOFZjM0wzSlBaQ216M0dUMUZYTGlBdQogeHhmVXRSRFhQUkxYNXJWYllPQWxVVE5YOGxtZTROWkExTHpLOW0zYVIzS1dMSVB4SzZRR3FIWThzTWExNVRGdgogRFJxOGVxRG9vamhXcSsrSFdMbzUKID0zRGxtCiAtLS0tLUVORCBQR1AgU0lHTkFUVVJFLS0tLS0KIAoKTWVyZ2UgcHVsbCByZXF1ZXN0ICM3NzIgZnJvbSBoZWltZ2V3ZWJlL2Nob3JlL3Jlbm92YXRlLWRpcmVjdC1jdXRvdmVyCgpjaG9yZShkZXBzKTogY3V0IG92ZXIgdmVyc2lvbiB1cGRhdGVzIHRvIFJlbm92YXRl"
@@ -102,6 +107,11 @@
       "content_base64": "MTAwNjQ0IFJFQURNRS5tZAAAmLRBJVw+f7wXfcbbEx8Oa7xpGzEwMDY0NCBhaS1jb250ZXh0LWd1YXJkLnltbACA5o/wgWi7JmHRqhDTnQ6aBxcVZDEwMDY0NCBjaS10b29scy55bWwAEjSNTinerUR15P/VUhVHlCIrnokxMDA2NDQgY2kueW1sAF1Vq1FnGPg2tlVghXEeBjkRoc+TMTAwNjQ0IGNsYXVkZS55bWwAE0PUbtv+voPsGdN/oustV/3XvKMxMDA2NDQgY2xpLWRvY3MtY2hlY2sueW1sAA0EN0wzodcQ2EFxia0jXJKkAm2dMTAwNjQ0IGNvZGV4LXJldmlldy55bWwA8Z/VmcwBqpoWxzi8rt6zL+h0dlAxMDA2NDQgY29udHJhY3RzLXZhbGlkYXRlLnltbABnrIfo+3wkDm3avmglbbaNFE75hTEwMDY0NCBjb250cmFjdHMueW1sAH07Cg6O0hx0Lt2dqDQQi9H8QtsJMTAwNjQ0IGNvdmVyYWdlLnltbACn/i6BXbjLxZ5QSgC619h4TmC6+TEwMDY0NCBoZWF2eS55bWwA7Xoi693wJtleLjtpdxysHD+OFmgxMDA2NDQgbGlua3MueW1sAIeSkXNHcSgIE+9tzGQ6tptuwzZhMTAwNjQ0IG1ldHJpY3MueW1sAJNB93WMWfRUTghm/YB8SfGlSKKIMTAwNjQ0IHBsYXlib29rLWdhdGUueW1sAIHT2UL0IM+CEpNudgAiwwKXzdjNMTAwNjQ0IHBvbGljeS1jaS55bWwAK99vb+RLqNlcWFbNLWo64pEGnscxMDA2NDQgcHItaGVpbWdld2ViZS1jb21tYW5kcy55bWwAFO6/rarWY7/XfnFVbzkkyDDGrxExMDA2NDQgcmVsZWFzZS55bWwATn2jtaenZfaz9ugOsurcycVGHfcxMDA2NDQgcmV1c2FibGUtdmFsaWRhdGUtdmVuZG9yLnltbADu6uzdoQdh/Of9aigkgZNlNriiVzEwMDY0NCByZXZpZXctY3ljbGUtY2hlY2sueW1sAO3+qqwJqyYKRzPhr5xEWPwqsi8HMTAwNjQ0IHNlY3JldC1zY2FuLWdpdGxlYWtzLnltbAC3bZcTbgNb28YMV5yTjp8eNDD/vDEwMDY0NCBzZWN1cml0eS55bWwA695F7ZVp7k5Fs7x1KLob/xe8ePUxMDA2NDQgdmFsaWRhdGUtZGV2LXRvb2xpbmcueW1sAG70pNnvvkP2mTf6S9BlBoRp43BaMTAwNjQ0IHZhbGlkYXRlLWV2ZW50cy55bWwA0erR8o4NQm6B7oZxqSV4B/T0pUExMDA2NDQgdmVuZG9yLnltbACRnGovEA9ShHPc3+6MSRiLk5d6dzEwMDY0NCB3Z3gtZ3VhcmQueW1sAKfbAL8ZpfdX59yZ2Qw6WR+1zfVsMTAwNjQ0IHdneC1zbW9rZS55bWwAH21U7Wo9sZocql69mXPUcz2G5Hk="
     },
     {
+      "oid": "64051158c7f3aca2a3425aa182c6d630e6636685",
+      "type": "tree",
+      "content_base64": "NDAwMDAgYWN0aW9ucwCPK1e2/g7E63m7T+ibU6IOHx+75jEwMDY0NCBtYXJrZG93bi1saW5rLWNoZWNrLmpzb24A6ctYSDBUJX+wVEFBlql6SDh1Kgc0MDAwMCB3b3JrZmxvd3MAiNHyderdcx/sFXjvmxuI/qI9QaY="
+    },
+    {
       "oid": "6d515eed4e8ddf3b32a17d91c66eb26683e4138e",
       "type": "tree",
       "content_base64": "NDAwMDAgd29ya2Zsb3dzANEE8JYYpIB11BYBonT50ijAiMpm"
@@ -115,6 +125,16 @@
       "oid": "87ef07b2c386654344a6bce158dc67743efbddd5",
       "type": "tree",
       "content_base64": "MTAwNjQ0IGNvcGlsb3QtaW5zdHJ1Y3Rpb25zLm1kAD5TY3ovNWjcbUjkRqO5PHuDMS2TMTAwNjQ0IGRlcGVuZGFib3QueW1sAB+2ysg4TR/QIQbP3sgiBuojqwriMTAwNjQ0IGdyYWJvd3NraS1yZXF1aXJlZC1jaGVja3MuanNvbgCyeEa/KCAbjRkHX5/B69+lZ1okETEwMDY0NCBydXN0Lmpzb24AioELdUPwmz/MBKqQ+miS6Daw9JkxMDA2NDQgc2VjcmV0X3NjYW5uaW5nLnltbACkdMk47ZYCd5X9F96b3ERgUD9dfzQwMDAwIHdvcmtmbG93cwBeyGp2j5+n5oQ+JMpIUIOpaEI2dQ=="
+    },
+    {
+      "oid": "88d1f275eadd731fec1578ef9b1b88fea23d41a6",
+      "type": "tree",
+      "content_base64": "MTAwNjQ0IGFpLWNvbnRleHQtZ3VhcmQueW1sAEOMpjnNdElzhMfREmUlg0yX2jBfMTAwNjQ0IGNpLnltbACtpyVg1DWTcpyMXV6VlV61Q+JnnjEwMDY0NCBjbGktZG9jcy1jaGVjay55bWwAubqdK5kkvlyMkAtURpccKMFgUP4xMDA2NDQgY29tcGF0LW9uLWRlbWFuZC55bWwAacusPMnpKwdC5q8YaU9xjWKiHzkxMDA2NDQgY29udHJhY3RzLXZhbGlkYXRlLnltbACDH3PoZOB226DHpwFxLPASrm7OkDEwMDY0NCBqdXN0ZmlsZS1pbnRlZ3JpdHkueW1sABZeNCtz1JT8d2Gz06YsoohnU+T+MTAwNjQ0IG1ldHJpY3MueW1sAIGBYFWwrpjQvuR6osLdHRgKonP2MTAwNjQ0IG9wZXJhdG9yLWNhcGFiaWxpdGllcy55bWwACg7KkVm83Mw0LOkIOsQ5kSNpY1gxMDA2NDQgcHItaGVpbWdld2ViZS1jb21tYW5kcy55bWwAnt86R/zQH+WFtK90UoBstrAuH28xMDA2NDQgcmVsZWFzZS55bWwAnAJKk0qK0pKiVGTNCVz/Y1RY/YwxMDA2NDQgc2VjdXJpdHkueW1sAEMJAo58E9NWeBVoZsaGlGSC1PVLMTAwNjQ0IHNoZWxsLWRvY3MueW1sAGEPNzkZes515ZBE/7boAmoLN896MTAwNjQ0IHRlc3RzLW9uLWRlbWFuZC55bWwAxCt0hVxnLMGAn3su3X2xO0DZ2CMxMDA2NDQgdmFsaWRhdGUtYWdlbnQtd29ya2Zsb3dzLnltbAC2vu9Iaz5luhbLWniA+wnhqBTNVzEwMDY0NCB3Z3gtZ3VhcmQueW1sAFmfGkml5xM51sX65+f0t+OTCMDcMTAwNjQ0IHdneC1pbnRlZ3JpdHkueW1sABA9xKvZSWvRwO+cFvCXxdasIHZRMTAwNjQ0IHdneC1zbW9rZS55bWwArNSl3O+qdAp7EpWQqinFiO6eQLIxMDA2NDQgd2d4LXRvb2xzLWd1YXJkLnltbAAwShdu0xuCtNJIRe7xZaz+TwGFVA=="
+    },
+    {
+      "oid": "89f250ff7a557c564d57a3791371fb6bace4b319",
+      "type": "commit",
+      "content_base64": "dHJlZSAzNGU5OWQyZDM5ODUyYjQ0ZjYzNzI4ZDM5NDY4NzI3YWIxZjUwYmMyCnBhcmVudCAwMDViNzhkZmM1MDQxNDIzZjk5ZTAzZDg3NGE1YTc1MWE1NDQ2OTBmCnBhcmVudCAwN2UxNTQ3M2M5NzA0NmE4YjNmOWI5MWUyNGYwNzkxYTBkYTEzZThhCmF1dGhvciBBbGV4YW5kZXIgTW9ociA8YWxleGRlcm1vaHJAZ21haWwuY29tPiAxNzg2MTY1NzEzICswMjAwCmNvbW1pdHRlciBHaXRIdWIgPG5vcmVwbHlAZ2l0aHViLmNvbT4gMTc4NjE2NTcxMyArMDIwMApncGdzaWcgLS0tLS1CRUdJTiBQR1AgU0lHTkFUVVJFLS0tLS0KIAogd3NGY0JBQUJDQUFRQlFKcWRyblJDUkMxYVE3dXU1VWhsQUFBN1NvUUFJZU1qQVVmR3BjcnBvUDYyTy9nZTlldwogcmdzVHpqZG51ZE9lenNkQ2JwLzl4cjZLMTlQYlU3bXVDU2RHYmhqdnlnNDVBVUExL2IvWisxTENqbHM5WmkwOAogT2NpOVZiR2wwSVVrZFZCSWJ3bEd1bEZGcnRpclh0UkFOOVEvcUg0OXRoWEp2TjZyM01xTENWaG02b3JRUWdhRAogcTA3MVorZU1sVE40SFhFaldZcnV4bTJTcmRZeWZLK09vTUVRT2l6Ky9oZUx1SEhkWUlzWHBCTFdHM2RlKzhBagogZU5aWkFPT0YwQzRwelhEYVdxelN4OUF0ZWNwYXNBTmt5a2ZpQ1A1SzI1NzdzVjdseVgzQXY3bUxzTUZKdlQrTAogZHFveHJ4WDZFSDc4cDJRTnp0aEpSaXM5TjFKQjc1SUhVM3R4MWhHUFN2QzdQN3dYMVZyK3BOb2pyOHdMVnltdQogWUdwSzVhRXFWdWc2czVHMUNLNzRoT0ExSy82V0V2UXJHVUVXNFNZYXFrTkU5b0RWeEtGOVBoZmtoSjVrTzJNSAogMkZxWitNOWNLNWw5STFFSUpXc3JNWW9FQ3pneW5QNnYrQW5VdEcyTGJqQld0V1hyNEVxU2FsSk14VXlwSUVkSgogRDNHRGF6UkhmOXNLbmdPUi9zVkxNZTVHRnBSeXJPTXdnWmtQSmovaW81RDM3ZTR0eVRhYWJaSnVuR3UvT1pzTAogRmdJa2xRY2RQZ3JVczgydzBVdU91ajRWODc3WVU2WjFrZEtDYmt6M0FHb0hJeHpZR0FsZ045TTBzM3Q2TWxTZwogVVlrckNZMEtNUzF1VW1QRG5XREc5eEZzZEkwTjlPdGJ3S1FhWVRxMGZNbFJYT3VrblVNWjg3Ukdxd1l6Z2cvUwogNFMxNlQ4bm1OOHB3OW5xUDVzNzkKID1lNjBMCiAtLS0tLUVORCBQR1AgU0lHTkFUVVJFLS0tLS0KIAoKTWVyZ2UgYnJhbmNoICdtYWluJyBpbnRvIHJlbm92YXRlL3NvZnRwcm9wcy1hY3Rpb24tZ2gtcmVsZWFzZS1kaWdlc3Q="
     },
     {
       "oid": "9144595087d52f6dd040bfd4ac34b951e87eb256",
@@ -411,12 +431,12 @@
     {
       "repository": "heimgewebe/wgx",
       "path": ".github/workflows/release.yml",
-      "source_url": "https://github.com/heimgewebe/wgx/blob/c1b336ee0a82a3b1fd0c5f09158dcdb5f3c1d9ef/.github/workflows/release.yml",
-      "blob_sha": "4ffeb1b8733a1fb0f04e7f0b567d20a309f4a426",
-      "content_sha256": "b1c5bb5e027f23050b376c1ca3fb7af76f58fb6c18ce60baecf254433fd64b3a",
-      "commit_sha": "c1b336ee0a82a3b1fd0c5f09158dcdb5f3c1d9ef",
-      "blob_content": "name: release\n\npermissions:\n  contents: write\n\non:\n  push:\n    tags:\n      - 'v*.*.*'\n  workflow_dispatch:\n    inputs:\n      tag:\n        description: 'Tag to release (e.g., v1.0.0)'\n        required: true\n        type: string\n\nconcurrency:\n  group: ${{ github.workflow }}-${{ github.event.inputs.tag || github.ref }}\n  cancel-in-progress: true\n\njobs:\n  publish:\n    runs-on: ubuntu-latest\n    timeout-minutes: 10\n    steps:\n      - uses: actions/checkout@v4\n        with:\n          ref: ${{ github.event.inputs.tag && format('refs/tags/{0}', github.event.inputs.tag) || github.ref }}\n      - name: Create GitHub Release\n        # Pin to SHA for security - v2.4.2\n        uses: softprops/action-gh-release@5be0e66d93ac7ed76da52eca8bb058f665c3a5fe\n        with:\n          tag_name: ${{ github.event.inputs.tag || github.ref_name }}\n          generate_release_notes: true\n",
-      "root_tree_sha": "46dcaa963c8d4d1c93b1c667a12a8f8b659ccd0e"
+      "source_url": "https://github.com/heimgewebe/wgx/blob/89f250ff7a557c564d57a3791371fb6bace4b319/.github/workflows/release.yml",
+      "blob_sha": "9c024a934a8ad292a25464cd095cff635458fd8c",
+      "content_sha256": "2245e1950c493aadeb5e6c30e57a03ffb62efe404b9e6d615abbba13bd92ccf2",
+      "commit_sha": "89f250ff7a557c564d57a3791371fb6bace4b319",
+      "blob_content": "name: release\n\npermissions:\n  contents: write\n\non:\n  push:\n    tags:\n      - 'v*.*.*'\n  workflow_dispatch:\n    inputs:\n      tag:\n        description: 'Tag to release (e.g., v1.0.0)'\n        required: true\n        type: string\n\nconcurrency:\n  group: ${{ github.workflow }}-${{ github.event.inputs.tag || github.ref }}\n  cancel-in-progress: true\n\njobs:\n  publish:\n    runs-on: ubuntu-latest\n    timeout-minutes: 10\n    steps:\n      - uses: actions/checkout@v4\n        with:\n          ref: ${{ github.event.inputs.tag && format('refs/tags/{0}', github.event.inputs.tag) || github.ref }}\n      - name: Create GitHub Release\n        # Pin to SHA for security - v2.4.2\n        uses: softprops/action-gh-release@77fb938f2f95e717ce6705d2909af527263360a0\n        with:\n          tag_name: ${{ github.event.inputs.tag || github.ref_name }}\n          generate_release_notes: true\n",
+      "root_tree_sha": "34e99d2d39852b44f63728d39468727ab1f50bc2"
     },
     {
       "repository": "heimgewebe/wgx",
