@@ -31,8 +31,7 @@
     "docs/cli.md",
     "docs/operator-ecosystem-capabilities.md",
     "docs/uv-integration-audit.de.md",
-    "docs/wgx-konzept.md",
-    "docs/wgx-mycelium-v-omega.de.md"
+    "docs/wgx-konzept.md"
   ],
   "authority_boundary": {
     "wgx_role": "Repository verification runner and compatibility adapter.",
@@ -59,7 +58,7 @@
         "source_url": "https://github.com/heimgewebe/wgx/blob/c1b336ee0a82a3b1fd0c5f09158dcdb5f3c1d9ef/.github/workflows/wgx-guard.yml"
       }
     },
-    "repository_scoped_mutation": "WGX no longer exposes generic Git/forge/operator mutation commands. Narrow WGX-internal audit/integrity writes remain, while run/task execute repository-declared commands whose host effects are not confined by WGX.",
+    "repository_scoped_mutation": "The public WGX CLI no longer performs generic Git, forge, audit-ledger, or repository-maintenance writes. run/task remain delegated execution of repository-declared commands and may therefore have host effects under the invoking operator authority.",
     "delegated_execution": "run and task execute repository-declared shell commands. WGX does not technically confine those commands to the repository, so host effects are possible under the invoking operator and profile owner's authority.",
     "explicit_non_claims": [
       "WGX does not claim, order, assign, or complete Bureau tasks.",
@@ -453,11 +452,10 @@
       "category": "integrity",
       "disposition": "retained_fleet_invariance",
       "authority": "repository_scoped_developer_tool",
-      "summary": "The daily and manual integrity workflow generates and validates summary.json, publishes it to the integrity release, verifies the asset, and emits only a best-effort event.",
+      "summary": "The daily and manual WGX maintenance workflow generates and validates summary.json through a repository-local script, publishes it to the integrity release, and verifies the canonical release asset.",
       "surfaces": [
         ".github/workflows/wgx-integrity.yml",
-        "cmd/integrity.bash",
-        "modules/integrity.bash",
+        "scripts/generate-integrity-report.sh",
         "guards/integrity.guard.sh",
         "docs/integrity-architecture.md",
         "tests/integrity.bats",
@@ -473,15 +471,15 @@
           "repository": "heimgewebe/wgx",
           "evidence_path": ".github/workflows/wgx-integrity.yml",
           "evidence_kind": "local_worktree",
-          "canonical_invocation": "./wgx integrity --update",
+          "canonical_invocation": "run: bash scripts/generate-integrity-report.sh",
           "repository_native_alternative": {
             "availability": "none_identified",
-            "rationale": "No independent WGX-local scheduled generator and release publisher is evidenced."
+            "rationale": "The script and workflow are the repository-native WGX maintenance path; no second independent publication implementation is evidenced."
           }
         }
       ],
       "invariance_benefit": {
-        "claim": "A scheduled report, validated release asset, and pull-based consumer contract preserve repository integrity observability without turning the best-effort event into authority.",
+        "claim": "A scheduled report, validated release asset, and pull-based consumer contract preserve repository integrity observability without exposing integrity mutation as part of the public WGX CLI.",
         "evidence_sources": [
           "https://github.com/heimgewebe/wgx/blob/c1b336ee0a82a3b1fd0c5f09158dcdb5f3c1d9ef/.github/workflows/wgx-integrity.yml",
           "https://github.com/heimgewebe/wgx/blob/c1b336ee0a82a3b1fd0c5f09158dcdb5f3c1d9ef/docs/integrity-architecture.md"
@@ -565,10 +563,10 @@
       "id": "audit",
       "surface": "cmd/audit.bash",
       "status": "active",
-      "classification": "repository_scoped_observation_optional_mutation",
-      "effects": "Read-only by default; --fetch mutates current-repository remote refs and audit output may be written locally.",
-      "consumer_evidence_paths": ["tests/audit_git.bats"],
-      "alternative": {"owner": "Git and the invoking repository", "path": "git status / git fetch / repository audit CI"}
+      "classification": "repository_scoped_observation",
+      "effects": "Verifies an existing local WGX audit-ledger hash chain without writing the ledger or fetching Git remotes.",
+      "consumer_evidence_paths": ["tests/audit_verify.bats"],
+      "alternative": {"owner": "invoking repository", "path": "repository-native evidence verification or direct audit tooling"}
     },
     {
       "id": "doctor",
@@ -596,15 +594,6 @@
       "effects": "Runs WGX static checks against the selected repository.",
       "consumer_evidence_paths": ["tests/guard.bats"],
       "alternative": {"owner": "invoking repository", "path": "repository-native CI and validation scripts"}
-    },
-    {
-      "id": "integrity",
-      "surface": "cmd/integrity.bash",
-      "status": "active",
-      "classification": "repository_scoped_observation_optional_mutation",
-      "effects": "Reads integrity state; --update and --publish write repository reports and may emit to a configured endpoint.",
-      "consumer_evidence_paths": ["tests/integrity.bats"],
-      "alternative": {"owner": "invoking repository", "path": "repository-native integrity generator and CI"}
     },
     {
       "id": "lint",

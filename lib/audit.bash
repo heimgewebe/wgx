@@ -13,79 +13,6 @@ audit::_ledger_path() {
   printf '%s' "$target"
 }
 
-audit::log() {
-  local event="${1:-}"
-  local payload
-  payload="${2:-}"
-  if [[ -z "$payload" ]]; then
-    payload="{}"
-  fi
-  if [[ -z "$event" ]]; then
-    printf 'audit::log: missing event name\n' >&2
-    return 1
-  fi
-  if ! command -v python3 >/dev/null 2>&1; then
-    printf 'audit::log: python3 not available – skipping log.\n' >&2
-    return 0
-  fi
-  local ledger
-  ledger="$(audit::_ledger_path)" || return 1
-  local dir
-  dir="$(dirname "$ledger")"
-  mkdir -p "$dir"
-  local timestamp
-  timestamp="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
-  local git_sha
-  git_sha="$(git rev-parse HEAD 2>/dev/null || printf '%040d' 0)"
-  local prev_line=""
-  if [[ -s "$ledger" ]]; then
-    prev_line="$(tail -n 1 "$ledger" 2>/dev/null || printf '')"
-  fi
-  AUDIT_EVENT="$event" \
-    AUDIT_PAYLOAD="$payload" \
-    AUDIT_TIMESTAMP="$timestamp" \
-    AUDIT_SHA="$git_sha" \
-    AUDIT_PREV_LINE="$prev_line" \
-    python3 - "$ledger" <<'PY'
-import json
-import os
-import sys
-import hashlib
-from pathlib import Path
-
-ledger_path = Path(sys.argv[1])
-event = os.environ.get("AUDIT_EVENT", "")
-payload_raw = os.environ.get("AUDIT_PAYLOAD", "{}")
-timestamp = os.environ.get("AUDIT_TIMESTAMP") or ""
-git_sha = os.environ.get("AUDIT_SHA") or ""
-prev_line = os.environ.get("AUDIT_PREV_LINE", "").strip()
-prev_hash = "0" * 64
-if prev_line:
-    try:
-        prev_hash = json.loads(prev_line).get("hash", "0" * 64)
-        if not isinstance(prev_hash, str) or len(prev_hash) != 64:
-            raise ValueError
-    except Exception:
-        prev_hash = hashlib.sha256(prev_line.encode("utf-8")).hexdigest()
-try:
-    payload = json.loads(payload_raw)
-except Exception:
-    payload = {"raw": payload_raw}
-entry = {
-    "timestamp": timestamp,
-    "event": event,
-    "git_sha": git_sha,
-    "payload": payload,
-    "prev_hash": prev_hash,
-}
-body = json.dumps(entry, sort_keys=True, separators=(",", ":"))
-entry["hash"] = hashlib.sha256(body.encode("utf-8")).hexdigest()
-with ledger_path.open("a", encoding="utf-8") as fh:
-    fh.write(json.dumps(entry, sort_keys=True, separators=(",", ":")))
-    fh.write("\n")
-PY
-}
-
 audit::verify() {
   local strict=0
   while [[ $# -gt 0 ]]; do
@@ -97,9 +24,9 @@ audit::verify() {
     --help | -h)
       cat <<'USAGE'
 audit::verify [--strict]
-  Prüft die Hash-Kette in .wgx/audit/ledger.jsonl.
-  Rückgabewert 0 bei gültiger Kette.
-  Mit --strict (oder AUDIT_VERIFY_STRICT=1) führt eine Verletzung zu exit != 0.
+  Verifies the hash chain in .wgx/audit/ledger.jsonl without modifying it.
+  With --strict (or AUDIT_VERIFY_STRICT=1), verification/dependency failures
+  return non-zero; non-strict mode reports damaged evidence as a warning.
 USAGE
       return 0
       ;;
@@ -112,23 +39,28 @@ USAGE
       ;;
     esac
   done
+
   if ! command -v python3 >/dev/null 2>&1; then
     printf 'audit::verify: python3 not available.\n' >&2
+    if ((strict)) || [[ ${AUDIT_VERIFY_STRICT:-0} != 0 ]]; then
+      return 1
+    fi
     return 0
   fi
+
   local ledger
   ledger="$(audit::_ledger_path)" || return 1
   if [[ ! -s "$ledger" ]]; then
     printf 'audit::verify: ledger empty (%s).\n' "$ledger"
     return 0
   fi
+
   local output
   if output=$(
-    AUDIT_STRICT_MODE="$strict" python3 - "$ledger" <<'PY'
-import json
-import os
-import sys
+    python3 - "$ledger" <<'PY'
 import hashlib
+import json
+import sys
 from pathlib import Path
 
 ledger_path = Path(sys.argv[1])
@@ -166,7 +98,7 @@ PY
       printf '%s\n' "$output" >&2
     fi
     if ((strict)) || [[ ${AUDIT_VERIFY_STRICT:-0} != 0 ]]; then
-      return $rc
+      return "$rc"
     fi
     printf 'audit::verify: non-strict mode, treating failure as warning.\n' >&2
     return 0

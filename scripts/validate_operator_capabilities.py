@@ -67,8 +67,7 @@ REQUIRED_CAPABILITY_SURFACES = {
     },
     "scheduled-integrity-publication": {
         ".github/workflows/wgx-integrity.yml",
-        "cmd/integrity.bash",
-        "modules/integrity.bash",
+        "scripts/generate-integrity-report.sh",
         "guards/integrity.guard.sh",
         "docs/integrity-architecture.md",
         "tests/integrity.bats",
@@ -104,7 +103,7 @@ SURFACE_CONTENT_REQUIREMENTS = {
         "schedule:",
         "workflow_dispatch:",
         "cron: '0 6 * * *'",
-        "./wgx integrity --update",
+        "bash scripts/generate-integrity-report.sh",
         "uses: softprops/action-gh-release@",
         "gh release view integrity",
     },
@@ -146,6 +145,7 @@ ALLOWED_COMMAND_CLASSIFICATION = {
     "unavailable",
 }
 REQUIRED_COMMAND_CLASSIFICATIONS = {
+    "audit": "repository_scoped_observation",
     "run": "delegated_profile_execution",
     "task": "delegated_profile_execution",
     "version": "repository_scoped_observation",

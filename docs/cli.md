@@ -16,7 +16,6 @@ Commands:
   env
   guard
   help
-  integrity
   lint
   run
   selftest
@@ -41,25 +40,9 @@ More:
 ```text
 Usage:
   wgx audit verify [--strict]
-  wgx audit git [--repo <key>] [--correlation-id <id>] [--stdout-json] [--fetch]
 
-Types:
-  verify   Verifies the audit ledger chain (.wgx/audit/ledger.jsonl).
-  git      Audits the local git repository state.
-
-Options (git):
-  --fetch  Performs 'git fetch origin --prune' before auditing (mutating).
-           Default is read-only (no fetch).
-  --repo <key>
-           Logical repo key for the audit artifact (default: detected).
-  --correlation-id <id>
-           Trace ID for the audit run (default: generated).
-  --stdout-json
-           Output JSON artifact to stdout (do not write to file).
-
-General:
-  Exit code is 0 even if audit findings are 'error' (check JSON output).
-  Non-zero exit codes indicate execution failures (e.g. missing dependencies).
+WGX audit is read-only. Git-state inspection belongs to Git/RepoGround or the
+authorized operator; WGX no longer fetches remotes or writes Git-audit artifacts.
 ```
 
 ### doctor
@@ -128,7 +111,6 @@ Commands:
   env
   guard
   help
-  integrity
   lint
   run
   selftest
@@ -144,19 +126,6 @@ Env:
 
 More:
   wgx --list     Nur verfügbare Befehle anzeigen
-```
-
-### integrity
-
-```text
-Usage: wgx integrity [options]
-
-Options:
-  --update, -u    Erzeugt/Aktualisiert den Integritätsbericht.
-  --publish, -p   Gibt ein Event-JSON (integrity.summary.published.v1) aus.
-  --help, -h      Zeigt diese Hilfe.
-
-Standard: Liest reports/integrity/summary.json und zeigt Status an.
 ```
 
 ### lint

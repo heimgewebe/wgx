@@ -1,44 +1,39 @@
 # Integrity Architecture
 
-## Event is Hint, Release is Truth
+## Release Asset Is Truth
 
-The Release Asset named `summary.json` (attached to the `integrity` tag) is the **canonical source of truth**.
+The Release Asset named `summary.json` attached to the `integrity` tag is the
+**canonical published artifact**.
 
-* **Repository Path:** `reports/integrity/summary.json` (Source)
-* **Release Asset:** `summary.json` (Canonical Artifact)
-* **Fetch URL:** `https://github.com/<owner>/<repo>/releases/download/integrity/summary.json`
+- **Repository-local source:** `reports/integrity/summary.json`
+- **Generator:** `scripts/generate-integrity-report.sh`
+- **Release asset:** `summary.json`
+- **Fetch URL:** `https://github.com/<owner>/<repo>/releases/download/integrity/summary.json`
 
-Events (`integrity.summary.published.v1`) are **best-effort hints** to signal updates.
-They may be lost or delayed.
-Consumers MUST NOT rely on events for critical state but SHOULD pull the release asset upon receiving an event
-(or on a schedule).
+Integrity publication is WGX repository maintenance, not part of the public WGX
+CLI. The scheduled/manual workflow generates the report, validates its invariant
+fields, publishes the release asset and reads the release back to confirm that
+the asset exists. There is no simulated event-publication step and consumers do
+not need an event bus; they pull the canonical release asset.
 
-## Status Semantics (WGX)
+## Status Semantics
 
-This repository uses `reports/integrity/summary.json` as the source report that is published as the
-`summary.json` release asset.
+The generator derives status from repository-local evidence:
 
-Important distinction:
+- `MISSING`: no proof artifacts exist under `reports/` apart from the generated
+  integrity files.
+- `UNCLEAR`: artifacts exist but no `contracts/*.schema.json` claims are found.
+- `OK`: both contract claims and artifacts exist.
 
-* If the **release asset is missing**, consumers simply have **no data** for that repository yet.
-* If the **release asset exists**, the consumer should display the **status value contained in `summary.json`**.
-
-Current generator logic (see `modules/integrity.bash`):
-
-* `MISSING`: no proof artifacts available yet (currently: no files under `reports/` except `summary.json`).
-* `UNCLEAR`: no contract claims available yet (currently: no `contracts/*.schema.json` found), but artifacts exist.
-* `OK`: both claims and artifacts exist.
-
-Notes:
-
-* The fields `counts.loop_gaps` and `counts.unclear` are placeholders at the moment and do not influence the status.
-* The workflow allows additional status values (`WARN`, `FAIL`) for forward compatibility.
+The workflow accepts additional `WARN` and `FAIL` values for forward
+compatibility, but the current generator emits the three values above.
+`counts.loop_gaps` and `counts.unclear` remain reserved counters and currently do
+not affect status.
 
 ## Data Flow Guard & SSOT
 
-The Data Flow Guard enforces a strict binding between generated artifacts and their schemas.
-It operates on the principle: "If data exists, its schema must exist and validate it."
-
-* **Canonical Config:** `.wgx/flows.json` defines which data files map to which schema.
-* **Fail-Safe:** If data is present but the schema is missing, the guard FAILS (preventing unvalidated flows).
-* **Reference Safety:** Schemas with `$ref` must be resolvable; otherwise, the guard fails to avoid false negatives.
+The Data Flow Guard separately enforces the binding between generated artifacts
+and schemas. `.wgx/flows.json` maps data files to schemas; missing or unresolved
+schema evidence fails closed. Integrity publication observes and distributes the
+summary of repository evidence, while the Data Flow Guard owns schema/data
+validation.

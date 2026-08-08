@@ -13,20 +13,6 @@ cmd_audit() {
   local sub="${1:-}"
   shift || true
   case "$sub" in
-  git)
-    if ! declare -F wgx_audit_git >/dev/null 2>&1; then
-      if [[ -r "$WGX_DIR/lib/audit_git.bash" ]]; then
-        # shellcheck source=/dev/null
-        source "$WGX_DIR/lib/audit_git.bash"
-      fi
-    fi
-    if declare -F wgx_audit_git >/dev/null 2>&1; then
-      wgx_audit_git "$@"
-    else
-      printf 'wgx audit git: logic not loaded.\n' >&2
-      return 1
-    fi
-    ;;
   verify)
     local strict=0
     while [[ $# -gt 0 ]]; do
@@ -39,9 +25,9 @@ cmd_audit() {
 Usage:
   wgx audit verify [--strict]
 
-Prüft die Audit-Log-Kette (.wgx/audit/ledger.jsonl). Standardmäßig wird
-nur eine Warnung ausgegeben, wenn die Kette beschädigt ist. Mit --strict
-(oder AUDIT_VERIFY_STRICT=1) führt eine Verletzung zu einem Fehlercode.
+Verifies the local WGX audit-ledger hash chain without modifying repository or
+remote state. In non-strict mode a damaged ledger is reported as a warning;
+--strict (or AUDIT_VERIFY_STRICT=1) makes verification failures non-zero.
 USAGE
         return 0
         ;;
@@ -69,25 +55,9 @@ USAGE
     cat <<'USAGE'
 Usage:
   wgx audit verify [--strict]
-  wgx audit git [--repo <key>] [--correlation-id <id>] [--stdout-json] [--fetch]
 
-Types:
-  verify   Verifies the audit ledger chain (.wgx/audit/ledger.jsonl).
-  git      Audits the local git repository state.
-
-Options (git):
-  --fetch  Performs 'git fetch origin --prune' before auditing (mutating).
-           Default is read-only (no fetch).
-  --repo <key>
-           Logical repo key for the audit artifact (default: detected).
-  --correlation-id <id>
-           Trace ID for the audit run (default: generated).
-  --stdout-json
-           Output JSON artifact to stdout (do not write to file).
-
-General:
-  Exit code is 0 even if audit findings are 'error' (check JSON output).
-  Non-zero exit codes indicate execution failures (e.g. missing dependencies).
+WGX audit is read-only. Git-state inspection belongs to Git/RepoGround or the
+authorized operator; WGX no longer fetches remotes or writes Git-audit artifacts.
 USAGE
     ;;
   *)
