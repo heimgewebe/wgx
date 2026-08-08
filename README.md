@@ -1,432 +1,112 @@
-# wgx – Repository-Verifikationsrunner
+# wgx – minimaler Repository-Verifikationsrunner
 
-![WGX Badge](https://img.shields.io/badge/wgx-enabled-blue)
+WGX ist ein kleiner Kompatibilitätsrunner für bestehende `.wgx/profile.yml`-Profile.
+Die öffentliche CLI besteht absichtlich nur aus drei Frontdoors:
 
-Portabler Repository-Verifikationsrunner für Termux, WSL, Linux und macOS.
-License: MIT; intended for internal use but repository is publicly visible.
+- `wgx validate` – Profil prüfen; `--profile quick|full` führt die im Profil deklarierten
+  Validierungstasks mit Timeout- und Receipt-Vertrag aus.
+- `wgx tasks` – deklarierte Tasks maschinenlesbar oder menschenlesbar auflisten.
+- `wgx task <name>` – genau einen repository-deklarierten Task ausführen.
 
-## Lizenz & Nutzung
-
-Dieses Repository steht unter der **MIT-Lizenz** (siehe `./LICENSE`).
-Die Lizenzdatei bleibt **unverändert**, damit gängige Tools die Lizenz korrekt erkennen.
-
-**Beabsichtigte Nutzung:** WGX ist primär für den internen Einsatz innerhalb der
-heimgewebe-Ökosphäre gedacht, das Repository ist jedoch öffentlich sichtbar.
-Diese Klarstellung ändert **nicht** die Lizenzrechte, sondern dient nur der
-Transparenz bezüglich Support-Erwartungen und Projektfokus.
-
-**Hinweis für Beiträge/Dateiköpfe:** In neuen Dateien bitte nach Möglichkeit den
-SPDX-Kurzidentifier verwenden, z. B.:
-
-```text
-# SPDX-License-Identifier: MIT
-```
+`wgx --help`, `wgx --list` und `wgx --version` sind Dispatcher-Metafunktionen und keine zusätzlichen operativen Commands.
 
 ## Schnellstart
 
-> 📘 **Sprach-Policy:** Neue Beiträge sollen derzeit deutschsprachige,
-> benutzernahe Texte verwenden. Details stehen in
-> [docs/Language-Policy.md](docs/Language-Policy.md); eine spätere Umstellung
-> auf Englisch ist dort skizziert.
-
 ```bash
-git clone <DEIN-REPO>.git wgx
-cd wgx
-
-# (optional) im Devcontainer öffnen
-# VS Code → „Reopen in Container“
-
-# wgx in den PATH verlinken
 mkdir -p "$HOME/.local/bin"
 ln -sf "$PWD/cli/wgx" "$HOME/.local/bin/wgx"
 export PATH="$HOME/.local/bin:$PATH"
 
-# Smoke-Test
-wgx --help
-wgx doctor
-
-# Repository-Verifikation
 wgx validate
 wgx tasks
 wgx task smoke
-wgx version
 ```
 
-WGX führt keine generischen Git-, Cleanup-, Branch- oder PR-Mutationen mehr aus.
-Solche Effekte gehören zum Ziel-Repository bzw. zum autorisierten Operator.
-
-Falls ein Befehl unbekannt ist, kannst du die verfügbaren Subcommands auflisten:
-
-```bash
-wgx --list 2>/dev/null || wgx commands 2>/dev/null || ls -1 cmd/
-```
-
-### `wgx run`
-
-`wgx run` führt Tasks aus, die in `.wgx/profile.yml` hinterlegt sind.
-Der Aufruf ist bewusst deckungsgleich mit den bestehenden Profil-Parsern:
-
-```bash
-wgx run [--dry-run|-n] <task> [--] [args...]
-```
-
-- `--dry-run` zeigt nur an, was ausgeführt würde. Die Ausgabe beginnt mit
-  `[DRY-RUN]` und zitiert Argumente POSIX-kompatibel.
-- Argumente nach einem `--` werden unverändert an den Task weitergegeben.
-- Plattform-Varianten (`linux`, `darwin`, `win32`, `default`) werden
-  automatisch aufgelöst – `wgx run build` nimmt beispielsweise `cmd.linux`,
-  fällt sonst auf `cmd.default` zurück.
-
-Beispiele:
-
-```bash
-# Array-CMD + zusätzliche Argumente
-wgx run lint -- --fix
-
-# Repository-eigenen Build-Task mit Dry-Run-Vorschau prüfen
-wgx run --dry-run build
-
-# Plattform-Variante, die auf Linux ein anderes Kommando nutzt
-wgx run build
-```
-
-## WGX-Systemgrenze
-
-WGX ist der portable Kompatibilitätsrunner für repository-deklarierte
-Verifikations-Frontdoors. Der kanonische Fleet-Vertrag, Starterprofile und die
-reusable Guard-/Smoke-/Quick-/Full-Policy gehören seit Metarepo-Commit
-`31dbecc6c7b966faa73ad3dceb0ded7329187f36` zu Metarepo. Die historischen WGX-Workflow-URLs bleiben nur als
-revisionsgepinnte Kompatibilitätsshims erhalten. Bureau besitzt
-Task-Koordination; Grabowski besitzt Host-/Prozess-, Git- und Deploy-Effekte.
-WGX beansprucht keine dieser Autoritäten. Details stehen in
-[der aktuellen Rollenbeschreibung](docs/wgx-konzept.md).
-
-## WGX Readiness
-
-`./scripts/gen-readiness.sh` erzeugt lokal eine WGX-interne Readiness-Matrix
-(`readiness.json`, `readiness-table.md`, `readiness-badge.svg`). Diese
-Ableitung bewertet nur den WGX-Quellbaum; sie ist weder Fleet-Health noch
-Deployment- oder Task-Evidenz. Details stehen in
-[docs/readiness.md](docs/readiness.md). Ergänzend erklärt
-[docs/audit-ledger.md](docs/audit-ledger.md) die Audit-Logs und Beispiele.
-
-## Entwicklungs-Schnellstart
-
-- In VS Code öffnen → „Reopen in Container“
-- CI lokal ausführen (gespiegelt durch GitHub Actions, via
-  `tests/shell_ci.bats` abgesichert):
-
-  ```bash
-  bash -n $(git ls-files '*.sh' '*.bash')
-  shfmt -d $(git ls-files '*.sh' '*.bash')
-  shellcheck -x -S style $(git ls-files '*.sh' '*.bash')
-  bats -r tests
-  ```
-
-- Metrics-Contract-Kompatibilität lokal prüfen:
-
-  ```bash
-  just wgx-metrics snapshot --json --output metrics.json
-  just contracts validate
-  ```
-
-  Dieser Pfad erzeugt eine Contract-Fixture. Er ist keine Live-Hostmessung,
-  keine Deployment-Evidenz und kein Fleet-Health-Observer.
-
-- Node.js tooling ist nicht erforderlich; npm-/pnpm-Workflows sind
-  deaktiviert, und es existiert kein `package.json` mehr.
-
-- Mehr Hinweise im [Quickstart](docs/quickstart.md).
-
-## Python-Stack (uv als Standard)
-
-- wgx nutzt [uv](https://docs.astral.sh/uv/) als Default-Laufzeit für
-  Python-Versionen, Lockfiles und Tools.
-- Die wichtigsten Wrapper-Kommandos:
-
-  ```bash
-  wgx py up         # gewünschte Python-Version via uv bereitstellen
-  wgx py sync       # Abhängigkeiten anhand von uv.lock installieren
-  wgx py run test   # uv run <task>, z. B. Tests
-  wgx tool add ruff # CLI-Tools wie pipx, nur über uv
-  ```
-
-- Projekte deklarieren das Verhalten in `.wgx/profile.yml`:
-
-  ```yaml
-  python:
-    manager: uv
-    version: "3.12"
-    lock: true
-    tools:
-      - ruff
-      - pyright
-  contracts:
-    uv_lock_present: true
-    uv_sync_frozen: true
-  ```
-
-- Die `contracts`-Einträge lassen sich via `wgx guard` automatisiert
-  überprüfen.
-- Übergang aus bestehenden `requirements.txt`: `uv pip sync requirements.txt`,
-  anschließend `uv lock`.
-- Optional für Fremdsysteme: `uv pip compile --output-file requirements.txt`
-  erzeugt kompatible Artefakte.
-- Wer eine alternative Toolchain benötigt, kann in `profile.yml` auf
-  `manager: pip` zurückfallen.
-- `python.version` akzeptiert exakte Versionen (`3.12`) oder Bereiche (`3.12.*`).
-
-- CI-Empfehlung (GitHub Actions, gekürzt):
-
-  ```yaml
-  - name: Install uv
-    run: |
-      curl -LsSf https://astral.sh/uv/install.sh | sh
-      echo "UV_VERSION=$($HOME/.local/bin/uv --version | \
-        awk '{print $2}')" >> "$GITHUB_ENV"
-  - name: Cache uv
-    uses: actions/cache@v4
-    with:
-      path: ~/.cache/uv
-      key: uv-${{ runner.os }}-${{ env.UV_VERSION || 'latest' }}-\
-        ${{ hashFiles('**/pyproject.toml', '**/uv.lock') }}
-  - name: Sync deps (frozen)
-    run: ~/.local/bin/uv sync --frozen
-  - name: Test
-    run: ~/.local/bin/uv run pytest -q
-  ```
-
-- WGX-Contracts (durchsetzbar via `wgx guard`):
-  - `contract:uv_lock_present` → `uv.lock` ist committed
-  - `contract:uv_sync_frozen` → Pipelines nutzen `uv sync --frozen`
-
-- Beispiele für `wgx py run`:
-
-  ```bash
-  wgx py run "python -m http.server"
-  wgx py run pytest -q
-  ```
-
-- Devcontainer-Hinweis: kombiniere Installation mit Sync, indem
-  `postCreateCommand` so gesetzt wird:
-  `"bash -lc '.devcontainer/setup.sh ensure-uv && ~/.local/bin/uv sync'"`.
-- Für regulierte Umgebungen kann die Installation statt `curl | sh` über
-  gepinnte Paketquellen erfolgen.
-- Weitere Hintergründe stehen in
-  [docs/ADR-0002__python-env-manager-uv.de.md](docs/ADR-0002__python-env-manager-uv.de.md)
-  und im
-  [Runbook](docs/Runbook.de.md#leitfaden-von-requirementstxt-zu-uv).
-
-## Repository-Layout
-
-```plaintext
-.
-├─ cli/                 # Einstieg: ./cli/wgx (Dispatcher)
-├─ cmd/                 # EIN Subcommand = EINE Datei
-├─ lib/                 # Wiederverwendbare Bash-Bibliotheken
-├─ modules/             # Optionale Erweiterungen
-├─ etc/                 # Default-Konfigurationen
-├─ fixtures/            # Ausschließlich lokale Test-Fixtures
-├─ tests/               # Automatisierte Shell-Tests
-├─ installers/          # Installations-Skripte
-└─ docs/                # Handbücher, ADRs
-```
-
-Der eigentliche Dispatcher liegt unter `cli/wgx`.
-Alle Subcommands werden über die Dateien im Ordner `cmd/` geladen und greifen
-dabei auf die Bibliotheken in `lib/` zurück. Wiederkehrende Helfer (Logging,
-Git-Hilfen, Environment-Erkennung usw.) sind im Kernmodul `lib/core.bash`
-gebündelt.
-
-## Architektur v1 (Bash)
-
-Die `v1`-Architektur von WGX ist um einen Bash-Kern herum aufgebaut und folgt
-einer klaren, modularen Struktur, um Wartbarkeit und Erweiterbarkeit zu
-gewährleisten:
-
-- **`cli/wgx`**: Der zentrale Einstiegspunkt (Dispatcher). Dieses Skript
-  identifiziert das passende Subkommando und lädt die notwendigen Bibliotheken.
-- **`cmd/`**: Jedes Subkommando (z.B. `init`, `status`, `test`) ist eine
-  eigenständige `.bash`-Datei in diesem Ordner.
-- **`lib/`**: Enthält wiederverwendbare Kernbibliotheken. `lib/core.bash`
-  stellt zentrale Funktionen wie Logging, Routing und Git-Helfer bereit.
-- **`modules/`**: Beinhaltet optional ladbare Module für komplexere, in sich
-  geschlossene Logik (z.B. `profile.bash` für die
-  `.wgx/profile.yml`-Verarbeitung).
-- **`tests/`**: Alle `bats`-Tests zur Absicherung der Funktionalität.
-
-Alle Skripte nutzen die zentralen Logging-Funktionen (`info`, `ok`, `warn`,
-`die`) aus `lib/core.bash`, um eine einheitliche und steuerbare Ausgabe zu
-gewährleisten.
-
-Diese Struktur stellt sicher, dass WGX als Bash-zentriertes Tool ohne
-Rust-Crates funktioniert: Die CLI und alle Subkommandos laufen in Bash, für
-das Parsen von `.wgx/profile.yml` verwendet WGX bewusst Python 3. PyYAML wird
-bevorzugt, aber bei fehlender Installation greift WGX auf einen eingebauten
-Parser zurück. Die CI testet WGX über Bats-Tests; ein Rust-Crate wird nicht
-mehr installiert.
-
-### Laufzeitabhängigkeiten
-
-Für die Nutzung der v1-Architektur gelten zurzeit folgende Mindestvoraussetzungen:
-
-- **Bash ≥ 4**
-- **Git** und gängige Coreutils (`sed`, `awk`, `grep`, `find`, …)
-- **Python 3** für das Parsen von `.wgx/profile.yml`
-- Optional: **PyYAML**, falls du den nativen Parser nutzen möchtest (ansonsten
-  fällt WGX auf den eingebauten Parser zurück)
-
-Im Devcontainer und in den CI-Workflows werden diese Abhängigkeiten
-automatisch installiert (unter Debian/Ubuntu z.B. über das Paket
-`python3-yaml`). Auf lokalen Maschinen muss Python 3 ggf. manuell
-nachgerüstet werden; PyYAML ist optional, aber empfohlen für die
-vollständigste YAML-Unterstützung. Typische Varianten:
-
-- Debian/Ubuntu: `apt install python3` (optional: `python3-yaml`)
-- Arch Linux: `pacman -S python` (optional: `python-yaml`)
-- macOS mit Homebrew: `brew install python` (optional: `pip3 install pyyaml`)
-
-Ohne funktionsfähiges Python-Setup können `wgx run` und profilbasierte
-Repository-Frontdoors nicht ausgeführt werden. Fehlt PyYAML, meldet WGX im
-Debug-Modus den Rückfall auf den eingebauten Parser, der einfache
-YAML-Strukturen abdeckt.
-
-## Reusable-Workflows für andere Repos
-
-Dieses Repository stellt wiederverwendbare Verifikationsadapter bereit. Die
-fachlichen Befehle und CI-Wahrheit bleiben im jeweiligen Ziel-Repository.
-
-- **`wgx-guard.yml`**: Routet zum deklarierten `guard`- oder `smoke`-Frontdoor
-  des Ziel-Repositories.
-- **`wgx-smoke.yml`**: Verlangt und startet den im Ziel-Repository
-  deklarierten `tasks.smoke`-Frontdoor.
-
-Diese Workflows nutzen die "Fleet-Konvention" in der `.wgx/profile.yml`:
-
-- **`class`**: Definiert die Klasse des Repositories (z.B. `rust-service`,
-  `python-service`).
-- **`tasks`**: Eine Map repository-eigener Verifikations-Frontdoors. Sie ist
-  keine Bureau-Queue und erteilt keine Deploy- oder Host-Mutationsfreigabe.
-
-### Beispiel-Verwendung
-
-Um diese Workflows in einem anderen Repository zu verwenden, erstellen Sie eine
-`.github/workflows/ci.yml`-Datei mit folgendem Inhalt:
-
-```yaml
-name: CI
-
-on:
-  push:
-    branches: [ main ]
-  pull_request:
-
-jobs:
-  guard:
-    uses: heimgewebe/wgx/.github/workflows/wgx-guard.yml@main
-
-  smoke:
-    uses: heimgewebe/wgx/.github/workflows/wgx-smoke.yml@main
-```
-
-## Dokumentation & Referenzen
-
-- **Runbook (DE/EN):** [docs/Runbook.de.md](docs/Runbook.de.md) mit
-  [englischer Kurzfassung](docs/Runbook.en.md) für internationales Onboarding.
-- **Glossar (DE/EN):** [docs/Glossar.de.md](docs/Glossar.de.md) sowie
-  [docs/Glossary.en.md](docs/Glossary.en.md) erklären Schlüsselbegriffe.
-- **Befehlsreferenz:** [docs/Command-Reference.de.md](docs/Command-Reference.de.md)
-  listet alle `wgx`-Subcommands samt Optionen.
-- **Module & Fixtures:** [docs/Module-Uebersicht.de.md](docs/Module-Uebersicht.de.md)
-  beschreibt Aufbau und Zweck von `modules/`, `lib/`, `etc/` und `fixtures/`.
-
-## Vision & Manifest
-
-Das historische Visionsdokument
-[docs/wgx-mycelium-v-omega.de.md](docs/wgx-mycelium-v-omega.de.md) ist keine
-Autoritäts- oder Roadmapquelle. Die aktuelle Rolle ist durch die
-[Capability-/Consumer-Map](docs/operator-ecosystem-capabilities.md) begrenzt.
-
-## Konfiguration
-
-Repository-Profile werden im Ziel-Repository oder über Metarepo-Vorlagen gepflegt.
-WGX besitzt keinen separaten generischen Init-/Home-Konfigurationsvertrag mehr.
-
-## .wgx/profile (v1 / v1.1)
-
-- **Datei**: `.wgx/profile.yml` (oder `.yaml` / `.json`)
-- **Fallback**: Falls keine `.wgx/profile.yml` eingecheckt ist, nutzt CI die
-  versionierte `.wgx/profile.example.yml` als Vorlage – sie muss daher im
-  Repository bleiben.
-- **Hinweis**: Lokale Profile im Arbeitsbaum sind per `.gitignore`
-  ausgeschlossen. Hinterlegt daher ein Beispielprofil (z.B.
-  `profile.example.yml`) im Repo, wenn die Guard-Jobs ein manifestiertes Profil
-  erwarten.
-- **Details**: Kapitel
-  [6. Profile v1 / v1.1](docs/wgx-mycelium-v-omega.de.md#6-profile-v1--v11-minimal--reich)
-  im Mycelium-Manifest erläutert Struktur, Defaults und Erweiterungen.
-- **apiVersion**:
-  - `v1`: einfache Strings für `tasks.<name>`
-  - `v1.1`: reichere Spezifikation (Arrays, desc/group/safe,
-    envDefaults/Overrides, requiredWgx-Objekt)
-
-### Minimales Beispiel (v1)
+Ein Ziel-Repository versioniert sein eigenes `.wgx/profile.yml`. Beispiel:
 
 ```yaml
 wgx:
   apiVersion: v1
   requiredWgx: "^2.0"
-  repoKind: "generic"
+  validate:
+    quick: [lint, smoke]
+    full: [lint, test, smoke]
   tasks:
-    test: "cargo test --workspace"
+    lint: "ruff check ."
+    test: "pytest -q"
+    smoke: "python -m myapp --help"
 ```
 
-### Erweitertes Beispiel (v1.1)
+Tasknamen wie `guard`, `lint`, `smoke` oder `test` gehören dem Ziel-Repository. Sie sind **keine WGX-Subcommands**.
+WGX führt nur aus, was das Profil ausdrücklich deklariert.
 
-```yaml
-wgx:
-  apiVersion: v1.1
-  requiredWgx:
-    range: "^2.0"
-    min: "2.0.3"
-    caps: ["task-array","status-dirs"]
-  repoKind: "hauski"
-  dirs: { web: "", api: "crates", data: ".local/state/hauski" }
-  env:
-    RUST_LOG: "info,hauski=debug"
-  envDefaults:
-    RUST_BACKTRACE: "1"
-  envOverrides: {}
-  tasks:
-    doctor: { desc: "Sanity-Checks", safe: true,
-              cmd: ["cargo","run","-p","hauski-cli","--","doctor"] }
-    test:   { desc: "Workspace-Tests", safe: true,
-              cmd: ["cargo","test","--workspace","--","--nocapture"] }
-    serve:  { desc: "Entwicklungsserver",
-              cmd: ["cargo","run","-p","hauski-cli","--","serve"] }
+## Systemgrenze
+
+WGX besitzt:
+
+- Parserkompatibilität für WGX-v1-Profile;
+- Taskauflistung und explizite Taskausführung;
+- `quick`/`full`-Validierung mit deterministischen, redigierten Receipts;
+- die historischen `wgx-guard.yml`/`wgx-smoke.yml`-URLs als gepinnte Kompatibilitätsshims zu Metarepo.
+
+WGX besitzt nicht:
+
+- Fleet- oder Policy-Wahrheit – Metarepo;
+- Taskkoordination – Bureau;
+- Git-, Worktree-, Prozess- oder Deploy-Autorität – Grabowski/GitHub;
+- repository-übergreifenden Codekontext – RepoGround.
+
+Die öffentliche CLI erzeugt keine eigenen Git-, Forge-, Audit-, Cleanup- oder Repository-Wartungseffekte.
+`wgx task` kann allerdings jeden Effekt haben, den das **Repository selbst** in seinem Task deklariert;
+WGX sandboxed diesen Befehl nicht.
+
+Details: [docs/wgx-konzept.md](docs/wgx-konzept.md).
+
+## Repository-interne Wartung
+
+WGX hat einige **eigene** CI-/Wartungspfade, die nicht Teil der öffentlichen Command-ABI sind:
+
+- `.github/workflows/wgx-integrity.yml` + `scripts/generate-integrity-report.sh` erzeugen und veröffentlichen den WGX-Integritätsreport.
+- `.github/workflows/metrics.yml` + `scripts/wgx-metrics-snapshot.sh` erzeugen eine lokale Metrics-Contract-Fixture.
+- `.github/workflows/wgx-tools-guard.yml` prüft eingecheckte `.wgx-tools`-Module.
+- Release- und Kompatibilitätsworkflows warten dieses Repository selbst.
+
+Diese Pfade sind kein Beleg für zusätzliche WGX-Subcommands oder Fleet-Autorität.
+
+## Entwicklung
+
+Lokale Shell-/Test-Gates entsprechen den GitHub-Actions-Baselines:
+
+```bash
+bash -n $(git ls-files '*.sh' '*.bash')
+shfmt -d $(git ls-files '*.sh' '*.bash')
+shellcheck -x -S style $(git ls-files '*.sh' '*.bash')
+bats -r tests
 ```
 
-## Tests
+Python-Regressionstests:
 
-Automatisierte Tests werden über `tests/` organisiert (z. B. mit [Bats](https://bats-core.readthedocs.io/)).
-Ergänzende Checks kannst du via `wgx selftest` starten.
-Die Quoting-Grundregeln sind in der [Leitlinie: Shell-Quoting](docs/Leitlinie.Quoting.de.md)
-gebündelt.
+```bash
+python3 -m unittest discover -s tests -p 'test_*.py'
+```
 
-## Architekturhinweis — nur modulare Struktur
+Metrics-Contract-Kompatibilität:
 
-Seit 2025-09-25 ist die modulare Struktur verbindlich (`cli/`, `cmd/`, `lib/`,
-`etc/`, `modules/`). Der alte Monolith wurde archiviert:
-`docs/archive/wgx_monolith_*.md`.
+```bash
+just wgx-metrics snapshot --json --output metrics.json
+just contracts validate
+```
 
-## Systemkontext
+## Dokumentation
 
-Der aktuelle Zweck, Lifecycle-Status und die Beziehungen dieses Repositories zu anderen
-Heimgewebe-Systemen werden im [Systemkatalog](https://github.com/heimgewebe/systemkatalog) geführt. Die
-[gerenderte Systemübersicht](https://github.com/heimgewebe/systemkatalog/blob/main/rendered/system-catalog.md)
-ist die lesbare Gesamtsicht; die
-[maschinenlesbare Inventur](https://github.com/heimgewebe/systemkatalog/blob/main/registry/ecosystem/nodes.json)
-ist die Quelle für Automatisierung.
+- [Quickstart](docs/quickstart.md)
+- [Runbook](docs/Runbook.md)
+- [Profil-Spezifikation](docs/profile-v1-spec.md)
+- [CLI-Referenz](docs/cli.md)
+- [Operator-/Capability-Grenzen](docs/operator-ecosystem-capabilities.md)
 
-Repositoryeigene Betriebs-, Daten- und Implementierungswahrheit bleibt in diesem Repository.
-Gemeinsame Contracts bleiben bei ihrer jeweiligen Primärquelle.
+Historische Konzept- und Evidence-Dateien dokumentieren frühere Zustände und sind keine aktuelle CLI-Spezifikation.
+
+## Lizenz
+
+MIT, siehe [LICENSE](LICENSE). Das Repository ist öffentlich sichtbar; der Projektfokus liegt auf der heimgewebe-Ökosphäre.

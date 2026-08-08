@@ -11,6 +11,7 @@ import hashlib
 import json
 import os
 import re
+import subprocess
 import sys
 from collections.abc import Callable
 from pathlib import Path
@@ -26,7 +27,6 @@ RETIRED = {"retired_replaced"}
 CAPABILITY_CATEGORIES = {
     "repository-guard-router": "guard",
     "repository-smoke-router": "smoke",
-    "fleet-static-guard-invariants": "guard",
     "metrics-contract-compatibility": "metrics",
     "cross-repository-compatibility-matrix": "compatibility",
     "wgx-tools-module-guard": "tool",
@@ -40,15 +40,6 @@ REQUIRED_CAPABILITY_SURFACES = {
         ".github/workflows/wgx-smoke.yml",
         "scripts/check_wgx_smoke_contract.py",
         "scripts/check_wgx_guard_action_pins.py",
-    },
-    "fleet-static-guard-invariants": {
-        "modules/guard.bash",
-        "guards/ci-deps.guard.sh",
-        "guards/contracts_meta_guard.py",
-        "guards/contracts_ownership.guard.sh",
-        "guards/data_flow_guard.py",
-        "guards/insights_guard.py",
-        "guards/integrity.guard.sh",
     },
     "metrics-contract-compatibility": {
         ".github/workflows/metrics.yml",
@@ -68,10 +59,8 @@ REQUIRED_CAPABILITY_SURFACES = {
     "scheduled-integrity-publication": {
         ".github/workflows/wgx-integrity.yml",
         "scripts/generate-integrity-report.sh",
-        "guards/integrity.guard.sh",
         "docs/integrity-architecture.md",
         "tests/integrity.bats",
-        "tests/guard_integrity.bats",
     },
     "versioned-release-publication": {".github/workflows/release.yml"},
     "wgx-profile-starter-templates": {
@@ -145,10 +134,9 @@ ALLOWED_COMMAND_CLASSIFICATION = {
     "unavailable",
 }
 REQUIRED_COMMAND_CLASSIFICATIONS = {
-    "audit": "repository_scoped_observation",
-    "run": "delegated_profile_execution",
     "task": "delegated_profile_execution",
-    "version": "repository_scoped_observation",
+    "tasks": "repository_scoped_observation",
+    "validate": "repository_scoped_verification",
 }
 REQUIRED_COMMAND_DELEGATIONS: dict[str, list[str]] = {}
 AUTHORITY_SOURCE_BINDINGS = {
@@ -376,13 +364,40 @@ def _read_github_response(request: Request) -> tuple[Any | None, str | None]:
     return payload, None
 
 
+def _github_token() -> str | None:
+    token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
+    if token:
+        return token
+    try:
+        completed = subprocess.run(
+            ["gh", "auth", "token", "--hostname", "github.com"],
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+    except (FileNotFoundError, OSError, subprocess.TimeoutExpired):
+        return None
+    candidate = completed.stdout.strip()
+    if (
+        completed.returncode != 0
+        or not candidate
+        or len(candidate) > 4096
+        or any(character.isspace() for character in candidate)
+    ):
+        return None
+    return candidate
+
+
 def _github_headers() -> dict[str, str]:
     headers = {
         "Accept": "application/vnd.github+json",
         "User-Agent": "heimgewebe-wgx-capability-validator",
         "X-GitHub-Api-Version": "2022-11-28",
     }
-    token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
+    token = _github_token()
     if token:
         headers["Authorization"] = f"Bearer {token}"
     return headers
@@ -1395,7 +1410,7 @@ def validate(
         effects = command.get("effects")
         if not _nonempty_string(effects):
             findings.append(f"{prefix}: effects are required")
-        if command_id in {"run", "task"} and (
+        if command_id == "task" and (
             "host effects" not in str(effects).lower()
             or "does not confine" not in str(effects).lower()
         ):

@@ -30,7 +30,6 @@
     "docs/Runbook.md",
     "docs/cli.md",
     "docs/operator-ecosystem-capabilities.md",
-    "docs/uv-integration-audit.de.md",
     "docs/wgx-konzept.md"
   ],
   "authority_boundary": {
@@ -58,8 +57,8 @@
         "source_url": "https://github.com/heimgewebe/wgx/blob/c1b336ee0a82a3b1fd0c5f09158dcdb5f3c1d9ef/.github/workflows/wgx-guard.yml"
       }
     },
-    "repository_scoped_mutation": "The public WGX CLI no longer performs generic Git, forge, audit-ledger, or repository-maintenance writes. run/task remain delegated execution of repository-declared commands and may therefore have host effects under the invoking operator authority.",
-    "delegated_execution": "run and task execute repository-declared shell commands. WGX does not technically confine those commands to the repository, so host effects are possible under the invoking operator and profile owner's authority.",
+    "repository_scoped_mutation": "The public WGX CLI is limited to validate, tasks, and task. Only task executes repository-declared commands; WGX does not confine their possible host effects, which remain under repository and invoking-operator authority.",
+    "delegated_execution": "task executes repository-declared shell commands. WGX does not technically confine those commands to the repository, so host effects are possible under the invoking operator and profile owner's authority.",
     "explicit_non_claims": [
       "WGX does not claim, order, assign, or complete Bureau tasks.",
       "WGX does not claim Grabowski deployment, service, or process authority.",
@@ -286,51 +285,6 @@
       "replacement": null
     },
     {
-      "id": "fleet-static-guard-invariants",
-      "category": "guard",
-      "disposition": "retained_fleet_invariance",
-      "authority": "repository_scoped_developer_tool",
-      "summary": "WGX-local static checks remain executable, but copied sibling scripts are not counted as consumers.",
-      "surfaces": [
-        "modules/guard.bash",
-        "guards/ci-deps.guard.sh",
-        "guards/contracts_meta_guard.py",
-        "guards/contracts_ownership.guard.sh",
-        "guards/data_flow_guard.py",
-        "guards/insights_guard.py",
-        "guards/integrity.guard.sh"
-      ],
-      "local_evidence_paths": [
-        "tests/guard.bats",
-        "tests/guard_contracts_ownership.bats",
-        "tests/test_data_flow_guard.py"
-      ],
-      "consumers": [
-        {
-          "repository": "heimgewebe/wgx",
-          "evidence_path": "tests/guard.bats",
-          "evidence_kind": "local_worktree",
-          "canonical_invocation": "run wgx guard",
-          "repository_native_alternative": {
-            "availability": "none_identified",
-            "rationale": "WGX CI ultimately runs these WGX guards; it is coverage, not an independent implementation."
-          }
-        }
-      ],
-      "invariance_benefit": {
-        "claim": "The same fail-closed contract and data-flow rules are regression-tested locally without claiming external adoption.",
-        "evidence_sources": [
-          "https://github.com/heimgewebe/wgx/blob/c1b336ee0a82a3b1fd0c5f09158dcdb5f3c1d9ef/tests/guard_contracts_ownership.bats",
-          "https://github.com/heimgewebe/wgx/blob/c1b336ee0a82a3b1fd0c5f09158dcdb5f3c1d9ef/tests/test_data_flow_guard.py"
-        ]
-      },
-      "ecosystem_alternative": {
-        "availability": "none_identified",
-        "rationale": "No fleet-wide replacement is evidenced; repository-native validation remains a per-repository option."
-      },
-      "replacement": null
-    },
-    {
       "id": "metrics-contract-compatibility",
       "category": "metrics",
       "disposition": "retained_fleet_invariance",
@@ -456,15 +410,12 @@
       "surfaces": [
         ".github/workflows/wgx-integrity.yml",
         "scripts/generate-integrity-report.sh",
-        "guards/integrity.guard.sh",
         "docs/integrity-architecture.md",
-        "tests/integrity.bats",
-        "tests/guard_integrity.bats"
+        "tests/integrity.bats"
       ],
       "local_evidence_paths": [
         ".github/workflows/wgx-integrity.yml",
-        "tests/integrity.bats",
-        "tests/guard_integrity.bats"
+        "tests/integrity.bats"
       ],
       "consumers": [
         {
@@ -496,7 +447,7 @@
       "category": "publication",
       "disposition": "retained_fleet_invariance",
       "authority": "repository_scoped_developer_tool",
-      "summary": "Tag pushes and explicit dispatch publish a GitHub Release from the selected tag; this workflow is distinct from the placeholder wgx release CLI command.",
+      "summary": "Tag pushes and explicit dispatch publish a GitHub Release from the selected tag; this workflow is distinct from the retired wgx release CLI placeholder.",
       "surfaces": [
         ".github/workflows/release.yml"
       ],
@@ -560,84 +511,12 @@
   ],
   "operational_commands": [
     {
-      "id": "audit",
-      "surface": "cmd/audit.bash",
-      "status": "active",
-      "classification": "repository_scoped_observation",
-      "effects": "Verifies an existing local WGX audit-ledger hash chain without writing the ledger or fetching Git remotes.",
-      "consumer_evidence_paths": ["tests/audit_verify.bats"],
-      "alternative": {"owner": "invoking repository", "path": "repository-native evidence verification or direct audit tooling"}
-    },
-    {
-      "id": "doctor",
-      "surface": "cmd/doctor.bash",
-      "status": "active",
-      "classification": "repository_scoped_observation",
-      "effects": "Inspects tool and repository state.",
-      "consumer_evidence_paths": ["docs/cli.md"],
-      "alternative": {"owner": "invoking repository", "path": "repository-native environment diagnostics"}
-    },
-    {
-      "id": "env",
-      "surface": "cmd/env.bash",
-      "status": "active",
-      "classification": "host_observation",
-      "effects": "Reports environment/tool availability without installing or deploying.",
-      "consumer_evidence_paths": ["tests/env.bats"],
-      "alternative": {"owner": "invoking operator", "path": "direct tool --version checks"}
-    },
-    {
-      "id": "guard",
-      "surface": "cmd/guard.bash",
-      "status": "active",
-      "classification": "repository_scoped_verification",
-      "effects": "Runs WGX static checks against the selected repository.",
-      "consumer_evidence_paths": ["tests/guard.bats"],
-      "alternative": {"owner": "invoking repository", "path": "repository-native CI and validation scripts"}
-    },
-    {
-      "id": "lint",
-      "surface": "cmd/lint.bash",
-      "status": "active",
-      "classification": "repository_scoped_verification",
-      "effects": "Runs syntax, formatting, and static-analysis checks.",
-      "consumer_evidence_paths": ["docs/cli.md"],
-      "alternative": {"owner": "invoking repository", "path": "repository-native lint target"}
-    },
-    {
-      "id": "run",
-      "surface": "cmd/run.bash",
-      "status": "active",
-      "classification": "delegated_profile_execution",
-      "effects": "Executes an arbitrary repository-declared shell task; WGX does not confine possible host effects.",
-      "consumer_evidence_paths": ["tests/run.bats"],
-      "alternative": {"owner": "invoking repository", "path": "direct command, Justfile, Makefile, or repository-native task runner"}
-    },
-    {
-      "id": "selftest",
-      "surface": "cmd/selftest.bash",
-      "status": "active",
-      "classification": "host_observation",
-      "effects": "Checks WGX and dependency availability.",
-      "consumer_evidence_paths": ["README.md"],
-      "alternative": {"owner": "invoking operator", "path": "direct executable and dependency checks"}
-    },
-    {
-      "id": "status",
-      "surface": "cmd/status.bash",
-      "status": "active",
-      "classification": "repository_scoped_observation",
-      "effects": "Reads repository and WGX status.",
-      "consumer_evidence_paths": ["tests/status.bats"],
-      "alternative": {"owner": "invoking repository", "path": "git status and repository-native diagnostics"}
-    },
-    {
       "id": "task",
       "surface": "cmd/task.bash",
       "status": "active",
       "classification": "delegated_profile_execution",
       "effects": "Executes an arbitrary repository-declared task; WGX does not confine possible host effects.",
-      "consumer_evidence_paths": [".github/workflows/wgx-smoke.yml"],
+      "consumer_evidence_paths": ["tests/tasks.bats"],
       "alternative": {"owner": "invoking repository", "path": "direct command, Justfile, Makefile, or repository-native task runner"}
     },
     {
@@ -645,36 +524,18 @@
       "surface": "cmd/tasks.bash",
       "status": "active",
       "classification": "repository_scoped_observation",
-      "effects": "Lists declared repository tasks and metadata.",
+      "effects": "Lists repository-declared task names and metadata without executing them.",
       "consumer_evidence_paths": ["tests/tasks.bats"],
       "alternative": {"owner": "invoking repository", "path": "Justfile/Makefile/task-runner listing"}
-    },
-    {
-      "id": "test",
-      "surface": "cmd/test.bash",
-      "status": "active",
-      "classification": "delegated_repository_test_execution",
-      "effects": "Executes repository Bats tests and forwards arbitrary Bats arguments.",
-      "consumer_evidence_paths": ["tests/help.bats"],
-      "alternative": {"owner": "invoking repository", "path": "bats tests or repository-native test target"}
     },
     {
       "id": "validate",
       "surface": "cmd/validate.bash",
       "status": "active",
       "classification": "repository_scoped_verification",
-      "effects": "Parses and validates the selected repository profile.",
-      "consumer_evidence_paths": ["tests/validate.bats"],
-      "alternative": {"owner": "invoking repository", "path": "repository-native schema validation"}
-    },
-    {
-      "id": "version",
-      "surface": "cmd/version.bash",
-      "status": "active",
-      "classification": "repository_scoped_observation",
-      "effects": "Reads the current project or WGX version without modifying repository state; mutation subcommands are rejected.",
-      "consumer_evidence_paths": ["tests/version.bats"],
-      "alternative": {"owner": "invoking repository", "path": "language-native version inspection or repository metadata"}
+      "effects": "Validates the selected repository profile and can execute declared validation tasks through the task frontdoor with receipt and timeout handling.",
+      "consumer_evidence_paths": ["tests/validate.bats", "tests/validate_profiles.bats"],
+      "alternative": {"owner": "invoking repository", "path": "repository-native schema validation and task runner"}
     }
   ],
   "workflow_contract": {

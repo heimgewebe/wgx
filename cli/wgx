@@ -57,9 +57,6 @@ if [ -d "$LIB_DIR" ]; then
   done
 fi
 
-# Default-Branch / Basis für Reload
-: "${WGX_BASE:=main}"
-
 # Initialisiert das Profil-Modul, nachdem alle Bibliotheken geladen wurden
 if declare -F profile::_auto_init >/dev/null 2>&1; then
   profile::_auto_init

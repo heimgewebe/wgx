@@ -5,197 +5,41 @@
 ## Global usage
 
 ```text
-wgx — Workspace Helper
+wgx — Repository Verification Runner
 
 Usage:
   wgx <command> [args]
 
 Commands:
-  audit
-  doctor
-  env
-  guard
   help
-  lint
-  run
-  selftest
-  status
   task
   tasks
-  test
   validate
-  version
-
-Env:
-  WGX_BASE       Basis-Branch für reload (default: main)
 
 More:
   wgx --list     Nur verfügbare Befehle anzeigen
+  wgx --version  Runner-Version anzeigen
 ```
 
 ## Commands
 
-### audit
-
-```text
-Usage:
-  wgx audit verify [--strict]
-
-WGX audit is read-only. Git-state inspection belongs to Git/RepoGround or the
-authorized operator; WGX no longer fetches remotes or writes Git-audit artifacts.
-```
-
-### doctor
-
-```text
-Usage:
-  wgx doctor
-
-Description:
-  Führt eine grundlegende Diagnose des Repositorys und der Umgebung durch.
-  Prüft, ob 'git' installiert ist, ob der Befehl innerhalb eines Git-Worktrees
-  ausgeführt wird und ob ein 'origin'-Remote konfiguriert ist.
-
-Options:
-  -h, --help    Diese Hilfe anzeigen.
-```
-
-### env
-
-```text
-Usage: wgx env doctor [--fix] [--strict] [--json]
-  doctor     Inspect the local environment (default)
-  --fix      Apply recommended platform specific tweaks (Termux only)
-  --strict   Exit non-zero if essential tools are missing (e.g., git)
-  --json     Machine-readable output (minimal JSON)
-```
-
-### guard
-
-```text
-Usage:
-  wgx guard [--lint] [--test] [--only <guard_name>]
-
-Description:
-  Führt eine Reihe von Sicherheits- und Qualitätsprüfungen für das Repository aus.
-  Dies ist ein Sicherheitsnetz, das vor dem Erstellen eines Pull Requests ausgeführt wird.
-  Standardmäßig werden sowohl Linting als auch Tests ausgeführt.
-
-Checks:
-  - Prüft auf das Vorhandensein eines .wgx/profile.yml.
-  - Sucht nach verbleibenden Konfliktmarkern im Code.
-  - Prüft auf übergroße Dateien (>= 1MB, konfigurierbar via WGX_GUARD_MAX_BYTES).
-  - Führt 'wgx lint' aus (falls --lint angegeben oder Standard).
-  - Führt 'wgx test' aus (falls --test angegeben oder Standard).
-
-Options:
-  --lint        Nur die Linting-Prüfungen ausführen.
-  --test        Nur die Test-Prüfungen ausführen.
-  --only        Nur einen spezifischen Guard ausführen.
-                Erlaubte Werte: profile, filesize, conflict, ci_deps, contracts_ownership, contracts_meta, insights,
-                integrity, data_flow.
-  -h, --help    Diese Hilfe anzeigen.
-```
-
 ### help
 
 ```text
-wgx — Workspace Helper
+wgx — Repository Verification Runner
 
 Usage:
   wgx <command> [args]
 
 Commands:
-  audit
-  doctor
-  env
-  guard
   help
-  lint
-  run
-  selftest
-  status
   task
   tasks
-  test
   validate
-  version
-
-Env:
-  WGX_BASE       Basis-Branch für reload (default: main)
 
 More:
   wgx --list     Nur verfügbare Befehle anzeigen
-```
-
-### lint
-
-```text
-Usage:
-  wgx lint
-
-Description:
-  Führt Linting-Prüfungen für verschiedene Dateitypen im Repository aus.
-  Dies umfasst Shell-Skripte (Syntax-Prüfung mit bash -n, Formatierung mit shfmt,
-  statische Analyse mit shellcheck) und potenziell weitere linter.
-
-Options:
-  -h, --help    Diese Hilfe anzeigen.
-```
-
-### run
-
-```text
-Usage:
-  wgx run <task> [args...]
-
-Description:
-  Führt einen definierten Task aus der .wgx/profile.yml Konfiguration aus.
-  Argumente nach dem Task-Namen werden an den Task weitergegeben.
-  Verwendet '--', um Argumente explizit vom Task zu trennen.
-
-Options:
-  -h, --help    Diese Hilfe anzeigen.
-  -n, --dry-run Zeigt an, was ausgeführt würde, ohne es zu tun.
-
-Note:
-  Unbekannte Optionen werden von wgx run abgelehnt.
-
-Examples:
-  wgx run test
-  wgx run lint -- --fix
-  wgx run --dry-run build
-```
-
-### selftest
-
-```text
-Usage:
-  wgx selftest
-
-Description:
-  Führt einen Mini-Sanity-Check für die 'wgx'-CLI und ihre Umgebung durch.
-  Prüft, ob 'wgx' ausführbar ist, ob die Version abgerufen werden kann und
-  ob kritische Abhängigkeiten wie 'git' und 'jq' verfügbar sind.
-
-Options:
-  -h, --help    Diese Hilfe anzeigen.
-```
-
-### status
-
-```text
-Usage:
-  wgx status
-
-Description:
-  Zeigt einen kompakten Snapshot des Repository-Status an.
-  Dies umfasst den aktuellen Branch, den Ahead/Behind-Status im Vergleich zum
-  Upstream-Branch, erkannte Projektverzeichnisse (Web, API, etc.) und
-  globale Flags wie den OFFLINE-Modus.
-
-Options:
-  -h, --help    Diese Hilfe anzeigen.
+  wgx --version  Runner-Version anzeigen
 ```
 
 ### task
@@ -223,26 +67,6 @@ Usage: wgx tasks [--json] [--safe] [--groups]
   --json    Output machine readable JSON
   --safe    Only include tasks marked as safe
   --groups  Include group metadata (JSON) or group headings (text)
-```
-
-### test
-
-```text
-Usage:
-  wgx test [--list] [--] [BATS_ARGS...]
-  wgx test --help
-
-Runs the Bats test suite located under tests/.
-
-Options:
-  --list        Show discovered *.bats files without executing them.
-  --help        Display this help text.
-  --            Forward all following arguments directly to bats.
-
-Examples:
-  wgx test                 # run all Bats suites
-  wgx test -- --filter foo # pass custom flags to bats
-  wgx test --list          # list available test files
 ```
 
 ### validate
@@ -293,18 +117,4 @@ Optionen:
   -h, --help       Diese Hilfe
 
 Exit-Status: 0 wenn Manifest gültig ist und alle Checks bestehen, sonst >0.
-```
-
-### version
-
-```text
-Usage:
-  wgx version
-
-Description:
-  Reads the current project or WGX version without modifying repository state.
-  Version mutation belongs to repository-native language tooling or reviewed edits.
-
-Options:
-  -h, --help     Show this help.
 ```

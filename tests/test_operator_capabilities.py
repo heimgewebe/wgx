@@ -514,6 +514,38 @@ class OperatorCapabilitiesTest(unittest.TestCase):
         self.assertEqual(set(calls), expected)
         self.assertEqual(len(calls), len(expected))
 
+    def test_github_headers_prefer_environment_token(self) -> None:
+        with patch.dict(os.environ, {"GITHUB_TOKEN": "env-token"}, clear=True):
+            with patch.object(validator.subprocess, "run") as run:
+                headers = validator._github_headers()
+
+        self.assertEqual(headers["Authorization"], "Bearer env-token")
+        run.assert_not_called()
+
+    def test_github_headers_use_authenticated_gh_fallback(self) -> None:
+        completed = validator.subprocess.CompletedProcess(
+            args=["gh", "auth", "token"], returncode=0, stdout="gh-token\n", stderr=""
+        )
+        with patch.dict(os.environ, {}, clear=True):
+            with patch.object(validator.subprocess, "run", return_value=completed) as run:
+                headers = validator._github_headers()
+
+        self.assertEqual(headers["Authorization"], "Bearer gh-token")
+        self.assertEqual(
+            run.call_args.args[0],
+            ["gh", "auth", "token", "--hostname", "github.com"],
+        )
+
+    def test_github_headers_fail_closed_without_usable_token(self) -> None:
+        completed = validator.subprocess.CompletedProcess(
+            args=["gh", "auth", "token"], returncode=0, stdout="bad token\n", stderr=""
+        )
+        with patch.dict(os.environ, {}, clear=True):
+            with patch.object(validator.subprocess, "run", return_value=completed):
+                headers = validator._github_headers()
+
+        self.assertNotIn("Authorization", headers)
+
     def test_github_commit_verifier_binds_reachable_default_branch_commit(self) -> None:
         commit_sha = "a" * 40
         root_tree_sha = "b" * 40
@@ -750,34 +782,6 @@ class OperatorCapabilitiesTest(unittest.TestCase):
         findings = self.validate(payload)
         self.assertTrue(any("required surfaces are missing" in item for item in findings))
 
-    def test_version_classification_is_fail_closed_read_only(self) -> None:
-        payload = copy.deepcopy(self.payload)
-        command = next(
-            item for item in payload["operational_commands"] if item["id"] == "version"
-        )
-        command["classification"] = "repository_scoped_observation_optional_mutation"
-        findings = self.validate(payload)
-        self.assertTrue(
-            any(
-                "classification must be repository_scoped_observation" in item
-                for item in findings
-            )
-        )
-
-    def test_audit_classification_is_fail_closed_read_only(self) -> None:
-        payload = copy.deepcopy(self.payload)
-        command = next(
-            item for item in payload["operational_commands"] if item["id"] == "audit"
-        )
-        command["classification"] = "repository_scoped_observation_optional_mutation"
-        findings = self.validate(payload)
-        self.assertTrue(
-            any(
-                "classification must be repository_scoped_observation" in item
-                for item in findings
-            )
-        )
-
     def test_integrity_publication_is_repository_maintenance_not_cli(self) -> None:
         command_ids = {item["id"] for item in self.payload["operational_commands"]}
         self.assertNotIn("integrity", command_ids)
@@ -824,6 +828,12 @@ class OperatorCapabilitiesTest(unittest.TestCase):
         self.assertTrue(any("replacement.path is required" in item for item in findings))
         self.assertTrue(any("replacement.source_url must be source-linked" in item for item in findings))
 
+    def test_public_command_inventory_is_minimal_runner_abi(self) -> None:
+        command_ids = {item["id"] for item in self.payload["operational_commands"]}
+        self.assertEqual(command_ids, {"task", "tasks", "validate"})
+        discovered = {path.stem for path in (ROOT / "cmd").glob("*.bash")}
+        self.assertEqual(discovered, command_ids)
+
     def test_missing_operational_command_is_rejected(self) -> None:
         payload = copy.deepcopy(self.payload)
         payload["operational_commands"] = [
@@ -834,7 +844,7 @@ class OperatorCapabilitiesTest(unittest.TestCase):
 
     def test_delegated_execution_must_disclose_host_effects(self) -> None:
         payload = copy.deepcopy(self.payload)
-        command = next(item for item in payload["operational_commands"] if item["id"] == "run")
+        command = next(item for item in payload["operational_commands"] if item["id"] == "task")
         command["effects"] = "Runs a safe repository task."
         findings = self.validate(payload)
         self.assertTrue(any("must disclose unconfined host effects" in item for item in findings))
@@ -857,7 +867,7 @@ class OperatorCapabilitiesTest(unittest.TestCase):
     def test_restored_executable_templates_keep_tasks(self) -> None:
         expected_tasks = {
             "templates/.wgx/profile.yml": {"integrity", "test", "lint"},
-            "templates/profile.template.yml": {"doctor", "test"},
+            "templates/profile.template.yml": {"test"},
             "templates/profiles/docs-only.yml": {"smoke", "guard", "metrics", "snapshot"},
             "templates/profiles/meta.yml": {"smoke", "guard", "metrics", "snapshot"},
             "templates/profiles/python-service.yml": {"smoke", "guard", "metrics", "snapshot"},

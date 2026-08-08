@@ -1,19 +1,21 @@
 # WGX Quickstart
 
-WGX erstellt keine Repository-Profile mehr selbst. Der kanonische Profil- und
-Fleet-Vertrag gehört zu Metarepo; das Ziel-Repository versioniert sein
-`.wgx/profile.yml` zusammen mit dem eigenen Code.
+WGX erstellt keine Repository-Profile. Das Ziel-Repository versioniert sein
+`.wgx/profile.yml`; Fleet-Policy und Starterprofile gehören zu Metarepo.
 
-Für einen bestehenden Checkout genügen die Runner-Frontdoors:
+Die öffentliche WGX-CLI hat genau drei operative Frontdoors:
 
 ```bash
-wgx doctor
 wgx validate
 wgx tasks
 wgx task smoke
 ```
 
-`wgx run <task>` und `wgx task <task>` führen ausschließlich bereits im
-Repository deklarierte Tasks aus. Git-, Branch-, PR- und Cleanup-Effekte gehören
-nicht zur WGX-CLI und werden über Repository-Workflows bzw. den autorisierten
-Operator ausgeführt.
+`wgx validate --profile quick|full` führt die im Profil für das jeweilige
+Validierungsprofil deklarierten Tasks über dieselbe `task`-Frontdoor aus und
+erzeugt einen deterministischen Receipt.
+
+WGX besitzt keine eigenen Git-, PR-, Cleanup-, Guard-, Lint-, Test- oder
+Environment-Subcommands. Namen wie `guard`, `lint`, `smoke` oder `test` können
+weiterhin repository-eigene Tasks sein und werden dann mit `wgx task <name>`
+ausgeführt.
