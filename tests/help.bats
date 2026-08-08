@@ -26,7 +26,7 @@ setup() {
 @test "retired mutation and placeholder commands are not exposed" {
   local cmd available
   available="$(wgx --list)"
-  for cmd in clean config heal hooks init quick reload release routine send setup start sync-remote vibe; do
+  for cmd in clean config heal hooks init integrity quick reload release routine send setup start sync-remote vibe; do
     [[ "$available" != *"$cmd"* ]]
     run wgx "$cmd" --help
     assert_failure

@@ -48,29 +48,26 @@ Aufrufbelege stehen im JSON und in
 
 ## Operative CLI-Flächen
 
-Die Inventur deckt jede Datei unter `cmd/*.bash` ab. Sie unterscheidet:
+Die Inventur deckt jede Datei unter `cmd/*.bash` ab. Nach der Entkernung gilt:
 
-- Beobachtung/Verifikation: `doctor`, `env`, `guard`, `lint`, `selftest`,
-  `status`, `tasks`, `validate` sowie die lesenden Modi von `audit`,
-  `integrity`, `routine` und `version`.
-- Repository-bezogene Mutation: `clean`, `heal`, `init`, `reload` sowie die
-  mutierenden Modi von `audit`, `integrity`, `routine` und `version`.
-- Forge-/Remote-Effekte: `send` und das darauf aufbauende `quick`.
-- Destruktiver Alias: `sync-remote` wird vom Dispatcher geladen, sourct
-  `reload.bash` und delegiert vollständig an `reload`; damit gelten dieselbe
-  destruktive Klassifikation und dieselben Dry-run-/Force-Semantiken.
-- Delegierte Ausführung: `run` und `task` führen beliebige, vom Repository
-  deklarierte Shell-Kommandos aus; `test` startet repository-eigene Bats-Tests.
-  WGX erzwingt für deklarierte Tasks keine technische Host-Sandbox.
-- Operator-State: `vibe adopt` schreibt einen Receipt in einen
-  operatorgewählten WGX-State-Pfad; Plan, Status und Doctor lesen nur.
-- Entfernte Placeholder: `config`, `hooks`, `release`, `setup`, `start` waren nicht implementiert und gehören
-  nicht mehr zur CLI-Oberfläche.
+- Beobachtung/Verifikation: `audit verify`, `doctor`, `env`, `guard`, `lint`,
+  `selftest`, `status`, `tasks`, `validate` und das read-only `version`.
+- Delegierte Ausführung: `run` und `task` führen vom Repository deklarierte
+  Shell-Kommandos aus; `test` startet repository-eigene Bats-Tests. WGX
+  erzwingt für diese delegierten Tasks keine technische Host-Sandbox.
+- Repository-Wartung außerhalb der CLI: Der tägliche Integrity-Workflow nutzt
+  `scripts/generate-integrity-report.sh`, validiert und veröffentlicht das
+  Release-Asset. Dieser Schreibpfad gehört zum WGX-Repository selbst und ist
+  keine allgemeine WGX-Command-ABI.
+- Entfernte Mutations-/Placeholder-Flächen: `clean`, `config`, `heal`, `hooks`,
+  `init`, `integrity`, `quick`, `reload`, `release`, `routine`, `send`, `setup`,
+  `start`, `sync-remote` und `vibe` sind nicht Teil der öffentlichen CLI.
 
-Die Dispatcher-Nachprüfung fand daneben `quick` als zusammengesetzten
-Delegator zu `guard` und `send`. `status` delegiert lediglich an seine interne
-Implementierungsfunktion und ist kein Alias auf einen anderen operativen
-Befehl.
+`audit` schreibt keine Ledger mehr und führt keinen Git-Fetch aus. Historische
+Ledger können mit `wgx audit verify` geprüft werden. Damit besitzt die öffentliche
+WGX-CLI keine eigene generische Git-, Forge-, Audit- oder Wartungsmutation mehr.
+Hostwirkungen bleiben nur über explizit repository-delegierte `run`/`task`-
+Kommandos möglich und liegen damit bei Repository und aufrufendem Operator.
 
 Der stündliche Metrics-Workflow bleibt funktional erhalten: Er erzeugt und
 validiert die eng als Contract-Fixture beschriebene Datei, führt bei
@@ -78,10 +75,11 @@ konfiguriertem Secret den optionalen best-effort POST aus und lädt
 `metrics.json` sieben Tage als Artifact hoch. Die engeren Autoritätsclaims
 ändern diese drei Basisverhalten nicht.
 
-Damit behauptet WGX nicht, frei von Host-Mutation zu sein. Die engere Grenze
-lautet: WGX besitzt keine generische, repository-übergreifende Host-Autorität.
-Die vorhandenen Mutationen sind Entwicklerbefehle für das aktuelle oder
-explizit ausgewählte Repository beziehungsweise den Operator-State.
+Die öffentliche WGX-CLI besitzt damit keine eigene generische Git-, Forge-,
+Audit- oder Repository-Wartungsmutation. Hostwirkungen bleiben nur über
+explizit repository-delegierte `run`/`task`-Kommandos möglich. Schreibende
+WGX-eigene Wartungsworkflows wie Metrics- oder Integrity-Publikation gehören
+zum WGX-Repository selbst und nicht zur öffentlichen Command-ABI.
 
 ## Autoritätsgrenze
 

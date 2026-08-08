@@ -764,6 +764,30 @@ class OperatorCapabilitiesTest(unittest.TestCase):
             )
         )
 
+    def test_audit_classification_is_fail_closed_read_only(self) -> None:
+        payload = copy.deepcopy(self.payload)
+        command = next(
+            item for item in payload["operational_commands"] if item["id"] == "audit"
+        )
+        command["classification"] = "repository_scoped_observation_optional_mutation"
+        findings = self.validate(payload)
+        self.assertTrue(
+            any(
+                "classification must be repository_scoped_observation" in item
+                for item in findings
+            )
+        )
+
+    def test_integrity_publication_is_repository_maintenance_not_cli(self) -> None:
+        command_ids = {item["id"] for item in self.payload["operational_commands"]}
+        self.assertNotIn("integrity", command_ids)
+        self.assertFalse((ROOT / "cmd/integrity.bash").exists())
+        workflow = (ROOT / ".github/workflows/wgx-integrity.yml").read_text(encoding="utf-8")
+        self.assertIn("bash scripts/generate-integrity-report.sh", workflow)
+        self.assertNotIn("./wgx integrity", workflow)
+        self.assertNotIn("Publish Event", workflow)
+        self.assertFalse((ROOT / "modules/heimgeist.bash").exists())
+
     def test_metrics_base_behaviors_are_retained(self) -> None:
         workflow = (ROOT / ".github/workflows/metrics.yml").read_text(encoding="utf-8")
         for required in (
