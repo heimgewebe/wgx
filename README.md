@@ -3,7 +3,8 @@
 WGX ist ein kleiner Kompatibilitätsrunner für bestehende `.wgx/profile.yml`-Profile.
 Die öffentliche CLI besteht absichtlich nur aus drei Frontdoors:
 
-- `wgx validate` – Profil prüfen; `--profile quick|full` führt die im Profil deklarierten Validierungstasks mit Timeout- und Receipt-Vertrag aus.
+- `wgx validate` – Profil prüfen; `--profile quick|full` führt die im Profil deklarierten
+  Validierungstasks mit Timeout- und Receipt-Vertrag aus.
 - `wgx tasks` – deklarierte Tasks maschinenlesbar oder menschenlesbar auflisten.
 - `wgx task <name>` – genau einen repository-deklarierten Task ausführen.
 
@@ -36,7 +37,8 @@ wgx:
     smoke: "python -m myapp --help"
 ```
 
-Tasknamen wie `guard`, `lint`, `smoke` oder `test` gehören dem Ziel-Repository. Sie sind **keine WGX-Subcommands**. WGX führt nur aus, was das Profil ausdrücklich deklariert.
+Tasknamen wie `guard`, `lint`, `smoke` oder `test` gehören dem Ziel-Repository. Sie sind **keine WGX-Subcommands**.
+WGX führt nur aus, was das Profil ausdrücklich deklariert.
 
 ## Systemgrenze
 
@@ -54,7 +56,9 @@ WGX besitzt nicht:
 - Git-, Worktree-, Prozess- oder Deploy-Autorität – Grabowski/GitHub;
 - repository-übergreifenden Codekontext – RepoGround.
 
-Die öffentliche CLI erzeugt keine eigenen Git-, Forge-, Audit-, Cleanup- oder Repository-Wartungseffekte. `wgx task` kann allerdings jeden Effekt haben, den das **Repository selbst** in seinem Task deklariert; WGX sandboxed diesen Befehl nicht.
+Die öffentliche CLI erzeugt keine eigenen Git-, Forge-, Audit-, Cleanup- oder Repository-Wartungseffekte.
+`wgx task` kann allerdings jeden Effekt haben, den das **Repository selbst** in seinem Task deklariert;
+WGX sandboxed diesen Befehl nicht.
 
 Details: [docs/wgx-konzept.md](docs/wgx-konzept.md).
 
