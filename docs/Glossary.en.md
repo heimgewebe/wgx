@@ -2,27 +2,23 @@
 
 > Deutsche Version: [Glossar.de.md](Glossar.de.md)
 
-## wgx
+## WGX
 
-Repository verification adapter that provides shared checks and reusable CI
-routers. Fleet template ownership remains in Metarepo.
+Minimal repository verification runner for existing `.wgx/profile.yml`
+contracts. Its public operational ABI is `validate`, `tasks`, and `task`.
 
-## `profile.yml`
+## Profile
 
-Central configuration file that controls local profiles (e.g. Dev, CI or customer specific setups). It defines CLI
-parameters, environment variables and paths and therefore ties the central contract to project specific settings.
+A repository-owned `.wgx/profile.yml` declares tasks and optional validation
+profiles. Task names such as `guard`, `lint`, `smoke`, or `test` belong to the
+repository; they are not WGX subcommands.
 
-## Contract (CLI contract)
+## Task
 
-Agreement about commands, options, directory structures and side effects of the wgx CLI. It defines which interfaces
-must remain stable so that downstream projects continue to operate consistently.
+A shell command explicitly declared by the target repository and executed with
+`wgx task <name>`. WGX does not sandbox its host effects.
 
-## Guard checklist
+## Validation profile
 
-Set of repository-shape and contract requirements that `wgx guard` verifies.
-Passing a guard does not grant task, deployment or host-mutation authority.
-
-## `wgx version`
-
-Read-only version inspection for the current repository or WGX itself. Version changes belong to repository-native
-tooling or reviewed repository edits; WGX no longer mutates version files.
+A `quick` or `full` ordered task set executed by `wgx validate --profile ...`
+with timeout and receipt handling.

@@ -1,49 +1,37 @@
-# WGX Runbook (Kurzfassung)
+# WGX Runbook
 
-## Runtime dependencies
+## Voraussetzungen
 
-WGX uses Bash as the CLI core and Python 3 with `pyyaml` to parse
-`.wgx/profile.yml`. CI and the devcontainer install these dependencies.
+WGX benötigt Bash, Git und Python 3. Für das Parsen von `.wgx/profile.yml`
+wird PyYAML verwendet.
 
-On local machines you should ensure at least:
+## Normaler Ablauf
 
-- Bash ≥ 4
-- Git and common coreutils (`sed`, `awk`, `grep`, `find`, …)
-- Python 3 with `pyyaml`
+```bash
+wgx validate
+wgx tasks
+wgx task smoke
+```
 
-Examples:
+Für merge-nahe lokale Verifikation kann ein Repository `quick`- und
+`full`-Profile deklarieren:
 
-- Debian/Ubuntu: `sudo apt install python3-yaml`
-- macOS (Homebrew): `brew install python && pip3 install pyyaml`
+```bash
+wgx validate --profile quick --json
+wgx validate --profile full --json
+```
 
-## Erstlauf
+`validate --profile` führt die im Profil genannten Tasks über dieselbe
+`wgx task`-Frontdoor aus. Timeouts und Receipts werden vom Validator verwaltet.
 
-1. `wgx doctor` prüft die lokale Umgebung.
-2. `wgx validate` prüft den eingecheckten Repository-Vertrag.
-3. `wgx tasks` zeigt die deklarierten Frontdoors.
-4. `wgx task smoke` führt den repository-eigenen Smoke-Task aus.
+## Fehlerdiagnose
 
-WGX erstellt keine Profile, Branches, Commits oder Pull Requests mehr. Diese
-Zuständigkeiten liegen beim Repository, bei Metarepo bzw. beim autorisierten
-Operator.
+1. `wgx validate --json` prüft den Profilvertrag.
+2. `wgx tasks --json` zeigt, welche Tasks WGX tatsächlich sieht.
+3. `wgx task <name>` reproduziert genau einen deklarierten Task.
+4. Repository-native CI entscheidet anschließend über den eigentlichen Build-
+   oder Merge-Status.
 
-## Python (uv)
-
-- `wgx py up` / `wgx py sync --frozen` / `wgx py run <cmd>`
-
-## Guard-Checks (Mindest-Standards)
-
-- `uv.lock` committed
-- CI mit shellcheck/shfmt/bats
-- Markdownlint + Vale
-- repository-eigenes `.wgx/profile.yml` oder `.wgx/profile.example.yml`
-- Guard-Env: `WGX_GUARD_MAX_BYTES` (Bigfile-Schwelle), `WGX_GUARD_CHECKLIST_STRICT` (Warnmodus)
-
-### Guard-Konfiguration
-
-- `WGX_GUARD_MAX_BYTES` setzt die Bigfile-Schwelle in Bytes (Default: `1048576`).
-- `WGX_GUARD_CHECKLIST_STRICT=0` wandelt Checklisten-Fehler in Warnungen um.
-
-## Troubleshooting
-
-- `wgx selftest` starten; Logs unter `~/.local/state/wgx/`.
+WGX hat keine eigenen Doctor-, Env-, Guard-, Lint-, Test-, Git- oder
+Cleanup-Subcommands mehr. Entsprechende Prüfungen gehören in die Tasks bzw. CI
+des Ziel-Repositories.

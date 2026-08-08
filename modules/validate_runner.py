@@ -58,7 +58,7 @@ def main() -> int:
 
     started = time.monotonic_ns()
     process = subprocess.Popen(
-        [str(executable), "run", task],
+        [str(executable), "task", task],
         cwd=repository_root,
         stdin=subprocess.DEVNULL,
         stdout=subprocess.DEVNULL,

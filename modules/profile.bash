@@ -478,19 +478,19 @@ profile::ensure_version() {
   if [[ -n $WGX_REQUIRED_RANGE ]]; then
     if [[ $WGX_REQUIRED_RANGE == ^* ]]; then
       if ! semver_in_caret_range "$have" "$WGX_REQUIRED_RANGE"; then
-        warn "wgx version ${have} outside required range ${WGX_REQUIRED_RANGE}"
+        warn "WGX-Version ${have} outside required range ${WGX_REQUIRED_RANGE}"
         return 1
       fi
     else
       if ! semver_ge "$have" "$WGX_REQUIRED_RANGE"; then
-        warn "wgx version ${have} < required ${WGX_REQUIRED_RANGE}"
+        warn "WGX-Version ${have} < required ${WGX_REQUIRED_RANGE}"
         return 1
       fi
     fi
   fi
   if [[ -n $WGX_REQUIRED_MIN ]]; then
     if ! semver_ge "$have" "$WGX_REQUIRED_MIN"; then
-      warn "wgx version ${have} < required minimum ${WGX_REQUIRED_MIN}"
+      warn "WGX-Version ${have} < required minimum ${WGX_REQUIRED_MIN}"
       return 1
     fi
   fi
@@ -650,7 +650,7 @@ profile::env_apply() {
 profile::run_task() {
   local name="${1-}"
   if [[ -z $name ]]; then
-    printf 'Usage: wgx run <task>\n\nAvailable tasks:\n' >&2
+    printf 'Usage: wgx task <name> [--] [args...]\n\nAvailable tasks:\n' >&2
     profile::tasks | sed 's/^/  /' >&2
     return 1
   fi

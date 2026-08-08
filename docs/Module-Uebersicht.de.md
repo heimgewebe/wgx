@@ -1,44 +1,27 @@
 # Module & Hilfsbibliotheken
 
-Kurze Übersicht über die wichtigsten Dateien in `modules/`, `lib/`, `etc/` und `fixtures/`, damit Beitragende
-schneller die richtigen Einstiegspunkte finden.
+WGX hält nur noch Module, die der Profil-/Task-/Validate-ABI dienen.
 
 ## `modules/`
 
 | Datei | Zweck |
 | --- | --- |
-| `modules/doctor.bash` | Enthält den Minimal-Doctor (Repo-Prüfung, Remote-Checks). Wird aktuell vom Legacy-Monolithen gerufen. |
-| `modules/env.bash` | Neues Environment-Modul mit JSON/strict-Ausgaben sowie Termux-Fixups. Setzt `env_cmd` für `wgx env`. |
-| `modules/guard.bash` | Port der Guard-Pipeline (Secrets, Konflikte, Pflichtdateien, optional Lint/Test). Wird von `wgx guard` verwendet. |
-| `modules/json.bash` | Hilfsfunktionen für JSON-Ausgabe (u. a. von Profil-/Task-Befehlen). |
-| `modules/profile.bash` | Lädt `.wgx/profile.yml`, normalisiert Task-Namen und führt Task-Skripte aus. Grundlage für `wgx task`/`wgx tasks`. |
-| `modules/semver.bash` | SemVer-Hilfen für Profil-/Versionsvertragsprüfung; `wgx version` selbst ist read-only. |
-| `modules/status.bash` | Liefert Status-Zusammenfassungen, z. B. Ahead/Behind und Pfad-Erkennung. Wird von `wgx status` genutzt. |
+| `abspath.py` | Sichere absolute Pfadauflösung für den Profilparser. |
+| `json.bash` | JSON-Hilfen für CLI-Ausgaben. |
+| `profile.bash` | Lädt Profile und führt repository-deklarierte Tasks aus. |
+| `profile_parser.py` | Parser für WGX-v1-Profile. |
+| `semver.bash` | Versionsbereichsprüfung für `requiredWgx`. |
+| `validate_receipt.py` | Deterministische/redigierte Validate-Receipts. |
+| `validate_runner.py` | Timeout-gekapselte Ausführung über `wgx task`. |
 
 ## `lib/`
 
-| Datei | Zweck |
-| --- | --- |
-| `lib/core.bash` | Allgemeine Hilfsfunktionen (Logging, Fehlerbehandlung, Pfadauflösung, Snapshot-Logik), die von mehreren Kommandos shared werden. |
+`lib/core.bash` enthält Dispatcher-, Logging- und gemeinsame Laufzeithilfen.
 
-## `etc/`
+## Repository-Wartung
 
-| Datei | Zweck |
-| --- | --- |
-| `etc/profile.example.yml` | Referenz-Profil für Projekte; dokumentiert unterstützte Sektionen (`python`, `contracts`, `tasks`). |
+Integrity und Metrics laufen über eigene Skripte/Workflows und sind keine
+öffentlichen WGX-Subcommands. Fleet-Policy und Starterdistribution gehören zu
+Metarepo.
 
-## `fixtures/`
-
-| Datei | Zweck |
-| --- | --- |
-| `fixtures/profile.valid.yml` | Minimales gültiges Profil ausschließlich für lokale Regressionstests. Keine Fleet-Distributionsquelle. |
-
-Fleet-Vorlagen, Distribution und deren CI-Validierung gehören dem
-[`heimgewebe/metarepo`](https://github.com/heimgewebe/metarepo/tree/main/templates).
-
-## Verwandte Artefakte
-
-- `docs/Runbook.*` & `docs/Glossar.*` dienen als Einstiegspunkte für Onboarding und Terminologie (jetzt zweisprachig verfügbar).
-- `docs/Command-Reference.de.md` (neu) listet alle Kommandos samt Optionen auf.
-
-Diese Übersicht soll als Navigationshilfe dienen; Detailverhalten findet sich jeweils in den Quellskripten oder in der Befehlsreferenz.
+Siehe auch [CLI-Referenz](cli.md) und [Runbook](Runbook.md).

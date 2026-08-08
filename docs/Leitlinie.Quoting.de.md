@@ -1,50 +1,35 @@
 # Leitlinie: Shell-Quoting
 
-Diese Leitlinie definiert einen verpflichtenden Grundstock für sicheres
-Quoting in allen Bash-Skripten des Repositories. Sie ergänzt ShellCheck und
-shfmt, ersetzt sie aber nicht.
+Diese Leitlinie beschreibt den verbindlichen Umgang mit Shell-Quoting im WGX-Repository.
 
-## Zielsetzung
+## Grundsätze
 
-- **Vermeidung von Word-Splitting und Globbing:** Unkontrollierte
-  Parameter-Expansion darf keine zusätzlichen Argumente erzeugen.
-- **Stabile Übergabe von Daten:** Ausgaben von Subkommandos werden immer als
-  ganze Zeichenketten übergeben.
-- **Reproduzierbare Linter-Ergebnisse:** ShellCheck bleibt Referenz für neue
-  Regeln; diese Leitlinie legt das Minimum fest, bevor ShellCheck greift.
-
-## Baseline-Regeln
-
-1. **Alle Variablen-Expansions quoten** – selbst bei offensichtlichen Fällen.
+1. **Variablenexpansion standardmäßig quoten.**
 
    ```bash
-   printf '%s\n' "${repo_root}"
-   mapfile -t lines < <(git status --short)
+   printf '%s\n' "$value"
    ```
 
-2. **Arrays immer mit `[@]` und Quotes verwenden.**
+2. **Arrays elementweise expandieren.**
 
    ```bash
-   for path in "${files[@]}"; do
-     printf '→ %s\n' "$path"
-   done
+   command "${args[@]}"
    ```
 
-3. **Command-Substitutions sofort quoten.**
+3. **Command-Substitution quoten, wenn das Ergebnis ein einzelnes Argument ist.**
 
    ```bash
-   latest_tag="$(git describe --tags --abbrev=0)"
+   root="$(git rev-parse --show-toplevel)"
    ```
 
-4. **`printf` statt `echo` für kontrollierte Ausgaben nutzen.** So bleiben
-   Backslashes, führende Bindestriche oder `-n` wörtlich erhalten.
-5. **`read` nur mit `-r` verwenden.** Damit werden Backslashes nicht
-   interpretiert:
+4. **Explizite Wortaufspaltung nur dokumentiert verwenden.** Wenn ein Wert als
+   Argumentliste interpretiert werden soll, ist ein Array gegenüber absichtlichem
+   unquotiertem Expandieren zu bevorzugen.
+
+5. **Dateinamen mit `--` von Optionen trennen.**
 
    ```bash
-   while IFS= read -r line; do
-     printf '%s\n' "$line"
-   done <"$file"
+   rm -- "$path"
    ```
 
 6. **Pfadangaben vor Globbing schützen.** Vor dem Gebrauch `set -f` bzw.
@@ -62,8 +47,8 @@ shfmt, ersetzt sie aber nicht.
 - ShellCheck muss ohne Ignorieren von Quoting-Warnungen (`SC2086`, `SC2046`,
   `SC2016`, …) bestehen.
 - shfmt darf keine Änderungen an bereits formatierten Quoting-Blöcken vornehmen.
-- Neue Shell-Komponenten liefern einen kurzen Selfcheck (`wgx lint`) vor dem
-  Commit.
+- Neue Shell-Komponenten werden vor dem Commit mit den repository-eigenen
+  Shell-CI-Befehlen geprüft (`bash -n`, `shfmt -d`, `shellcheck -x -S style`).
 
 ## Quick-Check
 
@@ -71,7 +56,7 @@ Vor jedem Commit folgende Fragen beantworten:
 
 - Sind alle Expansions (Variablen, Command-Substitutions, Pfade) gequotet?
 - Wird beim Iterieren über Arrays `"${array[@]}"` benutzt?
-- Besteht `wgx lint` ohne neue ShellCheck-Ausnahmen?
+- Bestehen die repository-eigenen Shell-CI-Befehle ohne neue Ausnahmen?
 
 Wenn eine dieser Fragen mit „nein“ beantwortet wird, muss der Code nachgebessert
 werden.
