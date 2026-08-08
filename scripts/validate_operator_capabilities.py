@@ -146,18 +146,11 @@ ALLOWED_COMMAND_CLASSIFICATION = {
     "unavailable",
 }
 REQUIRED_COMMAND_CLASSIFICATIONS = {
-    "clean": "repository_scoped_developer_mutation",
-    "quick": "external_repository_service_mutation",
-    "reload": "repository_scoped_destructive_mutation",
-    "send": "external_repository_service_mutation",
-    "sync-remote": "repository_scoped_destructive_mutation",
     "run": "delegated_profile_execution",
     "task": "delegated_profile_execution",
+    "version": "repository_scoped_observation",
 }
-REQUIRED_COMMAND_DELEGATIONS = {
-    "quick": ["guard", "send"],
-    "sync-remote": ["reload"],
-}
+REQUIRED_COMMAND_DELEGATIONS: dict[str, list[str]] = {}
 AUTHORITY_SOURCE_BINDINGS = {
     "bureau_task_coordination": ("heimgewebe/bureau", "docs/ownership.md"),
     "grabowski_deployment_or_process_authority": (
@@ -167,10 +160,6 @@ AUTHORITY_SOURCE_BINDINGS = {
     "generic_cross_repository_host_authority": (
         "heimgewebe/grabowski",
         "README.md",
-    ),
-    "repository_changes": (
-        "heimgewebe/wgx",
-        "cmd/reload.bash",
     ),
     "ci_conclusions": (
         "heimgewebe/wgx",

@@ -687,7 +687,7 @@ class OperatorCapabilitiesTest(unittest.TestCase):
         )
 
     def test_non_consumer_wgx_source_url_requires_pinned_evidence(self) -> None:
-        target = self.payload["authority_boundary"]["owners"]["repository_changes"][
+        target = self.payload["authority_boundary"]["owners"]["ci_conclusions"][
             "source_url"
         ]
         records, findings = self.load_evidence(self.evidence)
@@ -707,7 +707,7 @@ class OperatorCapabilitiesTest(unittest.TestCase):
 
     def test_wgx_source_identity_is_case_insensitive_for_proof_requirement(self) -> None:
         payload = copy.deepcopy(self.payload)
-        owner = payload["authority_boundary"]["owners"]["repository_changes"]
+        owner = payload["authority_boundary"]["owners"]["ci_conclusions"]
         owner["source_url"] = owner["source_url"].replace(
             "heimgewebe/wgx", "Heimgewebe/WGX", 1
         )
@@ -750,21 +750,19 @@ class OperatorCapabilitiesTest(unittest.TestCase):
         findings = self.validate(payload)
         self.assertTrue(any("required surfaces are missing" in item for item in findings))
 
-    def test_sync_remote_alias_classification_is_fail_closed(self) -> None:
+    def test_version_classification_is_fail_closed_read_only(self) -> None:
         payload = copy.deepcopy(self.payload)
         command = next(
-            item for item in payload["operational_commands"] if item["id"] == "sync-remote"
+            item for item in payload["operational_commands"] if item["id"] == "version"
         )
-        command["classification"] = "unavailable"
-        command["delegates_to"] = []
+        command["classification"] = "repository_scoped_observation_optional_mutation"
         findings = self.validate(payload)
         self.assertTrue(
             any(
-                "classification must be repository_scoped_destructive_mutation" in item
+                "classification must be repository_scoped_observation" in item
                 for item in findings
             )
         )
-        self.assertTrue(any("delegates_to must equal ['reload']" in item for item in findings))
 
     def test_metrics_base_behaviors_are_retained(self) -> None:
         workflow = (ROOT / ".github/workflows/metrics.yml").read_text(encoding="utf-8")
@@ -805,10 +803,10 @@ class OperatorCapabilitiesTest(unittest.TestCase):
     def test_missing_operational_command_is_rejected(self) -> None:
         payload = copy.deepcopy(self.payload)
         payload["operational_commands"] = [
-            item for item in payload["operational_commands"] if item["id"] != "reload"
+            item for item in payload["operational_commands"] if item["id"] != "validate"
         ]
         findings = self.validate(payload)
-        self.assertTrue(any("operational command inventory is missing: reload" in item for item in findings))
+        self.assertTrue(any("operational command inventory is missing: validate" in item for item in findings))
 
     def test_delegated_execution_must_disclose_host_effects(self) -> None:
         payload = copy.deepcopy(self.payload)
@@ -827,7 +825,7 @@ class OperatorCapabilitiesTest(unittest.TestCase):
             findings = self.validate(payload)
         self.assertTrue(
             any(
-                "workflow pull_request trigger misses required path: cmd/clean.bash" in item
+                "workflow pull_request trigger misses required path: cmd/validate.bash" in item
                 for item in findings
             )
         )

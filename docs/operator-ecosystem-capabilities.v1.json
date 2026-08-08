@@ -18,7 +18,8 @@
     "limitations": [
       "Consumer means a repository that invokes the canonical heimgewebe/wgx surface. A target named by a WGX workflow is not a consumer.",
       "Checked-in forks and copied scripts are not consumers unless they invoke the canonical WGX-owned surface.",
-      "Primary local checkouts were inspected at the exact commits linked below; duplicate worktrees were excluded."
+      "Primary local checkouts were inspected at the exact commits linked below; duplicate worktrees were excluded.",
+      "Consumer evidence in this file is a historical snapshot from 2026-07-27; it must not be interpreted as current Fleet caller truth."
     ]
   },
   "authority_claim_paths": [
@@ -34,7 +35,7 @@
     "docs/wgx-mycelium-v-omega.de.md"
   ],
   "authority_boundary": {
-    "wgx_role": "Repository-scoped developer tool, verification adapter, and compatibility-check implementation.",
+    "wgx_role": "Repository verification runner and compatibility adapter.",
     "does_not_own": [
       "bureau_task_coordination",
       "grabowski_deployment_or_process_authority",
@@ -53,16 +54,12 @@
         "owner": "explicitly authorized operator or ecosystem owner",
         "source_url": "https://github.com/heimgewebe/grabowski/blob/afc0a6f67ac553aaaa140ca2785aee3d47843636/README.md"
       },
-      "repository_changes": {
-        "owner": "invoking repository and operator",
-        "source_url": "https://github.com/heimgewebe/wgx/blob/c1b336ee0a82a3b1fd0c5f09158dcdb5f3c1d9ef/cmd/reload.bash"
-      },
       "ci_conclusions": {
         "owner": "target repository native CI and GitHub",
         "source_url": "https://github.com/heimgewebe/wgx/blob/c1b336ee0a82a3b1fd0c5f09158dcdb5f3c1d9ef/.github/workflows/wgx-guard.yml"
       }
     },
-    "repository_scoped_mutation": "WGX does expose repository-scoped developer mutations such as clean, reload, heal, send, version changes, integrity output, and Vibe receipts.",
+    "repository_scoped_mutation": "WGX no longer exposes generic Git/forge/operator mutation commands. Narrow WGX-internal audit/integrity writes remain, while run/task execute repository-declared commands whose host effects are not confined by WGX.",
     "delegated_execution": "run and task execute repository-declared shell commands. WGX does not technically confine those commands to the repository, so host effects are possible under the invoking operator and profile owner's authority.",
     "explicit_non_claims": [
       "WGX does not claim, order, assign, or complete Bureau tasks.",
@@ -76,7 +73,7 @@
       "category": "guard",
       "disposition": "retained_multi_consumer",
       "authority": "compatibility_check",
-      "summary": "Legacy WGX workflow entrypoint forwards existing consumers to Metarepo reusable repository verification pinned at 31dbecc6c7b966faa73ad3dceb0ded7329187f36; WGX no longer owns guard policy.",
+      "summary": "Historical WGX guard entrypoint evidence is retained as a 2026-07-27 snapshot. The live entrypoint is now only a compatibility shim to Metarepo; WGX does not own guard policy.",
       "surfaces": [
         ".github/workflows/wgx-guard.yml"
       ],
@@ -195,7 +192,7 @@
       "category": "smoke",
       "disposition": "retained_multi_consumer",
       "authority": "compatibility_check",
-      "summary": "Legacy WGX smoke entrypoint forwards existing consumers to Metarepo reusable repository verification pinned at 31dbecc6c7b966faa73ad3dceb0ded7329187f36; WGX no longer owns smoke policy.",
+      "summary": "Historical WGX smoke entrypoint evidence is retained as a 2026-07-27 snapshot. The live entrypoint is now only a compatibility shim to Metarepo; WGX does not own smoke policy.",
       "surfaces": [
         ".github/workflows/wgx-smoke.yml",
         "scripts/check_wgx_smoke_contract.py",
@@ -574,15 +571,6 @@
       "alternative": {"owner": "Git and the invoking repository", "path": "git status / git fetch / repository audit CI"}
     },
     {
-      "id": "clean",
-      "surface": "cmd/clean.bash",
-      "status": "active",
-      "classification": "repository_scoped_developer_mutation",
-      "effects": "Deletes WGX-repository caches/build output; --git prunes refs/branches and --deep runs destructive git clean after explicit force.",
-      "consumer_evidence_paths": ["tests/clean.bats"],
-      "alternative": {"owner": "invoking repository", "path": "repository-native clean target and git clean"}
-    },
-    {
       "id": "doctor",
       "surface": "cmd/doctor.bash",
       "status": "active",
@@ -610,24 +598,6 @@
       "alternative": {"owner": "invoking repository", "path": "repository-native CI and validation scripts"}
     },
     {
-      "id": "heal",
-      "surface": "cmd/heal.bash",
-      "status": "active",
-      "classification": "repository_scoped_developer_mutation",
-      "effects": "Fetches, stashes, rebases, merges, stages, continues, or aborts Git operations in the current repository.",
-      "consumer_evidence_paths": ["docs/cli.md"],
-      "alternative": {"owner": "Git and invoking operator", "path": "git fetch/rebase/merge/stash"}
-    },
-    {
-      "id": "init",
-      "surface": "cmd/init.bash",
-      "status": "active",
-      "classification": "repository_scoped_developer_mutation",
-      "effects": "Creates or updates a WGX profile in the selected repository.",
-      "consumer_evidence_paths": ["docs/quickstart.md"],
-      "alternative": {"owner": "invoking repository", "path": "manually maintained .wgx/profile.yml"}
-    },
-    {
       "id": "integrity",
       "surface": "cmd/integrity.bash",
       "status": "active",
@@ -644,34 +614,6 @@
       "effects": "Runs syntax, formatting, and static-analysis checks.",
       "consumer_evidence_paths": ["docs/cli.md"],
       "alternative": {"owner": "invoking repository", "path": "repository-native lint target"}
-    },
-    {
-      "id": "quick",
-      "surface": "cmd/quick.bash",
-      "status": "active",
-      "classification": "external_repository_service_mutation",
-      "effects": "Runs guard then delegates to send, which may create and open a PR/MR.",
-      "delegates_to": ["guard", "send"],
-      "consumer_evidence_paths": ["tests/quick.bats"],
-      "alternative": {"owner": "invoking repository and forge", "path": "repository CI plus gh/glab PR creation"}
-    },
-    {
-      "id": "reload",
-      "surface": "cmd/reload.bash",
-      "status": "active",
-      "classification": "repository_scoped_destructive_mutation",
-      "effects": "Fetches all remotes, hard-resets the current repository, and removes untracked/ignored files; optional stash and dry-run exist.",
-      "consumer_evidence_paths": ["tests/reload.bats"],
-      "alternative": {"owner": "Git and invoking operator", "path": "git fetch/reset/clean with repository-specific recovery policy"}
-    },
-    {
-      "id": "routine",
-      "surface": "cmd/routine.bash",
-      "status": "active",
-      "classification": "repository_scoped_observation_optional_mutation",
-      "effects": "Previews Git remote-head repair; apply mutates current-repository remote refs and writes local result artifacts.",
-      "consumer_evidence_paths": ["tests/routine_cmd.bats"],
-      "alternative": {"owner": "Git and invoking repository", "path": "git remote set-head and repository runbook"}
     },
     {
       "id": "run",
@@ -692,15 +634,6 @@
       "alternative": {"owner": "invoking operator", "path": "direct executable and dependency checks"}
     },
     {
-      "id": "send",
-      "surface": "cmd/send.bash",
-      "status": "active",
-      "classification": "external_repository_service_mutation",
-      "effects": "Runs guards, fetches the current repository, can create a branch, and creates a PR/MR through gh or glab.",
-      "consumer_evidence_paths": ["tests/send.bats"],
-      "alternative": {"owner": "invoking repository and forge", "path": "git plus gh/glab or repository-native contribution workflow"}
-    },
-    {
       "id": "status",
       "surface": "cmd/status.bash",
       "status": "active",
@@ -708,16 +641,6 @@
       "effects": "Reads repository and WGX status.",
       "consumer_evidence_paths": ["tests/status.bats"],
       "alternative": {"owner": "invoking repository", "path": "git status and repository-native diagnostics"}
-    },
-    {
-      "id": "sync-remote",
-      "surface": "cmd/sync-remote.bash",
-      "status": "active",
-      "classification": "repository_scoped_destructive_mutation",
-      "effects": "Active alias for reload: fetches all remotes, hard-resets the current repository, and removes untracked/ignored files; reload dry-run, snapshot, dirty-tree refusal, and force semantics apply.",
-      "delegates_to": ["reload"],
-      "consumer_evidence_paths": ["cmd/sync-remote.bash", "tests/reload.bats"],
-      "alternative": {"owner": "Git and invoking operator", "path": "explicit git fetch/pull under repository policy"}
     },
     {
       "id": "task",
@@ -759,19 +682,10 @@
       "id": "version",
       "surface": "cmd/version.bash",
       "status": "active",
-      "classification": "repository_scoped_observation_optional_mutation",
-      "effects": "Reads a version by default; bump/set writes supported version files in the current repository.",
+      "classification": "repository_scoped_observation",
+      "effects": "Reads the current project or WGX version without modifying repository state; mutation subcommands are rejected.",
       "consumer_evidence_paths": ["tests/version.bats"],
-      "alternative": {"owner": "invoking repository", "path": "language-native version tooling or reviewed file edit"}
-    },
-    {
-      "id": "vibe",
-      "surface": "cmd/vibe.bash",
-      "status": "active",
-      "classification": "operator_selected_host_state_mutation",
-      "effects": "Plan/status/doctor are read-only; adopt writes a receipt under operator-selected WGX state and refers to an explicit repository/worktree.",
-      "consumer_evidence_paths": ["tests/vibe.bats"],
-      "alternative": {"owner": "invoking operator and repository", "path": "repository-native worktree/run receipt workflow"}
+      "alternative": {"owner": "invoking repository", "path": "language-native version inspection or repository metadata"}
     }
   ],
   "workflow_contract": {
