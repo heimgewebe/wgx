@@ -12,14 +12,14 @@ permissions:
 
 jobs:
   guard:
-    uses: heimgewebe/metarepo/.github/workflows/reusable-repo-verify.yml@1533061dd1a098c627070c5afd98bb23843107a2
+    uses: heimgewebe/metarepo/.github/workflows/reusable-repo-verify.yml@5afd566efb27fb6594ff32daa4d3b86c5184ba30
     with:
       mode: guard
     permissions:
       contents: read
 
   smoke:
-    uses: heimgewebe/metarepo/.github/workflows/reusable-repo-verify.yml@1533061dd1a098c627070c5afd98bb23843107a2
+    uses: heimgewebe/metarepo/.github/workflows/reusable-repo-verify.yml@5afd566efb27fb6594ff32daa4d3b86c5184ba30
     with:
       mode: smoke
     permissions:
