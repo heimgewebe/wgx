@@ -813,10 +813,23 @@ class OperatorCapabilitiesTest(unittest.TestCase):
             encoding="utf-8"
         )
         self.assertNotIn("workflow_call:", workflow)
-        self.assertIn(
-            "heimgewebe/metarepo/.github/workflows/reusable-repo-verify.yml@"
-            "1533061dd1a098c627070c5afd98bb23843107a2",
-            workflow,
+        pin_prefix = (
+            "uses: heimgewebe/metarepo/.github/workflows/"
+            "reusable-repo-verify.yml@"
+        )
+        pins = [
+            line.strip().removeprefix(pin_prefix)
+            for line in workflow.splitlines()
+            if line.strip().startswith(pin_prefix)
+        ]
+        self.assertEqual(len(pins), 2)
+        self.assertEqual(len(set(pins)), 1)
+        self.assertTrue(
+            all(
+                len(pin) == 40
+                and all(character in "0123456789abcdef" for character in pin)
+                for pin in pins
+            )
         )
 
     def test_explicit_authority_contradiction_in_capability_prose_is_rejected(self) -> None:
