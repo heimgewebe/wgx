@@ -28,7 +28,7 @@ jobs:
           ref: ${{ github.event.inputs.tag && format('refs/tags/{0}', github.event.inputs.tag) || github.ref }}
       - name: Create GitHub Release
         # Pin to SHA for security - v2.4.2
-        uses: softprops/action-gh-release@77fb938f2f95e717ce6705d2909af527263360a0
+        uses: softprops/action-gh-release@d1e66170d32c9ec7bbcb7fae044d3d686ce304d3
         with:
           tag_name: ${{ github.event.inputs.tag || github.ref_name }}
           generate_release_notes: true
