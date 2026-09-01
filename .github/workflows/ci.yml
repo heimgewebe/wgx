@@ -496,7 +496,7 @@ jobs:
       fail-fast: false
       matrix:
         repo:
-          - https://github.com/heimgewebe/weltgewebe
+          - https://github.com/heimgewebe/commonthing
           - https://github.com/heimgewebe/hausKI
           # ggf. weitere Repos ergänzen
     steps:
