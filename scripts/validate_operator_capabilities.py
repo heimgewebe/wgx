@@ -70,8 +70,6 @@ REQUIRED_CAPABILITY_SURFACES = {
 SURFACE_CONTENT_REQUIREMENTS = {
     ".github/workflows/metrics.yml": {
         'cron: "0 * * * *"',
-        "HAUSKI_POST_URL: ${{ secrets.HAUSKI_METRICS_URL }}",
-        "Optional POST to hausKI",
         "uses: actions/upload-artifact@v4",
         "retention-days: 7",
     },
