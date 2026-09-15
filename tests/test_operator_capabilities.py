@@ -867,13 +867,14 @@ class OperatorCapabilitiesTest(unittest.TestCase):
         workflow = (ROOT / ".github/workflows/metrics.yml").read_text(encoding="utf-8")
         for required in (
             'cron: "0 * * * *"',
-            "HAUSKI_POST_URL: ${{ secrets.HAUSKI_METRICS_URL }}",
-            "Optional POST to hausKI",
             "uses: actions/upload-artifact@v4",
             "retention-days: 7",
         ):
             with self.subTest(required=required):
                 self.assertIn(required, workflow)
+        self.assertNotIn("HAUSKI_METRICS_URL", workflow)
+        self.assertNotIn("HAUSKI_POST_URL", workflow)
+        self.assertNotIn("Optional POST to hausKI", workflow)
         self.assertNotIn("actions: write", workflow)
         self.assertNotIn("checks: write", workflow)
 
