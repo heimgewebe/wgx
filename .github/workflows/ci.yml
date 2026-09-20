@@ -497,7 +497,6 @@ jobs:
       matrix:
         repo:
           - https://github.com/heimgewebe/commonthing
-          - https://github.com/heimgewebe/hausKI
           # ggf. weitere Repos ergänzen
     steps:
       - uses: actions/checkout@v4
