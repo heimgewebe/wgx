@@ -2,14 +2,12 @@
 
 Evidence for `OPERATOR-INTEGRATION-LOOP-V1-T002`, acceptance criterion `fleet-proof`.
 
-Regenerate with:
-
-```bash
-scripts/validate_fleet_proof.sh
-```
-
-Note: the script writes into this directory but does not delete it — keep this
-README when regenerating.
+This directory is a historical receipt for the fleet state captured by the
+original task. It is intentionally **not regenerable as current fleet evidence**
+after repository retirement: the former runner named repositories that are no
+longer part of the current fleet, including the physically deleted
+`heimgewebe/hausKI`. The obsolete regeneration script has therefore been retired
+while the captured JSON and this methodology note remain unchanged as provenance.
 
 ## Method
 
@@ -36,7 +34,7 @@ works against their real check inventories.
 | repository | discovery | quick (green) | full (red) |
 | --- | --- | --- | --- |
 | hausKI | deterministic | `lint` passed | `redprobe` failed, `slowprobe` timeout, `ciprobe` ci-only |
-| chronik | deterministic | `guard` passed | `guard` timeout, `redprobe` failed, `slowprobe` timeout, `ciprobe` ci-only |
+| chronik | deterministic | `guard` passed | `redprobe` failed, `guard`/`slowprobe` timeout, `ciprobe` ci-only |
 | weltgewebe | deterministic | `lint` passed | `redprobe` failed, `slowprobe` timeout, `ciprobe` ci-only |
 
 Every assertion in `summary.json` → `proves` holds for all three repositories:

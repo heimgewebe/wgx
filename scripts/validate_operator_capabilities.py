@@ -776,6 +776,29 @@ def _load_pinned_evidence(
     if not isinstance(payload, dict) or payload.get("schema_version") != 3:
         findings.append("pinned source evidence schema_version must equal 3")
         return {}
+    archival_repositories = payload.get("archival_repositories", {})
+    if not isinstance(archival_repositories, dict):
+        findings.append("pinned source evidence archival_repositories must be an object")
+        archival_repositories = {}
+    valid_archival_repositories: set[str] = set()
+    for repository, metadata in archival_repositories.items():
+        prefix = f"pinned source evidence archival_repositories[{repository!r}]"
+        if not _nonempty_string(repository):
+            findings.append(f"{prefix} repository key must be non-empty")
+            continue
+        if not isinstance(metadata, dict):
+            findings.append(f"{prefix} must be an object")
+            continue
+        if metadata.get("state") != "deleted_after_pinned_capture":
+            findings.append(f"{prefix}.state must equal deleted_after_pinned_capture")
+            continue
+        if metadata.get("remote_authentication") != "unavailable_by_design":
+            findings.append(f"{prefix}.remote_authentication must equal unavailable_by_design")
+            continue
+        if not _nonempty_string(metadata.get("retirement_reference")):
+            findings.append(f"{prefix}.retirement_reference is required")
+            continue
+        valid_archival_repositories.add(repository)
     git_objects, provided_object_ids = _load_git_object_proofs(
         payload.get("git_objects"), findings
     )
@@ -842,7 +865,14 @@ def _load_pinned_evidence(
         if not path_valid:
             record_valid = False
         repository_commit_key = (repository, commit_sha, record.get("root_tree_sha"))
-        if all(isinstance(value, str) for value in repository_commit_key):
+        archival_only = repository in valid_archival_repositories
+        if archival_only:
+            # The complete Git object/path proof above remains mandatory, but a
+            # deliberately deleted repository can no longer authenticate its
+            # historical commit through GitHub. Archival records therefore stay
+            # integrity-checked while being ineligible to support current claims.
+            pass
+        elif all(isinstance(value, str) for value in repository_commit_key):
             typed_key = (
                 repository_commit_key[0],
                 repository_commit_key[1],
@@ -865,7 +895,7 @@ def _load_pinned_evidence(
                 "for remote repository authentication"
             )
             record_valid = False
-        if record_valid:
+        if record_valid and not archival_only:
             result[source_url] = {**record, "blob_content": content}
     unreferenced_object_ids = provided_object_ids - used_object_ids
     if unreferenced_object_ids:

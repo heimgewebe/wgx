@@ -8,7 +8,6 @@ on:
         required: false
         default: |
           [
-            {"repo":"heimgewebe/hausKI","ref":"main"},
             {"repo":"heimgewebe/commonthing","ref":"main"}
           ]
   pull_request:
@@ -57,7 +56,7 @@ jobs:
       - id: matrix
         shell: bash
         run: |
-          def='[{"repo":"heimgewebe/hausKI","ref":"main"},{"repo":"heimgewebe/commonthing","ref":"main"}]'
+          def='[{"repo":"heimgewebe/commonthing","ref":"main"}]'
           inp=$(cat <<-'JSON'
           ${{ github.event.inputs.targets_json }}
           JSON
