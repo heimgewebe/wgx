@@ -536,6 +536,7 @@ class OperatorCapabilitiesTest(unittest.TestCase):
         expected = {
             (item["repository"], item["commit_sha"], item["root_tree_sha"])
             for item in self.evidence["sources"]
+            if item["repository"] not in self.evidence["archival_repositories"]
         }
         self.assertEqual(findings, [])
         self.assertEqual(set(calls), expected)
@@ -725,6 +726,55 @@ class OperatorCapabilitiesTest(unittest.TestCase):
         self.assertEqual(
             error,
             "GitHub default-branch history timestamp is not uniquely bounded",
+        )
+
+    def test_archival_repository_evidence_is_not_current_claim_evidence(self) -> None:
+        calls: list[str] = []
+
+        def verifier(repository: str, _commit_sha: str, _root_tree_sha: str) -> str | None:
+            calls.append(repository)
+            return None
+
+        records, findings = self.load_evidence(
+            copy.deepcopy(self.evidence),
+            repository_commit_verifier=verifier,
+        )
+
+        self.assertEqual(findings, [])
+        archival = set(self.evidence["archival_repositories"])
+        self.assertTrue(archival)
+        self.assertTrue(archival.isdisjoint(calls))
+        archival_urls = {
+            item["source_url"]
+            for item in self.evidence["sources"]
+            if item["repository"] in archival
+        }
+        self.assertTrue(archival_urls.isdisjoint(records))
+
+    def test_archival_repository_metadata_is_fail_closed(self) -> None:
+        evidence = copy.deepcopy(self.evidence)
+        evidence["archival_repositories"]["heimgewebe/hausKI"][
+            "remote_authentication"
+        ] = "ignored"
+
+        _, findings = self.load_evidence(evidence)
+
+        self.assertTrue(
+            any(
+                "archival_repositories['heimgewebe/hausKI'].remote_authentication"
+                in item
+                for item in findings
+            )
+        )
+
+    def test_archival_repository_cannot_support_current_consumer_claim(self) -> None:
+        findings = self.validate(self.payload_with_historical_external_consumer())
+
+        self.assertTrue(
+            any(
+                "source_url has no checked-in pinned source evidence" in item
+                for item in findings
+            )
         )
 
     def test_duplicate_source_evidence_record_is_rejected(self) -> None:
