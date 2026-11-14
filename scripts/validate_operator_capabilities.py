@@ -69,7 +69,9 @@ REQUIRED_CAPABILITY_SURFACES = {
 }
 SURFACE_CONTENT_REQUIREMENTS = {
     ".github/workflows/metrics.yml": {
-        'cron: "0 * * * *"',
+        "workflow_dispatch:",
+        "push:",
+        "pull_request:",
         "uses: actions/upload-artifact@v4",
         "retention-days: 7",
     },
