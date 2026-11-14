@@ -20,6 +20,11 @@
       "state": "deleted_after_pinned_capture",
       "remote_authentication": "unavailable_by_design",
       "retirement_reference": "heimgewebe/bureau#1816"
+    },
+    "heimgewebe/sichter": {
+      "state": "deleted_after_pinned_capture",
+      "remote_authentication": "unavailable_by_design",
+      "retirement_reference": "heimgewebe/metarepo/docs/nutzung.md"
     }
   },
   "git_objects": [
