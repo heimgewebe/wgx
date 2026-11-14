@@ -3,8 +3,8 @@ permissions:
   contents: read
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "0 * * * *"
+  # Compatibility fixture, not fleet/host health: run manually or when
+  # its implementation and validation contract change.
   push:
     paths:
       - ".github/workflows/metrics.yml"

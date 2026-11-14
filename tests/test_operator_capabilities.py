@@ -916,12 +916,15 @@ class OperatorCapabilitiesTest(unittest.TestCase):
     def test_metrics_base_behaviors_are_retained(self) -> None:
         workflow = (ROOT / ".github/workflows/metrics.yml").read_text(encoding="utf-8")
         for required in (
-            'cron: "0 * * * *"',
+            "workflow_dispatch:",
+            "push:",
+            "pull_request:",
             "uses: actions/upload-artifact@v4",
             "retention-days: 7",
         ):
             with self.subTest(required=required):
                 self.assertIn(required, workflow)
+        self.assertNotIn("schedule:", workflow)
         self.assertNotIn("HAUSKI_METRICS_URL", workflow)
         self.assertNotIn("HAUSKI_POST_URL", workflow)
         self.assertNotIn("Optional POST to hausKI", workflow)
