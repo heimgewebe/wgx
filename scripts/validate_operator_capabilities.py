@@ -791,11 +791,17 @@ def _load_pinned_evidence(
         if not isinstance(metadata, dict):
             findings.append(f"{prefix} must be an object")
             continue
-        if metadata.get("state") != "deleted_after_pinned_capture":
-            findings.append(f"{prefix}.state must equal deleted_after_pinned_capture")
+        authentication_by_state = {
+            "deleted_after_pinned_capture": "unavailable_by_design",
+            "archived_after_pinned_capture": "not_required_for_historical_evidence",
+        }
+        state = metadata.get("state")
+        if not isinstance(state, str) or state not in authentication_by_state:
+            findings.append(f"{prefix}.state must identify an archived or deleted repository")
             continue
-        if metadata.get("remote_authentication") != "unavailable_by_design":
-            findings.append(f"{prefix}.remote_authentication must equal unavailable_by_design")
+        expected_authentication = authentication_by_state[state]
+        if metadata.get("remote_authentication") != expected_authentication:
+            findings.append(f"{prefix}.remote_authentication must equal {expected_authentication}")
             continue
         if not _nonempty_string(metadata.get("retirement_reference")):
             findings.append(f"{prefix}.retirement_reference is required")
@@ -869,10 +875,9 @@ def _load_pinned_evidence(
         repository_commit_key = (repository, commit_sha, record.get("root_tree_sha"))
         archival_only = repository in valid_archival_repositories
         if archival_only:
-            # The complete Git object/path proof above remains mandatory, but a
-            # deliberately deleted repository can no longer authenticate its
-            # historical commit through GitHub. Archival records therefore stay
-            # integrity-checked while being ineligible to support current claims.
+            # Historical records retain the complete Git object/path proof.
+            # Explicitly retired sources cannot support current claims and do
+            # not require a live remote for historical integrity.
             pass
         elif all(isinstance(value, str) for value in repository_commit_key):
             typed_key = (

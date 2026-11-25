@@ -21,6 +21,11 @@
       "remote_authentication": "unavailable_by_design",
       "retirement_reference": "heimgewebe/bureau#1816"
     },
+    "heimgewebe/plexer": {
+      "state": "archived_after_pinned_capture",
+      "remote_authentication": "not_required_for_historical_evidence",
+      "retirement_reference": "https://github.com/heimgewebe/systemkatalog/pull/187"
+    },
     "heimgewebe/sichter": {
       "state": "deleted_after_pinned_capture",
       "remote_authentication": "unavailable_by_design",
