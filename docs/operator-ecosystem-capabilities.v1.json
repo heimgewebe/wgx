@@ -21,7 +21,7 @@
       "Primary local checkouts were inspected at the exact commits linked below; duplicate worktrees were excluded.",
       "Consumer evidence in this file is a historical snapshot from 2026-07-27; it must not be interpreted as current Fleet caller truth.",
       "A live default-branch caller audit on 2026-08-08 found no remaining external caller of the WGX guard/smoke reusable workflow URLs; their historical source evidence remains archival only.",
-      "Pinned source records for repositories deleted after capture are archival-only integrity proofs and cannot satisfy current consumer evidence."
+      "Pinned source records for repositories explicitly archived or deleted after capture are historical-only integrity proofs and cannot satisfy current consumer evidence; archival state must be backed by a retirement reference."
     ]
   },
   "authority_claim_paths": [

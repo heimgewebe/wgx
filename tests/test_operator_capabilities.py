@@ -751,6 +751,33 @@ class OperatorCapabilitiesTest(unittest.TestCase):
         }
         self.assertTrue(archival_urls.isdisjoint(records))
 
+    def test_retired_plexer_is_historical_only_but_integrity_checked(self) -> None:
+        repository = "heimgewebe/plexer"
+        calls: list[str] = []
+
+        def verifier(repo: str, _commit: str, _tree: str) -> str | None:
+            calls.append(repo)
+            return "remote unavailable" if repo == repository else None
+
+        records, findings = self.load_evidence(
+            copy.deepcopy(self.evidence), repository_commit_verifier=verifier
+        )
+        self.assertEqual(findings, [])
+        self.assertNotIn(repository, calls)
+        self.assertIn("heimgewebe/wgx", calls)
+        self.assertFalse(any(item["repository"] == repository for item in records.values()))
+
+        evidence = copy.deepcopy(self.evidence)
+        record = next(item for item in evidence["sources"] if item["repository"] == repository)
+        record["blob_content"] += "tampered"
+        _, findings = self.load_evidence(evidence, repository_commit_verifier=verifier)
+        self.assertTrue(any("content_sha256 does not match" in item for item in findings))
+
+        evidence = copy.deepcopy(self.evidence)
+        del evidence["archival_repositories"][repository]
+        _, findings = self.load_evidence(evidence, repository_commit_verifier=verifier)
+        self.assertTrue(any("remote unavailable" in item for item in findings))
+
     def test_archival_repository_metadata_is_fail_closed(self) -> None:
         evidence = copy.deepcopy(self.evidence)
         evidence["archival_repositories"]["heimgewebe/hausKI"][

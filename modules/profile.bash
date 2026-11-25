@@ -532,6 +532,28 @@ profile::_task_spec() {
   printf '%s' "${WGX_TASK_CMDS[$key]:-}"
 }
 
+# The parser emits a format prefix even when no command was resolved.
+# Validate the payload, not just the presence of the prefix.
+profile::_task_has_command() {
+  local spec="$1"
+  case "$spec" in
+  STR:*)
+    [[ ${spec#STR:} =~ [^[:space:]] ]]
+    ;;
+  ARR:*)
+    [[ ${spec#ARR:} =~ [^[:space:]] ]]
+    ;;
+  ARRJSON:*)
+    local -a cmd=()
+    mapfile -t cmd < <(profile::_decode_json_array "${spec#ARRJSON:}")
+    ((${#cmd[@]} > 0)) && [[ -n ${cmd[0]} ]]
+    ;;
+  *)
+    return 1
+    ;;
+  esac
+}
+
 # Hilfsfunktion: Shell-ähnliche Einfach-Quotes für Ausgabe
 profile::_quote_arg_for_display() {
   local s=$1
@@ -717,7 +739,7 @@ profile::run_task() {
         return 1
       fi
     fi
-    if ((${#cmd[@]} == 0)); then
+    if ((${#cmd[@]} == 0)) || [[ -z ${cmd[0]} ]]; then
       printf 'wgx: empty command for task %q\n' "$key" >&2
       return 2
     fi
@@ -748,7 +770,7 @@ profile::run_task() {
     if [[ -n $payload ]]; then
       read -r -a cmd <<<"$payload"
     fi
-    if ((${#cmd[@]} == 0)); then
+    if ((${#cmd[@]} == 0)) || [[ -z ${cmd[0]} ]]; then
       printf 'wgx: empty command for task %q\n' "$key" >&2
       return 2
     fi
@@ -775,6 +797,10 @@ profile::run_task() {
     ;;
   STR:*)
     local command="${spec#STR:}"
+    if ! profile::_task_has_command "$spec"; then
+      printf 'wgx: empty command for task %q\n' "$key" >&2
+      return 2
+    fi
     if ((dryrun)); then
       local out='[DRY-RUN]'
       local item
@@ -835,7 +861,7 @@ profile::validate_manifest() {
   local key spec
   for key in "${!WGX_TASK_CMDS[@]}"; do
     spec="${WGX_TASK_CMDS[$key]}"
-    [[ -n $spec ]] || _errors_ref+=("task_missing_command:${key}")
+    profile::_task_has_command "$spec" || _errors_ref+=("task_missing_command:${key}")
   done
   if ! profile::ensure_version; then
     _errors_ref+=("version_mismatch")
