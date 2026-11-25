@@ -221,6 +221,58 @@ class TestProfileParser(unittest.TestCase):
         self.assertIn("print(", completed.stdout)
         self.assertIn("import os", completed.stdout)
 
+    def test_empty_task_commands_fail_validation_and_execution(self):
+        root = Path(__file__).resolve().parents[1]
+        for task_spec in (
+            '    smoke: ""\n',
+            '    smoke:\n      cmd: null\n',
+            '    smoke:\n      cmd: []\n',
+            '    smoke:\n      cmd: [""]\n',
+            '    smoke:\n      enabled: true\n      steps:\n        - run: exit 7\n',
+        ):
+            with self.subTest(task_spec=task_spec), tempfile.TemporaryDirectory() as tmp_dir:
+                profile_dir = Path(tmp_dir) / ".wgx"
+                profile_dir.mkdir()
+                (profile_dir / "profile.yml").write_text(
+                    "wgx:\n  apiVersion: v1\n  tasks:\n" + task_spec,
+                    encoding="utf-8",
+                )
+                env = dict(os.environ, WGX_TARGET_ROOT=tmp_dir, WGX_DIR=str(root))
+                validated = subprocess.run(
+                    [str(root / "wgx"), "validate", "--json"],
+                    cwd=tmp_dir, env=env, capture_output=True, text=True,
+                )
+                self.assertNotEqual(validated.returncode, 0, validated.stdout)
+                self.assertIn("task_missing_command:smoke", validated.stdout)
+                executed = subprocess.run(
+                    [str(root / "wgx"), "task", "smoke"],
+                    cwd=tmp_dir, env=env, capture_output=True, text=True,
+                )
+                self.assertNotEqual(executed.returncode, 0, executed.stdout)
+                self.assertIn("empty command", executed.stderr)
+
+    def test_nonempty_task_commands_execute_and_preserve_exit_status(self):
+        root = Path(__file__).resolve().parents[1]
+        for task_spec in ('"exit 7"', '["bash", "-c", "exit 7"]'):
+            with self.subTest(task_spec=task_spec), tempfile.TemporaryDirectory() as tmp_dir:
+                profile_dir = Path(tmp_dir) / ".wgx"
+                profile_dir.mkdir()
+                (profile_dir / "profile.yml").write_text(
+                    "wgx:\n  apiVersion: v1\n  tasks:\n    smoke: " + task_spec + "\n",
+                    encoding="utf-8",
+                )
+                env = dict(os.environ, WGX_TARGET_ROOT=tmp_dir, WGX_DIR=str(root))
+                validated = subprocess.run(
+                    [str(root / "wgx"), "validate", "--json"],
+                    cwd=tmp_dir, env=env, capture_output=True, text=True,
+                )
+                self.assertEqual(validated.returncode, 0, validated.stdout + validated.stderr)
+                executed = subprocess.run(
+                    [str(root / "wgx"), "task", "smoke"],
+                    cwd=tmp_dir, env=env, capture_output=True, text=True,
+                )
+                self.assertEqual(executed.returncode, 7, executed.stderr)
+
     def test_main_missing_args(self):
         """Test that main() exits with status 1 if arguments are missing."""
         with patch.object(sys, 'argv', ['profile_parser.py']):
